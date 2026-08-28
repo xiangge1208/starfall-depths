@@ -365,15 +365,13 @@ func test_scene_combat_lock_two_waves_clear() -> void:
 	assert_int(_alive_enemies(room)).is_equal(3)
 	assert_bool(fs.flow.is_locked()).is_true()
 	assert_bool(fs.gate_is_open(0, 1)).is_false()
-	# 清波1 → 波2（3 只）补刷
+	# 清波1 → 波2（3 只）补刷（fix round 2：条件等待替代固定 4 帧窗，负载不敏感）
 	_kill_all(room)
-	for i in 4:
-		await get_tree().physics_frame
+	await _await_until(func() -> bool: return _alive_enemies(room) == 3)
 	assert_int(_alive_enemies(room)).is_equal(3)
 	# 清波2 → 房清、门开、奖励爆发、EventBus.room_cleared(模板 id)
 	_kill_all(room)
-	for i in 4:
-		await get_tree().physics_frame
+	await _await_until(func() -> bool: return fs.flow.is_locked() == false)
 	assert_bool(fs.flow.is_locked()).is_false()
 	assert_bool(fs.flow.cleared.has(1)).is_true()
 	assert_bool(fs.gate_is_open(0, 1)).is_true()
@@ -473,28 +471,24 @@ func test_scene_full_walk_elite_miniboss_boss() -> void:
 	assert_bool(fs.flow.is_locked()).is_true()
 	assert_int(_alive_enemies(fs.room_node(1))).is_equal(3)
 	_kill_all(fs.room_node(1))
-	for i in 4:
-		await get_tree().physics_frame
+	await _await_until(func() -> bool: return _alive_enemies(fs.room_node(1)) == 4)
 	# 波2：3 垃圾 + 1 精英嘉宾（占位 charger 3×hp）
 	assert_int(_alive_enemies(fs.room_node(1))).is_equal(4)
 	var elite_guest := _find_enemy(fs.room_node(1), "elite_charger")
 	assert_object(elite_guest).is_not_null()
 	assert_int(elite_guest.hp).is_equal(CHARGER_HP * 3)
 	_kill_all(fs.room_node(1))
-	for i in 4:
-		await get_tree().physics_frame
+	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
 	assert_bool(fs.flow.cleared.has(1)).is_true()
 	# miniboss：清后 boss 门解锁；波2 = 强化怪（占位 charger 3×hp）
 	assert_bool(fs.enter_room(2)).is_true()
 	assert_array(events).contains("miniboss:2")
 	_kill_all(fs.room_node(2))
-	for i in 4:
-		await get_tree().physics_frame
+	await _await_until(func() -> bool: return _find_enemy(fs.room_node(2), "miniboss_charger") != null)
 	var mb_guest := _find_enemy(fs.room_node(2), "miniboss_charger")
 	assert_object(mb_guest).is_not_null()
 	_kill_all(fs.room_node(2))
-	for i in 4:
-		await get_tree().physics_frame
+	await _await_until(func() -> bool: return fs.flow.cleared.has(2))
 	assert_bool(fs.flow.cleared.has(2)).is_true()
 	assert_bool(fs.flow.boss_door_unlocked()).is_true()
 	# boss：单波 vine_colossus 占位（8×hp / r16），清后 boss 房清
@@ -503,8 +497,7 @@ func test_scene_full_walk_elite_miniboss_boss() -> void:
 	assert_object(colossus).is_not_null()
 	assert_int(colossus.hp).is_equal(CHARGER_HP * 8)
 	_kill_all(fs.room_node(3))
-	for i in 4:
-		await get_tree().physics_frame
+	await _await_until(func() -> bool: return fs.flow.cleared.has(3))
 	assert_bool(fs.flow.cleared.has(3)).is_true()
 	assert_bool(fs.flow.is_locked()).is_false()
 
@@ -529,6 +522,15 @@ func test_scene_wave_composition_deterministic() -> void:
 
 
 # ---------------------------------------------------------------- helpers
+
+## 确定性等待（fix round 2）：条件成立即返回；至多 max_frames 帧后放弃（由后续
+## 断言报红）。固定 4 帧窗在套件负载下会错过跨拍事件（波2 补刷/清房推进）——
+## 本文件所有跨拍门控等待统一走此 helper；无纯同帧落地型固定等待残留。
+func _await_until(check: Callable, max_frames: int = 60) -> void:
+	for _i in max_frames:
+		if check.call():
+			return
+		await get_tree().physics_frame
 
 func _find_by_type(build: Dictionary, type: String) -> int:
 	for id in build["rooms"]:
