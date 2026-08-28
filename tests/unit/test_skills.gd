@@ -1,6 +1,7 @@
 class_name TestSkills
 extends GdUnitTestSuite
 ## M1 t2：技能框架 + 骑士「狂潮」双持 + 被动「坚守」+ 暴击事件（GDD §6）。
+## M1 t5：游侠「影袭」瞬步/无敌窗/必暴/弹速 + 被动「鹰眼」返蓝。
 
 const PLAYER_SCENE := preload("res://core/player/player.tscn")
 
@@ -267,6 +268,148 @@ func test_player_bullet_no_crit_no_event() -> void:
 	assert_int(body.hits.size()).is_equal(1)
 	assert_int(body.hits[0]["amount"]).is_equal(4)
 	assert_int(events.size()).is_equal(0)
+
+# ---- 游侠「影袭」+ 被动「鹰眼」 ----
+
+## 鹰眼掷签探针：本地 RandomNumberGenerator.randf() 为原生方法不可覆写，
+## 仿 RigProbe 以子类覆写 _hawk_proc 注入 100%/0% 桩（实 rng 流由 hawk_rng 承载）。
+class HawkProbe extends RangerShadowstep:
+	var procs := true
+	func _hawk_proc() -> bool:
+		return procs
+
+func _shadowstep(p: Player, data: Dictionary = {}) -> RangerShadowstep:
+	var sk := RangerShadowstep.new()
+	sk.setup(p, data)
+	p.add_child(sk)
+	return sk
+
+func _hawk(p: Player, procs: bool) -> HawkProbe:
+	var sk := HawkProbe.new()
+	sk.procs = procs
+	sk.setup(p, {})
+	p.add_child(sk)
+	return sk
+
+func test_shadowstep_dashes_140px_along_facing() -> void:
+	var p := _player()
+	_rig(p)
+	var sk := _shadowstep(p)
+	p.facing = Vector2.RIGHT
+	p.position = Vector2(100, 50)
+	assert_bool(sk.cast(100)).is_true()
+	assert_float(p.position.x).is_equal_approx(240.0, 0.001)   # 沿 facing 单帧 +140px
+	assert_float(p.position.y).is_equal_approx(50.0, 0.001)
+	p.facing = Vector2(0.0, -1.0)                              # 归一化方向（影袭瞬步沿 facing）
+	assert_bool(sk.cast(100 + 540)).is_true()                  # CD 后再次施放
+	assert_float(p.position.y).is_equal_approx(50.0 - 140.0, 0.001)
+
+func test_shadowstep_iframes_15_ticks() -> void:
+	var p := _player()
+	_rig(p)
+	var sk := _shadowstep(p)
+	assert_bool(sk.cast(100)).is_true()
+	assert_bool(p.is_invincible_at(100 + 14)).is_true()        # 15t 无敌窗（0.25s）
+	assert_bool(p.is_invincible_at(100 + 15)).is_false()       # 窗外恢复可受击
+
+func test_shadowstep_upgraded_iframes_36_ticks() -> void:
+	var p := _player()
+	_rig(p)
+	var sk := _shadowstep(p, {"upgraded": true})
+	assert_bool(sk.cast(100)).is_true()
+	assert_bool(p.is_invincible_at(100 + 35)).is_true()        # 升级版 36t（0.6s）
+	assert_bool(p.is_invincible_at(100 + 36)).is_false()
+
+func test_apply_iframes_keeps_longest_window() -> void:
+	var p := _player()
+	p.apply_iframes(48, 100)                                   # 受伤窗至 148
+	p.apply_iframes(15, 120)                                   # 影袭接缝：不缩短既有窗
+	assert_bool(p.is_invincible_at(147)).is_true()
+	assert_bool(p.is_invincible_at(148)).is_false()
+
+func test_shadowstep_sets_boost_windows_240_ticks() -> void:
+	var p := _player()
+	var r := _rig(p)
+	var cs := CombatSystem.new(auto_free(Node2D.new()), RngSvc.stream(0, "combat"))
+	auto_free(cs)
+	p.combat = cs                                           # 房间注入同款（room_combat.gd 接线）
+	var sk := _shadowstep(p)
+	assert_bool(sk.cast(100)).is_true()
+	assert_int(r.crit_boost_until).is_equal(340)               # 必暴状态窗 4s（HUD/查询镜像）
+	assert_int(r.speed_boost_until).is_equal(340)              # 弹速 ×1.2 窗 4s
+	assert_int(cs.forced_crit_until).is_equal(340)             # 功能侧：命中结算必暴窗
+
+func test_shadowstep_cooldown_540_zero_energy_cost() -> void:
+	var p := _player()
+	_rig(p)
+	p.energy = 10
+	var sk := _shadowstep(p)
+	assert_bool(sk.cast(100)).is_true()
+	assert_int(p.energy).is_equal(10)                          # 0 耗蓝
+	assert_int(sk.cooldown_remaining(100)).is_equal(540)
+	assert_bool(sk.cast(100 + 539)).is_false()                 # CD 门（9s）
+	assert_bool(sk.cast(100 + 540)).is_true()
+
+func test_speed_boost_multiplies_bullet_velocity_in_window() -> void:
+	_inject_cost_gun()
+	var p := _player()
+	var r := _rig(p)
+	r.equip("testgun_cost5")
+	assert_bool(r.try_fire(Vector2.RIGHT, 50)).is_true()
+	assert_float((r.spawned[0]["vel"] as Vector2).x).is_equal_approx(300.0, 0.001)   # 窗外原速
+	r.speed_boost_until = 100
+	assert_bool(r.try_fire(Vector2.RIGHT, 60)).is_true()       # rate 门后下一拍
+	assert_float((r.spawned[1]["vel"] as Vector2).x).is_equal_approx(360.0, 0.001)   # 窗内 ×1.2
+
+func test_forced_crit_overrides_hit_roll() -> void:
+	var root: Node2D = auto_free(Node2D.new())
+	add_child(root)
+	var cs := _make_cs(root, 0.0)                              # 场上掷签必不暴
+	cs.forced_crit_until = 999999                              # 影袭必暴窗（覆盖物理帧口径）
+	var body: DummyBody = auto_free(DummyBody.new())
+	var events: Array = []
+	var cb := func(amount: int, at: Vector2) -> void: events.append([amount, at])
+	await _shoot_player_bullet(cs, body, root, events, cb)
+	assert_int(body.hits[0]["amount"]).is_equal(8)             # 强制暴击 2×
+	assert_bool(body.hits[0]["is_crit"]).is_true()
+	assert_int(events.size()).is_equal(1)                      # player_crit_landed 照常广播（鹰眼源）
+
+func test_forced_crit_expired_uses_field_chance() -> void:
+	var root: Node2D = auto_free(Node2D.new())
+	add_child(root)
+	var cs := _make_cs(root, 0.0)
+	cs.forced_crit_until = 0                                   # 窗已过 → 回落 crit_chance 字段
+	var body: DummyBody = auto_free(DummyBody.new())
+	var events: Array = []
+	var cb := func(amount: int, at: Vector2) -> void: events.append([amount, at])
+	await _shoot_player_bullet(cs, body, root, events, cb)
+	assert_int(body.hits[0]["amount"]).is_equal(4)             # 无暴击
+	assert_bool(body.hits[0]["is_crit"]).is_false()
+	assert_int(events.size()).is_equal(0)
+
+func test_hawk_eye_returns_one_energy_per_crit_when_proc() -> void:
+	var p := _player()
+	p.energy = 50
+	_hawk(p, true)                                             # 100% 桩
+	EventBus.player_crit_landed.emit(8, Vector2.ZERO)
+	EventBus.player_crit_landed.emit(8, Vector2.ZERO)          # 两次暴击 → 两次返蓝
+	assert_int(p.energy).is_equal(52)                          # 每次 +1
+
+func test_hawk_eye_no_return_when_proc_fails() -> void:
+	var p := _player()
+	p.energy = 50
+	_hawk(p, false)                                            # 0% 桩
+	EventBus.player_crit_landed.emit(8, Vector2.ZERO)
+	assert_int(p.energy).is_equal(50)
+
+func test_hawk_eye_proc_threshold_uses_half() -> void:
+	var p := _player()
+	var sk := _shadowstep(p)
+	assert_bool(sk._hawk_should_return_energy(0.49)).is_true()
+	assert_bool(sk._hawk_should_return_energy(0.5)).is_false() # < 0.5 才返蓝
+	sk.hawk_rng = RngSvc.stream(0, "hawk")                     # 实装流注入（T11 装配同款派生）
+	var expected: float = RngSvc.stream(0, "hawk").randf()     # 同派生流首掷（确定性 twin）
+	assert_float(sk._next_hawk_roll()).is_equal(expected)      # 掷签经注入流
 
 # ---- 场景挂载契约 ----
 

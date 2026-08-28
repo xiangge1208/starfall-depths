@@ -25,6 +25,7 @@ var energy_max := 100
 var move_speed := MOVE_SPEED
 var facing := Vector2.RIGHT
 var weapon_rig: WeaponRig = null   # tscn 子节点（_ready 解析；测试可手工注入）
+var combat: CombatSystem = null    # m1-t5：技能经 player.combat 写必暴窗（房间注入，同 rig.combat 契约）
 var rampage_active_until := -1     # 狂潮(升级)减伤窗：frame < 此值时受伤 ×0.7（技能写入）
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
 var _roll_left := 0
@@ -75,6 +76,10 @@ func is_invincible_at(frame: int) -> bool:
 
 func is_invincible() -> bool:
 	return is_invincible_at(Engine.get_physics_frames())
+
+## 技能接缝（m1-t5 影袭）：开启一段无敌窗，取 max 不缩短既有窗（含受伤/翻滚窗）。
+func apply_iframes(ticks: int, frame: int) -> void:
+	_iframe_until = maxi(_iframe_until, frame + ticks)
 
 func take_hit(ctx: Dictionary) -> void:
 	take_hit_ctx(ctx, Engine.get_physics_frames())

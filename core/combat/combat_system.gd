@@ -6,6 +6,7 @@ const BODY_HIT_COOLDOWN_TICKS := 6   # 同一弹对同一体的重复命中抑�
 
 var pool: ProjectilePool
 var crit_chance := 0.05
+var forced_crit_until := -1        # m1-t5 影袭：frame < 此值时玩家弹命中必暴（技能经 player.combat 写入）
 var _hash := SpatialHash.new(32.0)
 var _bodies: Dictionary = {}          # instance_id -> {node, faction, radius}
 var _max_body_radius := 12.0          # m0-final fix2：查询松弛按已注册体最大半径（单调不缩）
@@ -67,7 +68,10 @@ func _physics_process(_delta: float) -> void:
 			if int(cd.get(node.get_instance_id(), -99)) + BODY_HIT_COOLDOWN_TICKS > Engine.get_physics_frames():
 				continue
 			cd[node.get_instance_id()] = Engine.get_physics_frames()
-			var roll := DamageCalc.compute(p.damage, _rng, crit_chance)
+			var cc := crit_chance
+			if p.faction == Projectile.Faction.PLAYER and Engine.get_physics_frames() < forced_crit_until:
+				cc = 1.0                        # m1-t5 影袭：玩家弹必暴窗（帧口径同上物理帧）
+			var roll := DamageCalc.compute(p.damage, _rng, cc)
 			if p.faction == Projectile.Faction.PLAYER and roll["is_crit"]:
 				EventBus.player_crit_landed.emit(roll["amount"], p.position)   # m1-t2：玩家弹暴击落地
 			node.take_hit({"amount": roll["amount"], "is_crit": roll["is_crit"], "element": p.element, "from": p.position})

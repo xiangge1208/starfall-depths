@@ -247,6 +247,7 @@ func _adopt_or_spawn_player() -> void:
 	melee.combat = combat
 	melee.combat_rng = combat_rng
 	melee.rig = rig
+	player.combat = combat                 # m1-t5：影袭经 player.combat 写必暴窗（同 rig 契约）
 	combat.register_body(player, player.combat_faction())
 	player_proxy = PlayerProxy.new()
 	player_proxy.name = "PlayerProxy"

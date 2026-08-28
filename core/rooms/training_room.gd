@@ -40,6 +40,7 @@ func _ready() -> void:
 func _wire_player() -> void:
 	var rig := player.get_node("WeaponRig") as WeaponRig
 	rig.equip("laohuoji")                     # 初始手枪；其余 5 把自武器架拾取
+	player.combat = combat_room.combat        # m1-t5：影袭经 player.combat 写必暴窗（同 rig 契约）
 	if not player.has_node("Driver"):
 		var driver := Node.new()
 		driver.name = "Driver"
