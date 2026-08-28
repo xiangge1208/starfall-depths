@@ -1,6 +1,8 @@
 extends EnemyBase
 ## 苦力虫：追击；首次贴身（<14px 接触）点燃 fuse_ticks 引信并给出 telegraph 预警→
-## 到点 exploded=true，对 aoe_radius 内玩家结算 aoe_dmg，并自毁。
+## 到点 exploded=true，die() 内对 aoe_radius 内玩家结算 aoe_dmg 并自毁
+## （m0-final fix4：爆炸伤害统一由 EnemyBase.die() 持有，引信路径只置标记+致死——
+## 单一爆炸源，「死亡即刻爆」受击致死同样生效）。
 ## 引信自接触拍起算（deadline = 接触帧 + fuse_ticks），全程独立于 ENGAGE 起点：
 ## 远距离追击不预燃，贴身时总有完整 0.5s 膨胀预警可躲。
 
@@ -17,7 +19,7 @@ func _engage(frame: int) -> void:
 	_try_arm_fuse(frame, to_player)
 	if _fuse_deadline >= 0 and frame >= _fuse_deadline:
 		exploded = true
-		_explode()
+		die()                 # fix4：伤害在 die() 的统一爆炸里，此处不再单独结算
 		return
 	brain_pos += to_player.normalized() * (float(row.get("speed", 95)) / TimeConst.FPS)
 
@@ -27,10 +29,3 @@ func _try_arm_fuse(frame: int, to_player: Vector2) -> void:
 		return
 	_fuse_deadline = frame + int(row.get("fuse_ticks", 30))
 	Fx.on_enemy_hit(self, {"telegraph": true})
-
-func _explode() -> void:
-	var aoe := float(row.get("aoe_radius", 40))
-	if player_ref != null and player_ref.brain_pos.distance_to(brain_pos) <= aoe \
-			and player_ref.has_method("take_hit"):
-		player_ref.take_hit({"amount": int(row.get("aoe_dmg", 8)), "element": Elements.Id.NONE, "from": brain_pos})
-	die()

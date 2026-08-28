@@ -101,11 +101,29 @@ func take_hit(ctx: Dictionary) -> void:
 		die()
 
 func die() -> void:
+	if state == State.DEAD:
+		return
 	state = State.DEAD
+	_death_explosion()   # m0-final fix4：死亡即刻爆由 die() 统一持有（附录 B.1「死亡即刻爆」）
 	if combat != null:
 		combat.unregister_body(self)
 	EventBus.enemy_killed.emit(String(row.get("id", "")))
 	queue_free()
+
+## m0-final fix4：行含 aoe_radius>0 且 aoe_dmg>0 时对范围内玩家结算 aoe_dmg。
+## 经 player_ref.take_hit（ctx 带 is_crit=false / element=NONE / from=global_position），
+## 玩家受击无敌帧天然节流；M0 无敌方友伤。引信致死与受击致死共用此单一爆炸源。
+func _death_explosion() -> void:
+	if int(row.get("aoe_radius", 0)) <= 0 or int(row.get("aoe_dmg", 0)) <= 0:
+		return
+	if player_ref == null or not player_ref.has_method("take_hit"):
+		return
+	if player_ref.brain_pos.distance_to(brain_pos) > float(row["aoe_radius"]):
+		return
+	player_ref.take_hit({
+		"amount": int(row["aoe_dmg"]), "is_crit": false,
+		"element": Elements.Id.NONE, "from": global_position,
+	})
 
 func combat_radius() -> float:
 	return float(row.get("radius", 6.0))
@@ -154,10 +172,13 @@ func _physics_process(_delta: float) -> void:
 				_shatter_aoe(int(ev["last_damage"]))
 
 ## 淬爆（SHATTER）M0 执行：以自身为中心 90px 全向 AoE，对敌方体结算 1.5× 触发伤害。
+## m0-final fix3：触发体自身不免（不自践踏），本拍已死者跳过（防同拍重复结算）。
 ## M0 武器无元素，此通路暂不可达（为 t13+/元素武器预留，行为按控制器决议字面实现）。
 func _shatter_aoe(last_damage: int) -> void:
 	if combat == null:
 		return
 	var amount := int(float(last_damage) * 1.5)
 	for body in combat.bodies_in_arc(global_position, 0.0, 90.0, 360.0, Projectile.Faction.ENEMY):
+		if body == self or body.get("state") == State.DEAD:
+			continue
 		body.take_hit({"amount": amount, "is_crit": false, "element": Elements.Id.NONE, "from": global_position})

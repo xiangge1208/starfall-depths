@@ -5,6 +5,10 @@ const PREALLOC := 300
 const MAX_PROJECTILES := 500
 
 var active: Array[Projectile] = []
+## cap 淘汰回调（m0-final fix1）：淘汰发生前调用（参数为被淘汰弹）。
+## 池不耦合 CombatSystem——由持有者注入（CombatSystem._init 置 _kill，
+## 以清 spatial-hash 条目与 _proj_meta，否则每淘汰一次泄漏一条）。
+var on_evict := Callable()
 var _free: Array[Projectile] = []
 var _root: Node
 
@@ -27,7 +31,10 @@ func spawn(cfg: Dictionary) -> Projectile:
 		p = _make()
 	else:
 		p = _victim()
-		active.erase(p)
+		if on_evict.is_valid():
+			on_evict.call(p)        # fix1：淘汰先回调清理（CombatSystem._kill：哈希条目+元数据）
+		despawn(p)                  # 出 active + 回收 _free（回调内已 despawn 则幂等跳过）
+		p = _free.pop_back()        # 复用刚回收实例（LIFO 队尾即该弹，行为同旧版复用）
 	p.setup(cfg)
 	active.append(p)
 	return p

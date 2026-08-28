@@ -8,15 +8,18 @@ var pool: ProjectilePool
 var crit_chance := 0.05
 var _hash := SpatialHash.new(32.0)
 var _bodies: Dictionary = {}          # instance_id -> {node, faction, radius}
+var _max_body_radius := 12.0          # m0-final fix2：查询松弛按已注册体最大半径（单调不缩）
 var _rng: RandomNumberGenerator
 var _next_id := 1
 var _proj_meta: Dictionary = {}       # projectile instance_id -> {hash_id, hit_cd: Dictionary}
 
 func _init(root: Node, combat_rng: RandomNumberGenerator) -> void:
 	pool = ProjectilePool.new(root)
+	pool.on_evict = _kill               # m0-final fix1：cap 淘汰也走 _kill，哈希/元数据不泄漏
 	_rng = combat_rng
 
 func register_body(node: Node2D, faction: int) -> void:
+	_max_body_radius = maxf(_max_body_radius, node.combat_radius())   # fix2：候选门按最大体半径
 	_bodies[node.get_instance_id()] = {"node": node, "faction": faction, "radius": node.combat_radius(), "hash_id": _next_id}
 	_hash.insert(_next_id, node.global_position)
 	_next_id += 1
@@ -36,6 +39,10 @@ func spawn_projectile(cfg: Dictionary) -> void:
 func active_count() -> int:
 	return pool.active_count()
 
+## m0-final fix5：调试观测专用（cap 淘汰泄漏回归测试用）——仅元数据计数，别无他物公开。
+func debug_meta_count() -> int:
+	return _proj_meta.size()
+
 func _physics_process(_delta: float) -> void:
 	# 1) 实体位置更新
 	for id: int in _bodies:
@@ -48,7 +55,7 @@ func _physics_process(_delta: float) -> void:
 			continue
 		var meta: Dictionary = _proj_meta[p.get_instance_id()]
 		_hash.move(meta["hash_id"], p.position)
-		var hits := _hash.query(p.position, p.radius + 12.0)
+		var hits := _hash.query(p.position, p.radius + _max_body_radius)   # fix2：松弛覆盖最大体半径，防大半径体被静默漏判
 		for hid: int in hits:
 			var b: Dictionary = _bodies_by_hash(hid)
 			if b.is_empty() or b["faction"] == p.faction:
