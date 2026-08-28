@@ -29,8 +29,9 @@ func _physics_process(_delta: float) -> void:
 	tick()
 
 ## 爆炸结算：与 EnemyBase._death_explosion 同语义（半径内玩家 take_hit，爆毕自毁）。
+## fix1：player_ref 可能已被释放——先 is_instance_valid 守卫再访问。
 func _detonate() -> void:
-	if _player != null and _player.has_method("take_hit") \
+	if is_instance_valid(_player) and _player.has_method("take_hit") \
 			and _player.brain_pos.distance_to(global_position) <= _radius:
 		_player.take_hit({
 			"amount": _dmg, "is_crit": false,

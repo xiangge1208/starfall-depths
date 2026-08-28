@@ -25,7 +25,7 @@ static func apply(enemy: EnemyBase, affix_id: String) -> void:
 		"barrage":
 			enemy.set("barrage_extra", int(enemy.get("barrage_extra")) + 1)
 		"berserk":
-			pass   # 数据驱动：EnemyBase.berserk_active() 按 hp/hp_max 判定，应用即生效
+			enemy.set("has_berserk", true)   # 门控标记：仅带词缀者在 <50% 血时 berserk_active()（fix1）
 		_:
 			push_warning("EliteAffix: unknown affix '%s'" % affix_id)
 

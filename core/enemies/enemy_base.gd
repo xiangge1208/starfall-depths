@@ -32,10 +32,12 @@ var player_ref = null              # 玩家替身/实例（需有 brain_pos）�
 var stun_until := -1               # m1-t2 坚守眩晕窗：frame < stun_until 时 brain 空转
 # ---- m1-t12 精英词缀落点（EliteAffix.apply 写入；默认值即无词缀原行为）----
 var split_on_death := false        # 分裂：die() 经 spawn_callback 生成 2 个同 row 子体（hp 半）
-var spawn_callback := Callable()   # 房间注入：func(row_id: String, pos: Vector2) -> Node
+var spawn_callback := Callable()   # 房间注入：func(row_id: String, pos: Vector2,
+                                   #   row_override: Dictionary = {}) -> Node（分裂路径传净行）
 var barrage_extra := 0             # 弹幕大师：shooter 每轮 volley = 1 + barrage_extra
 var leech := false                 # 虹吸：接触伤害命中时自回等量 hp（≤ hp_max）
 var body_scale := 1.0              # 体型：行 body_scale（小 Boss 1.25）→ 战斗半径与视觉同步放大
+var has_berserk := false           # 狂暴门控：仅带词缀者 berserk_active() 才可能为真
 var _seen_frame := -1
 
 func _test_init(r: Dictionary) -> void:
@@ -145,16 +147,19 @@ func die() -> void:
 	EventBus.enemy_killed.emit(String(row.get("id", "")))
 	queue_free()
 
-## m1-t12 分裂词缀执行：经 spawn_callback(row_id, pos) -> Node 生成 2 个同 row 子体
-## （hp 为行 hp 一半，房间接线时子体走正常 setup 路径）。回调未注入（脑层测试/未接线）则跳过。
+## m1-t12 分裂词缀执行：经 spawn_callback(row_id, pos, row_override) 生成 2 个同 row 子体
+## （hp 为行 hp 一半）。row_override 为行拷贝并剥离 elite_affixes——子体是普通体，
+## 不经房间 setup 重挂词缀（防分裂链式继承）。回调未注入（脑层测试/未接线）则跳过。
 func _split_spawn_children() -> void:
 	if not split_on_death or not spawn_callback.is_valid():
 		return
 	var half := maxi(int(float(row.get("hp", 10)) * 0.5), 1)
+	var child_row: Dictionary = (row as Dictionary).duplicate()
+	child_row.erase("elite_affixes")
 	var r := combat_radius()
 	for i in 2:
 		var child: Node = spawn_callback.call(String(row.get("id", "")),
-			brain_pos + Vector2(r if i == 0 else -r, 0.0))
+			brain_pos + Vector2(r if i == 0 else -r, 0.0), child_row)
 		if child != null:
 			child.set("hp", half)
 
@@ -173,7 +178,7 @@ func _spawn_delayed_blast(delay_ticks: int) -> void:
 	elif is_inside_tree():
 		get_tree().current_scene.add_child(blast)
 	else:
-		return
+		blast.free()   # 无处挂载（纯脑层测试）：即时释放防泄漏（fix1）
 
 ## m0-final fix4：行含 aoe_radius>0 且 aoe_dmg>0 时对范围内玩家结算 aoe_dmg。
 ## 经 player_ref.take_hit（ctx 带 is_crit=false / element=NONE / from=global_position），
@@ -193,9 +198,10 @@ func _death_explosion() -> void:
 func combat_radius() -> float:
 	return float(row.get("radius", 6.0)) * float(body_scale)
 
-## m1-t12 狂暴：血量低于 50%（严格 <）时激活——charger/shooter 蓄力窗 ×0.7（攻速 ×1.3）。
+## m1-t12 狂暴：仅带词缀（has_berserk，由 EliteAffix 应用）且血量低于 50%（严格 <）时激活
+## ——charger/shooter 蓄力窗 ×0.7（攻速 ×1.3）。普通体不触发（fix1：词缀门控）。
 func berserk_active() -> bool:
-	return hp * 2 < hp_max
+	return has_berserk and hp * 2 < hp_max
 
 ## 蓄力拍数取值：行 windup_ticks（缺省用 default_ticks），狂暴激活时 ×0.7（截断取整）。
 ## charger/shooter 的 windup 计算统一经此钩子（设计 §12.3「50% 血后攻速 ×1.3」）。

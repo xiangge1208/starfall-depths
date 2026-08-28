@@ -78,26 +78,38 @@ func test_unknown_affix_is_ignored() -> void:
 func test_affix_table_has_six_entries() -> void:
 	assert_int(EliteAffix.AFFIXES.size()).is_equal(6)
 
-# ---- 分裂（die 后 2 子体，hp 减半，经 spawn_callback 接缝） ----
+# ---- 分裂（die 后 2 子体，hp 减半，经 spawn_callback 接缝；子体行剥离词缀） ----
+
+## 记录型召唤回调：3 参（分裂路径传净行 row_override），返回可写 hp 的替身。
+var _split_calls: Array = []
+
+func _record_split_spawn(row_id: String, pos: Vector2, row_override: Dictionary = {}) -> Node:
+	var m := StubMinion.new()
+	_split_calls.append({"row_id": row_id, "pos": pos, "row": row_override, "minion": m})
+	return m
 
 func test_splitter_spawns_two_half_hp_children_at_death() -> void:
+	_split_calls = []
 	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "vine_charger", "archetype": "charger", "hp": 20, "radius": 6.0, "windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
-	var calls: Array = []
-	e.set("spawn_callback", func(row_id: String, pos: Vector2) -> Node:
-		var m := StubMinion.new()
-		calls.append({"row_id": row_id, "pos": pos, "minion": m})
-		return m)
+	var row := {"id": "vine_charger", "archetype": "charger", "hp": 20, "radius": 6.0,
+		"windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90,
+		"elite_affixes": ["splitter", "swift"]}   # 词缀行：子体必须剥离
+	e._test_init(row)
+	e.set("spawn_callback", Callable(self, "_record_split_spawn"))
 	EliteAffix.apply(e, "splitter")
 	assert_bool(e.split_on_death).is_true()
 	e.take_hit({"amount": 99, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
 	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
-	assert_int(calls.size()).is_equal(2)
+	assert_int(_split_calls.size()).is_equal(2)
 	for i in 2:
-		assert_str(String(calls[i]["row_id"])).is_equal("vine_charger")   # 原型同 row
-		assert_float((calls[i]["pos"] as Vector2).distance_to(e.brain_pos)).is_equal_approx(6.0, 0.001)
-		assert_int((calls[i]["minion"] as StubMinion).hp).is_equal(10)    # hp ×0.5
-		(calls[i]["minion"] as StubMinion).free()                         # 替身自清（非 auto_free 通路）
+		assert_str(String(_split_calls[i]["row_id"])).is_equal("vine_charger")   # 原型同 row
+		assert_float((_split_calls[i]["pos"] as Vector2).distance_to(e.brain_pos)).is_equal_approx(6.0, 0.001)
+		var child_row: Dictionary = _split_calls[i]["row"]
+		assert_bool(child_row.has("elite_affixes")).is_false()   # fix1：子体行无词缀（无链式继承）
+		assert_str(String(child_row["id"])).is_equal("vine_charger")
+		assert_int((child_row["hp"])).is_equal(20)               # 行 hp 基准不变（减半由子体 hp 落）
+		assert_int((_split_calls[i]["minion"] as StubMinion).hp).is_equal(10)   # hp ×0.5
+		(_split_calls[i]["minion"] as StubMinion).free()         # 替身自清（非 auto_free 通路）
 
 func test_splitter_without_callback_dies_cleanly() -> void:
 	var e: EnemyBase = auto_free(EnemyBase.new())
@@ -144,11 +156,15 @@ func test_no_leech_keeps_hp() -> void:
 	assert_int(spy.hits.size()).is_between(1, 3)
 	assert_int(e.hp).is_equal(10)          # 无虹吸：不掉不回
 
-# ---- 狂暴（50% 血阈值 + windup ×0.7） ----
+# ---- 狂暴（词缀门控 + 50% 血阈值 + windup ×0.7） ----
 
 func test_berserk_threshold_strict_below_half() -> void:
 	var e: EnemyBase = auto_free(EnemyBase.new())
 	e._test_init({"id": "t", "archetype": "charger", "hp": 100})
+	e.set("hp", 49)
+	assert_bool(e.berserk_active()).is_false()   # fix1：无词缀门控——低血也不激活
+	EliteAffix.apply(e, "berserk")
+	assert_bool(e.has_berserk).is_true()
 	e.set("hp", 51)
 	assert_bool(e.berserk_active()).is_false()   # 51%：未激活
 	e.set("hp", 50)
@@ -156,21 +172,44 @@ func test_berserk_threshold_strict_below_half() -> void:
 	e.set("hp", 49)
 	assert_bool(e.berserk_active()).is_true()    # 49%：激活
 
+## fix1 覆盖：M0 普通藤蔓冲锋者半血以下 windup 不变（未带词缀）。
+func test_m0_charger_below_half_hp_keeps_windup() -> void:
+	var c: EnemyBase = auto_free(EnemyBase.new())
+	c._test_init({"id": "vine_charger", "archetype": "charger", "hp": 18, "windup_ticks": 30,
+		"dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
+	c.set("hp", 8)                                # 8×2=16 < 18：血线在阈值下
+	assert_bool(c.berserk_active()).is_false()    # 无词缀：不激活
+	assert_int(c._windup_ticks(30)).is_equal(30)  # windup 原样
+	c.on_player_seen(0)
+	for f in range(1, 26): c.brain_tick(f)
+	assert_int(int(c.get("_phase_left"))).is_equal(30)   # 行为层：ENGAGE 首拍蓄力窗仍 30
+
 func test_berserk_scales_windup_in_charger_and_shooter() -> void:
 	var c: EnemyBase = auto_free(EnemyBase.new())
 	c._test_init({"id": "t", "archetype": "charger", "hp": 18, "windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
 	assert_int(c._windup_ticks(30)).is_equal(30)     # 满血：不变
-	c.set("hp", 8)                                    # 8×2=16 < 18 → 狂暴
-	assert_int(c._windup_ticks(30)).is_equal(21)      # ×0.7
+	EliteAffix.apply(c, "berserk")                   # fix1：词缀门控
+	c.set("hp", 8)                                   # 8×2=16 < 18 → 狂暴
+	assert_int(c._windup_ticks(30)).is_equal(21)     # ×0.7
 	var s: EnemyBase = auto_free(EnemyBase.new())
 	s._test_init({"id": "t", "archetype": "shooter", "hp": 16, "windup_ticks": 30, "cd_ticks": 108, "speed": 60})
-	s.set("hp", 7)                                    # 7×2=14 < 16 → 狂暴
+	s.set("hp", 7)                                   # 未带词缀：仍不激活
+	assert_int(s._windup_ticks(30)).is_equal(30)
+	EliteAffix.apply(s, "berserk")
+	s.set("hp", 7)                                   # 7×2=14 < 16 → 狂暴
 	assert_int(s._windup_ticks(30)).is_equal(21)
 	# charger 行为层：ENGAGE 首拍进入蓄力即取缩短后的窗口
+	EliteAffix.apply(c, "berserk")
 	c.set("hp", 18)
 	c.on_player_seen(0)
 	for f in range(1, 26): c.brain_tick(f)
 	assert_int(int(c.get("_phase_left"))).is_equal(30)
+	c.set("hp", 8)
+	c.set("state", EnemyBase.State.IDLE)             # 重置状态再走一遍低血起手
+	c.set("_phase", "idle")
+	c.on_player_seen(1000)
+	for f in range(1000, 1000 + 26): c.brain_tick(f)   # 1025 = 重起手首拍（idle→windup 取缩短窗）
+	assert_int(int(c.get("_phase_left"))).is_equal(21)
 
 # ---- 弹幕大师（shooter volley = 1 + barrage_extra） ----
 
@@ -383,6 +422,28 @@ func test_delayed_blast_beyond_radius_no_hit() -> void:
 	for _i in 60:
 		blast.tick()
 	assert_int(spy.hits.size()).is_equal(0)  # 爆而不中
+
+## fix1 rider：玩家替身已释放时到点爆炸不崩（is_instance_valid 守卫）。
+func test_delayed_blast_survives_freed_player() -> void:
+	var blast: DelayedBlast = auto_free(DelayedBlast.new())
+	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	spy.brain_pos = Vector2.ZERO
+	blast.setup({"pos": Vector2.ZERO, "radius": 40.0, "dmg": 8, "ticks": 5, "player": spy})
+	spy.free()                                # 倒计时期间玩家替身被释放
+	for _i in 5:
+		blast.tick()                          # 到点：守卫命中，不访问已释放对象
+	assert_bool(true).is_true()               # 走到这里即无崩溃
+
+## fix1 rider：无 combat 且不在树内时 die()——延迟爆炸分支即时释放 blast，不泄漏不崩溃。
+func test_delayed_death_no_combat_no_tree_dies_cleanly() -> void:
+	var e: EnemyBase = auto_free(EnemyBase.new())
+	e._test_init(ZIBAO_BLAST_ROW)             # 不入树、无 combat
+	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	spy.brain_pos = Vector2(1000, 0)          # 爆炸圈外（语义无关，此处只验路径）
+	e.set("player_ref", spy)
+	e.take_hit({"amount": 999, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
+	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
+	assert_int(spy.hits.size()).is_equal(0)
 
 # ---- 体型 1.25（战斗半径 ×1.25 + 视觉缩放） ----
 
