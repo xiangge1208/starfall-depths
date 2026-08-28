@@ -138,7 +138,7 @@
   "start_a1": {
     "id": "start_a1",
     "size": [22, 14],
-    "doors": ["S", "E"],
+    "doors": ["N", "S", "E", "W"],
     "spawn_points": [],
     "props": [
       {"kind": "bush", "grid": [4, 3], "hp": 4},
@@ -151,7 +151,7 @@
   "boss_a1": {
     "id": "boss_a1",
     "size": [22, 14],
-    "doors": ["N", "S"],
+    "doors": ["N", "S", "E", "W"],
     "spawn_points": [[11, 6]],
     "props": [
       {"kind": "pillar", "grid": [4, 4], "hp": 20},
