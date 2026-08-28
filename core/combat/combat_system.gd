@@ -94,6 +94,19 @@ func projectiles_in_arc(origin: Vector2, facing: float, range_px: float, arc_deg
 			out.append(p)
 	return out
 
+func bodies_in_arc(origin: Vector2, facing: float, range_px: float, arc_deg: float, faction: int) -> Array:
+	var out: Array = []
+	for id: int in _bodies:
+		var b: Dictionary = _bodies[id]
+		if b["faction"] != faction:
+			continue
+		var to: Vector2 = b["node"].global_position - origin
+		if to.length() > range_px + b["radius"]:
+			continue
+		if absf(angle_difference(facing, to.angle())) <= deg_to_rad(arc_deg) / 2.0:
+			out.append(b["node"])
+	return out
+
 func reflect(p: Projectile, new_damage: int) -> void:
 	p.faction = Projectile.Faction.PLAYER
 	p.vel = -p.vel
