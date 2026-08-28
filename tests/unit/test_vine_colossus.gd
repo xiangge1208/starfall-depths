@@ -2,7 +2,7 @@ class_name TestVineColossus
 extends GdUnitTestSuite
 
 ## 藤蔓巨像（A1 Boss，附录 E.1）脑层注入帧测试（沿用 test_boss_base 手法）。
-## 三阶段招式集门控 / 拍击扇形 / 弹环 6+6 计数 / 横扫条带 / 毒雨安全圈 / 召唤上限。
+## 三阶段招式集门控 / 拍击扇形 / 弹环 12+12 计数 / 横扫条带 / 毒雨安全圈 / 召唤上限。
 
 const ROW := {
 	"id": "vine_colossus", "name": "藤蔓巨像", "archetype": "boss",
@@ -136,9 +136,9 @@ func test_slap_ignores_out_of_range_and_out_of_arc() -> void:
 		b2.brain_tick(f2 + 5 + i)                         # 前摇余 25t 至结算拍
 	assert_int(spy2.hits.size()).is_equal(0)
 
-# ---- 种子弹环：前摇 36t，6+6 两波（24t 间隔）= 全环 12 发，速 110 伤 3 ----
+# ---- 种子弹环：前摇 36t，附录 E.1「12 发×2 轮」= 12+12 两波（24t 间隔）全环 24 发，速 110 伤 3 ----
 
-func test_seed_ring_12_projectiles_in_two_waves() -> void:
+func test_seed_ring_24_projectiles_in_two_waves() -> void:
 	var root: Node2D = auto_free(Node2D.new())
 	add_child(root)
 	var cs := CombatSystem.new(root, RngSvc.stream(0, "combat"))
@@ -154,20 +154,20 @@ func test_seed_ring_12_projectiles_in_two_waves() -> void:
 		b.brain_tick(fr + i)
 		if b.fired_this_tick:
 			fired_frames.append(fr + i)
-	assert_array(fired_frames).is_equal([fr + 36])        # 第 1 波：前摇 36t 后
-	assert_int(cs.active_count()).is_equal(6)
+	assert_array(fired_frames).is_equal([fr + 36])        # 第 1 波（12 发）：前摇 36t 后
+	assert_int(cs.active_count()).is_equal(12)
 	for i in range(24):
 		b.brain_tick(fr + 37 + i)
 		if b.fired_this_tick:
 			fired_frames.append(fr + 37 + i)
 	assert_array(fired_frames).is_equal([fr + 36, fr + 60])   # 第 2 波：恰 24t 后
-	assert_int(cs.active_count()).is_equal(12)            # 6+6 = 全环 12 发
+	assert_int(cs.active_count()).is_equal(24)            # 12+12 = 全环 24 发
 	var angles := {}
 	for p in cs.pool.active:
 		assert_int(p.damage).is_equal(3)
 		assert_float(p.vel.length()).is_equal_approx(110.0, 0.01)
 		angles[int(round(rad_to_deg(p.vel.angle())))] = true
-	assert_int(angles.size()).is_equal(12)                # 12 个均布方向
+	assert_int(angles.size()).is_equal(24)                # 24 个均布方向（两轮各 30° 步进错 15°）
 
 # ---- 藤蔓横扫：前摇 42t，条带 36t 横穿，伤 5，恰一跳，左右交替 ----
 

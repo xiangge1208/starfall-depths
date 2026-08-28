@@ -20,9 +20,10 @@ const SLAP_ARC_DEG := 90.0
 const SLAP_DMG := 5
 const SLAP_KNOCKBACK_PX := 8.0
 
-# ---- 种子弹环（P0）：6+6 两波（24t 间隔）= 全环 12 发 ----
+# ---- 种子弹环（P0）：附录 E.1「环形 12 发×2 轮」= 12+12 两波（24t 间隔）全环 24 发，
+# 第二轮错半步 15°（(i*2+wave)/24 均布几何，两轮各 30° 步进错 15°）----
 const RING_WAVES := 2
-const RING_PER_WAVE := 6
+const RING_PER_WAVE := 12
 const RING_WAVE_GAP_TICKS := 24     # 0.4s
 
 # ---- 藤蔓横扫（P1）：全宽地面条带 36t 横穿，左右交替 ----
@@ -208,7 +209,7 @@ func _ring_fire_wave(wave: int) -> void:
 	fired_this_tick = true
 	if combat == null:
 		return
-	var total := RING_PER_WAVE * RING_WAVES          # 12 发均布，两波各错半步（30°）
+	var total := RING_PER_WAVE * RING_WAVES          # 全环 24 发均布，两波各错半步（15°）
 	for i in range(RING_PER_WAVE):
 		var a := deg_to_rad(360.0) * (float(i * 2 + wave) / float(total))
 		combat.spawn_projectile({
