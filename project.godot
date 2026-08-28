@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 EventBus="*res://autoload/event_bus.gd"
 GameDB="*res://autoload/game_db.gd"
 RngSvc="*res://autoload/rng_svc.gd"
+RunState="*res://autoload/run_state.gd"
 Fx="*res://autoload/fx.gd"
 
 [display]

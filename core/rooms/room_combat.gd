@@ -241,7 +241,7 @@ func _adopt_or_spawn_player() -> void:
 		return
 	var rig := player.get_node("WeaponRig") as WeaponRig
 	var melee := player.get_node("Melee") as Melee
-	var combat_rng := RngSvc.stream(0, "combat")
+	var combat_rng := RunState.stream(RunState.SALT_RIG)   # m1-t15：rig/melee 走 "rig" 盐（与 CombatSystem 的 "proj_crit" 盐分溪，避免散布/暴击共用序列）
 	rig.combat = combat
 	rig.combat_rng = combat_rng
 	melee.combat = combat
@@ -288,7 +288,7 @@ func _pool_root_build() -> void:
 	var pool_root := Node2D.new()
 	pool_root.name = "ProjectilePoolRoot"
 	add_child(pool_root)
-	combat = CombatSystem.new(pool_root, RngSvc.stream(0, "combat"))
+	combat = CombatSystem.new(pool_root, RunState.stream(RunState.SALT_PROJECTILE))   # m1-t15：同上分盐
 	add_child(combat)
 	_bullet_layer = Node2D.new()
 	_bullet_layer.name = "BulletVisuals"
