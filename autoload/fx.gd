@@ -16,15 +16,20 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 ## 帧冻结：暂停树，真实毫秒后恢复（create_timer ignore_time_scale，brief 契约）。
-## 并发调用取更长：只认剩余时间最长的"权威"定时器恢复，其余 no-op——
-## 绝不提前恢复、绝不双重恢复。注：期限比较用 SceneTreeTimer.time_left（同一时钟域），
-## 不与 Time.get_ticks_msec 混比（本机 headless 实测 process delta 与墙钟可偏差 ~20%）。
+## 并发调用取更长：只认剩余时间最长的"权威"定时器恢复；换权威时**断开旧定时器**的
+## 恢复回调（fix1：否则旧定时器到点仍会触发解冻——暴击 40ms + 同帧击杀 60ms 只冻 40ms）。
+## 注：期限比较用 SceneTreeTimer.time_left（同一时钟域），不与 Time.get_ticks_msec 混比
+## （本机 headless 实测 process delta 与墙钟可偏差 ~20%）。
 func hitstop(ms: int) -> void:
+	if ms <= 0:
+		return                          # 0/负值：不冻结（也不占用恢复定时器）
 	var tree := get_tree()
 	var t := tree.create_timer(ms / 1000.0, true, false, true)
 	if _restore_timer != null and is_instance_valid(_restore_timer) \
 			and _restore_timer.time_left >= t.time_left:
 		return                          # 已有更长的 hitstop 在生效
+	if _restore_timer != null and is_instance_valid(_restore_timer):
+		_restore_timer.timeout.disconnect(_on_hitstop_elapsed)
 	_restore_timer = t
 	tree.paused = true
 	t.timeout.connect(_on_hitstop_elapsed)

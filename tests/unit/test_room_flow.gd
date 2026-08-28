@@ -37,3 +37,14 @@ func test_valid_spawn_points_filter() -> void:
 	assert_bool(valid.has(Vector2(860, 70))).is_true()
 	assert_bool(valid.has(Vector2(860, 200))).is_true()
 	assert_int(valid.size()).is_equal(4)
+
+func test_spawn_filter_fallback_when_all_filtered() -> void:
+	# fix1：全点位被过滤（距玩家 <120px）→ 兜底原样返回全量点位（放弃不变量，push_warning 留痕）。
+	# 无怪可刷 = 流程卡死，兜底是有意保留的行为；本用例钉住其存在与语义。
+	var points: Array[Vector2] = [Vector2(510, 135), Vector2(520, 135), Vector2(505, 140)]
+	var doors: Array[Vector2] = [Vector2(480, 135)]
+	var valid := RoomCombat.filter_spawn_points(points, doors, Vector2(500, 135))
+	assert_int(valid.size()).is_equal(3)
+	assert_bool(valid.has(Vector2(510, 135))).is_true()
+	assert_bool(valid.has(Vector2(520, 135))).is_true()
+	assert_bool(valid.has(Vector2(505, 140))).is_true()

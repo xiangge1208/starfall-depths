@@ -128,6 +128,14 @@ func _physics_process(_delta: float) -> void:
 	velocity = (brain_pos - global_position) * TimeConst.FPS
 	move_and_slide()
 	brain_pos = global_position
+	# m0-t12 fix1：接触伤害（收口 t10 缺口）。玩家侧 0.8s 受击无敌帧天然节流同体连击，不另设冷却；
+	# 距离用敌方实际位 vs player_ref.brain_pos（PlayerProxy 每拍镜像）。
+	if player_ref != null and int(row.get("contact_dmg", 0)) > 0 \
+			and global_position.distance_to(player_ref.brain_pos) <= combat_radius() + 6.0:
+		player_ref.take_hit({
+			"amount": int(row["contact_dmg"]), "is_crit": false,
+			"element": Elements.Id.NONE, "from": global_position,
+		})
 	# m0-t12 接线：DoT 结算 + 共鸣事件消费（读后清空）
 	if status != null:
 		var frame := Engine.get_physics_frames()

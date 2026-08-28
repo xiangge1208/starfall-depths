@@ -90,12 +90,16 @@ static func filter_spawn_points(points: Array[Vector2], doors: Array[Vector2], p
 					break
 		if ok:
 			out.append(pt)
+	if out.is_empty() and not points.is_empty():
+		# 兜底（响亮式，fix1）：玩家贴住唯一刷怪点等情形可剔除全部点位——无怪可刷 = 流程卡死，
+		# 故显式放弃 ≥64px/≥120px 不变量、原样返回全量点位（调用方只读），并告警留痕。
+		push_warning("RoomCombat.filter_spawn_points: all points filtered — falling back to raw points, spawn invariants dropped")
+		return points
 	return out
 
 func valid_spawn_points() -> Array[Vector2]:
 	var player_pos := player.global_position if player != null else Vector2(500, 135)
-	var out := filter_spawn_points(MARKERS, DOOR_POSITIONS, player_pos)
-	return out if not out.is_empty() else MARKERS   # 兜底：极端位置也要有怪可刷
+	return filter_spawn_points(MARKERS, DOOR_POSITIONS, player_pos)
 
 # ---- 每帧 ----
 

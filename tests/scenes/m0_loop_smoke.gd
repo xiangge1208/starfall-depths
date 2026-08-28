@@ -94,7 +94,8 @@ func _run() -> void:
 
 	# ---- 5) 进战斗房：锁门 + 波1 + 敌人 AI/弹幕 ----
 	print("SMOKE 5: enter combat room")
-	player.shield = 4
+	player.shield = 100                        # 测试挂具护甲（fix1 起接触伤害生效）：段内不被打死
+	room.set("_restarting", true)              # 阻断训练房致命重载路径（冒烟自管生命周期）
 	player.hp = 8
 	var cleared_flag := [false]
 	EventBus.room_cleared.connect(func(_id: String) -> void: cleared_flag[0] = true)
@@ -104,6 +105,18 @@ func _run() -> void:
 	_check(combat_room.entry_frame >= 0, "entry frame stamped")
 	await _frames(10)
 	_check(_enemy_count() == 2, "wave1 spawned 2 (got %d)" % _enemy_count())
+	# 接触伤害（fix1 收口）：此刻弩兵尚未进入射击相位（alert 24t + windup 30t ≈ 54 帧），
+	# 场上亦无敌方弹——贴身掉盾/掉血只能来自 contact_dmg，判定确定。
+	var touch := _find_enemy("crossbowman")
+	if touch != null:
+		var shield_before: int = player.shield
+		var hp_before: int = player.hp
+		player.global_position = touch.global_position
+		await _frames(3)
+		_check(player.shield < shield_before or player.hp < hp_before,
+			"contact damage applied on touch (shield %d -> %d)" % [shield_before, player.shield])
+		player.global_position = Vector2(500, 135)
+		await _frames(1)
 	var shooter: EnemyBase = _find_enemy("crossbowman")
 	_check(shooter != null, "crossbowman present")
 	await _seconds(1.2)
@@ -121,7 +134,7 @@ func _run() -> void:
 	var guard := 0
 	while not combat_room.flow.cleared and guard < 3600:
 		guard += 1
-		player.shield = 4
+		player.shield = 100                        # 挂具护甲保持（接触+弹幕都不致死）
 		player.hp = 8                              # 冒烟只验流程，不被弹幕打死
 		var target := _nearest_enemy(player)
 		if target != null:
