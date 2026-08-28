@@ -40,8 +40,18 @@ func _apply_archetype_script(r: Dictionary) -> void:
 		push_warning("EnemyBase: unknown archetype '%s'" % arch)
 
 func setup(r: Dictionary) -> void:
+	# m0-t12 修复：global_position 须在换脚本前读取——_test_init 内 set_script 后当前帧
+	# 绑定旧实例，此后读原生属性可触发 "Internal error getting property"（4.7.2 实测）。
+	var at := global_position
 	_test_init(r)
-	set("brain_pos", global_position)   # 同 _test_init：经 Object.set 避开旧实例帧
+	set("brain_pos", at)   # 同 _test_init：经 Object.set 避开旧实例帧
+	# m0-t12 接线：非玩家实体惰性挂载 StatusComponent（M0 无精英/Boss，统一小怪阈值 2 层）。
+	# 读写均须 Object.get/set：换脚本后直接读写成员会落到旧实例而丢失（下同，见 _test_init 注）。
+	if get("status") == null:
+		var s := StatusComponent.new()
+		add_child(s)
+		s.setup(2, false)
+		set("status", s)
 
 func on_player_seen(frame: int) -> void:
 	if state == State.IDLE:
@@ -118,3 +128,28 @@ func _physics_process(_delta: float) -> void:
 	velocity = (brain_pos - global_position) * TimeConst.FPS
 	move_and_slide()
 	brain_pos = global_position
+	# m0-t12 接线：DoT 结算 + 共鸣事件消费（读后清空）
+	if status != null:
+		var frame := Engine.get_physics_frames()
+		var dot: int = status.tick(frame)
+		if dot > 0:
+			hp -= dot
+			if hp <= 0:
+				die()
+				return
+		if not status.resonance_event.is_empty():
+			var ev: Dictionary = status.resonance_event
+			status.resonance_event = {}
+			EventBus.resonance_triggered.emit(int(ev["reaction"]), global_position, ev)
+			# M0：SHATTER=90px AoE（1.5× 触发伤害）；BLAZE/SUPERCONDUCT/ELECTROLYSIS 仅广播
+			if int(ev["reaction"]) == Resonance.R.SHATTER:
+				_shatter_aoe(int(ev["last_damage"]))
+
+## 淬爆（SHATTER）M0 执行：以自身为中心 90px 全向 AoE，对敌方体结算 1.5× 触发伤害。
+## M0 武器无元素，此通路暂不可达（为 t13+/元素武器预留，行为按控制器决议字面实现）。
+func _shatter_aoe(last_damage: int) -> void:
+	if combat == null:
+		return
+	var amount := int(float(last_damage) * 1.5)
+	for body in combat.bodies_in_arc(global_position, 0.0, 90.0, 360.0, Projectile.Faction.ENEMY):
+		body.take_hit({"amount": amount, "is_crit": false, "element": Elements.Id.NONE, "from": global_position})

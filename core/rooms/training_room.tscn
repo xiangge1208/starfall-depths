@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://core/rooms/training_room.gd" id="1_t12train"]
+
+[ext_resource type="PackedScene" path="res://core/player/player.tscn" id="2_t12player"]
+
+[ext_resource type="PackedScene" path="res://core/rooms/room_combat.tscn" id="3_t12combat"]
+
+[node name="TrainingRoom" type="Node2D"]
+script = ExtResource("1_t12train")
+
+[node name="Player" parent="." groups=["player"] instance=ExtResource("2_t12player")]
+position = Vector2(60, 135)
+
+[node name="RoomCombat" parent="." instance=ExtResource("3_t12combat")]
+spawn_player = false

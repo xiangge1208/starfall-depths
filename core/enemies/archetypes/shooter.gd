@@ -14,6 +14,7 @@ func _engage(frame: int) -> void:
 		"idle":
 			_phase = "windup"
 			_phase_left = int(row.get("windup_ticks", 30))
+			Fx.on_enemy_hit(self, {"telegraph": true})   # t10 定影：windup 进入拍预警（镜像 charger）
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -25,6 +26,7 @@ func _engage(frame: int) -> void:
 			if _phase_left <= 0:
 				_phase = "windup"
 				_phase_left = int(row.get("windup_ticks", 30))
+				Fx.on_enemy_hit(self, {"telegraph": true})   # 同上：cool→windup 亦为 windup 进入拍
 
 ## 走位：太近后撤、太远贴近、距离区间内垂直于视线方向横移（每秒换向）。
 func _kite_move(frame: int) -> void:

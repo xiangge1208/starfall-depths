@@ -1,0 +1,7 @@
+{
+  "id": "m0_combat",
+  "waves": [["crossbowman", "kuli_bug"], ["vine_charger", "cave_bat", "crossbowman"]],
+  "coins": 30,
+  "energy_orbs": 4,
+  "hearts": 1
+}

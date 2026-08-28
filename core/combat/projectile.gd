@@ -25,6 +25,7 @@ func setup(cfg: Dictionary) -> void:
 	life_ticks = TimeConst.ticks(cfg.get("life_seconds", 1.0))
 	radius = cfg.get("radius", 3.0)
 	_ticks = 0
+	modulate = Color.WHITE   # t9 定影：池化复用（含被反弹染色的弹）不得带上旧 tint
 	visible = true
 
 func tick() -> bool:
