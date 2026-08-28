@@ -56,6 +56,19 @@ const HERO_SCHEMA := {
 	"skill_name": TYPE_STRING, "skill_desc": TYPE_STRING, "upgraded": TYPE_BOOL,
 }
 const HERO_OPTIONAL := {}
+# 饮料（t16）：5 键全部必填，无 optional；行级校验 validate_drink_row（effect 白名单）
+# value 统一 TYPE_INT：百分比按整数值（5 = +5%），延时/CD 按 ticks（30 = -0.5s）；
+# random 行 value 固定 0（实际效果由 DrinkMachine 注入 rng 现抽）
+const DRINK_SCHEMA := {
+	"id": TYPE_STRING, "name": TYPE_STRING, "effect": TYPE_STRING,
+	"value": TYPE_INT, "price": TYPE_INT,
+}
+const DRINK_OPTIONAL := {}
+const DRINK_EFFECTS: Array[String] = [
+	"hp_max", "energy_max", "move_speed_pct", "crit_pct",
+	"shield_delay_reduction_ticks", "roll_cd_ticks", "status_rate_pct", "random",
+]
+const DRINK_RANDOM_EFFECT := "random"
 const ROOM_SIZE := [22, 14]   # A1 标准房间 22x14 格（x 0..21, y 0..13）
 const DOOR_TILES := {"N": [11, 0], "S": [11, 13], "E": [21, 7], "W": [0, 7]}
 const ROOM_TILE_PX := 16        # 格坐标转像素
@@ -68,6 +81,7 @@ const TABLES := {
 	"weapons": "res://data/weapons.json", "enemies": "res://data/enemies.json",
 	"rooms": "res://data/rooms/a1_templates.json",
 	"buffs": "res://data/buffs.json", "heroes": "res://data/heroes.json",
+	"drinks": "res://data/drinks.json",
 }
 
 var weapons: Dictionary = {}
@@ -75,6 +89,7 @@ var enemies: Dictionary = {}
 var rooms: Dictionary = {}
 var buffs: Dictionary = {}
 var heroes: Dictionary = {}
+var drinks: Dictionary = {}
 var load_ok := true
 
 func _ready() -> void:
@@ -83,6 +98,7 @@ func _ready() -> void:
 	rooms = _load_table(TABLES["rooms"], ROOM_SCHEMA, ROOM_OPTIONAL, validate_room_row)
 	buffs = _load_table(TABLES["buffs"], BUFF_SCHEMA, BUFF_OPTIONAL, validate_buff_row)
 	heroes = _load_table(TABLES["heroes"], HERO_SCHEMA, HERO_OPTIONAL, validate_hero_row)
+	drinks = _load_table(TABLES["drinks"], DRINK_SCHEMA, DRINK_OPTIONAL, validate_drink_row)
 	if not load_ok:
 		push_error("GameDB: data validation failed")
 		get_tree().quit(1)
@@ -98,6 +114,9 @@ func get_buff(id: String) -> Dictionary:
 
 func get_hero(id: String) -> Dictionary:
 	return heroes.get(id, {})
+
+func get_drink(id: String) -> Dictionary:
+	return drinks.get(id, {})
 
 func validate_row(row: Dictionary, schema: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -290,6 +309,25 @@ func validate_buff_row(row: Dictionary) -> Array[String]:
 				errors.append("effect element_enchant bad Elements.Id: %d" % int(v))
 		else:
 			errors.append("unknown effect key: %s" % k)
+	return errors
+
+## 饮料行语义校验（t16），作为 drinks 表 _load_table 的 extra_check。
+## 约束：effect ∈ 白名单；random 行 value 固定 0（现抽）；
+## 具体效果 value 必须为正（GameDB 已按 schema 还原 int，带小数在类型校验即拒绝）。
+func validate_drink_row(row: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	var effect: String = row.get("effect", "")
+	if not DRINK_EFFECTS.has(effect):
+		errors.append("bad effect: %s" % effect)
+		return errors
+	var value := int(row.get("value", 0))
+	if effect == DRINK_RANDOM_EFFECT:
+		if value != 0:
+			errors.append("random effect value must be 0")
+	elif value <= 0:
+		errors.append("effect %s value must be positive" % effect)
+	if int(row.get("price", -1)) < 0:
+		errors.append("price must be >= 0")
 	return errors
 
 ## 角色行语义校验（t11），作为 heroes 表 _load_table 的 extra_check。

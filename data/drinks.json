@@ -1,0 +1,34 @@
+{
+	"shengming_soda": {
+		"id": "shengming_soda", "name": "生命苏打",
+		"effect": "hp_max", "value": 2, "price": 30
+	},
+	"nengliang_qishui": {
+		"id": "nengliang_qishui", "name": "蓝能汽水",
+		"effect": "energy_max", "value": 20, "price": 25
+	},
+	"jifeng_bohe": {
+		"id": "jifeng_bohe", "name": "疾风薄荷",
+		"effect": "move_speed_pct", "value": 5, "price": 20
+	},
+	"yingyan_kafei": {
+		"id": "yingyan_kafei", "name": "鹰眼咖啡",
+		"effect": "crit_pct", "value": 3, "price": 35
+	},
+	"chongneng_keke": {
+		"id": "chongneng_keke", "name": "充能可可",
+		"effect": "shield_delay_reduction_ticks", "value": 30, "price": 25
+	},
+	"qingyu_qipao": {
+		"id": "qingyu_qipao", "name": "轻羽气泡",
+		"effect": "roll_cd_ticks", "value": 3, "price": 30
+	},
+	"xingsui_tete": {
+		"id": "xingsui_tete", "name": "星髓特调",
+		"effect": "status_rate_pct", "value": 20, "price": 35
+	},
+	"shenmi_hunhe": {
+		"id": "shenmi_hunhe", "name": "神秘混合",
+		"effect": "random", "value": 0, "price": 20
+	}
+}
