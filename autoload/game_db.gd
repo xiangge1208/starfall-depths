@@ -29,6 +29,22 @@ const ROOM_SCHEMA := {
 	"spawn_points": TYPE_ARRAY, "props": TYPE_ARRAY, "hazards": TYPE_ARRAY,
 }
 const ROOM_OPTIONAL := {}
+# 增益（t9）：5 键必填；稀有度与 effects 键白名单由 validate_buff_row 语义校验（同 rooms fail-closed 路径）
+const BUFF_SCHEMA := {
+	"id": TYPE_STRING, "name": TYPE_STRING, "rarity": TYPE_STRING,
+	"desc": TYPE_STRING, "effects": TYPE_DICTIONARY,
+}
+const BUFF_OPTIONAL := {}
+const BUFF_RARITIES: Array[String] = ["common", "uncommon", "rare"]
+# effects 键白名单（t9 控制器决议）：百分比键取数值，整型键取 int（_normalize_row 已还原）
+const BUFF_PCT_KEYS: Array[String] = [
+	"move_speed_pct", "crit_pct", "crit_dmg_pct", "atk_speed_pct",
+	"bullet_speed_pct", "status_rate_pct", "roll_cd_pct", "crit_detonate_pct",
+]
+const BUFF_INT_KEYS: Array[String] = [
+	"hp_max", "shield_max", "energy_max", "shield_delay_reduction_ticks",
+	"element_enchant", "extra_projectiles",
+]
 const ROOM_SIZE := [22, 14]   # A1 标准房间 22x14 格（x 0..21, y 0..13）
 const DOOR_TILES := {"N": [11, 0], "S": [11, 13], "E": [21, 7], "W": [0, 7]}
 const ROOM_TILE_PX := 16        # 格坐标转像素
@@ -40,17 +56,20 @@ const PROP_BLOCKS_BULLETS := {"pillar": true, "crate": true, "bush": false}
 const TABLES := {
 	"weapons": "res://data/weapons.json", "enemies": "res://data/enemies.json",
 	"rooms": "res://data/rooms/a1_templates.json",
+	"buffs": "res://data/buffs.json",
 }
 
 var weapons: Dictionary = {}
 var enemies: Dictionary = {}
 var rooms: Dictionary = {}
+var buffs: Dictionary = {}
 var load_ok := true
 
 func _ready() -> void:
 	weapons = _load_table("res://data/weapons.json", WEAPON_SCHEMA, WEAPON_OPTIONAL)
 	enemies = _load_table("res://data/enemies.json", ENEMY_SCHEMA, ENEMY_OPTIONAL)
 	rooms = _load_table(TABLES["rooms"], ROOM_SCHEMA, ROOM_OPTIONAL, validate_room_row)
+	buffs = _load_table(TABLES["buffs"], BUFF_SCHEMA, BUFF_OPTIONAL, validate_buff_row)
 	if not load_ok:
 		push_error("GameDB: data validation failed")
 		get_tree().quit(1)
@@ -60,6 +79,9 @@ func get_weapon(id: String) -> Dictionary:
 
 func get_enemy(id: String) -> Dictionary:
 	return enemies.get(id, {})
+
+func get_buff(id: String) -> Dictionary:
+	return buffs.get(id, {})
 
 func validate_row(row: Dictionary, schema: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -226,6 +248,32 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 			var radius: Variant = h.get("radius")
 			if typeof(radius) != TYPE_INT and typeof(radius) != TYPE_FLOAT:
 				errors.append("hazards[%d] radius must be number" % i)
+	return errors
+
+## 增益行语义校验（t9），作为 buffs 表 _load_table 的 extra_check。
+## 约束：rarity ∈ 白/绿/蓝；effects 非空且键全部在白名单内；
+## 百分比键取数值、整型键取 int（带小数会被 _normalize_row 留成 float 而在此拒绝）；
+## element_enchant 必须是合法 Elements.Id。
+func validate_buff_row(row: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	if not BUFF_RARITIES.has(row.get("rarity")):
+		errors.append("bad rarity: %s" % str(row.get("rarity")))
+	var eff: Variant = row.get("effects")
+	if typeof(eff) != TYPE_DICTIONARY or (eff as Dictionary).is_empty():
+		errors.append("effects must be non-empty object")
+		return errors
+	for k: String in eff:
+		var v: Variant = eff[k]
+		if BUFF_PCT_KEYS.has(k):
+			if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
+				errors.append("effect %s must be number" % k)
+		elif BUFF_INT_KEYS.has(k):
+			if typeof(v) != TYPE_INT:
+				errors.append("effect %s must be int" % k)
+			elif k == "element_enchant" and not Elements.NAMES.has(v):
+				errors.append("effect element_enchant bad Elements.Id: %d" % int(v))
+		else:
+			errors.append("unknown effect key: %s" % k)
 	return errors
 
 func _is_grid(v: Variant) -> bool:

@@ -14,6 +14,12 @@ var speed_boost_until := -1        # m1-t5 影袭：frame < 此值时弹速 ×1.
 var _next_fire_frame := 0
 var _switch_until := 0
 var _muzzle := Vector2(8, 0)       # 相对玩家，朝向时旋转
+# m1-t9 增益接缝（共享基建，声明仅供 BuffManager 写入；默认中性值，射击路径消费属后续任务）
+var enchant_element: int = Elements.Id.NONE  # 附魔元素（Elements.Id）
+var bonus_projectiles: int = 0               # 追加弹丸数（散弹扩张）
+var crit_detonate_pct: float = 0.0           # 暴击强制共鸣概率（暴虐回响）
+var rate_mult: float = 1.0                   # 攻速倍率（迅捷扳机）
+var bullet_speed_mult: float = 1.0           # 弹速倍率（弹速强化）
 
 func _test_init() -> void:
 	slots = [{}, {}]
