@@ -160,6 +160,23 @@ func test_instant_clear_rooms_emit_room_event() -> void:
 	assert_int(seen.size()).is_equal(3)
 
 
+func test_room_event_fires_once_per_room_on_backtrack() -> void:
+	# 回归钉住（fix round 1）：room_event 只在「进清/首进」转换发一次——回溯重进
+	# 已清客房（instant 与战斗系嘉宾 alike）不得重发（C 线 guest UI / T12 缝防重复触发）。
+	var flow := FloorFlow.new()
+	var seen: Array = []
+	flow.room_event.connect(func(t: String, id: int) -> void: seen.append("%s:%d" % [t, id]))
+	flow.setup(_typed_chain(["treasure", "elite"]))
+	assert_bool(flow.enter_room(1)).is_true()        # treasure：进清转换 → 恰 1 次
+	assert_bool(flow.enter_room(2)).is_true()        # elite：首进（战斗锁）→ 恰 1 次
+	assert_bool(flow.is_locked()).is_true()
+	flow.notify_room_cleared(2)
+	assert_bool(flow.enter_room(1)).is_true()        # 回溯重进 treasure：不再发
+	assert_bool(flow.enter_room(2)).is_true()        # 重进已清 elite：不再发
+	assert_bool(flow.enter_room(1)).is_true()
+	assert_array(seen).is_equal(["treasure:1", "elite:2"])   # 恰好各 1 次、载荷正确
+
+
 func test_next_rooms_only_adjacent_and_open() -> void:
 	var flow := FloorFlow.new()
 	flow.setup(_branch_build())

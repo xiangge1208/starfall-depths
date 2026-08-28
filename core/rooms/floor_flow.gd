@@ -11,8 +11,9 @@ extends RefCounted
 ##   相邻 且 非锁定期 且 (a 已清 或 b 已清)；boss 走廊另需 miniboss 已清
 ##   （boss_door_unlocked）且 boss 的邻接侧已清（adjacent-cleared-path）。
 ## - treasure/shop/event 进门即清（无战斗）并发 room_event（guest UI 数据占位，
-##   C 线后续接入）；elite/miniboss/boss 经战斗占位流程清，room_event 同拍发出
-##   （T12/T12 后集成卡经此缝接嘉宾）。
+##   C 线后续接入）；elite/miniboss/boss 经战斗占位流程清，room_event 首进发出
+##   （T12/T12 后集成卡经此缝接嘉宾）。room_event 每房恰一次（进清/首进转换），
+##   回溯重进已清房不重发。
 ## - notify_room_cleared 幂等（房序去重）；adjacent/next_rooms 输出去重且升序稳定。
 
 ## 客房事件（treasure/shop/event 的 guest UI 位 + elite/miniboss/boss 的嘉宾集成缝）。
@@ -75,10 +76,11 @@ func enter_room(id: int) -> bool:
 		return false
 	current_room = target
 	var type := room_type(target)
-	if INSTANT_CLEAR_TYPES.has(type) and not cleared.has(target):
-		cleared.append(target)
-	if GUEST_EVENT_TYPES.has(type):
-		room_event.emit(type, target)
+	if not cleared.has(target):                    # 仅「进清/首进」转换：回溯重进不重发
+		if INSTANT_CLEAR_TYPES.has(type):
+			cleared.append(target)
+		if GUEST_EVENT_TYPES.has(type):
+			room_event.emit(type, target)
 	return true
 
 
