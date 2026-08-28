@@ -22,7 +22,7 @@
 
 ---
 
-### Task m0-t1: 工程脚手架与环境验证
+### Task 1: 工程脚手架与环境验证
 
 **Files:**
 - Create: `project.godot`、`icon.svg`（默认）、`.gitignore`
@@ -232,7 +232,7 @@ git commit -m "chore(m0-t1): godot project scaffold, autoloads stub, input map, 
 
 ---
 
-### Task m0-t2: GameDB 数据加载与 schema 校验
+### Task 2: GameDB 数据加载与 schema 校验
 
 **Files:**
 - Create: `data/weapons.json`
@@ -368,7 +368,7 @@ git commit -m "feat(m0-t2): game_db json loader with schema validation + 6 m0 we
 
 ---
 
-### Task m0-t3: RngSvc 种子链 + TimeConst + Resonance/Elements 纯逻辑
+### Task 3: RngSvc 种子链 + TimeConst + Resonance/Elements 纯逻辑
 
 **Files:**
 - Modify: `autoload/rng_svc.gd`（替换空壳）
@@ -556,7 +556,7 @@ git commit -m "feat(m0-t3): seeded rng streams, time consts, elements/resonance/
 
 ---
 
-### Task m0-t4: SpatialHash 空间哈希
+### Task 4: SpatialHash 空间哈希
 
 **Files:**
 - Create: `core/combat/spatial_hash.gd`
@@ -681,7 +681,7 @@ git commit -m "feat(m0-t4): grid spatial hash with move/query/remove"
 
 ---
 
-### Task m0-t5: Projectile 池与弹体
+### Task 5: Projectile 池与弹体
 
 **Files:**
 - Create: `core/combat/projectile.gd`、`core/combat/projectile_pool.gd`
@@ -833,7 +833,7 @@ git commit -m "feat(m0-t5): pooled projectiles with lifetime and fairness cullin
 
 ---
 
-### Task m0-t6: CombatSystem（弹幕推进+命中结算+反弹/格挡 API）
+### Task 6: CombatSystem（弹幕推进+命中结算+反弹/格挡 API）
 
 **Files:**
 - Create: `core/combat/combat_system.gd`
@@ -1026,7 +1026,7 @@ git commit -m "feat(m0-t6): combat system with hash-driven hits, pierce cooldown
 
 ---
 
-### Task m0-t7: Player 移动/翻滚/受击/护盾（含 MoveMath 纯函数）
+### Task 7: Player 移动/翻滚/受击/护盾（含 MoveMath 纯函数）
 
 **Files:**
 - Create: `core/player/move_math.gd`、`core/player/player.gd`、`core/player/player.tscn`
@@ -1242,7 +1242,7 @@ git commit -m "feat(m0-t7): player movement/roll/shield with pure move math"
 
 ---
 
-### Task m0-t8: WeaponRig 射击（双武器位/蓝耗/散布/多弹）
+### Task 8: WeaponRig 射击（双武器位/蓝耗/散布/多弹）
 
 **Files:**
 - Create: `core/player/weapon_rig.gd`
@@ -1400,7 +1400,7 @@ git commit -m "feat(m0-t8): dual-slot weapon rig with rate/energy/spread/multish
 
 ---
 
-### Task m0-t9: 近战挥击与弹幕反弹窗口
+### Task 9: 近战挥击与弹幕反弹窗口
 
 **Files:**
 - Create: `core/player/melee.gd`
@@ -1523,7 +1523,7 @@ git commit -m "feat(m0-t9): melee swing with 0.12s parry window and projectile r
 
 ---
 
-### Task m0-t10: EnemyBase 状态机 + 4 原型（数据驱动）
+### Task 10: EnemyBase 状态机 + 4 原型（数据驱动）
 
 **Files:**
 - Create: `data/enemies.json`、`core/enemies/enemy_base.gd`、`core/enemies/archetypes/charger.gd`、`shooter.gd`、`orbiter.gd`、`suicide.gd`
@@ -1732,7 +1732,7 @@ git commit -m "feat(m0-t10): data-driven enemy base + charger/shooter/orbiter/su
 
 ---
 
-### Task m0-t11: StatusComponent 元素状态与共鸣结算
+### Task 11: StatusComponent 元素状态与共鸣结算
 
 **Files:**
 - Create: `core/combat/status_component.gd`
@@ -1889,7 +1889,7 @@ git commit -m "feat(m0-t11): element status stacking with resonance and 2s icd"
 
 ---
 
-### Task m0-t12: 战斗房（锁门/波次/奖励）+ Juice v1 + 靶场房 + Debug HUD + 遥测
+### Task 12: 战斗房（锁门/波次/奖励）+ Juice v1 + 靶场房 + Debug HUD + 遥测
 
 > 这是三个小交付物合成的收口任务：房间流程依赖前面全部接口，Juice/HUD/遥测在同一个可玩场景里验收，拆开反而无法独立评审。
 
@@ -2047,7 +2047,7 @@ git commit -m "feat(m0-t12): combat room flow, juice v1, training range, debug h
 
 ---
 
-### Task m0-t13: M0 门禁验收
+### Task 13: M0 门禁验收
 
 **Files:**
 - Create: `docs/superpowers/reports/m0-gate.md`
