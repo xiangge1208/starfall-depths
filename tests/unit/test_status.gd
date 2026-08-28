@@ -25,16 +25,27 @@ func test_burn_dot_ticks() -> void:
 func test_shatter_resonance_once_with_icd() -> void:
 	var s := _sc()
 	s.apply_hit(Elements.Id.FIRE, 8, 0)
-	s.apply_hit(Elements.Id.ICE, 8, 10)       # 火+冰 → 淬爆
+	s.apply_hit(Elements.Id.FIRE, 8, 10)      # 2 层 → 燃烧激活
+	s.apply_hit(Elements.Id.ICE, 8, 20)
+	s.apply_hit(Elements.Id.ICE, 8, 30)       # 火+冰 → 淬爆（两种激活状态相遇）
 	assert_int(s.resonance_event.get("reaction", -1)).is_equal(Resonance.R.SHATTER)
+	assert_dict(s.active).is_empty()          # 共鸣清除双方状态
 	s.resonance_event = {}
-	s.apply_hit(Elements.Id.FIRE, 8, 20)      # ICD 内（<120 ticks）不再共鸣
-	s.apply_hit(Elements.Id.ICE, 8, 30)
-	assert_dict(s.resonance_event).is_empty()
-	s.apply_hit(Elements.Id.POISON, 8, 200)   # >2s，新元素对 火+毒 可共鸣（燎原）
+	s.apply_hit(Elements.Id.FIRE, 8, 140)
+	s.apply_hit(Elements.Id.FIRE, 8, 150)     # 燃烧再激活
+	s.apply_hit(Elements.Id.POISON, 8, 160)
+	s.apply_hit(Elements.Id.POISON, 8, 170)   # >2s（ICD 至 150），火+毒 → 燎原
 	assert_int(s.resonance_event.get("reaction", -1)).is_equal(Resonance.R.BLAZE)
 	s.resonance_event = {}
-	s.apply_hit(Elements.Id.SHOCK, 8, 210)    # 火/毒已被燎原清除，电单独成状态
+	s.apply_hit(Elements.Id.SHOCK, 8, 180)
+	s.apply_hit(Elements.Id.SHOCK, 8, 190)    # 麻痹照常触发，但每目标 ICD 至 290 → 不共鸣
+	assert_dict(s.resonance_event).is_empty()
+
+func test_subthreshold_no_status_no_resonance() -> void:
+	var s := _sc()
+	s.apply_hit(Elements.Id.FIRE, 8, 0)
+	s.apply_hit(Elements.Id.ICE, 8, 10)       # 未达阈值：不触发状态，也不共鸣
+	assert_dict(s.active).is_empty()
 	assert_dict(s.resonance_event).is_empty()
 
 func test_boss_threshold_four() -> void:
