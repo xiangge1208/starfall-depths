@@ -7,6 +7,7 @@ const WEAPON_SCHEMA := {
 	"energy_cost": TYPE_INT, "bullet_speed": TYPE_INT, "spread_deg": TYPE_FLOAT,
 	"projectiles": TYPE_INT, "pierce": TYPE_INT, "bounce": TYPE_INT,
 	"element": TYPE_STRING, "is_melee": TYPE_BOOL,
+	"bullet_life": TYPE_FLOAT, "bullet_radius": TYPE_FLOAT, "muzzle": TYPE_FLOAT,
 }
 # 可选键及默认值
 const WEAPON_OPTIONAL := {"range": 0, "arc_deg": 0.0}
@@ -71,10 +72,12 @@ func _load_table(path: String, schema: Dictionary, optional: Dictionary) -> Dict
 		if row.get("id", "") != id:
 			load_ok = false
 			push_error("GameDB: id mismatch %s" % id)
+			continue
 		var errs := validate_row(row, schema)
 		if not errs.is_empty():
 			load_ok = false
 			push_error("GameDB %s row %s: %s" % [path, id, ", ".join(errs)])
+			continue
 		for k: String in optional:
 			if not row.has(k):
 				row[k] = optional[k]
