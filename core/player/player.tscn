@@ -1,10 +1,12 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://core/player/player.gd" id="1_t7player"]
 
 [ext_resource type="Script" path="res://core/player/weapon_rig.gd" id="2_t8rig"]
 
 [ext_resource type="Script" path="res://core/player/melee.gd" id="3_t9melee"]
+
+[ext_resource type="Script" path="res://core/player/skills/skill_base.gd" id="4_t2skill"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_t7a"]
 radius = 6.0
@@ -25,3 +27,6 @@ script = ExtResource("2_t8rig")
 
 [node name="Melee" type="Node" parent="."]
 script = ExtResource("3_t9melee")
+
+[node name="Skill" type="Node" parent="."]
+script = ExtResource("4_t2skill")

@@ -8,6 +8,7 @@ var combat: CombatSystem
 var combat_rng: RandomNumberGenerator
 var slots: Array[Dictionary] = []
 var slot := 0
+var dual_wield_until := -1         # m1-t2 狂潮：frame < 此值时双武器齐射且免蓝（技能写入）
 var _next_fire_frame := 0
 var _switch_until := 0
 var _muzzle := Vector2(8, 0)       # 相对玩家，朝向时旋转
@@ -48,14 +49,29 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 	if frame < _next_fire_frame or frame < _switch_until:
 		return false
 	var player := get_parent() as Player
-	var cost := int(w["energy_cost"])
+	var dual := frame < dual_wield_until              # 狂潮双持窗（GDD §6）
+	var cost := 0 if dual else int(w["energy_cost"])
 	if cost > player.energy:
-		return false                     # 空蓝禁远程（GDD §7.2）
+		return false                     # 空蓝禁远程（GDD §7.2）；双持期双武器免蓝
 	player.energy -= cost
 	_next_fire_frame = frame + maxi(1, int(round(TimeConst.FPS / float(w["rate"]))))
+	_fire_slot(w, aim, false)
+	if dual:
+		# 副手齐射：镜像枪口（同 aim），副手空/近战则跳过；蓝耗已整体豁免
+		var alt := (slot + 1) % 2
+		if alt < slots.size():
+			var aw: Dictionary = slots[alt]
+			if not aw.is_empty() and not aw["is_melee"]:
+				_fire_slot(aw, aim, true)
+	return true
+
+## 单侧齐射：mirrored 时枪口取反（副手位于朝向另一舷），弹道角与主手同源。
+func _fire_slot(w: Dictionary, aim: Vector2, mirrored: bool) -> void:
+	var player := get_parent() as Player
 	var n := int(w["projectiles"])
 	var spread := float(w["spread_deg"])
-	var origin: Vector2 = player.global_position + (_muzzle.rotated(aim.angle()))
+	var side := -1.0 if mirrored else 1.0
+	var origin: Vector2 = player.global_position + side * _muzzle.rotated(aim.angle())
 	for i in n:
 		var ang := aim.angle() + deg_to_rad(_fan_offset(n, i, spread)) + deg_to_rad(_jitter(spread))
 		_spawn({
@@ -64,7 +80,6 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 			"element": Elements.from_name(w["element"]), "pierce": int(w["pierce"]),
 			"bounce": int(w["bounce"]), "life_seconds": 1.2, "radius": 3.0,
 		})
-	return true
 
 func _spawn(cfg: Dictionary) -> void:
 	combat.spawn_projectile(cfg)         # 测试以子类覆写 _spawn 捕获参数

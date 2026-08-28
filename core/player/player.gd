@@ -11,6 +11,10 @@ const ROLL_CD_TICKS := 42          # 0.7s
 const HURT_IFRAME_TICKS := 48      # 0.8s
 const SHIELD_DELAY_TICKS := 180    # 3.0s
 const SHIELD_INTERVAL_TICKS := 72  # 1.2s/点
+const RAMPAGE_DR := 0.7            # 狂潮(升级)：受伤 ×0.7（向下取整，min 1）
+const DEFIANCE_RADIUS_PX := 60.0   # 坚守：AoE 半径
+const DEFIANCE_KNOCKBACK_PX := 8.0 # 坚守：击退距离
+const DEFIANCE_STUN_TICKS := 30    # 坚守：眩晕 0.5s
 
 var hp := 8
 var hp_max := 8
@@ -20,6 +24,9 @@ var energy := 100
 var energy_max := 100
 var move_speed := MOVE_SPEED
 var facing := Vector2.RIGHT
+var weapon_rig: WeaponRig = null   # tscn 子节点（_ready 解析；测试可手工注入）
+var rampage_active_until := -1     # 狂潮(升级)减伤窗：frame < 此值时受伤 ×0.7（技能写入）
+var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
 var _roll_left := 0
 var _roll_vel := Vector2.ZERO
 var _roll_end_frame := -999
@@ -31,6 +38,11 @@ var _shield_next_at := -999
 func _test_init() -> void:
 	# 纯逻辑测试入口：不进场景树也能测状态机
 	pass
+
+func _ready() -> void:
+	if weapon_rig == null:
+		weapon_rig = get_node_or_null("WeaponRig")
+	EventBus.shield_broken.connect(_on_shield_broken)
 
 func _physics_process(_delta: float) -> void:
 	var f := Engine.get_physics_frames()
@@ -73,13 +85,37 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	_iframe_until = frame + HURT_IFRAME_TICKS
 	_last_damaged_frame = frame
 	var dmg: int = ctx["amount"]
+	if frame < rampage_active_until:
+		dmg = maxi(1, int(floor(float(dmg) * RAMPAGE_DR)))   # 狂潮(升级)：-30%
+	var shield_before := shield
 	var to_hp := maxi(0, dmg - shield)
 	shield = maxi(0, shield - dmg)
 	if to_hp > 0:
 		hp = maxi(0, hp - to_hp)
 	_shield_next_at = frame + SHIELD_DELAY_TICKS
+	if shield_before > 0 and shield == 0:
+		EventBus.shield_broken.emit()                        # 破碎拍广播（坚守被动在此挂钩）
 	EventBus.player_damaged.emit(dmg, hp <= 0)
 	Fx.on_player_hurt(self, dmg)
+
+## 被动「坚守」（GDD §6 骑士·凛）：护盾破碎瞬间对 60px 内敌人 1 伤 + 击退 8px + 眩晕 30t。
+## 寻敌沿用 M0 分组（RoomCombat 刷怪即入 "enemies" 组），位置以 brain_pos 权威（同敌方 AI）。
+func _on_shield_broken() -> void:
+	if not has_defiance or not is_inside_tree():
+		return
+	var frame := Engine.get_physics_frames()
+	for node in get_tree().get_nodes_in_group("enemies"):
+		var e := node as EnemyBase
+		if e == null or e.state == EnemyBase.State.DEAD:
+			continue
+		var to := e.brain_pos - global_position
+		if to.length() > DEFIANCE_RADIUS_PX:
+			continue
+		e.take_hit({"amount": 1, "is_crit": false, "element": Elements.Id.NONE, "from": global_position})
+		if e.state == EnemyBase.State.DEAD:                  # 被 1 伤终结则不再位移/眩晕尸体
+			continue
+		e.brain_pos += to.normalized() * DEFIANCE_KNOCKBACK_PX
+		e.stun_until = frame + DEFIANCE_STUN_TICKS
 
 func _shield_tick(frame: int) -> void:
 	if shield >= shield_max or frame < _shield_next_at:
