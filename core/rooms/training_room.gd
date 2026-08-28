@@ -1,6 +1,6 @@
 extends Node2D
-## 训练房（m0-t12，主场景）：假人×3（可开关回血）+ 武器架 6 拾取台 + Debug HUD +
-## debug 弹幕雨作弊键。右半幅并入 RoomCombat 实例——玩家穿走廊进房 → 锁门/波次/奖励。
+## 训练房（m0-t12，主场景）：假人×3（可开关回血、无碰撞可穿过）+ 武器架 6 台（E 键交互）+
+## Debug HUD + debug 弹幕雨作弊键。右半幅并入 RoomCombat 实例——玩家穿走廊进房 → 锁门/波次/奖励。
 ## 世界布局：训练房 x∈[0,488]（左半幅），战斗房 x∈[488,960]（RoomCombat 自建）。
 
 const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
@@ -31,6 +31,7 @@ func _ready() -> void:
 	_wire_player()
 	_spawn_dummies()
 	_build_weapon_rack()
+	_wire_interaction()
 	_attach_camera_and_hud()
 	EventBus.player_damaged.connect(_on_player_damaged)
 	EventBus.room_cleared.connect(_on_room_cleared)
@@ -75,7 +76,7 @@ func _dress_enemy(e: EnemyBase) -> void:
 	vis.color = Color(0.65, 0.5, 0.35)
 	e.add_child(vis)
 
-# ---- 武器架（6 拾取台：接触即 equip 入玩家双槽） ----
+# ---- 武器架（6 台：E 键交互 equip 入玩家双槽；m1-t6 E 化，接触拾取已移除） ----
 
 func _build_weapon_rack() -> void:
 	for i in RACK_WEAPON_IDS.size():
@@ -83,35 +84,45 @@ func _build_weapon_rack() -> void:
 		_build_rack_station(id, RACK_BASE + Vector2(52.0 * i, 0))
 
 func _build_rack_station(weapon_id: String, pos: Vector2) -> void:
-	var area := Area2D.new()
-	area.position = pos
-	var cs := CollisionShape2D.new()
+	var station := CallbackInteractable.new()
+	station.position = pos
+	station.action_label = "拾取 %s" % _weapon_name(weapon_id)
+	var cs := CollisionShape2D.new()          # 形体占位（选台走距离制，layer/mask 已由基类清零）
 	var shape := CircleShape2D.new()
 	shape.radius = 12.0
 	cs.shape = shape
-	area.add_child(cs)
+	station.add_child(cs)
 	var vis := Polygon2D.new()
 	vis.name = "Sprite"
 	vis.polygon = PackedVector2Array([
 		Vector2(-8, -8), Vector2(8, -8), Vector2(8, 8), Vector2(-8, 8),
 	])
 	vis.color = Color(0.28, 0.4, 0.6)
-	area.add_child(vis)
+	station.add_child(vis)
 	var label := Label.new()
-	label.text = String(GameDB.get_weapon(weapon_id).get("name", weapon_id))
+	label.text = _weapon_name(weapon_id)
 	label.position = Vector2(-16, -18)
 	label.add_theme_font_size_override("font_size", 8)
-	area.add_child(label)
-	area.body_entered.connect(_on_rack_touched.bind(weapon_id, label))
-	add_child(area)
+	station.add_child(label)
+	station.on_interact = func(p: Node2D) -> void:
+		var pl := p as Player
+		if pl == null or pl.weapon_rig == null:
+			return
+		pl.weapon_rig.equip(weapon_id)
+		label.modulate = Color(0.5, 1.0, 0.5)     # 已拾取反馈
+		Telemetry.log_row(["equip", Engine.get_physics_frames(), weapon_id])
+	add_child(station)
 
-func _on_rack_touched(body: Node2D, weapon_id: String, label: Label) -> void:
-	if not (body is Player):
-		return
-	var rig := (body as Player).get_node("WeaponRig") as WeaponRig
-	rig.equip(weapon_id)
-	label.modulate = Color(0.5, 1.0, 0.5)     # 已拾取反馈
-	Telemetry.log_row(["equip", Engine.get_physics_frames(), weapon_id])
+func _weapon_name(weapon_id: String) -> String:
+	return String(GameDB.get_weapon(weapon_id).get("name", weapon_id))
+
+# ---- 交互系统接线（m1-t6：玩家 + 浮标；E 键路由见 InteractionSystem） ----
+
+func _wire_interaction() -> void:
+	var sys := InteractionSystem.new()
+	sys.name = "InteractionSystem"
+	sys.player = player
+	add_child(sys)
 
 # ---- 相机 / HUD ----
 
