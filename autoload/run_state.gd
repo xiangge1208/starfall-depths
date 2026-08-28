@@ -34,6 +34,8 @@ var kills: int = 0
 var rooms_cleared: int = 0
 var run_time_frames: int = 0         # 物理帧计（60/s）
 var pending_investment: int = 0      # 乞丐事件接缝（T19 规格）
+var beggar_paid_floor: int = 0       # 乞丐付款层号（T19 declare-only；0 = 未付；返还消费归 T20 跨层）
+var star_spring_used: bool = false   # 星髓泉每局一次守卫（T19 declare-only；start_run 重置在整合任务接线）
 var last_chosen_hero: String = ""    # 与 HeroSelect.last_chosen 静态暂存同口径（T11 接缝）
 
 func start_run(hero: String) -> void:
