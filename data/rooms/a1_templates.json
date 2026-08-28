@@ -1,0 +1,162 @@
+{
+  "combat_a1_01": {
+    "id": "combat_a1_01",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "spawn_points": [[5, 4], [16, 4], [5, 9], [16, 9], [11, 4]],
+    "props": [
+      {"kind": "pillar", "grid": [10, 6], "hp": 20},
+      {"kind": "pillar", "grid": [11, 6], "hp": 20},
+      {"kind": "pillar", "grid": [10, 7], "hp": 20},
+      {"kind": "pillar", "grid": [11, 7], "hp": 20}
+    ],
+    "hazards": []
+  },
+  "combat_a1_02": {
+    "id": "combat_a1_02",
+    "size": [22, 14],
+    "doors": ["N", "S", "E"],
+    "spawn_points": [[10, 4], [13, 9], [6, 7], [15, 7]],
+    "props": [
+      {"kind": "pillar", "grid": [4, 3], "hp": 20},
+      {"kind": "pillar", "grid": [17, 3], "hp": 20},
+      {"kind": "pillar", "grid": [4, 10], "hp": 20},
+      {"kind": "pillar", "grid": [17, 10], "hp": 20}
+    ],
+    "hazards": []
+  },
+  "combat_a1_03": {
+    "id": "combat_a1_03",
+    "size": [22, 14],
+    "doors": ["W", "E", "N"],
+    "spawn_points": [[6, 4], [15, 4], [6, 9], [15, 9]],
+    "props": [
+      {"kind": "crate", "grid": [4, 7], "hp": 8},
+      {"kind": "crate", "grid": [5, 7], "hp": 8},
+      {"kind": "crate", "grid": [6, 7], "hp": 8},
+      {"kind": "crate", "grid": [7, 7], "hp": 8},
+      {"kind": "crate", "grid": [8, 7], "hp": 8},
+      {"kind": "crate", "grid": [9, 7], "hp": 8},
+      {"kind": "crate", "grid": [10, 7], "hp": 8},
+      {"kind": "crate", "grid": [12, 7], "hp": 8},
+      {"kind": "crate", "grid": [13, 7], "hp": 8},
+      {"kind": "crate", "grid": [14, 7], "hp": 8},
+      {"kind": "crate", "grid": [15, 7], "hp": 8},
+      {"kind": "crate", "grid": [16, 7], "hp": 8},
+      {"kind": "crate", "grid": [17, 7], "hp": 8},
+      {"kind": "crate", "grid": [18, 7], "hp": 8}
+    ],
+    "hazards": []
+  },
+  "combat_a1_04": {
+    "id": "combat_a1_04",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "spawn_points": [[8, 4], [13, 4], [8, 9], [13, 9]],
+    "props": [
+      {"kind": "bush", "grid": [5, 4], "hp": 4},
+      {"kind": "bush", "grid": [6, 4], "hp": 4},
+      {"kind": "bush", "grid": [5, 5], "hp": 4},
+      {"kind": "bush", "grid": [16, 8], "hp": 4},
+      {"kind": "bush", "grid": [17, 8], "hp": 4},
+      {"kind": "bush", "grid": [16, 9], "hp": 4},
+      {"kind": "bush", "grid": [11, 5], "hp": 4},
+      {"kind": "bush", "grid": [11, 8], "hp": 4}
+    ],
+    "hazards": [
+      {"kind": "vine", "grid": [11, 7], "radius": 24}
+    ]
+  },
+  "combat_a1_05": {
+    "id": "combat_a1_05",
+    "size": [22, 14],
+    "doors": ["E", "W", "S"],
+    "spawn_points": [[5, 5], [16, 5], [5, 8], [16, 8]],
+    "props": [
+      {"kind": "pillar", "grid": [7, 4], "hp": 20},
+      {"kind": "pillar", "grid": [7, 9], "hp": 20},
+      {"kind": "pillar", "grid": [14, 4], "hp": 20},
+      {"kind": "pillar", "grid": [14, 9], "hp": 20},
+      {"kind": "crate", "grid": [11, 5], "hp": 8},
+      {"kind": "crate", "grid": [11, 6], "hp": 8},
+      {"kind": "crate", "grid": [11, 7], "hp": 8},
+      {"kind": "crate", "grid": [11, 8], "hp": 8}
+    ],
+    "hazards": []
+  },
+  "combat_a1_06": {
+    "id": "combat_a1_06",
+    "size": [22, 14],
+    "doors": ["N", "E", "W"],
+    "spawn_points": [[10, 5], [12, 8], [6, 7], [15, 6]],
+    "props": [
+      {"kind": "crate", "grid": [5, 5], "hp": 8},
+      {"kind": "crate", "grid": [9, 8], "hp": 8},
+      {"kind": "crate", "grid": [13, 4], "hp": 8},
+      {"kind": "crate", "grid": [16, 9], "hp": 8},
+      {"kind": "crate", "grid": [7, 10], "hp": 8},
+      {"kind": "bush", "grid": [11, 10], "hp": 4}
+    ],
+    "hazards": [
+      {"kind": "vine", "grid": [8, 6], "radius": 24}
+    ]
+  },
+  "combat_a1_07": {
+    "id": "combat_a1_07",
+    "size": [22, 14],
+    "doors": ["N", "W", "S"],
+    "spawn_points": [[11, 7], [4, 4], [17, 4], [4, 9], [17, 9]],
+    "props": [
+      {"kind": "bush", "grid": [7, 4], "hp": 4},
+      {"kind": "bush", "grid": [11, 3], "hp": 4},
+      {"kind": "bush", "grid": [15, 4], "hp": 4},
+      {"kind": "bush", "grid": [17, 7], "hp": 4},
+      {"kind": "bush", "grid": [15, 10], "hp": 4},
+      {"kind": "bush", "grid": [11, 11], "hp": 4},
+      {"kind": "bush", "grid": [7, 10], "hp": 4},
+      {"kind": "bush", "grid": [5, 7], "hp": 4}
+    ],
+    "hazards": [
+      {"kind": "vine", "grid": [11, 7], "radius": 24}
+    ]
+  },
+  "combat_a1_08": {
+    "id": "combat_a1_08",
+    "size": [22, 14],
+    "doors": ["S", "E", "W"],
+    "spawn_points": [[10, 4], [11, 9], [16, 5], [5, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [6, 5], "hp": 20},
+      {"kind": "pillar", "grid": [6, 6], "hp": 20},
+      {"kind": "pillar", "grid": [15, 8], "hp": 20},
+      {"kind": "pillar", "grid": [15, 9], "hp": 20},
+      {"kind": "crate", "grid": [7, 5], "hp": 8},
+      {"kind": "crate", "grid": [14, 9], "hp": 8}
+    ],
+    "hazards": []
+  },
+  "start_a1": {
+    "id": "start_a1",
+    "size": [22, 14],
+    "doors": ["S", "E"],
+    "spawn_points": [],
+    "props": [
+      {"kind": "bush", "grid": [4, 3], "hp": 4},
+      {"kind": "bush", "grid": [17, 3], "hp": 4},
+      {"kind": "bush", "grid": [4, 10], "hp": 4},
+      {"kind": "bush", "grid": [17, 10], "hp": 4}
+    ],
+    "hazards": []
+  },
+  "boss_a1": {
+    "id": "boss_a1",
+    "size": [22, 14],
+    "doors": ["N", "S"],
+    "spawn_points": [[11, 6]],
+    "props": [
+      {"kind": "pillar", "grid": [4, 4], "hp": 20},
+      {"kind": "pillar", "grid": [17, 9], "hp": 20}
+    ],
+    "hazards": []
+  }
+}
