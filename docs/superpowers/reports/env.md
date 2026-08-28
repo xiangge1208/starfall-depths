@@ -51,6 +51,6 @@ godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://
 ## 其他说明
 
 - `icon.svg`：Godot 官方默认图标文件不在引擎仓库可直取的路径（raw 404），用手写的简洁默认图标（Godot 蓝圆角方块+白星）替代，功能等同（仅作为项目默认图标资源）。
-- `physics/common/physics_ticks_per_second=60` 与引擎默认值相同，Godot 执行 `ProjectSettings.save()` 时会将其按"与默认一致"省略；当前 project.godot 中已手工保留该键，后续若被 Godot 重写消失属正常现象，值仍为 60。
+- `physics/common/physics_ticks_per_second=60`：因 60 恰为引擎默认值，Godot 的 `ProjectSettings.save()` 会跳过"当前值 == initial(默认值)"的设置项（见 godot 4.7.2 源码 `project_settings.cpp` 的 `save_custom()`）。`tools/setup_input.gd` 在保存前对该键执行 `set_setting(60)` 并 `set_initial_value(键, -1)`，使其被计入保存——该键因此稳定存在于 project.godot（重复运行 setup_input 已验证），且脚本进程退出后对引擎行为无任何影响。
 - InputMap 动作：move_left(A/←) move_right(D/→) move_up(W/↑) move_down(S/↓) fire(鼠标左键) roll(Shift/Space) switch_weapon(Q) interact(E) skill(F) pause(Esc)，deadzone 全部 0.2，键盘事件均用 physical_keycode。
 - 测试报告输出目录 `reports/` 已加入 .gitignore（GdUnit4 默认输出位置；模式写作 `/reports/` 锚定仓库根，避免误伤 docs/superpowers/reports/）。

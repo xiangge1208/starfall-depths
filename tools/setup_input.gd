@@ -33,5 +33,12 @@ func _init() -> void:
 			InputMap.action_add_event(action, mb)
 			events.append(mb)
 		ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})
+	# ProjectSettings.save() 会跳过"当前值 == initial(引擎默认值)"的设置项，
+	# 而 60 恰为引擎默认，故仅 set_setting 仍会被省略；
+	# 这里把 initial 改为不同值使其计入保存（仅本脚本进程内存生效，不影响引擎行为），
+	# 确保 brief 要求的 physics/common/physics_ticks_per_second=60 稳定留在 project.godot。
+	const PHYSICS_TICKS := "physics/common/physics_ticks_per_second"
+	ProjectSettings.set_setting(PHYSICS_TICKS, 60)
+	ProjectSettings.set_initial_value(PHYSICS_TICKS, -1)
 	ProjectSettings.save()
 	quit(0)
