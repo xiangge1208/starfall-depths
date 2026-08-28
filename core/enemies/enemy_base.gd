@@ -58,6 +58,10 @@ func _apply_archetype_script(r: Dictionary) -> void:
 	var cur := get_script() as Script
 	if cur == null or cur.get_base_script() != null:
 		return   # 非基类脚本（原型/精英/Boss 派生）不二次换装
+	var boss_path := String(r.get("boss_script", ""))   # m1-t13：BossBase 子类经行内 boss_script 换装
+	if boss_path != "" and ResourceLoader.exists(boss_path):
+		set_script(load(boss_path))
+		return
 	if not ARCHETYPES.has(arch):
 		push_warning("EnemyBase: unknown archetype '%s'" % arch)
 		return
