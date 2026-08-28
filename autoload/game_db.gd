@@ -45,6 +45,10 @@ func _load_table(path: String, schema: Dictionary, optional: Dictionary) -> Dict
 		push_error("GameDB: bad json %s" % path)
 		return out
 	for id: String in parsed:
+		if typeof(parsed[id]) != TYPE_DICTIONARY:
+			load_ok = false
+			push_error("GameDB %s row %s: not a dictionary" % [path, id])
+			continue
 		var row: Dictionary = parsed[id]
 		_normalize_row(row, schema, optional)
 		if row.get("id", "") != id:
