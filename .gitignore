@@ -1,0 +1,4 @@
+.godot/
+*.tmp
+user_export/
+/reports/
