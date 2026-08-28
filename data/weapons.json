@@ -1,0 +1,8 @@
+{
+  "laohuoji":    {"id":"laohuoji","name":"老伙计","category":"pistol","rarity":"common","damage":2,"rate":4.0,"energy_cost":0,"bullet_speed":320,"spread_deg":2.0,"projectiles":1,"pierce":0,"bounce":0,"element":"none","is_melee":false,"range":0,"arc_deg":0.0},
+  "maodingqiang":{"id":"maodingqiang","name":"铆钉枪","category":"pistol","rarity":"common","damage":2,"rate":3.5,"energy_cost":0,"bullet_speed":320,"spread_deg":4.0,"projectiles":1,"pierce":0,"bounce":0,"element":"none","is_melee":false,"range":0,"arc_deg":0.0},
+  "duangong":    {"id":"duangong","name":"短弓","category":"bow","rarity":"common","damage":5,"rate":1.8,"energy_cost":0,"bullet_speed":380,"spread_deg":0.5,"projectiles":1,"pierce":0,"bounce":0,"element":"none","is_melee":false,"range":0,"arc_deg":0.0},
+  "xuetufazhang":{"id":"xuetufazhang","name":"学徒法杖","category":"staff","rarity":"common","damage":3,"rate":2.5,"energy_cost":0,"bullet_speed":260,"spread_deg":3.0,"projectiles":1,"pierce":0,"bounce":0,"element":"none","is_melee":false,"range":0,"arc_deg":0.0},
+  "tiejian":     {"id":"tiejian","name":"铁剑","category":"melee","rarity":"common","damage":6,"rate":2.2,"energy_cost":0,"bullet_speed":0,"spread_deg":0.0,"projectiles":1,"pierce":0,"bounce":0,"element":"none","is_melee":true,"range":40,"arc_deg":90.0},
+  "shuangbi":    {"id":"shuangbi","name":"双匕","category":"melee","rarity":"common","damage":4,"rate":3.4,"energy_cost":0,"bullet_speed":0,"spread_deg":0.0,"projectiles":1,"pierce":0,"bounce":0,"element":"none","is_melee":true,"range":32,"arc_deg":80.0}
+}
