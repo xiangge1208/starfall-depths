@@ -6,8 +6,22 @@ enum State { IDLE, ALERT, ENGAGE, DEAD }
 const ALERT_TICKS := 24     # 0.4s
 const VISION_PX := 240.0    # 视距（物理表现层用）
 
+## m1-t12 原型映射：preload 常量表取代运行时 load(path)（消除路径拼错/加载失败的脆弱性，
+## 编译期即校验全部原型脚本存在）。含 M0 五原型 + m1-t12 两精英原型（小 Boss 专用）。
+const ARCHETYPES := {
+	"charger": preload("res://core/enemies/archetypes/charger.gd"),
+	"shooter": preload("res://core/enemies/archetypes/shooter.gd"),
+	"orbiter": preload("res://core/enemies/archetypes/orbiter.gd"),
+	"suicide": preload("res://core/enemies/archetypes/suicide.gd"),
+	"dummy": preload("res://core/enemies/archetypes/dummy.gd"),
+	"combo_charger": preload("res://core/enemies/elites/combo_charger.gd"),
+	"zibao_wangchong": preload("res://core/enemies/elites/zibao_wangchong.gd"),
+}
+const BERSERK_WINDUP_SCALE := 0.7   # m1-t12 狂暴：50% 血后攻速 ×1.3（设计 §12.3）→ windup ×0.7
+
 var row: Dictionary
 var hp := 10
+var hp_max := 0                     # m1-t12 虹吸/狂暴基准：_test_init 时取行 hp（坚甲词缀同步 ×3）
 var state := State.IDLE
 var fired_this_tick := false
 var exploded := false
@@ -16,36 +30,46 @@ var combat: CombatSystem = null    # 房间注入
 var status: Node = null            # StatusComponent，m0-t11 注入
 var player_ref = null              # 玩家替身/实例（需有 brain_pos），房间注入
 var stun_until := -1               # m1-t2 坚守眩晕窗：frame < stun_until 时 brain 空转
+# ---- m1-t12 精英词缀落点（EliteAffix.apply 写入；默认值即无词缀原行为）----
+var split_on_death := false        # 分裂：die() 经 spawn_callback 生成 2 个同 row 子体（hp 半）
+var spawn_callback := Callable()   # 房间注入：func(row_id: String, pos: Vector2) -> Node
+var barrage_extra := 0             # 弹幕大师：shooter 每轮 volley = 1 + barrage_extra
+var leech := false                 # 虹吸：接触伤害命中时自回等量 hp（≤ hp_max）
+var body_scale := 1.0              # 体型：行 body_scale（小 Boss 1.25）→ 战斗半径与视觉同步放大
 var _seen_frame := -1
 
 func _test_init(r: Dictionary) -> void:
-	_apply_archetype_script(r)   # 数据驱动：先按行换上原型脚本（set_script 会重建脚本实例并重置成员）
-	# set_script 后当前函数帧仍绑定旧实例，直接写成员会丢失——须经 Object.set 落到新实例
+	_apply_archetype_script(r)   # 数据驱动：先按行换上原型脚本（脚本重挂会重建脚本实例并重置成员）
+	# 换脚本后当前函数帧仍绑定旧实例，直接写成员会丢失——须经 Object.set 落到新实例
 	set("row", r)
 	set("hp", int(r.get("hp", 10)))
+	set("hp_max", int(r.get("hp", 10)))
+	set("body_scale", float(r.get("body_scale", 1.0)))
 	set("brain_pos", Vector2.ZERO)
 
-## 数据驱动原型挂载：行内 archetype → archetypes/<name>.gd（均 extends EnemyBase 覆写 _engage）。
-## 仅当当前脚本是基类时才换，避免子类实例二次换脚本；未知原型告警并留在基类（IDLE 空转）。
+## 数据驱动原型挂载：行内 archetype → ARCHETYPES 常量映射（均 extends EnemyBase 覆写 _engage）。
+## 仅当当前脚本是基类时才换，避免原型/Boss 子类实例二次换脚本；未知原型告警并留在基类（IDLE 空转）。
 func _apply_archetype_script(r: Dictionary) -> void:
 	var arch := String(r.get("archetype", ""))
 	if arch == "":
 		return
-	var script := get_script() as Script
-	if script == null or script.resource_path != "res://core/enemies/enemy_base.gd":
-		return
-	var path := "res://core/enemies/archetypes/%s.gd" % arch
-	if ResourceLoader.exists(path):
-		set_script(load(path))
-	else:
+	var cur := get_script() as Script
+	if cur == null or cur.get_base_script() != null:
+		return   # 非基类脚本（原型/精英/Boss 派生）不二次换装
+	if not ARCHETYPES.has(arch):
 		push_warning("EnemyBase: unknown archetype '%s'" % arch)
+		return
+	set_script(ARCHETYPES[arch])   # 预加载脚本直接重挂（等价 script 赋值，仍会重建脚本实例）
 
 func setup(r: Dictionary) -> void:
-	# m0-t12 修复：global_position 须在换脚本前读取——_test_init 内 set_script 后当前帧
+	# m0-t12 修复：global_position 须在换脚本前读取——_test_init 内换脚本后当前帧
 	# 绑定旧实例，此后读原生属性可触发 "Internal error getting property"（4.7.2 实测）。
 	var at := global_position
+	var bs := float(r.get("body_scale", 1.0))   # 同理：换脚本前取行数据，换后再落视觉缩放
 	_test_init(r)
 	set("brain_pos", at)   # 同 _test_init：经 Object.set 避开旧实例帧
+	if bs != 1.0:
+		set("scale", Vector2.ONE * bs)   # m1-t12 体型：视觉（含子碰撞形状）同步 ×body_scale
 	# m0-t12 接线：非玩家实体惰性挂载 StatusComponent（M0 无精英/Boss，统一小怪阈值 2 层）。
 	# 读写均须 Object.get/set：换脚本后直接读写成员会落到旧实例而丢失（下同，见 _test_init 注）。
 	if get("status") == null:
@@ -53,6 +77,9 @@ func setup(r: Dictionary) -> void:
 		add_child(s)
 		s.setup(2, false)
 		set("status", s)
+	# m1-t12：行内精英词缀在装配完成后应用（数值倍率/死亡分裂/吸血/弹幕/狂暴）。
+	for affix in r.get("elite_affixes", []):
+		EliteAffix.apply(self, String(affix))
 
 func on_player_seen(frame: int) -> void:
 	if state == State.IDLE:
@@ -107,11 +134,46 @@ func die() -> void:
 	if state == State.DEAD:
 		return
 	state = State.DEAD
-	_death_explosion()   # m0-final fix4：死亡即刻爆由 die() 统一持有（附录 B.1「死亡即刻爆」）
+	_split_spawn_children()   # m1-t12 分裂词缀：先落子体再退场
+	var delay := int(row.get("delayed_death_ticks", 0))
+	if delay > 0:
+		_spawn_delayed_blast(delay)   # m1-t12 自爆王虫：死亡延迟大爆（B.3「本体死亡延迟 1s」）
+	else:
+		_death_explosion()   # m0-final fix4：死亡即刻爆由 die() 统一持有（附录 B.1「死亡即刻爆」）
 	if combat != null:
 		combat.unregister_body(self)
 	EventBus.enemy_killed.emit(String(row.get("id", "")))
 	queue_free()
+
+## m1-t12 分裂词缀执行：经 spawn_callback(row_id, pos) -> Node 生成 2 个同 row 子体
+## （hp 为行 hp 一半，房间接线时子体走正常 setup 路径）。回调未注入（脑层测试/未接线）则跳过。
+func _split_spawn_children() -> void:
+	if not split_on_death or not spawn_callback.is_valid():
+		return
+	var half := maxi(int(float(row.get("hp", 10)) * 0.5), 1)
+	var r := combat_radius()
+	for i in 2:
+		var child: Node = spawn_callback.call(String(row.get("id", "")),
+			brain_pos + Vector2(r if i == 0 else -r, 0.0))
+		if child != null:
+			child.set("hp", half)
+
+## m1-t12 延迟大爆：生成 DelayedBlast 节点（挂 combat 下，无 combat 且在树内挂场景根；
+## 纯脑层测试两者皆无则不生成），到点按 _death_explosion 同语义结算（M0 爆炸语义复用）。
+func _spawn_delayed_blast(delay_ticks: int) -> void:
+	if int(row.get("aoe_radius", 0)) <= 0 or int(row.get("aoe_dmg", 0)) <= 0:
+		return
+	var blast := DelayedBlast.new()
+	blast.setup({
+		"pos": brain_pos, "radius": float(row["aoe_radius"]),
+		"dmg": int(row["aoe_dmg"]), "ticks": delay_ticks, "player": player_ref,
+	})
+	if combat != null:
+		combat.add_child(blast)
+	elif is_inside_tree():
+		get_tree().current_scene.add_child(blast)
+	else:
+		return
 
 ## m0-final fix4：行含 aoe_radius>0 且 aoe_dmg>0 时对范围内玩家结算 aoe_dmg。
 ## 经 player_ref.take_hit（ctx 带 is_crit=false / element=NONE / from=global_position），
@@ -129,7 +191,19 @@ func _death_explosion() -> void:
 	})
 
 func combat_radius() -> float:
-	return float(row.get("radius", 6.0))
+	return float(row.get("radius", 6.0)) * float(body_scale)
+
+## m1-t12 狂暴：血量低于 50%（严格 <）时激活——charger/shooter 蓄力窗 ×0.7（攻速 ×1.3）。
+func berserk_active() -> bool:
+	return hp * 2 < hp_max
+
+## 蓄力拍数取值：行 windup_ticks（缺省用 default_ticks），狂暴激活时 ×0.7（截断取整）。
+## charger/shooter 的 windup 计算统一经此钩子（设计 §12.3「50% 血后攻速 ×1.3」）。
+func _windup_ticks(default_ticks: int) -> int:
+	var w := int(row.get("windup_ticks", default_ticks))
+	if berserk_active():
+		w = int(float(w) * BERSERK_WINDUP_SCALE)
+	return w
 
 func combat_faction() -> int:
 	return Projectile.Faction.ENEMY
@@ -153,10 +227,14 @@ func _physics_process(_delta: float) -> void:
 	# 距离用敌方实际位 vs player_ref.brain_pos（PlayerProxy 每拍镜像）。
 	if player_ref != null and int(row.get("contact_dmg", 0)) > 0 \
 			and global_position.distance_to(player_ref.brain_pos) <= combat_radius() + 6.0:
+		var dealt := int(row["contact_dmg"])
 		player_ref.take_hit({
-			"amount": int(row["contact_dmg"]), "is_crit": false,
+			"amount": dealt, "is_crit": false,
 			"element": Elements.Id.NONE, "from": global_position,
 		})
+		# m1-t12 虹吸：接触伤害命中（dealt>0）时自回等量 hp（≤ hp_max；实际节流仍由玩家无敌帧持有）
+		if leech and dealt > 0:
+			hp = mini(hp + dealt, hp_max)
 	# m0-t12 接线：DoT 结算 + 共鸣事件消费（读后清空）
 	if status != null:
 		var frame := Engine.get_physics_frames()

@@ -11,7 +11,7 @@ func _engage(_frame: int) -> void:
 	match _phase:
 		"idle":
 			_phase = "windup"
-			_phase_left = int(row["windup_ticks"])
+			_phase_left = _windup_ticks(int(row["windup_ticks"]))   # m1-t12：狂暴激活时 ×0.7
 			_dash_dir = Vector2.RIGHT if player_ref == null else (player_ref.brain_pos - brain_pos).normalized()
 			Fx.on_enemy_hit(self, {"telegraph": true})
 		"windup":
