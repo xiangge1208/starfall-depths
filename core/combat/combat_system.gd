@@ -68,6 +68,8 @@ func _physics_process(_delta: float) -> void:
 				continue
 			cd[node.get_instance_id()] = Engine.get_physics_frames()
 			var roll := DamageCalc.compute(p.damage, _rng, crit_chance)
+			if p.faction == Projectile.Faction.PLAYER and roll["is_crit"]:
+				EventBus.player_crit_landed.emit(roll["amount"], p.position)   # m1-t2：玩家弹暴击落地
 			node.take_hit({"amount": roll["amount"], "is_crit": roll["is_crit"], "element": p.element, "from": p.position})
 			if p.pierce_left > 0:
 				p.pierce_left -= 1

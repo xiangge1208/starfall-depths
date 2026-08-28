@@ -15,6 +15,7 @@ var brain_pos := Vector2.ZERO
 var combat: CombatSystem = null    # 房间注入
 var status: Node = null            # StatusComponent，m0-t11 注入
 var player_ref = null              # 玩家替身/实例（需有 brain_pos），房间注入
+var stun_until := -1               # m1-t2 坚守眩晕窗：frame < stun_until 时 brain 空转
 var _seen_frame := -1
 
 func _test_init(r: Dictionary) -> void:
@@ -60,6 +61,8 @@ func on_player_seen(frame: int) -> void:
 
 func brain_tick(frame: int) -> void:
 	fired_this_tick = false
+	if frame < stun_until:
+		return                       # m1-t2 眩晕：整拍空转（含 ALERT→ENGAGE 推进）
 	match state:
 		State.ALERT:
 			if frame - _seen_frame >= ALERT_TICKS:
