@@ -266,15 +266,17 @@ static func _attempt_generate(rng: RandomNumberGenerator) -> Dictionary:
 		if not grew:
 			dead_anchors[anchor] = true
 
-	# 4) treasure/event 挂 combat 叶子（允许同叶异枝：boss 深度 9 时支线 combat 仅 1 节点）
+	# 4) treasure/event 挂 combat 叶子。叶表只算一次：两者可共叶异枝——boss 深度 9
+	#    时支线 combat 仅 1 叶，必须共叶才挂得满（fix1：此前循环内重算叶表，treasure
+	#    占叶后 event 找不到叶 → 深度 9 的尝试必被废弃，9 永不可达）。
+	var leaves: Array[int] = []
+	for id in nodes:
+		var nd: Dictionary = nodes[id]
+		if String(nd["type"]) == "combat" and (nd["next"] as Array).is_empty():
+			leaves.append(int(id))
+	if leaves.is_empty():
+		return {}
 	for kind in ["treasure", "event"]:
-		var leaves: Array[int] = []
-		for id in nodes:
-			var nd: Dictionary = nodes[id]
-			if String(nd["type"]) == "combat" and (nd["next"] as Array).is_empty():
-				leaves.append(int(id))
-		if leaves.is_empty():
-			return {}
 		var leaf: int = leaves[rng.randi_range(0, leaves.size() - 1)]
 		var leaf_grid: Vector2i = nodes[leaf]["grid"]
 		var dirs := _free_dirs(occupied, leaf_grid)

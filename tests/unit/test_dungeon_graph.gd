@@ -150,6 +150,21 @@ func test_generate_boss_unique_and_unique_max_depth() -> void:
 		assert_int(int(boss["depth"])).is_equal(max_depth)
 
 
+func test_boss_depth_distribution_covers_7_to_9() -> void:
+	# 生成规格：boss 深度 = 主路径长，取 7~9。种子扫描钉住全分布——防实现退化令
+	# 某档深度不可达（fix1：步骤 4 循环内重算叶表，曾令深度 9 的尝试必失败重掷）。
+	var seen := {}
+	for base in SEEDS:
+		for i in 200:
+			var r := _rng(int(base) * 100003 + i)
+			var g := DungeonGraph.generate(r, (i % 3) + 1)
+			var boss: Dictionary = (g["nodes"] as Dictionary)[int(g["boss_id"])]
+			seen[int(boss["depth"])] = true
+	assert_bool(seen.has(7)).is_true()
+	assert_bool(seen.has(8)).is_true()
+	assert_bool(seen.has(9)).is_true()
+
+
 func test_node_payload_contract() -> void:
 	# Task 7 消费契约：id→{id:int,type:String,grid:Vector2i,depth:int,next:Array[int]}
 	var g := DungeonGraph.generate(_rng(SEED_A), 1)
