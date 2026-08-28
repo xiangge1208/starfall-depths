@@ -4,10 +4,10 @@ extends GdUnitTestSuite
 ## 断言清单来源：task-7-brief——3 种子样本结构断言（13 房/12 走廊/world_pos 数学）、
 ## 人为错配被 validate_build 拒绝、combat 模板层内去重 ≤2、同种子逐字段确定性。
 ##
-## 数据发现（详见 task-7-report）：A1 固定模板门集合与图的随机方向需门存在系统性错配
-## （start_a1={S,E} 仅覆盖 ~44% 种子的 start 需门；boss_a1={N,S} 仅 ~50%）。故本套件
-## 对真实构建体钉住「除门错配外其余校验必净」；门全对齐由手工构造的对齐构建体正/
-## 反两向验证（accepts aligned / rejects corrupted），不静默重映射。
+## 裁定 fix round 1（原数据发现已修）：start_a1/boss_a1 门补全为 4 向（未用门=封闭
+## 门框几何），装配器对 combat 系房型改为门覆盖感知的最少使用选取 ⇒ 真实构建体
+## validate_build 必净（round 0 时仅能钉「除门错配外必净」，前提变更已在报告披露）。
+## 门对齐的正/反向仍由手工构造构建体验证（accepts aligned / rejects corrupted）。
 
 const SEEDS := [20260828, 7, 1234]
 const SALT := 777
@@ -249,14 +249,42 @@ func test_validate_rejects_dangling_corridor() -> void:
 	assert_array(DungeonBuilder.validate_build(build)).is_not_empty()
 
 
-func test_real_builds_fail_only_on_door_mismatch() -> void:
-	# 数据发现钉住：真实构建体除「门错配」外，全部其余校验（模板存在/world_pos/走廊
-	# 完整性/朝向）必净——即任何错误只来自模板门数据与图方向的系统性错配，
-	# 而非装配逻辑缺陷。
+func test_real_builds_fully_validate() -> void:
+	# 裁定 fix round 1 后：数据修订 + fit-aware 选模 ⇒ 真实构建体 validate_build 必净
+	#（round 0 前提「仅门错配」已变更，见文件头与报告披露）
 	for s in SEEDS:
-		var errs := DungeonBuilder.validate_build(_build(int(s)))
-		for e in errs:
-			assert_bool(String(e).begins_with("door mismatch")).is_true()
+		assert_array(DungeonBuilder.validate_build(_build(int(s)))).is_empty()
+
+
+func test_fit_aware_templates_cover_required_dirs() -> void:
+	# 裁定 fix round 1 钉住：装配器所选模板门必覆盖节点需门方向（40 种子无静默漏配）
+	for i in 40:
+		var build := _build(200000 + i)
+		var rooms: Dictionary = build["rooms"]
+		var req := {}
+		for id in rooms:
+			req[int(id)] = {}
+		var corridors: Array = build["corridors"]
+		for c in corridors:
+			var corridor: Dictionary = c
+			var dir := String(corridor["dir"])
+			(req[int(corridor["a"])] as Dictionary)[dir] = true
+			(req[int(corridor["b"])] as Dictionary)[_opp(dir)] = true
+		for id in rooms:
+			var doors: Array = RoomTemplate.get_room(String(rooms[id]["template_id"]))["doors"]
+			for d: String in req[int(id)]:
+				assert_bool(doors.has(d)).is_true()
+
+
+func _opp(dir: String) -> String:
+	match dir:
+		"N":
+			return "S"
+		"S":
+			return "N"
+		"E":
+			return "W"
+	return "E"
 
 
 func test_real_seed_388_fully_door_aligned() -> void:

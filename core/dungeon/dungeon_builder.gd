@@ -7,10 +7,16 @@ class_name DungeonBuilder
 ## miniboss）→combat 池按 rng 洗牌循环取用，同模板每层 ≤2 次。模板只提供几何/门，
 ## 店铺/宝箱等内部陈设由后续任务按房型铺设。
 ##
-## 已证实的系统性数据错配（task-7 报告，1000 种子统计）：A1 模板为固定门集合
-## （start_a1={S,E}、boss_a1={N,S}、combat 多为三门），而 DungeonGraph 主路径方向随机
-## （起点四向等概率、boss 入向均匀），所需门集合与模板门集合无法恒吻合——按规格
-## 「不静默重映射」，validate_build 如实报告 door mismatch，交由数据侧修订。
+## 已证实的系统性数据错配（round 0 报告）：A1 固定模板门集合与 DungeonGraph 随机方向
+## 的需门无法恒吻合（start_a1={S,E} 仅覆盖 437/1000 种子、boss_a1={N,S} 仅 500/1000）。
+## 控制器裁定（fix round 1，混合 fit-aware）落地：
+## 1) 数据修订：start_a1/boss_a1 门补全为 ["N","S","E","W"]——未用门为封闭门框几何，
+##    房间只对实际使用的门上锁/解锁（M0 行为）；combat 模板保留原作门集合（布局多样性）。
+## 2) 装配器 fit-aware：combat/elite/shop/treasure/event/miniboss 仅在门集合覆盖该节点
+##    需门方向（邻接出边方向 + 入边对侧方向）的模板中取使用次数最少者（并列取洗牌序
+##    靠前），去重 ≤2 仍生效；start/boss 固定模板由此恒覆盖。
+## 3) 无合格模板时响亮失败：validate_build 报「room + 需门方向」（规格上不可达，
+##    1000 种子扫描验证覆盖）。
 ##
 ## 运行期解析注记：本脚本须同时在游戏/GdUnit（autoload 在场）与 SceneTree --script
 ## 无头工具（autoload 不注册，其标识符在编译期即不可解析——GDScript 命名全局仅在
@@ -58,12 +64,23 @@ static func build(seed: int, floor_idx: int = 1) -> Dictionary:
 		ids.append(int(id))
 	ids.sort()
 
-	# combat 池洗牌一次（Fisher-Yates，续耗图生成后的同一 rng）；循环游标 + 计数去重
+	# combat 池洗牌一次（Fisher-Yates，续耗图生成后的同一 rng）；门覆盖感知 + 计数去重
 	var shuffled := _shuffled(combat_pool(floor_idx), rng)
-	var cursor := {"pos": 0}
+	var rooms_db: Dictionary = _game_db().rooms
+	var req_map := _required_dir_map(nodes)
 	var uses := {}
 	var rooms := {}
-	for id in ids:
+	# 最受限先配：需门方向多者优先（同数按 id 升序）——防稀缺的全向/贴合模板被
+	# 低约束节点按「最少使用」抢占，令后配的高约束节点无合格模板（seed 244 实证）。
+	# 输出 rooms 键序随分配序，确定性不受影响（同种子同序）。
+	var order: Array[int] = ids.duplicate()
+	order.sort_custom(func(a: int, b: int) -> bool:
+		var ra := (req_map[a] as Array).size()
+		var rb := (req_map[b] as Array).size()
+		if ra != rb:
+			return ra > rb
+		return a < b)
+	for id in order:
 		var node: Dictionary = nodes[id]
 		var template_id := ""
 		match String(node["type"]):
@@ -71,10 +88,9 @@ static func build(seed: int, floor_idx: int = 1) -> Dictionary:
 				template_id = "start_a%d" % floor_idx
 			"boss":
 				template_id = "boss_a%d" % floor_idx
-			"elite":
-				template_id = _pick_lowest_use(shuffled, cursor, uses)
 			_:
-				template_id = _pick_cycle(shuffled, cursor, uses)
+				# combat/elite/shop/treasure/event/miniboss：fit-aware 最少使用
+				template_id = _pick_fit(shuffled, req_map[int(id)], uses, rooms_db)
 		rooms[id] = {
 			"node": node,
 			"template_id": template_id,
@@ -175,45 +191,90 @@ static func validate_build(build: Dictionary) -> Array[String]:
 			errs.append("corridor %s: not a graph edge" % edge_key)
 		else:
 			expected_edges.erase(edge_key)  # 剩余者即缺失边
-		# 门对齐：a 需 dir 门，b 需对侧门
-		if not _doors_of(rooms_db, (rooms[a] as Dictionary)["template_id"]).has(dir):
-			errs.append("door mismatch: room %d(%s) lacks %s for corridor %d->%d" \
-				% [a, str((rooms[a] as Dictionary)["template_id"]), dir, a, b])
-		var opp := String(DOOR_OPP.get(dir, ""))
-		if not _doors_of(rooms_db, (rooms[b] as Dictionary)["template_id"]).has(opp):
-			errs.append("door mismatch: room %d(%s) lacks %s for corridor %d->%d" \
-				% [b, str((rooms[b] as Dictionary)["template_id"]), opp, a, b])
 	for edge_key in expected_edges:
 		errs.append("corridors: missing graph edge %s" % edge_key)
+
+	# 门对齐（响亮失败）：每房模板门必须覆盖其邻接需门方向集合（出边方向 + 入边
+	# 对侧方向，规范序 N/S/E/W）；start/boss 固定模板同样受检。错误携带节点与需门
+	# 方向（裁定 fix round 1 第 3 条）；规格上不可达，1000 种子扫描验证。
+	var vnodes := {}
+	for id in rooms:
+		vnodes[int(id)] = (rooms[id] as Dictionary).get("node", {})
+	var vreq := _required_dir_map(vnodes)
+	for id in rooms:
+		var room: Dictionary = rooms[id]
+		var required: Array[String] = vreq.get(int(id), [])
+		if required.is_empty():
+			continue
+		var doors := _doors_of(rooms_db, room["template_id"])
+		var missing: Array[String] = []
+		for d in required:
+			if not doors.has(d):
+				missing.append(d)
+		if not missing.is_empty():
+			errs.append("door mismatch: room %d(%s) lacks dirs [%s] (required [%s])" \
+				% [int(id), str(room["template_id"]),
+				", ".join(PackedStringArray(missing)), ", ".join(PackedStringArray(required))])
 	return errs
 
 
 # ---------------------------------------------------------------- 内部：模板选取
 
-## combat/shop/treasure/event/miniboss：洗牌序循环取用，跳过已达上限者。
-static func _pick_cycle(shuffled: Array[String], cursor: Dictionary, uses: Dictionary) -> String:
-	var n := shuffled.size()
-	for _i in n:
-		var cand := shuffled[int(cursor["pos"]) % n]
-		cursor["pos"] = int(cursor["pos"]) + 1
-		if int(uses.get(cand, 0)) < MAX_TEMPLATE_USES:
-			uses[cand] = int(uses.get(cand, 0)) + 1
-			return cand
-	return ""
-
-
-## elite：当前使用次数最低的 combat 模板（<上限；并列取洗牌序靠前者）。
-static func _pick_lowest_use(shuffled: Array[String], cursor: Dictionary, uses: Dictionary) -> String:
+## 门覆盖感知选取（裁定 fix round 1）：仅在门集合覆盖节点需门方向的模板中取
+## 使用次数最少者（并列取洗牌序靠前者，rng 序）；去重 ≤2 仍生效。无合格者返回 ""
+## （validate_build 以「room + 需门方向」响亮报告；规格上不可达）。
+static func _pick_fit(shuffled: Array[String], required: Array[String], uses: Dictionary,
+		rooms_db: Dictionary) -> String:
 	var best := ""
 	var best_count := MAX_TEMPLATE_USES
 	for cand in shuffled:
 		var count := int(uses.get(cand, 0))
-		if count < best_count:
-			best = cand
-			best_count = count
+		if count >= best_count:
+			continue
+		if not _covers(rooms_db, cand, required):
+			continue
+		best = cand
+		best_count = count
 	if not best.is_empty():
-		uses[best] = int(uses.get(best, 0)) + 1
+		uses[best] = best_count + 1
 	return best
+
+
+static func _covers(rooms_db: Dictionary, template_id: String, required: Array[String]) -> bool:
+	var doors := _doors_of(rooms_db, template_id)
+	for d in required:
+		if not doors.has(d):
+			return false
+	return true
+
+
+## 每节点需门方向集合：出边方向 ∪ 入边对侧方向（树中入度 ≤1、出度 ≤2，故 ≤3 向），
+## 按规范序 N/S/E/W 输出（校验消息稳定）。nodes 形如 {id → {grid, next}}。
+static func _required_dir_map(nodes: Dictionary) -> Dictionary:
+	var raw := {}
+	for id in nodes:
+		raw[int(id)] = {}
+	for id in nodes:
+		var nd: Dictionary = nodes[id]
+		if not (nd.has("grid") and nd.has("next")):
+			continue
+		var grid: Vector2i = nd["grid"]
+		var nexts: Array = nd["next"]
+		for nx in nexts:
+			var nxt := int(nx)
+			if not nodes.has(nxt):
+				continue
+			var dir := _dir_of((nodes[nxt]["grid"] as Vector2i) - grid)
+			(raw[int(id)] as Dictionary)[dir] = true
+			(raw[nxt] as Dictionary)[String(DOOR_OPP[dir])] = true
+	var out := {}
+	for id in raw:
+		var arr: Array[String] = []
+		for d: String in ["N", "S", "E", "W"]:
+			if (raw[id] as Dictionary).has(d):
+				arr.append(d)
+		out[int(id)] = arr
+	return out
 
 
 static func _shuffled(pool: Array[String], rng: RandomNumberGenerator) -> Array[String]:

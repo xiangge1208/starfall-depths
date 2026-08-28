@@ -153,14 +153,16 @@ func test_hazards_vine_data_only() -> void:
 
 func test_start_room_safe() -> void:
 	var start: Dictionary = RoomTemplate.get_room("start_a1")
-	var doors: int = start["doors"].size()
-	assert_bool(doors >= 1 and doors <= 2).is_true()
+	# fix round 1（裁定）：start_a1 门补全为 4 向——未用门为封闭门框几何，
+	# 房间只对实际使用的门上锁/解锁（M0 行为）；安全房契约（无刷怪点）不变
+	assert_int(start["doors"].size()).is_equal(4)
 	assert_int(start["spawn_points"].size()).is_equal(0)
 
 
 func test_boss_room_two_pillars() -> void:
 	var boss: Dictionary = RoomTemplate.get_room("boss_a1")
-	assert_int(boss["doors"].size()).is_equal(2)
+	# fix round 1（裁定）：boss_a1 门补全为 4 向（同 start_a1 语义）
+	assert_int(boss["doors"].size()).is_equal(4)
 	var pillars := 0
 	for p: Dictionary in boss["props"]:
 		if p["kind"] == "pillar":
