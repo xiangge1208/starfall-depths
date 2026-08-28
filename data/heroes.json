@@ -1,0 +1,38 @@
+{
+  "vanguard": {
+    "id": "vanguard",
+    "name": "骑士·凛",
+    "hp": 8,
+    "shield": 4,
+    "energy": 100,
+    "speed": 80.0,
+    "crit_chance": 0.05,
+    "start_weapons": ["laohuoji", "tiejian"],
+    "skill_script": "res://core/player/skills/vanguard_rampage.gd",
+    "skill_cd": 840,
+    "skill_energy": 0,
+    "passive_id": "defiance",
+    "has_defiance": true,
+    "skill_name": "狂潮",
+    "skill_desc": "CD 14s：8s 内副手复制主武器双持齐射，期间双武器免蓝耗",
+    "upgraded": false
+  },
+  "ranger": {
+    "id": "ranger",
+    "name": "游侠·苇",
+    "hp": 6,
+    "shield": 4,
+    "energy": 110,
+    "speed": 88.0,
+    "crit_chance": 0.15,
+    "start_weapons": ["duangong"],
+    "skill_script": "res://core/player/skills/ranger_shadowstep.gd",
+    "skill_cd": 540,
+    "skill_energy": 0,
+    "passive_id": "hawk_eye",
+    "has_defiance": false,
+    "skill_name": "影袭",
+    "skill_desc": "CD 9s：向瞄准方向瞬步 140px（无敌），4s 内射击必暴击、弹速 +20%",
+    "upgraded": false
+  }
+}

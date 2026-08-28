@@ -45,6 +45,17 @@ const BUFF_INT_KEYS: Array[String] = [
 	"hp_max", "shield_max", "energy_max", "shield_delay_reduction_ticks",
 	"element_enchant", "extra_projectiles",
 ]
+# 角色（t11）：16 键全部必填，无 optional；行级校验 validate_hero_row（start_weapons 白名单）
+const HERO_SCHEMA := {
+	"id": TYPE_STRING, "name": TYPE_STRING,
+	"hp": TYPE_INT, "shield": TYPE_INT, "energy": TYPE_INT,
+	"speed": TYPE_FLOAT, "crit_chance": TYPE_FLOAT,
+	"start_weapons": TYPE_ARRAY, "skill_script": TYPE_STRING,
+	"skill_cd": TYPE_INT, "skill_energy": TYPE_INT,
+	"passive_id": TYPE_STRING, "has_defiance": TYPE_BOOL,
+	"skill_name": TYPE_STRING, "skill_desc": TYPE_STRING, "upgraded": TYPE_BOOL,
+}
+const HERO_OPTIONAL := {}
 const ROOM_SIZE := [22, 14]   # A1 标准房间 22x14 格（x 0..21, y 0..13）
 const DOOR_TILES := {"N": [11, 0], "S": [11, 13], "E": [21, 7], "W": [0, 7]}
 const ROOM_TILE_PX := 16        # 格坐标转像素
@@ -56,13 +67,14 @@ const PROP_BLOCKS_BULLETS := {"pillar": true, "crate": true, "bush": false}
 const TABLES := {
 	"weapons": "res://data/weapons.json", "enemies": "res://data/enemies.json",
 	"rooms": "res://data/rooms/a1_templates.json",
-	"buffs": "res://data/buffs.json",
+	"buffs": "res://data/buffs.json", "heroes": "res://data/heroes.json",
 }
 
 var weapons: Dictionary = {}
 var enemies: Dictionary = {}
 var rooms: Dictionary = {}
 var buffs: Dictionary = {}
+var heroes: Dictionary = {}
 var load_ok := true
 
 func _ready() -> void:
@@ -70,6 +82,7 @@ func _ready() -> void:
 	enemies = _load_table("res://data/enemies.json", ENEMY_SCHEMA, ENEMY_OPTIONAL)
 	rooms = _load_table(TABLES["rooms"], ROOM_SCHEMA, ROOM_OPTIONAL, validate_room_row)
 	buffs = _load_table(TABLES["buffs"], BUFF_SCHEMA, BUFF_OPTIONAL, validate_buff_row)
+	heroes = _load_table(TABLES["heroes"], HERO_SCHEMA, HERO_OPTIONAL, validate_hero_row)
 	if not load_ok:
 		push_error("GameDB: data validation failed")
 		get_tree().quit(1)
@@ -82,6 +95,9 @@ func get_enemy(id: String) -> Dictionary:
 
 func get_buff(id: String) -> Dictionary:
 	return buffs.get(id, {})
+
+func get_hero(id: String) -> Dictionary:
+	return heroes.get(id, {})
 
 func validate_row(row: Dictionary, schema: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -274,6 +290,20 @@ func validate_buff_row(row: Dictionary) -> Array[String]:
 				errors.append("effect element_enchant bad Elements.Id: %d" % int(v))
 		else:
 			errors.append("unknown effect key: %s" % k)
+	return errors
+
+## 角色行语义校验（t11），作为 heroes 表 _load_table 的 extra_check。
+## 约束：start_weapons 非空且每把武器都存在于 weapons 表（weapons 先于 heroes 装载）。
+## skill_script 存在性由单测覆盖（test_hero_skill_scripts_exist_and_extend_skill_base）。
+func validate_hero_row(row: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	var sw: Variant = row.get("start_weapons")
+	if typeof(sw) != TYPE_ARRAY or (sw as Array).is_empty():
+		errors.append("start_weapons must be non-empty array")
+		return errors
+	for w: Variant in sw:
+		if typeof(w) != TYPE_STRING or not weapons.has(w):
+			errors.append("unknown start weapon: %s" % str(w))
 	return errors
 
 func _is_grid(v: Variant) -> bool:
