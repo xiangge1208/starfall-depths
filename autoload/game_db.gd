@@ -10,19 +10,36 @@ const WEAPON_SCHEMA := {
 }
 # 可选键及默认值
 const WEAPON_OPTIONAL := {"range": 0, "arc_deg": 0.0}
-const TABLES := {"weapons": "res://data/weapons.json"}
+# 敌人（t10）：required 仅 5 键，其余全部 optional 默认 0
+const ENEMY_SCHEMA := {
+	"id": TYPE_STRING, "name": TYPE_STRING, "archetype": TYPE_STRING,
+	"hp": TYPE_INT, "radius": TYPE_FLOAT,
+}
+const ENEMY_OPTIONAL := {
+	"contact_dmg": 0, "speed": 0, "windup_ticks": 0, "cd_ticks": 0,
+	"fuse_ticks": 0, "aoe_radius": 0.0, "aoe_dmg": 0,
+	"bullet_dmg": 0, "bullet_speed": 0, "bullet_life_seconds": 0.0,
+	"walk_speed": 0, "dash_speed": 0.0, "dash_ticks": 0, "dash_cooldown_ticks": 0,
+	"orbit_radius": 0.0,
+}
+const TABLES := {"weapons": "res://data/weapons.json", "enemies": "res://data/enemies.json"}
 
 var weapons: Dictionary = {}
+var enemies: Dictionary = {}
 var load_ok := true
 
 func _ready() -> void:
 	weapons = _load_table("res://data/weapons.json", WEAPON_SCHEMA, WEAPON_OPTIONAL)
+	enemies = _load_table("res://data/enemies.json", ENEMY_SCHEMA, ENEMY_OPTIONAL)
 	if not load_ok:
 		push_error("GameDB: data validation failed")
 		get_tree().quit(1)
 
 func get_weapon(id: String) -> Dictionary:
 	return weapons.get(id, {})
+
+func get_enemy(id: String) -> Dictionary:
+	return enemies.get(id, {})
 
 func validate_row(row: Dictionary, schema: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
