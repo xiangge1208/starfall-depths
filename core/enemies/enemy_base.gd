@@ -34,7 +34,7 @@ func _apply_archetype_script(r: Dictionary) -> void:
 	var script := get_script() as Script
 	if script == null or script.resource_path != "res://core/enemies/enemy_base.gd":
 		return
-	var path := "res://core/enemies/archetypes/%s.gd" % arch
+	var path := String(r.get("boss_script", "res://core/enemies/archetypes/%s.gd" % arch))   # m1-t13：BossBase 子类经行内 boss_script 换装
 	if ResourceLoader.exists(path):
 		set_script(load(path))
 	else:
