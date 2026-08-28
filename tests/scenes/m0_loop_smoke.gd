@@ -224,8 +224,15 @@ func _seconds(s: float) -> void:
 	await get_tree().create_timer(s, true).timeout
 
 func _touch_station(player: Player, index: int) -> void:
+	# m1-t6：武器架 E 化（接触拾取路径已移除）——走近（InteractionSystem 半径 24px
+	# 选最近台）后模拟 E 按下。action_press 在 physics_frame 信号窗口（本拍 _physics_frames
+	# 已自增、节点尚未处理）调用，同拍 is_action_just_pressed 成立，一拍即消费。
 	player.global_position = Vector2(100, 240) + Vector2(52.0 * index, 0) + Vector2(0, -3)
-	await _frames(4)                           # Area2D body_entered 生效
+	await _frames(2)                           # InteractionSystem 物理拍 bind 最近台
+	Input.action_press("interact")
+	await _frames(1)
+	Input.action_release("interact")
+	await _frames(1)
 
 func _has_weapon(rig: WeaponRig, id: String) -> bool:
 	for s in rig.slots:
