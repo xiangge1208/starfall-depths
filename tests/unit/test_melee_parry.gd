@@ -2,12 +2,36 @@ class_name TestMeleeParry
 extends GdUnitTestSuite
 ## m0-t9：近战反弹窗口边界 + CombatSystem.reflect 语义 + bodies_in_arc 扇形过滤。
 
-class CsProbe:
-	var reflected: Array = []
-	var blocked: Array = []
-	func reflect(p, dmg: int) -> void:
+class CsProbe extends CombatSystem:
+	# 注：Melee.combat 字段强类型 CombatSystem（brief 原文），纯 RefCounted 探针无法赋值，
+	# 故以 CombatSystem 子类覆写实现"脚本化弹幕 + 记录"（裁决意图不变）。
+	# _init 经 super(...) 会预分配 300 弹挂池根，PREDELETE 时释放池根避免孤儿。
+	var reflected: Array = []                 # [p, dmg] 逐次记录
+	var blocked: Array = []                   # p 逐次记录
+	var scripted_projectiles: Array[Projectile] = []
+	var scripted_body: Node2D                 # 裁决原文写 bodies_in_arc "returning empty"，
+	                                          # 但"伤害恰好一次"断言须经 take_hit 路径观察，故返回单个脚本体
+	var _pool_root: Node2D
+
+	func _init() -> void:
+		_pool_root = Node2D.new()
+		super(_pool_root, null)
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_PREDELETE and _pool_root != null:
+			_pool_root.free()
+			_pool_root = null
+
+	func projectiles_in_arc(_origin: Vector2, _facing: float, _range_px: float, _arc_deg: float, _faction: int) -> Array[Projectile]:
+		return scripted_projectiles
+
+	func bodies_in_arc(_origin: Vector2, _facing: float, _range_px: float, _arc_deg: float, _faction: int) -> Array:
+		return [scripted_body] if scripted_body != null else []
+
+	func reflect(p: Projectile, dmg: int) -> void:
 		reflected.append([p, dmg])
-	func block(p) -> void:
+
+	func block(p: Projectile) -> void:
 		blocked.append(p)
 
 class DummyBody extends Node2D:
@@ -31,8 +55,8 @@ func test_parry_window_bounds() -> void:
 	assert_bool(m.try_attack(0)).is_true()
 	assert_bool(m.is_parry_tick(2)).is_false()
 	assert_bool(m.is_parry_tick(3)).is_true()
-	assert_bool(m.is_parry_tick(10)).is_true()
-	assert_bool(m.is_parry_tick(11)).is_false()
+	assert_bool(m.is_parry_tick(9)).is_true()    # 窗口 [3,9]（GDD §7.4 修订：0.12s = 第 3~9 逻辑帧）
+	assert_bool(m.is_parry_tick(10)).is_false()
 	# 补（控制器决议：_next_frame = frame + max(1, round(60/rate))，brief 测试未覆盖边界）：
 	m._swing_left = 0                           # 清挥击态，单测帧率门
 	assert_bool(m.try_attack(26)).is_false()    # tiejian 2.2/s → 27 ticks 冷却
@@ -86,3 +110,37 @@ func test_bodies_in_arc_sector_filter() -> void:
 	var friendly_hit := cs.bodies_in_arc(Vector2.ZERO, 0.0, 100.0, 90.0, Projectile.Faction.PLAYER)
 	assert_int(friendly_hit.size()).is_equal(1)
 	assert_bool(friendly_hit.has(friendly)).is_true()
+
+func test_swing_routing_block_reflect_damage_once() -> void:
+	# 控制器裁决补测（闭环审查空白）：逐 tick 手动驱动整段挥击（不经物理帧，直接调 _physics_process）——
+	# tick1..2 窗口外格挡；tick3..9 窗口内反弹（恰 7 次）；伤害经 bodies_in_arc→take_hit 恰好一次。
+	var p: Player = auto_free(Player.new())
+	p._test_init()
+	var m: Melee = auto_free(Melee.new())
+	p.add_child(m)
+	m._test_init()
+	m.rig = auto_free(WeaponRig.new())
+	m.rig.slots = [GameDB.get_weapon("tiejian"), {}]
+	# 注：CsProbe 经 CombatSystem 继承自 Node（非 RefCounted），必须 auto_free，
+	# 否则探针 + 池根 + 300 预分配弹全部泄漏（auto_free → PREDELETE → 释放池根）。
+	var probe: CsProbe = auto_free(CsProbe.new())
+	probe.scripted_projectiles = [auto_free(Projectile.new())]   # 每 tick 恰一枚弧内敌方弹
+	probe.scripted_body = auto_free(DummyBody.new())
+	m.combat = probe
+	assert_bool(m.try_attack(0)).is_true()
+	for i in Melee.SWING_TICKS:
+		m._physics_process(1.0 / TimeConst.FPS)
+		if i < 2:
+			assert_int(probe.blocked.size()).is_equal(i + 1)     # tick1..2 → 逐 tick 格挡
+			assert_int(probe.reflected.size()).is_equal(0)
+		else:
+			assert_int(probe.reflected.size()).is_equal(i - 1)   # tick3..9 → 反弹累计 1..7
+			assert_int(probe.blocked.size()).is_equal(2)
+	assert_int(probe.reflected.size()).is_equal(7)
+	assert_int(probe.blocked.size()).is_equal(2)
+	assert_int(probe.reflected[0][1]).is_equal(6)                # 反弹伤害 = 铁剑伤害
+	var body: DummyBody = probe.scripted_body
+	assert_int(body.hits.size()).is_equal(1)                     # 伤害恰一次（_hit_done 守卫）
+	assert_int(body.hits[0]["amount"]).is_equal(6)               # combat_rng 未注入 → 平伤
+	assert_bool(body.hits[0]["is_crit"]).is_false()
+	assert_int(body.hits[0]["element"]).is_equal(Elements.Id.NONE)

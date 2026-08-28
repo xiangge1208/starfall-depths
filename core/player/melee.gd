@@ -1,10 +1,10 @@
 class_name Melee
 extends Node
-## 近战挥击 + 反弹窗口（GDD §7.4）。挥击 9 ticks；窗口 [3,10]。
+## 近战挥击 + 反弹窗口（GDD §7.4）。挥击 9 ticks；窗口 [3,9]，7 帧 ≈0.12s。
 
 const SWING_TICKS := 9
 const PARRY_FROM := 3
-const PARRY_TO := 10
+const PARRY_TO := 9
 
 var rig: WeaponRig
 var combat: CombatSystem
