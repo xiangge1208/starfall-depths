@@ -16,7 +16,6 @@ var combat: CombatSystem = null    # 房间注入
 var status: Node = null            # StatusComponent，m0-t11 注入
 var player_ref = null              # 玩家替身/实例（需有 brain_pos），房间注入
 var _seen_frame := -1
-var _engage_frame := -1            # 进入 ENGAGE 的帧（原型的帧锚点，如苦力虫引信）
 
 func _test_init(r: Dictionary) -> void:
 	_apply_archetype_script(r)   # 数据驱动：先按行换上原型脚本（set_script 会重建脚本实例并重置成员）
@@ -55,7 +54,7 @@ func brain_tick(frame: int) -> void:
 		State.ALERT:
 			if frame - _seen_frame >= ALERT_TICKS:
 				state = State.ENGAGE
-				_engage_frame = frame
+				_on_engage_start(frame)   # 转换拍钩子：接触触发型原型（苦力虫引信）在此拍锚定
 		State.ENGAGE:
 			_engage(frame)
 		_:
@@ -63,6 +62,11 @@ func brain_tick(frame: int) -> void:
 
 func _engage(_frame: int) -> void:
 	pass                                  # 原型覆写
+
+## 进入 ENGAGE 的转换拍调用一次（此后每拍走 _engage）；默认无操作，
+## 其余原型不覆写即完全保持原行为（不多不少一拍）。
+func _on_engage_start(_frame: int) -> void:
+	pass
 
 func fire_bullet(target: Vector2, frame: int) -> void:
 	fired_this_tick = true
