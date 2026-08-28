@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/player/player.gd" id="1_t7player"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_t7a"]
+radius = 6.0
+
+[node name="Player" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_t7player")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_t7a")
+
+[node name="Sprite" type="Polygon2D" parent="."]
+color = Color(0.909804, 0.835294, 0.690196, 1)
+polygon = PackedVector2Array(-6, -7, 6, -7, 6, 7, -6, 7)
