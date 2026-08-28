@@ -1,0 +1,66 @@
+{
+	"fire_enchant": {
+		"id": "fire_enchant", "name": "火焰附魔", "rarity": "common",
+		"desc": "命中 20% 概率点燃", "effects": {"element_enchant": 1}
+	},
+	"ice_enchant": {
+		"id": "ice_enchant", "name": "冰霜附魔", "rarity": "common",
+		"desc": "命中 20% 概率冰缓", "effects": {"element_enchant": 2}
+	},
+	"poison_enchant": {
+		"id": "poison_enchant", "name": "毒素附魔", "rarity": "common",
+		"desc": "命中 20% 概率中毒", "effects": {"element_enchant": 3}
+	},
+	"shock_enchant": {
+		"id": "shock_enchant", "name": "电弧附魔", "rarity": "common",
+		"desc": "命中 15% 概率麻痹", "effects": {"element_enchant": 4}
+	},
+	"bullet_speed": {
+		"id": "bullet_speed", "name": "弹速强化", "rarity": "common",
+		"desc": "弹速 +15%", "effects": {"bullet_speed_pct": 0.15}
+	},
+	"precision": {
+		"id": "precision", "name": "精准", "rarity": "common",
+		"desc": "暴击率 +6%", "effects": {"crit_pct": 0.06}
+	},
+	"vigor": {
+		"id": "vigor", "name": "强健", "rarity": "common",
+		"desc": "HP 上限 +2", "effects": {"hp_max": 2}
+	},
+	"shield_tune": {
+		"id": "shield_tune", "name": "护盾调谐", "rarity": "common",
+		"desc": "盾上限 +1", "effects": {"shield_max": 1}
+	},
+	"swift_trigger": {
+		"id": "swift_trigger", "name": "迅捷扳机", "rarity": "uncommon",
+		"desc": "攻速 +12%", "effects": {"atk_speed_pct": 0.12}
+	},
+	"deadly": {
+		"id": "deadly", "name": "致命", "rarity": "uncommon",
+		"desc": "暴伤 +50%", "effects": {"crit_dmg_pct": 0.5}
+	},
+	"status_erode": {
+		"id": "status_erode", "name": "状态侵蚀", "rarity": "uncommon",
+		"desc": "异常状态积累速度 +25%", "effects": {"status_rate_pct": 0.25}
+	},
+	"quick_charge": {
+		"id": "quick_charge", "name": "快速充能", "rarity": "uncommon",
+		"desc": "盾回复延时 3.0s→2.0s", "effects": {"shield_delay_reduction_ticks": 60}
+	},
+	"energy_max": {
+		"id": "energy_max", "name": "蓝能上限", "rarity": "uncommon",
+		"desc": "蓝上限 +25", "effects": {"energy_max": 25}
+	},
+	"roll_master": {
+		"id": "roll_master", "name": "翻滚大师", "rarity": "uncommon",
+		"desc": "翻滚 CD -15%", "effects": {"roll_cd_pct": -0.15}
+	},
+	"extra_projectiles": {
+		"id": "extra_projectiles", "name": "散弹扩张", "rarity": "rare",
+		"desc": "唯一：多弹丸武器弹丸数 +1", "effects": {"extra_projectiles": 1}
+	},
+	"crit_detonate": {
+		"id": "crit_detonate", "name": "暴虐回响", "rarity": "rare",
+		"desc": "唯一：暴击时 20% 立即强制共鸣", "effects": {"crit_detonate_pct": 0.2}
+	}
+}
