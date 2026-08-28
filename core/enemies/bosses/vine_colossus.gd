@@ -48,7 +48,7 @@ const SAFE_OFFSETS: Array[Vector2] = [Vector2(-160, 0), Vector2.ZERO, Vector2(16
 
 ## 房间注入：spawn_callback.call("shooter", pos) 须返回刷出节点（供上限追踪；返回 null 则止于本次）。
 ## 未注入（Callable 无效）→ 召唤招不入序列。生产接线归房间/流程层（见 task-13 报告）。
-var spawn_callback := Callable()
+## 成员声明位于 EnemyBase（m1-t12）；此处不重复声明（parse 冲突）。
 
 # ---- 招式序列状态 ----
 var _move := ""                     # 当前招式（"" = 选招中）
