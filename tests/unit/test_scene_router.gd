@@ -67,14 +67,24 @@ func test_goto_unknown_key_fails_loud_no_scene_change() -> void:
 	assert_bool(get_tree().current_scene == before).is_true()
 
 
-func test_goto_missing_death_scene_fails_loud_no_scene_change() -> void:
-	# death 指向尚不存在的 T22 场景：必须 push_error fail-loud，绝不静默半切
+func test_goto_unknown_route_fails_loud_no_scene_change() -> void:
+	# T22 已交付 death 场景（原"death 缺失 fail-loud"前提过时）；
+	# fail-loud 契约改由未知键路径覆盖：必须 push_error，绝不静默半切
 	var router := _fresh_router_in_tree()
 	var before: Node = get_tree().current_scene
-	await assert_error(func() -> void: router.goto("death")) \
-		.is_push_error("SceneRouter: route 'death' scene missing: %s" % DEATH_SCENE)
+	await assert_error(func() -> void: router.goto("no_such_route")) \
+		.is_push_error("SceneRouter: unknown route key 'no_such_route'")
 	assert_int(router.get_child_count()).is_equal(0)
 	assert_bool(get_tree().current_scene == before).is_true()
+
+
+func test_goto_death_scene_routes_after_t22() -> void:
+	# T22 交付 death_summary.tscn 后，"death" 键应真实可达（T23 期间不可达）
+	var router: Node = get_tree().root.get_node_or_null("SceneRouter")
+	assert_object(router).is_not_null()
+	router.goto("death")
+	await _await_settled(router, "DeathSummary")
+	assert_str(get_tree().current_scene.name).is_equal("DeathSummary")
 
 
 func test_goto_changes_current_scene_headless() -> void:
