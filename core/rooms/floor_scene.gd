@@ -348,6 +348,7 @@ func _build_corridor(c: Dictionary) -> void:
 	panel.position = gate_pos
 	panel.z_index = 5
 	add_child(panel)
+	DoorAnim.install(panel, gate_pos)          # m1-t18：统一门动画（闭合位即门位）
 	var key := "%d|%d" % [mini(a, b), maxi(a, b)]
 	_gates[key] = {"shape": cs, "panel": panel, "a": mini(a, b), "b": maxi(a, b), "open": false}
 
@@ -527,7 +528,8 @@ func _on_enemy_killed(enemy_id: String) -> void:
 		if is_instance_valid(e) and String(e.row.get("id", "")) == enemy_id:
 			var ttk := frame - int(_spawn_frames.get(e.get_instance_id(), frame))
 			Fx.on_enemy_killed(e.global_position)
-			Telemetry.log_row(["kill", frame, enemy_id, ttk])
+			Telemetry.log_row(["kill", frame, enemy_id, ttk],
+				RoomCombat.kill_source(e.row, _current_weapon_id()))
 			room.enemies.erase(e)
 			break
 	room.room_flow.notify_killed(enemy_id, frame)
@@ -535,6 +537,15 @@ func _on_enemy_killed(enemy_id: String) -> void:
 		flow.notify_room_cleared(room.room_id)
 		_emit_room_clear(room)
 		refresh_gates()
+
+
+## m1-t18 kill 行来源取值：玩家当前武器 id（rig 未接线 → ""）；boss 判定复用 RoomCombat.kill_source。
+func _current_weapon_id() -> String:
+	if player != null and player.weapon_rig != null:
+		var w := player.weapon_rig.current()
+		if not w.is_empty():
+			return String(w.get("id", ""))
+	return ""
 
 
 ## 清房：遥测（每房清房用时）+ room_cleared 广播 + 奖励爆发（战斗房）。
@@ -593,8 +604,9 @@ func _mark_used(id: int, dir: String) -> void:
 
 # ================================================================ 门闸
 
-## 全楼闸门刷新：flow 门判定镜像到走廊闸实体（开 = 碰撞关 + 门体隐藏；
+## 全楼闸门刷新：flow 门判定镜像到走廊闸实体（开 = 碰撞关 + DoorAnim 滑出隐藏；
 ## 规则锁（boss 未解 / 双未清）红门，战斗封门棕门——brief「未达房间门显示锁形」）。
+## m1-t18：可见性瞬切改统一 DoorAnim（开 = 滑出后隐藏，终态等价原瞬隐）。
 func refresh_gates() -> void:
 	for key in _gates:
 		var g: Dictionary = _gates[key]
@@ -603,7 +615,10 @@ func refresh_gates() -> void:
 		var cs: CollisionShape2D = g["shape"]
 		cs.set_deferred("disabled", open)
 		var panel: Polygon2D = g["panel"]
-		panel.visible = not open
+		if open:
+			DoorAnim.open(panel, true)
+		else:
+			DoorAnim.close(panel)
 		panel.color = Color(0.7, 0.2, 0.2) if (not open and _rule_locked(int(g["a"]), int(g["b"]))) \
 			else Color(0.62, 0.4, 0.22)
 

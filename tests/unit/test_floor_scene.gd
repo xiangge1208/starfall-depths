@@ -377,6 +377,7 @@ func test_scene_combat_lock_two_waves_clear() -> void:
 	assert_bool(fs.gate_is_open(0, 1)).is_true()
 	assert_int(_pickups(room)).is_greater(0)
 	assert_array(cleared_ids).contains("combat_a1_01")
+	Telemetry.flush()   # m1-t18：遥测改缓冲落盘，读盘前先清缓冲（原逐行即写）
 	var text := FileAccess.get_file_as_string("user://telemetry.csv")
 	assert_bool(text.contains("floor_enter")).is_true()
 	assert_bool(text.contains("floor_clear")).is_true()
@@ -426,6 +427,7 @@ func test_scene_treasure_chest_drops_weapon() -> void:
 	assert_bool(chest.can_interact(player)).is_false()
 	assert_bool(rig.slots[1].is_empty()).is_false()
 	assert_int(_interactable_count(fs, 1)).is_equal(2)
+	Telemetry.flush()   # m1-t18：遥测改缓冲落盘，读盘前先清缓冲（原逐行即写）
 	var text := FileAccess.get_file_as_string("user://telemetry.csv")
 	assert_bool(text.contains("loot")).is_true()
 

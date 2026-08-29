@@ -130,6 +130,7 @@ func take_hit(ctx: Dictionary) -> void:
 	if state == State.DEAD:
 		return
 	hp -= int(ctx["amount"])
+	EventBus.enemy_damaged.emit(int(ctx["amount"]), bool(ctx.get("is_crit", false)))   # m1-t18：启用死信号（扣血后、死亡判定前）
 	Fx.on_enemy_hit(self, ctx)
 	if status != null:
 		status.apply_hit(int(ctx.get("element", 0)), int(ctx["amount"]), Engine.get_physics_frames())

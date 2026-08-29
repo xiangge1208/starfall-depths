@@ -16,6 +16,22 @@ func test_shake_decays() -> void:
 		Fx.decay_step()                    # 每帧衰减（×0.9），300 帧后归零
 	assert_float(Fx.trauma).is_equal_approx(0.0, 0.001)
 
+## m1-t18 juice v1.5：hitstop 冻结拍（树暂停中）shake 早退，不再叠加震屏；
+## 解冻后恢复原语义。
+func test_shake_suppressed_during_hitstop_pause() -> void:
+	for _i in 300:
+		Fx.decay_step()                       # 隔离前序用例残留 trauma
+	Fx.hitstop(80)
+	assert_bool(get_tree().paused).is_true()
+	Fx.shake(6.0, 0.1)
+	assert_float(Fx.trauma).is_equal(0.0)     # 冻结拍不吃震屏
+	await get_tree().create_timer(0.12, true, false, true).timeout
+	assert_bool(get_tree().paused).is_false()
+	Fx.shake(6.0, 0.1)
+	assert_float(Fx.trauma).is_greater(0.0)   # 解冻后照常
+	for _i in 300:
+		Fx.decay_step()
+
 func test_hitstop_extension_not_cut_short_by_replaced_timer() -> void:
 	# fix1 回归：40ms hitstop 进行中延长为 60ms —— 被替换的旧定时器到点不得提前解冻
 	#（真实序列：暴击 hitstop(40) 后同帧击杀 hitstop(60)；原实现只冻 ~40ms）。

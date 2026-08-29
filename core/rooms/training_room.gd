@@ -142,8 +142,8 @@ func _attach_camera_and_hud() -> void:
 
 # ---- 事件 ----
 
-func _on_player_damaged(amount: int, fatal: bool) -> void:
-	Telemetry.log_row(["hurt", Engine.get_physics_frames(), amount, player.hp])
+func _on_player_damaged(_amount: int, fatal: bool) -> void:
+	# m1-t18：hurt 遥测行收口至 Player.take_hit_ctx（此处只剩死亡重启接线，防双记）。
 	if fatal and not _restarting:
 		_restarting = true
 		print("[M0] player died - restart in 1.5s")

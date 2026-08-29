@@ -39,7 +39,12 @@ func _on_hitstop_elapsed() -> void:
 	_restore_timer = null
 
 ## 震屏：trauma 取 max；duration 仅占位（衰减率由 decay_step 契约固定 ×0.9/帧）。
+## m1-t18 juice v1.5：hitstop 冻结拍（树暂停中）早退不吃震屏——冻结期叠的 trauma
+## 会在解冻前被白白衰减掉，且冻帧上无位移可看。
 func shake(strength: float, _duration: float) -> void:
+	var tree := get_tree()
+	if tree != null and tree.paused:
+		return
 	trauma = maxf(trauma, strength)
 
 ## 由相机每渲染帧调用（brief 契约：×0.9，300 帧后 ≈0）。

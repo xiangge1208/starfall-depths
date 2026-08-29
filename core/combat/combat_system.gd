@@ -3,6 +3,7 @@ extends Node
 ## 弹幕推进 + 命中结算（GDD §18.2：空间哈希 O(n·k)）。
 
 const BODY_HIT_COOLDOWN_TICKS := 6   # 同一弹对同一体的重复命中抑制（穿透用）
+const ENEMY_BULLET_CAP := 400        # m1-t18 GDD §7.5：敌方场上弹上限（总池 MAX_PROJECTILES 500 不变）
 
 var pool: ProjectilePool
 var crit_chance := 0.05
@@ -32,10 +33,30 @@ func unregister_body(node: Node2D) -> void:
 		_bodies.erase(id)
 
 func spawn_projectile(cfg: Dictionary) -> void:
+	# m1-t18 GDD §7.5：敌方弹达 400 时先淘汰最旧敌方弹（公平性 victim，同池 cap 习语），
+	# 再生成；玩家弹不受此门。O(n) 清点在发射节奏（低频）可接受（t18 决议披露）。
+	if int(cfg.get("faction", Projectile.Faction.PLAYER)) == Projectile.Faction.ENEMY \
+			and _enemy_alive_count() >= ENEMY_BULLET_CAP:
+		_kill(_oldest_enemy())
 	var p := pool.spawn(cfg)
 	_proj_meta[p.get_instance_id()] = {"hash_id": _next_id, "hit_cd": {}}
 	_hash.insert(_next_id, p.position)
 	_next_id += 1
+
+## 敌方弹存活数（spawn 拍 O(n) 清点）。
+func _enemy_alive_count() -> int:
+	var n := 0
+	for p in pool.active:
+		if p.faction == Projectile.Faction.ENEMY:
+			n += 1
+	return n
+
+## 最旧敌方弹（公平性 victim）；调用前提是清点 ≥400（恒有敌方弹，回退分支不可达）。
+func _oldest_enemy() -> Projectile:
+	for p in pool.active:
+		if p.faction == Projectile.Faction.ENEMY:
+			return p
+	return pool.active[0]
 
 func active_count() -> int:
 	return pool.active_count()

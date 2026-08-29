@@ -180,12 +180,27 @@ func _on_enemy_killed(enemy_id: String) -> void:
 		if is_instance_valid(e) and String(e.row.get("id", "")) == enemy_id:
 			var ttk := frame - int(_spawn_frames.get(e.get_instance_id(), frame))
 			Fx.on_enemy_killed(e.global_position)
-			Telemetry.log_row(["kill", frame, enemy_id, ttk])
+			Telemetry.log_row(["kill", frame, enemy_id, ttk], kill_source(e.row, _current_weapon_id()))
 			_enemies.erase(e)
 			break
 	flow.notify_killed(enemy_id, frame)
 	if flow.cleared:
 		_on_cleared(frame)
+
+## m1-t18 kill 行来源（纯静态可测）：boss 行（boss_script 派生 / boss 嘉宾）→ "boss"，
+## 否则取玩家当前武器 id（rig 未接线 → ""）。contact/dot 死因区分需 enemy_base 侧
+## 死因管线（本卡文件所有权外）——v1.5 先以武器 id 归因，交接披露。
+static func kill_source(row: Dictionary, weapon_id: String) -> String:
+	if String(row.get("boss_script", "")) != "" or String(row.get("guest_kind", "")) == "boss":
+		return "boss"
+	return weapon_id
+
+func _current_weapon_id() -> String:
+	if player != null and player.weapon_rig != null:
+		var w := player.weapon_rig.current()
+		if not w.is_empty():
+			return String(w.get("id", ""))
+	return ""
 
 func _on_cleared(frame: int) -> void:
 	_set_doors_closed(false)
@@ -215,15 +230,14 @@ func _spawn_pickup(kind: String, pos: Vector2) -> void:
 func coins_collected() -> int:
 	return _coins_collected
 
-# ---- 门（表现层 Tween + 走廊实体闸） ----
+# ---- 门（m1-t18：统一 DoorAnim 0.18s 滑入/滑出 + 走廊实体闸） ----
 
 func _set_doors_closed(closed: bool) -> void:
-	for i in _door_panels.size():
-		var panel := _door_panels[i]
-		var target := DOOR_POSITIONS[i] if closed else DOOR_POSITIONS[i] + Vector2(0, -46)
-		var tw := panel.create_tween()
-		tw.tween_property(panel, "position", target, 0.25) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	for panel in _door_panels:
+		if closed:
+			DoorAnim.close(panel)
+		else:
+			DoorAnim.open(panel)               # M0 习语：滑出收进墙体后仍可见
 	if _entry_gate != null:
 		_entry_gate.set_deferred("disabled", not closed)
 
@@ -337,9 +351,10 @@ func _build_doors() -> void:
 			Vector2(-8, -18), Vector2(8, -18), Vector2(8, 18), Vector2(-8, 18),
 		])
 		panel.color = Color(0.62, 0.4, 0.22)
-		panel.position = DOOR_POSITIONS[i] + Vector2(0, -46)   # 初始敞开（藏进门体）
+		panel.position = DOOR_POSITIONS[i] + DoorAnim.PARK_OFFSET   # 初始敞开（藏进门体）
 		panel.z_index = 5
 		add_child(panel)
+		DoorAnim.install(panel, DOOR_POSITIONS[i])
 		_door_panels.append(panel)
 	var gate := StaticBody2D.new()
 	gate.position = ENTRY_GATE_POS
