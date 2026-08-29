@@ -9,12 +9,16 @@ extends Node2D
 ## 每个战斗系房自持 CombatSystem + RoomFlow（两波：wave1 3 垃圾、wave2 3 垃圾，
 ## elite 波2 +1 精英标记嘉宾），敌人按模板 spawn_points 刷出（M0 距门/距玩家过滤）。
 ##
-## T12/T13 集成缝：elite/miniboss/boss 房嘉宾默认走占位（charger 行覆盖 3×/3×/8×hp，
-## colossus r16）；`guest_spawner` Callable（签名 func(room_type, room_id, row, pos)）
-## 注入后改由集成卡生成嘉宾（返回 EnemyBase 即接管）；room_event 信号同拍转发供其挂钩。
-## treasure=宝箱武器掉落（权重 白60/绿30/蓝10，稀有档空缺回退全名录）；
-## event/shop=空 Interactable 桩（C 线接入位）。遥测：floor_enter/floor_clear
-## （每房清房用时）/loot 行，沿用既有 Telemetry CSV。
+## T12/T13 集成缝：elite/miniboss/boss 房嘉宾三档优先级——外部 `guest_spawner`
+## Callable 注入（返回 EnemyBase 即接管，T12 原契约）> `use_real_guests`（m1-t27
+## 默认开：按房型换真实数据行，词缀/boss_script 经 EnemyBase.setup 数据驱动生效）
+## > 占位（charger 行覆盖，供纯 FloorScene 消费/回归对照）。
+## m1-t27 设施缝：room_event 首进恰一次 → shop=真商店（RunState 钱包+当层货单）/
+## event=EventRoom 进房即开事件面板（全屏弹层，同 buff_pick 呈现口径）；
+## treasure=宝箱武器掉落（权重 白60/绿30/蓝10，稀有档空缺回退全名录）。
+## m1-t27 层间缝：boss 房清发出 boss_defeated（宿主 RunRoot 开 inter_floor）；
+## 精英/垒主行内 drops（weapon/hearts2）死亡即落；金币拾取同步入账 RunState。
+## 遥测：floor_enter/floor_clear（每房清房用时）/loot 行，沿用既有 Telemetry CSV。
 
 const TILE := 16
 const WALL_T := 16
@@ -25,10 +29,19 @@ const SPAWN_MIN_PLAYER_PX := 120.0
 const PLAYER_SCENE := preload("res://core/player/player.tscn")
 const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
 const GAME_CAMERA := preload("res://fx/game_camera.gd")
+const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店设施
 const BULLET_VISUAL_CAP := 500
 
 ## A1 名录（data/enemies.json）：楼层垃圾怪池，波次按房号确定性轮转组合。
 const A1_TRASH := ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"]
+## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（swift+berserk 词缀，
+## drops weapon+hearts2）、垒主=自爆王虫（armored+leech，drops weapon+hearts2）、
+## boss=藤蔓巨像（行内 boss_script → 真 3 阶段 BossBase 子类）。
+const REAL_GUEST_ROWS := {
+	"elite_charger": "shuangdao_lizardman",
+	"miniboss_charger": "zibao_wangchong",
+	"vine_colossus": "vine_colossus",
+}
 ## T12 前占位嘉宾规格：vine_charger（charger 原型）行覆盖，kind 为标记。
 const GUEST_SPECS := {
 	"elite_charger": {"mult": 3, "radius": 6.0, "kind": "elite", "name": "精英·藤蔓冲锋者"},
@@ -49,10 +62,15 @@ const ENEMY_BULLET_COLOR := Color(1.0, 0.35, 0.3)
 const LOOT_RARITY_WEIGHTS := {"common": 60, "rare": 30, "epic": 10}   # 白/绿/蓝
 
 signal room_event(room_type: String, room_id: int)
+## m1-t27：boss 房清（巨像死亡）——宿主 RunRoot 据此开层间中转。
+signal boss_defeated(room_id: int)
 
 var flow := FloorFlow.new()
 var player: Player = null
 var floor_idx := 1
+## m1-t27 真实嘉宾开关（默认开）：false 退回 T12 占位路径（回归对照/纯楼测试）。
+## 优先级：外部 guest_spawner 注入 > use_real_guests 真实行 > 占位。
+var use_real_guests := true
 ## T12/T13 嘉宾集成缝：func(room_type: String, room_id: int, row: Dictionary,
 ## pos: Vector2) -> Variant（返回 EnemyBase 即接管该嘉宾的生成）。
 var guest_spawner := Callable()
@@ -69,6 +87,9 @@ var _bullet_sprites: Array[Polygon2D] = []
 var _hud_label: Label = null
 var _built := false
 var _spawn_frames: Dictionary = {}    # enemy instance_id -> 刷出帧（ttk）
+## m1-t27：楼层流程挂起（boss 房清 → 层间中转接管玩家期间停用按图进房检测，
+## 防把玩家从层间中转房抢回楼层；层重建 = 新实例，标志自然复位）。
+var _flow_suspended := false
 
 
 # ================================================================ 生命周期
@@ -393,6 +414,10 @@ func _wire_room_combat(room: FloorRoom) -> void:
 	melee.combat_rng = _combat_rng
 	melee.rig = rig
 	player.combat = room.combat
+	# m1-t27：英雄暴击基础值注入（HeroApplier meta 接缝 "crit_base" 的房间层读出，
+	# T11 披露的接线位；无 meta（裸玩家测试路径）保持 CombatSystem 默认值）。
+	if player.has_meta("crit_base"):
+		room.combat.crit_chance = float(player.get_meta("crit_base"))
 	room.combat.register_body(player, player.combat_faction())
 	_registered_combat = room.combat
 	_ensure_proxy(room)
@@ -467,7 +492,7 @@ func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2) -> void:
 		push_error("FloorScene: unknown enemy '%s'" % id)
 		room.room_flow.notify_killed(id, Engine.get_physics_frames())
 		return
-	# T12/T13 缝：guest_spawner 注入时嘉宾生成让位集成卡（返回 EnemyBase 即接管）。
+	# T12/T13 缝：guest_spawner 注入时嘉宾生成让位宿主（返回 EnemyBase 即接管）。
 	if is_guest and guest_spawner.is_valid():
 		var spawned: Variant = guest_spawner.call(room.type, room.room_id, row.duplicate(), world_pos)
 		if spawned is EnemyBase:
@@ -485,6 +510,9 @@ func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2) -> void:
 		# 缝返回非 EnemyBase：落回占位路径（响亮告警，集成卡自行排查）
 		push_warning("FloorScene: guest_spawner returned type %d for '%s' — placeholder fallback"
 			% [typeof(spawned), id])
+	# m1-t27：默认真实嘉宾（数据行替换占位；真实行缺失时落回占位路径）
+	if is_guest and use_real_guests and _spawn_real_guest(room, id, world_pos):
+		return
 	var e := EnemyBase.new()
 	e.position = world_pos - room.position   # 房间子节点：世界刷点 → 房间局部
 	room.add_child(e)
@@ -496,6 +524,35 @@ func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2) -> void:
 	room.combat.register_body(e, e.combat_faction())
 	room.enemies.append(e)
 	_spawn_frames[e.get_instance_id()] = Engine.get_physics_frames()
+
+
+## m1-t27 真实嘉宾生成：波次标记 id（GUEST_SPECS 键）→ REAL_GUEST_ROWS 数据行。
+## 词缀（elite_affixes）与 boss_script 均由 EnemyBase.setup 数据驱动生效；
+## guest_kind 沿用占位标记（染成嘉宾色），行内记 wave_id 供 kill 路由回译波次
+## （RoomFlow._alive 以波次标记 id 计数，见 _on_enemy_killed）。
+## 返回 false = 真实行缺失（调用方落回占位路径）。
+func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2) -> bool:
+	var real_id := String(REAL_GUEST_ROWS.get(wave_id, ""))
+	if real_id.is_empty():
+		return false
+	var real_row: Dictionary = GameDB.get_enemy(real_id).duplicate()
+	if real_row.is_empty():
+		push_warning("FloorScene: real guest row '%s' missing — placeholder fallback" % real_id)
+		return false
+	real_row["guest_kind"] = String((GUEST_SPECS[wave_id] as Dictionary)["kind"])
+	real_row["wave_id"] = wave_id
+	var e := EnemyBase.new()
+	e.position = world_pos - room.position   # 房间子节点：世界刷点 → 房间局部
+	room.add_child(e)
+	e.setup(real_row)
+	e.combat = room.combat
+	e.player_ref = room.player_proxy
+	e.add_to_group("enemies")
+	_dress_enemy(e, real_row)
+	room.combat.register_body(e, e.combat_faction())
+	room.enemies.append(e)
+	_spawn_frames[e.get_instance_id()] = Engine.get_physics_frames()
+	return true
 
 
 ## 敌人外观（M0 习语）：碰撞圆 + 方块色块；嘉宾按 kind 染色标记。
@@ -521,6 +578,8 @@ func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 
 
 ## kill 路由（M0 习语）：EventBus.enemy_killed → 当前房匹配 → 波次推进 → 清房。
+## m1-t27：真实嘉宾以数据行 id 死亡（enemy_killed 载荷），经行内 wave_id 回译
+## RoomFlow 波次标记；行内 drops（精英/垒主）死亡即落；boss 房清发 boss_defeated。
 func _on_enemy_killed(enemy_id: String) -> void:
 	if not _built:
 		return
@@ -528,19 +587,49 @@ func _on_enemy_killed(enemy_id: String) -> void:
 	if room == null or room.combat == null:
 		return
 	var frame := Engine.get_physics_frames()
+	var notify_id := enemy_id
+	var killed_row := {}
+	var death_pos := Vector2.ZERO
 	for e in room.enemies:
 		if is_instance_valid(e) and String(e.row.get("id", "")) == enemy_id:
+			notify_id = String(e.row.get("wave_id", enemy_id))   # 嘉宾波次回译
+			killed_row = (e.row as Dictionary).duplicate()
+			death_pos = e.global_position
 			var ttk := frame - int(_spawn_frames.get(e.get_instance_id(), frame))
 			Fx.on_enemy_killed(e.global_position)
 			Telemetry.log_row(["kill", frame, enemy_id, ttk],
 				RoomCombat.kill_source(e.row, _current_weapon_id()))
 			room.enemies.erase(e)
 			break
-	room.room_flow.notify_killed(enemy_id, frame)
+	room.room_flow.notify_killed(notify_id, frame)
+	if not killed_row.is_empty():
+		_spawn_guest_drops(room, killed_row, death_pos)
 	if room.room_flow.cleared and not room.cleared_emitted:
 		flow.notify_room_cleared(room.room_id)
 		_emit_room_clear(room)
 		refresh_gates()
+		if room.type == "boss":
+			_flow_suspended = true           # 层间中转接管玩家（防进房检测抢人）
+			boss_defeated.emit(room.room_id)
+
+
+## m1-t27 嘉宾死亡掉落（行内 drops 契约："weapon"=随机武器掉落台（ShopLogic.roll_weapon_id，
+## loot 盐流确定性），"hearts2"=2 红心）。掉落台复用宝箱的 _build_loot_station（E 拾取换手）。
+func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> void:
+	var drops := String(row.get("drops", ""))
+	if drops.is_empty():
+		return
+	if drops.contains("weapon"):
+		var exclude: Array[String] = []
+		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, exclude)
+		if wid.is_empty():
+			wid = _roll_weapon(_roll_rarity())   # 池枯哨兵兜底（全名录 roll）
+		_last_loot = wid
+		Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, "guest_drop"])
+		room.add_child(_build_loot_station(room, world_pos - room.position))
+	if drops.contains("hearts2"):
+		for i in 2:
+			_spawn_pickup(room, "heart", world_pos + _scatter(71 + i))
 
 
 ## m1-t18 kill 行来源取值：玩家当前武器 id（rig 未接线 → ""）；boss 判定复用 RoomCombat.kill_source。
@@ -582,12 +671,14 @@ func _spawn_pickup(room: FloorRoom, kind: String, world_pos: Vector2) -> void:
 	var p := Pickup.new()
 	p.kind = kind
 	p.position = world_pos - room.position   # 房间子节点：世界落点 → 房间局部
-	p.on_collect = func() -> void: room.coins += 1
+	p.on_collect = func() -> void:
+		room.coins += 1
+		RunState.add_coins(1)                # m1-t27：局内金币记账（商店钱包鸭子接缝）
 	room.add_child(p)
 
 
 func _detect_room_enter() -> void:
-	if player == null:
+	if player == null or _flow_suspended:
 		return
 	for id in _rooms:
 		var room: FloorRoom = _rooms[id]
@@ -598,6 +689,78 @@ func _detect_room_enter() -> void:
 
 func _on_flow_room_event(room_type: String, room_id: int) -> void:
 	room_event.emit(room_type, room_id)
+	_open_facility(room_type, _rooms.get(room_id))
+
+
+## m1-t27 设施接线（room_event 首进恰一次）：shop=真商店（RunState 钱包 + 当层货单 +
+## 副手回收回调）；event=EventRoom 进房即开事件面板（全屏弹层，Esc=拒绝）。
+## treasure 走 _place_guests 既有宝箱；elite/miniboss/boss 为嘉宾战斗房无设施。
+func _open_facility(room_type: String, room: FloorRoom) -> void:
+	if room == null or room.facility_built:
+		return
+	match room_type:
+		"shop":
+			room.facility_built = true
+			_build_shop(room, room.outer.get_center() - room.position)
+		"event":
+			room.facility_built = true
+			_build_event(room)
+
+
+## 商店设施（T14 Shop 契约）：货单 ShopLogic.roll_stock（RunState loot 盐流，当层确定），
+## 钱包 = RunState（coins/spend_coins/add_coins 鸭子接缝），回收回调 = 副手丢弃。
+func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
+	var shop := SHOP_SCENE.instantiate() as Shop
+	shop.position = local_pos
+	var exclude: Array[String] = []
+	shop.stock = ShopLogic.roll_stock(RunState.stream(RunState.SALT_LOOT), floor_idx, exclude)
+	shop.wallet = RunState
+	shop.black = false
+	shop.drop_weapon = _drop_offhand
+	room.add_child(shop)
+
+
+## 商店回收回调（Shop.drop_weapon 契约）：丢弃副手（非当前槽）→ 返回武器信息
+## （空 {} = 无副手，Shop 拒绝入账）。
+func _drop_offhand(p: Node2D) -> Dictionary:
+	var pl := p as Player
+	if pl == null or pl.weapon_rig == null or pl.weapon_rig.slots.size() < 2:
+		return {}
+	var rig := pl.weapon_rig
+	var alt := (rig.slot + 1) % 2
+	var w: Dictionary = rig.slots[alt]
+	if w.is_empty():
+		return {}
+	rig.slots[alt] = {}
+	return {"id": String(w.get("id", "")), "name": String(w.get("name", "")),
+		"rarity": String(w.get("rarity", "common"))}
+
+
+## 事件设施（T19 EventRoom 契约）：进房即 4 选 1 开面板（每房一次由 flow 单发 +
+## EventRoom._used 双守卫）；抽取确定性 = RunState loot 盐流。
+func _build_event(room: FloorRoom) -> void:
+	var ev := EventRoom.new()
+	ev.setup(player, RunState.stream(RunState.SALT_LOOT))
+	room.add_child(ev)                        # _ready 建面板 UI
+	ev.open_random_event()
+
+
+## 首次进入时放置：treasure 宝箱 / shop·event 桩（设施已接时让位，防双交互物）
+## （elite/miniboss/boss 嘉宾走战斗波次）。
+func _place_guests(room: FloorRoom) -> void:
+	if room.guests_placed:
+		return
+	room.guests_placed = true
+	var center := room.outer.get_center() - room.position
+	match room.type:
+		"treasure":
+			_build_chest(room, center)
+		"shop":
+			if not room.facility_built:
+				_build_stub(room, center, "商店（C线未接入）")
+		"event":
+			if not room.facility_built:
+				_build_stub(room, center, "事件（C线未接入）")
 
 
 func _mark_used(id: int, dir: String) -> void:
@@ -641,21 +804,6 @@ func gate_is_open(a: int, b: int) -> bool:
 
 
 # ================================================================ 客房陈设（数据占位）
-
-## 首次进入时放置：treasure 宝箱 / event·shop 空桩（elite/miniboss/boss 嘉宾走战斗波次）。
-func _place_guests(room: FloorRoom) -> void:
-	if room.guests_placed:
-		return
-	room.guests_placed = true
-	var center := room.outer.get_center() - room.position
-	match room.type:
-		"treasure":
-			_build_chest(room, center)
-		"shop":
-			_build_stub(room, center, "商店（C线未接入）")
-		"event":
-			_build_stub(room, center, "事件（C线未接入）")
-
 
 ## 宝箱：开箱 → 权重 roll 武器（loot 遥测）→ 掉落台出现在箱位（再按 E 换手）。
 func _build_chest(room: FloorRoom, local_pos: Vector2) -> void:
@@ -924,6 +1072,7 @@ class FloorRoom extends Node2D:
 	var entry_frame := -1
 	var spawned_wave := -1
 	var guests_placed := false
+	var facility_built := false               # m1-t27：设施已接（shop/event 真设施占位）
 	var cleared_emitted := false
 	var coins := 0
 

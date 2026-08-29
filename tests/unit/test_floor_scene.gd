@@ -404,15 +404,19 @@ func test_scene_instant_rooms_place_guest_stubs() -> void:
 	assert_str(chest.action_label).contains("宝箱")
 	# treasure 清后邻接门开（推进链不断）
 	assert_bool(fs.flow.doors_open_between(1, 2)).is_true()
-	# shop / event 桩（C 线接入位）
+	# shop：m1-t27 真商店设施（T14 Shop 交互物，货单/钱包在 _build_shop 接线）
 	assert_bool(fs.enter_room(2)).is_true()
 	var shop := _interactable_in_room(fs, 2)
 	assert_object(shop).is_not_null()
 	assert_str(shop.action_label).contains("商店")
+	assert_bool(shop is Shop).is_true()
+	assert_bool((shop as Shop).stock.has("weapons")).is_true()
+	# event：m1-t27 事件设施（EventRoom 进房即开面板）
 	assert_bool(fs.enter_room(3)).is_true()
-	var ev := _interactable_in_room(fs, 3)
+	var ev := _event_room_in(fs, 3)
 	assert_object(ev).is_not_null()
-	assert_str(ev.action_label).contains("事件")
+	assert_bool(ev.ui_visible()).is_true()
+	assert_array(EventRoom.EVENT_IDS).contains(ev.current_event())
 
 
 func test_scene_treasure_chest_drops_weapon() -> void:
@@ -463,7 +467,8 @@ func test_scene_guest_placeholders() -> void:
 
 
 func test_scene_full_walk_elite_miniboss_boss() -> void:
-	# 端到端链路：start→elite(锁→2 波→清)→miniboss(强化怪)→boss(colossus)→全清
+	# 端到端链路（m1-t27 真实嘉宾）：start→elite(锁→2 波→清)→miniboss(自爆王虫)→
+	# boss(真藤蔓巨像 boss_script)→全清 + boss_defeated。
 	var fs := _make_scene(_typed_chain(["elite", "miniboss", "boss"]))
 	var events: Array = []
 	fs.room_event.connect(func(t: String, id: int) -> void: events.append("%s:%d" % [t, id]))
@@ -474,34 +479,47 @@ func test_scene_full_walk_elite_miniboss_boss() -> void:
 	assert_int(_alive_enemies(fs.room_node(1))).is_equal(3)
 	_kill_all(fs.room_node(1))
 	await _await_until(func() -> bool: return _alive_enemies(fs.room_node(1)) == 4)
-	# 波2：3 垃圾 + 1 精英嘉宾（占位 charger 3×hp）
+	# 波2：3 垃圾 + 1 真实精英（双刀蜥人行：swift+berserk 词缀 → has_berserk，hp 180）
 	assert_int(_alive_enemies(fs.room_node(1))).is_equal(4)
-	var elite_guest := _find_enemy(fs.room_node(1), "elite_charger")
+	var elite_guest := _find_enemy(fs.room_node(1), "shuangdao_lizardman")
 	assert_object(elite_guest).is_not_null()
-	assert_int(elite_guest.hp).is_equal(CHARGER_HP * 3)
+	assert_int(elite_guest.hp).is_equal(180)
+	assert_bool(elite_guest.has_berserk).is_true()
 	_kill_all(fs.room_node(1))
 	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
 	assert_bool(fs.flow.cleared.has(1)).is_true()
-	# miniboss：清后 boss 门解锁；波2 = 强化怪（占位 charger 3×hp）
+	# m1-t27 精英掉落（行内 drops "weapon,hearts2"）：武器掉落台 + 红心
+	# （红心 4 = drops 2 + elite 房清奖励 2）
+	assert_object(_node_in_room(fs, 1, "LootStation")).is_not_null()
+	assert_int(_heart_pickups(fs.room_node(1))).is_equal(4)
+	# miniboss：清后 boss 门解锁；波2 = 真实自爆王虫（armored 词缀 hp×3、leech）
 	assert_bool(fs.enter_room(2)).is_true()
 	assert_array(events).contains("miniboss:2")
 	_kill_all(fs.room_node(2))
-	await _await_until(func() -> bool: return _find_enemy(fs.room_node(2), "miniboss_charger") != null)
-	var mb_guest := _find_enemy(fs.room_node(2), "miniboss_charger")
+	await _await_until(func() -> bool: return _find_enemy(fs.room_node(2), "zibao_wangchong") != null)
+	var mb_guest := _find_enemy(fs.room_node(2), "zibao_wangchong")
 	assert_object(mb_guest).is_not_null()
+	assert_int(mb_guest.hp).is_equal(180 * 3)
+	assert_bool(mb_guest.leech).is_true()
 	_kill_all(fs.room_node(2))
 	await _await_until(func() -> bool: return fs.flow.cleared.has(2))
 	assert_bool(fs.flow.cleared.has(2)).is_true()
 	assert_bool(fs.flow.boss_door_unlocked()).is_true()
-	# boss：单波 vine_colossus 占位（8×hp / r16），清后 boss 房清
+	# boss：单波真 vine_colossus（行 hp 800；boss_script → BossBase 子类换装），
+	# 清后 boss 房清 + boss_defeated 发出（层间触发，宿主消费）
 	assert_bool(fs.enter_room(3)).is_true()
 	var colossus := _find_enemy(fs.room_node(3), "vine_colossus")
 	assert_object(colossus).is_not_null()
-	assert_int(colossus.hp).is_equal(CHARGER_HP * 8)
+	assert_int(colossus.hp).is_equal(800)
+	var script: Script = colossus.get_script()
+	assert_bool(script != null and script.resource_path.ends_with("vine_colossus.gd")).is_true()
+	var boss_defeats: Array = []
+	fs.boss_defeated.connect(func(rid: int) -> void: boss_defeats.append(rid))
 	_kill_all(fs.room_node(3))
 	await _await_until(func() -> bool: return fs.flow.cleared.has(3))
 	assert_bool(fs.flow.cleared.has(3)).is_true()
 	assert_bool(fs.flow.is_locked()).is_false()
+	assert_array(boss_defeats).contains(3)
 
 
 func test_scene_wave_composition_deterministic() -> void:
@@ -579,6 +597,27 @@ func _interactable_in_room(fs: FloorScene, room_id: int) -> Interactable:
 		if c is Interactable:
 			return c
 	return null
+
+
+func _node_in_room(fs: FloorScene, room_id: int, node_name: String) -> Node:
+	var room: FloorScene.FloorRoom = fs.room_node(room_id)
+	return room.get_node_or_null(NodePath(node_name))
+
+
+func _event_room_in(fs: FloorScene, room_id: int) -> EventRoom:
+	var room: FloorScene.FloorRoom = fs.room_node(room_id)
+	for c in room.get_children():
+		if c is EventRoom:
+			return c
+	return null
+
+
+func _heart_pickups(room: FloorScene.FloorRoom) -> int:
+	var n := 0
+	for c in room.get_children():
+		if c is Pickup and (c as Pickup).kind == "heart":
+			n += 1
+	return n
 
 
 func _interactable_count(fs: FloorScene, room_id: int) -> int:

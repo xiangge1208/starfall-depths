@@ -145,6 +145,7 @@ func _build_chamber() -> void:
 	_victory_label.visible = false
 	hud.add_child(_victory_label)
 	add_child(hud)
+	add_child(ui_layer)   # m1-t27 修复：ui_layer 漏挂树——三选一浮层不上树即不可见（孤儿泄漏）
 
 	var cam: Camera2D = GAME_CAMERA.new()
 	cam.set("target", player)
