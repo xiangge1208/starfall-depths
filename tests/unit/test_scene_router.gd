@@ -34,10 +34,11 @@ func test_routes_table_complete() -> void:
 		var path := String(routes[key])
 		assert_bool(path.begins_with("res://")).is_true()
 		assert_bool(path.ends_with(".tscn")).is_true()
-	# GDD §19 流程键位钉死（改表须同步本断言）
+	# GDD §19 流程键位钉死（改表须同步本断言）。m1-t27：game → 局根节点（真实主循环），
+	# training_room 为 M0 时代占位（仍在盘，作为独立调试场景保留）。
 	assert_str(String(routes["menu"])).is_equal(MENU_SCENE)
 	assert_str(String(routes["hero_select"])).is_equal(HERO_SELECT_SCENE)
-	assert_str(String(routes["game"])).is_equal("res://core/rooms/training_room.tscn")
+	assert_str(String(routes["game"])).is_equal("res://core/rooms/run_root.tscn")
 	assert_str(String(routes["death"])).is_equal(DEATH_SCENE)
 
 
@@ -46,6 +47,7 @@ func test_route_paths_exist_on_disk_except_death() -> void:
 	assert_bool(ResourceLoader.exists(DEATH_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists(MENU_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists(HERO_SELECT_SCENE)).is_true()
+	assert_bool(ResourceLoader.exists("res://core/rooms/run_root.tscn")).is_true()
 	assert_bool(ResourceLoader.exists("res://core/rooms/training_room.tscn")).is_true()
 
 

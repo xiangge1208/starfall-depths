@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://core/rooms/run_root.gd" id="1_t27root"]
+
+[node name="RunRoot" type="Node2D"]
+script = ExtResource("1_t27root")

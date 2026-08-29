@@ -12,7 +12,8 @@ extends Node
 const ROUTES := {
 	"menu": "res://ui/main_menu.tscn",
 	"hero_select": "res://ui/hero_select.tscn",
-	"game": "res://core/rooms/training_room.tscn",
+	# m1-t27：game 键从 M0 时代的 training_room 切到局根节点（选角 → 真实楼层主循环）。
+	"game": "res://core/rooms/run_root.tscn",
 	"death": "res://ui/death_summary.tscn",
 }
 
