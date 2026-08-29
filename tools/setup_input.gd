@@ -17,10 +17,34 @@ const ACTIONS := {
 	"pause": [KEY_ESCAPE],
 }
 
+# m1-t21 手柄绑定（GDD §5.1）：左摇杆移动 / A 翻滚 / RB 技能 / LB 切枪 / X 交互。
+# 桌面键位不动，手柄事件只是追加到同一动作（重映射仍走 InputMap）。
+const JOYPAD_BUTTONS := {
+	"roll": JOY_BUTTON_A,
+	"skill": JOY_BUTTON_RIGHT_SHOULDER,
+	"switch_weapon": JOY_BUTTON_LEFT_SHOULDER,
+	"interact": JOY_BUTTON_X,
+}
+
+# 动作 → [轴, 极性]（左摇杆：轴0 横移 / 轴1 纵移）
+const JOYPAD_AXES := {
+	"move_left": [JOY_AXIS_LEFT_X, -1.0],
+	"move_right": [JOY_AXIS_LEFT_X, 1.0],
+	"move_up": [JOY_AXIS_LEFT_Y, -1.0],
+	"move_down": [JOY_AXIS_LEFT_Y, 1.0],
+}
+
+# m1-t21 新动作：右摇杆瞄准（轴2/3，双向极性各一条事件；符号值由 gamepad_aim.gd 跟踪）
+const AIM_AXIS_ACTIONS := {
+	"aim_right_x": JOY_AXIS_RIGHT_X,
+	"aim_right_y": JOY_AXIS_RIGHT_Y,
+}
+
 func _init() -> void:
 	for action: String in ACTIONS:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action, 0.2)
+		InputMap.action_erase_events(action)   # 幂等：清旧事件再写，重复运行不叠加
 		var events: Array = []
 		for key: Key in ACTIONS[action]:
 			var ev := InputEventKey.new()
@@ -32,6 +56,32 @@ func _init() -> void:
 			mb.button_index = MOUSE_BUTTON_LEFT
 			InputMap.action_add_event(action, mb)
 			events.append(mb)
+		if JOYPAD_AXES.has(action):
+			var axis: int = JOYPAD_AXES[action][0]
+			var polarity: float = JOYPAD_AXES[action][1]
+			var jm := InputEventJoypadMotion.new()
+			jm.axis = axis
+			jm.axis_value = polarity
+			InputMap.action_add_event(action, jm)
+			events.append(jm)
+		if JOYPAD_BUTTONS.has(action):
+			var jb := InputEventJoypadButton.new()
+			jb.button_index = JOYPAD_BUTTONS[action]
+			InputMap.action_add_event(action, jb)
+			events.append(jb)
+		ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})
+	# 右摇杆瞄准新动作（无键位，仅轴事件）
+	for action: String in AIM_AXIS_ACTIONS:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action, 0.2)
+		InputMap.action_erase_events(action)
+		var events: Array = []
+		for polarity: float in [-1.0, 1.0]:
+			var jm := InputEventJoypadMotion.new()
+			jm.axis = AIM_AXIS_ACTIONS[action]
+			jm.axis_value = polarity
+			InputMap.action_add_event(action, jm)
+			events.append(jm)
 		ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})
 	# ProjectSettings.save() 会跳过"当前值 == initial(引擎默认值)"的设置项，
 	# 而 60 恰为引擎默认，故仅 set_setting 仍会被省略；
