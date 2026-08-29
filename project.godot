@@ -22,6 +22,7 @@ GameDB="*res://autoload/game_db.gd"
 RngSvc="*res://autoload/rng_svc.gd"
 RunState="*res://autoload/run_state.gd"
 SaveSystem="*res://autoload/save_system.gd"
+SceneRouter="*res://autoload/scene_router.gd"
 Fx="*res://autoload/fx.gd"
 
 [display]

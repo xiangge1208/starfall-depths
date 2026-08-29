@@ -5,7 +5,7 @@ extends Control
 ## 选择落地：优先调 RunState autoload 的 select_hero 钩子（T15 未合并则节点不存在，
 ## 用 /root 路径探测——Engine.has_singleton 只认原生单例，对 GDScript autoload 恒 false）；
 ## 无钩子时落 HeroSelect.last_chosen 静态暂存（T15 合并时收编）。
-## 换场景路由属 T23 —— 本界面只发信号 + 暂存，不改场景。
+## 换场景路由由 T23 加线（hero_chosen 后守卫探测 /root/SceneRouter → goto("game")）。
 
 signal hero_chosen(hero_id: String)
 
@@ -62,6 +62,13 @@ func _choose(idx: int) -> void:
 	if run_state != null and run_state.has_method("select_hero"):
 		run_state.call("select_hero", id)              # T15 已合并则走其选择钩子
 	hero_chosen.emit(id)
+	# T23 接线：选角即路由进局。双重守卫：/root/SceneRouter 未注册或节点不在树内
+	# → 探测为 null 不路由不崩；且仅当本节点是当前活动场景（生产路径：经
+	# SceneRouter.change_scene 挂载）才路由——T11 嵌入式单测（hero_select 挂在
+	# 测试套件节点下）不触发真实场景切换（防跨套件场景易主/孤儿节点）。
+	var sr := get_node_or_null("/root/SceneRouter")
+	if sr != null and get_tree() != null and get_tree().current_scene == self:
+		sr.goto("game")
 
 func _on_card_input(event: InputEvent, idx: int) -> void:
 	if event is InputEventMouseButton:
