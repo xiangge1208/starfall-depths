@@ -315,13 +315,11 @@ func test_roll_stock_deterministic_same_seed() -> void:
 	assert_array(a.get("weapons", []) as Array).is_equal(b.get("weapons", []))
 
 func test_roll_stock_respects_exclude_and_stays_unique() -> void:
-	# 排除真实表 4 把 → 池剩 2 把：货架 2 把（第 3 抽池枯跳过）且互不重复
-	var exclude: Array[String] = []
-	var i := 0
-	for id: String in GameDB.weapons:
-		if i < 4:
-			exclude.append(id)
-		i += 1
+	# 排除池内 4 把 → 池剩 2 把：货架 2 把（第 3 抽池枯跳过）且互不重复。
+	# t25 扩池后真实表 40 把不再池枯（原「真实表前 4 把」写法绑死了表大小），
+	# 改用本套件既有的桩表机制固定 6 把池，保持原语义不变（_stub_weapons 由 after_test 还原）。
+	_stub_weapons(_stub_pool(6, 0, 0, 0, 0))
+	var exclude: Array[String] = ["stub_c0", "stub_c1", "stub_c2", "stub_c3"]
 	var stock := ShopLogic.roll_stock(_rng(SEED), 1, exclude)
 	var weapons: Array = stock.get("weapons", [])
 	assert_int(weapons.size()).is_equal(2)
