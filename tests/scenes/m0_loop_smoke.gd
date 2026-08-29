@@ -187,6 +187,7 @@ func _run() -> void:
 
 	# ---- 9) 遥测 + HUD ----
 	print("SMOKE 9: telemetry + hud")
+	Telemetry.flush()                          # m1-hygiene：读前先落盘（行数不足 32 阈值也读全）
 	var text := FileAccess.get_file_as_string("user://telemetry.csv")
 	for ev in ["fire", "hit", "kill", "room_clear", "hurt", "equip", "pickup", "room_enter"]:
 		_check(text.contains(ev), "telemetry has '%s' rows" % ev)
