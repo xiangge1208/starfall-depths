@@ -42,9 +42,8 @@ func test_routes_table_complete() -> void:
 
 
 func test_route_paths_exist_on_disk_except_death() -> void:
-	# 文档化例外：death_summary.tscn 为 T22 交付物，本卡合并时点尚不存在 →
-	# 断言其缺失（T22 合并后翻转为 is_true）。
-	assert_bool(ResourceLoader.exists(DEATH_SCENE)).is_false()
+	# T22 已交付 death_summary.tscn → 四路径全部在盘（原"缺失"断言按计划翻转）。
+	assert_bool(ResourceLoader.exists(DEATH_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists(MENU_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists(HERO_SELECT_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists("res://core/rooms/training_room.tscn")).is_true()
