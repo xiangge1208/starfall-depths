@@ -66,6 +66,8 @@ func test_crit_rolls_at_hit_time() -> void:
 # ---- m0-final fix 回归 ----
 
 ## fix1：cap 淘汰须走 on_evict(=CombatSystem._kill)——哈希条目与 _proj_meta 不泄漏。
+## m1-t18：饱和弹改玩家阵营——敌方弹现受 400 上限门（由 test_enemy_bullet_cap_400 专测），
+## 本回归须继续压满 500 总池上限的淘汰路径（玩家弹无阵营门，直抵池 cap）。
 func test_cap_eviction_cleans_hash_meta() -> void:
 	var cs := _make_cs()
 	var body: DummyBody = auto_free(DummyBody.new())
@@ -73,7 +75,7 @@ func test_cap_eviction_cleans_hash_meta() -> void:
 	body.position = Vector2(5000, 0)          # 远离弹堆：饱和期不被命中
 	cs.register_body(body, Projectile.Faction.PLAYER)
 	for _i in 600:                            # 上限 500 → 100 次淘汰
-		cs.spawn_projectile({"pos": Vector2.ZERO, "vel": Vector2.ZERO, "damage": 1, "faction": Projectile.Faction.ENEMY, "element": 0, "pierce": 0, "bounce": 0, "life_seconds": 9.0, "radius": 3.0})
+		cs.spawn_projectile({"pos": Vector2.ZERO, "vel": Vector2.ZERO, "damage": 1, "faction": Projectile.Faction.PLAYER, "element": 0, "pierce": 0, "bounce": 0, "life_seconds": 9.0, "radius": 3.0})
 	assert_int(cs.active_count()).is_equal(500)
 	assert_int(cs.debug_meta_count()).is_equal(cs.active_count())   # fix5：无幽灵元数据
 	# 哈希无陈旧条目（不外泄 API，经反射清点）：meta 键按实例 id 复用即自愈，
@@ -100,3 +102,61 @@ func test_large_radius_body_hit_within_widened_slack() -> void:
 	for _i in 30:
 		await get_tree().physics_frame
 	assert_int(body.hits.size()).is_equal(1)
+
+# ---- m1-t18 ----
+
+func _enemy_alive(cs: CombatSystem) -> int:
+	var n := 0
+	for p in cs.pool.active:
+		if p.faction == Projectile.Faction.ENEMY:
+			n += 1
+	return n
+
+## GDD §7.5：敌方场上弹 ≤400；第 401 发让最旧敌方弹淘汰让位（公平性 victim，同池 cap 习语）。
+## 总池 500 上限不变；玩家弹不因敌方 cap 让位。
+func test_enemy_bullet_cap_400_recycles_oldest() -> void:
+	var cs := _make_cs()
+	var enemy_cfg := {"pos": Vector2.ZERO, "vel": Vector2.ZERO, "damage": 1, "faction": Projectile.Faction.ENEMY, "element": 0, "pierce": 0, "bounce": 0, "life_seconds": 9.0, "radius": 3.0}
+	cs.spawn_projectile(enemy_cfg)
+	var first: Projectile = cs.pool.active[0]
+	for _i in 400:                            # 累计 401 发敌方弹
+		cs.spawn_projectile(enemy_cfg)
+	assert_int(_enemy_alive(cs)).is_equal(400)
+	assert_int(cs.active_count()).is_equal(400)
+	assert_bool(cs.pool.active[0] == first).is_false()   # 最旧已让位（实例复用至队尾）
+	assert_int(cs.debug_meta_count()).is_equal(cs.active_count())   # 淘汰不泄漏元数据
+	# 玩家弹不受敌方 cap 淘汰
+	cs.spawn_projectile({"pos": Vector2.ZERO, "vel": Vector2.ZERO, "damage": 1, "faction": Projectile.Faction.PLAYER, "element": 0, "pierce": 0, "bounce": 0, "life_seconds": 9.0, "radius": 3.0})
+	var player_p: Projectile = cs.pool.active[cs.pool.active.size() - 1]
+	assert_int(cs.active_count()).is_equal(401)
+	cs.spawn_projectile(enemy_cfg)            # 再发敌方弹：让位的是最旧敌方弹
+	assert_bool(cs.pool.active.has(player_p)).is_true()
+	assert_int(_enemy_alive(cs)).is_equal(400)
+
+## m1-t18：EnemyBase.take_hit 启用 EventBus.enemy_damaged（原死信号）——扣血后、死亡判定前。
+func test_enemy_damaged_emitted_on_take_hit() -> void:
+	var e: EnemyBase = auto_free(EnemyBase.new())
+	e._test_init({"id": "t18_dummy", "hp": 10, "radius": 6.0})
+	var seen: Array = []
+	var cb := func(amount: int, is_crit: bool) -> void:
+		seen.append([amount, is_crit])
+	EventBus.enemy_damaged.connect(cb)
+	e.take_hit({"amount": 4, "is_crit": true, "element": 0, "from": Vector2.ZERO})
+	EventBus.enemy_damaged.disconnect(cb)
+	assert_int(seen.size()).is_equal(1)
+	assert_int(seen[0][0]).is_equal(4)
+	assert_bool(seen[0][1]).is_true()
+	assert_int(e.hp).is_equal(6)              # 信号在扣血之后
+	assert_int(e.state).is_equal(EnemyBase.State.IDLE)   # 且在死亡判定之前（未致死）
+
+func test_enemy_damaged_emitted_before_death_check() -> void:
+	var e: EnemyBase = auto_free(EnemyBase.new())
+	e._test_init({"id": "t18_dummy2", "hp": 4, "radius": 6.0})
+	var seen: Array = []
+	var cb := func(amount: int, _is_crit: bool) -> void:
+		seen.append(amount)
+	EventBus.enemy_damaged.connect(cb)
+	e.take_hit({"amount": 4, "is_crit": false, "element": 0, "from": Vector2.ZERO})
+	EventBus.enemy_damaged.disconnect(cb)
+	assert_int(seen.size()).is_equal(1)       # 致死当拍仍先广播再走 die()
+	assert_int(e.state).is_equal(EnemyBase.State.DEAD)

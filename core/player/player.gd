@@ -101,6 +101,7 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	if shield_before > 0 and shield == 0:
 		EventBus.shield_broken.emit()                        # 破碎拍广播（坚守被动在此挂钩）
 	EventBus.player_damaged.emit(dmg, hp <= 0)
+	Telemetry.log_row(["hurt", frame, dmg, hp])   # m1-t18：hurt 行收口至玩家受击路径（原 training_room 本地行）
 	Fx.on_player_hurt(self, dmg)
 
 ## 被动「坚守」（GDD §6 骑士·凛）：护盾破碎瞬间对 60px 内敌人 1 伤 + 击退 8px + 眩晕 30t。
