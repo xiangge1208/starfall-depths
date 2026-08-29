@@ -25,6 +25,7 @@ SaveSystem="*res://autoload/save_system.gd"
 SceneRouter="*res://autoload/scene_router.gd"
 Fx="*res://autoload/fx.gd"
 Telemetry="*res://core/meta/telemetry.gd"
+DeathRecorder="*res://core/meta/death_recorder.gd"
 
 [display]
 
