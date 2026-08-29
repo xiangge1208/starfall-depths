@@ -47,6 +47,10 @@ func _wire_player() -> void:
 		driver.name = "Driver"
 		driver.set_script(DRIVER_SCRIPT)
 		player.add_child(driver)
+	# m1-hygiene：T24 完整战斗 HUD 上树（layer 10，debug_hud layer 20 并存）
+	var hud := HUD.new()
+	hud.player = player
+	add_child(hud)
 
 # ---- 假人 ----
 
