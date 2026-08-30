@@ -158,7 +158,7 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	flow.setup(build)
 	_combat_rng = RunState.stream(RunState.SALT_PROJECTILE)
 	_rig_rng = RunState.stream(RunState.SALT_RIG)
-	_loot_rng = RunState.stream(RunState.SALT_LOOT)
+	_loot_rng = RunState.stream(RunState.SALT_EVENT)   # M2-T1：事件/房间抽取独立盐（不再共享掉落流）
 	_facility_rng = RngSvc.stream(floor_idx, "facility")
 	if player.get_parent() == null:
 		add_child(player)
@@ -1121,8 +1121,7 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
-			vis.texture = ArtLookup.tex(ArtLookup.projectile_texture_path(
-				p.faction == Projectile.Faction.PLAYER, p.element))
+			vis.texture = ArtLookup.bullet_texture(p.faction, p.element)   # M2-T1 备忘缓存
 			vis.modulate = p.modulate
 		else:
 			vis.visible = false

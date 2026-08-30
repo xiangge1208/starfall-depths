@@ -67,12 +67,32 @@ func test_distinct_salts_give_distinct_sequences() -> void:
 func test_salt_constants() -> void:
 	assert_str(RunState.SALT_PROJECTILE).is_equal("proj_crit")
 	assert_str(RunState.SALT_RIG).is_equal("rig")
-	assert_str(RunState.SALT_LOOT).is_equal("loot")
 	assert_str(RunState.SALT_DUNGEON).is_equal("dungeon")
+
+func test_facility_salt_constants() -> void:
+	# M2-T1：五设施各自独立盐（M1 终审 ③：替换五处共享的掉落盐同种子重派生）。
+	assert_str(RunState.SALT_SHOP).is_equal("shop")
+	assert_str(RunState.SALT_SHRINE).is_equal("shrine")
+	assert_str(RunState.SALT_DRINK).is_equal("drink")
+	assert_str(RunState.SALT_INTER_FLOOR).is_equal("inter_floor")
+	assert_str(RunState.SALT_EVENT).is_equal("event")
+
+func test_facility_salts_give_independent_first_rolls() -> void:
+	# 分盐语义：黑商/雕像/饮料机/层间三选一/事件的首掷互不关联（两两不等）。
+	RunState.start_run("vanguard")
+	var first_rolls: Array[float] = []
+	for salt: String in [RunState.SALT_SHOP, RunState.SALT_SHRINE, RunState.SALT_DRINK,
+			RunState.SALT_INTER_FLOOR, RunState.SALT_EVENT]:
+		first_rolls.append(RunState.stream(salt).randf())
+	for i in first_rolls.size():
+		for j in range(i + 1, first_rolls.size()):
+			assert_float(first_rolls[i]).is_not_equal(first_rolls[j])
 
 func test_stream_matches_rngsvc_per_salt() -> void:
 	RunState.start_run("vanguard")
-	for salt: String in [RunState.SALT_PROJECTILE, RunState.SALT_RIG, RunState.SALT_LOOT, RunState.SALT_DUNGEON]:
+	for salt: String in [RunState.SALT_PROJECTILE, RunState.SALT_RIG, RunState.SALT_DUNGEON,
+			RunState.SALT_SHOP, RunState.SALT_SHRINE, RunState.SALT_DRINK,
+			RunState.SALT_INTER_FLOOR, RunState.SALT_EVENT]:
 		var via_run: RandomNumberGenerator = RunState.stream(salt)
 		var via_svc: RandomNumberGenerator = RngSvc.stream(RunState.floor_idx, salt)
 		for _i in 8:

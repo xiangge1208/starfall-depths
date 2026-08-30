@@ -79,6 +79,37 @@ func test_projectile_texture_element_overrides_faction() -> void:
 	assert_str(ArtLookup.projectile_texture_path(true, Elements.Id.SHOCK)) \
 		.is_equal("res://art/generated/projectiles/elem_shock.png")
 
+# ---------- 弹丸热路径备忘（M2-T1：bullet_texture 静态字典缓存） ----------
+
+func test_bullet_texture_memoizes_repeat_calls() -> void:
+	# 热路径契约（floor_scene/room_combat _sync_bullet_visuals 逐帧逐弹查询）：
+	# 同 (faction, element) 二次起必须命中静态缓存——miss 计数不得再增长。
+	var faction := Projectile.Faction.PLAYER
+	ArtLookup.bullet_texture(faction, Elements.Id.FIRE)   # 预热：消除跨套件静态状态影响
+	var misses_before: int = ArtLookup._path_cache_size
+	var first := ArtLookup.bullet_texture(faction, Elements.Id.FIRE)
+	assert_object(first).is_not_null()
+	for _i in 500:                                        # 热路径写实连发：零新增 miss
+		ArtLookup.bullet_texture(faction, Elements.Id.FIRE)
+	assert_int(ArtLookup._path_cache_size).is_equal(misses_before)
+	var repeat := ArtLookup.bullet_texture(faction, Elements.Id.FIRE)
+	assert_bool(repeat == first).is_true()                # 同一纹理实例（零重载）
+
+func test_bullet_texture_distinct_args_cached_separately() -> void:
+	# 不同键各自恰好 miss 一次：阵营底图/元素弹互不串味，重复查询全命中。
+	ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE)
+	ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.NONE)
+	ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.FIRE)
+	var warm: int = ArtLookup._path_cache_size
+	var player_none := ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE)
+	var enemy_none := ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.NONE)
+	var fire := ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.FIRE)
+	assert_bool(player_none == enemy_none).is_false()     # 阵营底图不同贴图
+	assert_bool(fire == player_none).is_false()           # 元素弹 ≠ 阵营底图
+	for _i in 10:
+		ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.NONE)
+	assert_int(ArtLookup._path_cache_size).is_equal(warm)
+
 # ---------- 拾取映射 ----------
 
 func test_pickup_texture_paths_exist() -> void:

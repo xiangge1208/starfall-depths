@@ -85,7 +85,7 @@ func _apply_enchant(player: Player, frame: int) -> void:
 	var rig := player.weapon_rig
 	if rng == null:
 		# 独立场景/测试未注入时也必须加入本局可回放种子链，不能裸建随机源。
-		rng = RunState.stream(RunState.SALT_LOOT)
+		rng = RunState.stream(RunState.SALT_SHRINE)
 	var chosen := ENCHANTABLE[rng.randi_range(0, ENCHANTABLE.size() - 1)]
 	rig.temporary_enchant_element = chosen
 	rig.temporary_enchant_until = frame + ENCHANT_TICKS

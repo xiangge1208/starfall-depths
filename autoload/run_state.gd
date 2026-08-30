@@ -6,8 +6,14 @@ extends Node
 ## floor_idx 变化即隐式重置各盐流（派生链含楼层）。盐常量：
 ##   SALT_PROJECTILE("proj_crit") 弹幕命中/暴击掷签（CombatSystem 结算流）
 ##   SALT_RIG("rig")              武器射击散布（rig/melee 注入流）
-##   SALT_LOOT("loot")            掉落/奖励
 ##   SALT_DUNGEON("dungeon")      地牢装配
+## M2-T1 设施独立盐（M1 终审 ③：原先黑商/雕像/饮料机/层间/事件五处共享
+## 掉落盐同种子重派生，首抽相互关联；各自分盐后互不关联）：
+##   SALT_SHOP("shop")            商店（进货/黑商，含店内神秘混合掷签）
+##   SALT_SHRINE("shrine")        星髓像随机附魔
+##   SALT_DRINK("drink")          饮料机神秘混合
+##   SALT_INTER_FLOOR("inter_floor") 层间三选一增益
+##   SALT_EVENT("event")          楼层事件/房间抽取（宝箱、事件选项等）
 ##
 ## 调用时序契约：**RunState.start_run() 必须先于本局任何地牢构建 / 战斗发生**。
 ## T7 的 DungeonBuilder.build(seed, floor_idx) 仍是纯函数（rng 内部自派生，签名不变）：
@@ -17,8 +23,12 @@ extends Node
 
 const SALT_PROJECTILE := "proj_crit"
 const SALT_RIG := "rig"
-const SALT_LOOT := "loot"
 const SALT_DUNGEON := "dungeon"
+const SALT_SHOP := "shop"                  # M2-T1 设施独立盐（原五处共享掉落盐已删）
+const SALT_SHRINE := "shrine"
+const SALT_DRINK := "drink"
+const SALT_INTER_FLOOR := "inter_floor"
+const SALT_EVENT := "event"
 const FLOOR_GEMS := [60, 120, 200]   # GDD §14.1 每层通过蓝晶结算
 const WEAPON_SLOTS := 2              # 双武器位（同 WeaponRig.slots 契约）
 

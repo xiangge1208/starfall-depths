@@ -19,6 +19,15 @@ class DummyBody extends Node2D:
 
 # ---- 装配 ----
 
+func before_test() -> void:
+	# 前置自检：注入夹具必须已清理，防止跨用例泄漏（配合 after_test，镜像 test_weapon_rig.gd）
+	assert_bool(GameDB.weapons.has("testgun_cost5")).is_false()
+
+func after_test() -> void:
+	# M2-T1：删除测试注入的 testgun_cost5 夹具后必须清理，保持 GameDB.weapons 干净
+	GameDB.weapons.erase("testgun_cost5")
+	assert_bool(GameDB.weapons.has("testgun_cost5")).is_false()
+
 # 注：auto_free 返回 Variant，:= 无法推断类型（同 test_weapon_rig.gd 既定决议），需显式类型标注。
 func _player() -> Player:
 	var p: Player = auto_free(Player.new())

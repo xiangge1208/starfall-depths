@@ -229,12 +229,12 @@ func _concrete_drink_ids() -> Array[String]:
 	return concrete
 
 
-## 神秘混合沿当前局 loot 分盐流从 7 条具体饮料中选 1；调用方必须先支付。
+## 神秘混合沿当前局 shop 分盐流从 7 条具体饮料中选 1；调用方必须先支付。
 ## 具体饮料不消费 RNG，直接返回原行。
 func _draw_drink_effect_row(row: Dictionary, concrete: Array[String]) -> Dictionary:
 	if String(row.get("effect", "")) != GameDB.DRINK_RANDOM_EFFECT:
 		return row
-	var rng := drink_rng if drink_rng != null else RunState.stream(RunState.SALT_LOOT)
+	var rng := drink_rng if drink_rng != null else RunState.stream(RunState.SALT_SHOP)
 	return GameDB.get_drink(concrete[rng.randi_range(0, concrete.size() - 1)])
 
 

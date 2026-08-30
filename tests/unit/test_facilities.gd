@@ -255,13 +255,14 @@ func test_random_drink_rolls_one_of_seven_concrete() -> void:
 	assert_str(expected).is_not_equal("shenmi_hunhe")    # 只从 7 条具体饮料中选
 	assert_int(wallet.coins).is_equal(80)                # 神秘混合本身 20 金（非抽中者价格）
 
-func test_random_drink_uninjected_fallback_uses_current_run_loot_stream() -> void:
-	# 未注入不是非确定随机的许可：兜底结果须与当前 RunState loot 分盐流首掷完全一致。
+func test_random_drink_uninjected_fallback_uses_current_run_drink_stream() -> void:
+	# 未注入不是非确定随机的许可：兜底结果须与当前 RunState drink 分盐流首掷完全一致
+	# （M2-T1：饮料机改用独立 SALT_DRINK，不再共享 loot 流）。
 	RngSvc.setup_run(160016)
 	RunState.floor_idx = 2
 	var wallet := StubWallet.new()
 	var m := _machine(wallet)
-	var expected_rng := RunState.stream(RunState.SALT_LOOT)
+	var expected_rng := RunState.stream(RunState.SALT_DRINK)
 	var pool := m.concrete_ids()
 	var expected: String = pool[expected_rng.randi_range(0, pool.size() - 1)]
 	assert_str(m._roll_concrete()).is_equal(expected)
@@ -393,10 +394,11 @@ func test_shrine_xingsui_applies_random_enchant() -> void:
 	assert_int(int(p.get_meta("enchant_element_until", -1))).is_equal(4600)    # 1000 + 3600t
 	assert_int(int(p.get_meta("enchant_element_prev", -1))).is_equal(Elements.Id.FIRE)  # 恢复接缝
 
-func test_shrine_xingsui_uninjected_fallback_uses_current_run_loot_stream() -> void:
+func test_shrine_xingsui_uninjected_fallback_uses_current_run_shrine_stream() -> void:
+	# M2-T1：星髓像改用独立 SALT_SHRINE，不再共享 loot 流。
 	RngSvc.setup_run(160016)
 	RunState.floor_idx = 3
-	var expected_rng := RunState.stream(RunState.SALT_LOOT)
+	var expected_rng := RunState.stream(RunState.SALT_SHRINE)
 	var expected: int = Shrine.ENCHANTABLE[
 		expected_rng.randi_range(0, Shrine.ENCHANTABLE.size() - 1)]
 	var wallet := StubWallet.new()

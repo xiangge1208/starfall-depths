@@ -448,8 +448,7 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
-			vis.texture = ArtLookup.tex(ArtLookup.projectile_texture_path(
-				p.faction == Projectile.Faction.PLAYER, p.element))
+			vis.texture = ArtLookup.bullet_texture(p.faction, p.element)   # M2-T1 备忘缓存
 			vis.modulate = p.modulate          # 反弹弹带 (1,1,0.4) 染色（setup 已重置为 WHITE）
 		else:
 			vis.visible = false

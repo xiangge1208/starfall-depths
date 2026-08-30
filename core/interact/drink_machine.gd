@@ -100,7 +100,7 @@ func buy(idx: int) -> bool:
 ## RunState 分盐流派生，禁止裸 RandomNumberGenerator.new() 绕过可回放种子链。
 func _roll_concrete() -> String:
 	if rng == null:
-		rng = RunState.stream(RunState.SALT_LOOT)
+		rng = RunState.stream(RunState.SALT_DRINK)
 	var pool := concrete_ids()
 	return pool[rng.randi_range(0, pool.size() - 1)]
 

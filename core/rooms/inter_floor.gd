@@ -62,12 +62,12 @@ func setup(p_player: Player, p_buffs: BuffManager, p_floor_idx: int = -1) -> voi
 	_wire_player()
 
 
-## Boss 死亡触发：掷三选一（loot 盐流，确定性）→ 弹三选一 / 胜利桩。
+## Boss 死亡触发：掷三选一（inter_floor 盐流，确定性）→ 弹三选一 / 胜利桩。
 func open() -> void:
 	if not _built:
 		push_error("InterFloor.open: call setup() first")
 		return
-	var offerings := flow.open_with_offerings(RunState.stream(RunState.SALT_LOOT))
+	var offerings := flow.open_with_offerings(RunState.stream(RunState.SALT_INTER_FLOOR))
 	Telemetry.log_row(["inter_floor_open", Engine.get_physics_frames(), flow.floor_idx,
 		str(flow.victory)])
 	if flow.victory:

@@ -117,6 +117,12 @@ const TILES := {
 
 static var _cache: Dictionary = {}
 
+## 弹丸贴图备忘缓存（M2-T1）：键 = faction<<16 | element（int 复合键零分配）。
+## _path_cache_size 为累计 miss 计数（= 已缓存键数），热路径分配探针：
+## 测试断言同参二次调用命中缓存（计数不变）。
+static var _proj_tex: Dictionary = {}
+static var _path_cache_size: int = 0
+
 # ---- 路径查询（纯函数，单测覆盖） ----
 
 static func hero_texture_path(hero_id: String) -> String:
@@ -178,6 +184,17 @@ static func tex(path: String) -> Texture2D:
 			return null
 		_cache[path] = res
 	return _cache[path] as Texture2D
+
+## 弹丸贴图热路径查询（M2-T1）：floor_scene/room_combat _sync_bullet_visuals
+## 逐帧逐弹调用——静态字典备忘（int 复合键零分配），命中即零字符串拼装/零 load。
+static func bullet_texture(faction: int, element: int) -> Texture2D:
+	var key := (faction << 16) | (element & 0xFFFF)
+	if _proj_tex.has(key):
+		return _proj_tex[key] as Texture2D
+	_path_cache_size += 1
+	var t := tex(projectile_texture_path(faction == Projectile.Faction.PLAYER, element))
+	_proj_tex[key] = t
+	return t
 
 static func make_sprite(path: String) -> Sprite2D:
 	var t := tex(path)
