@@ -9,8 +9,8 @@ const WEAPON_SCHEMA := {
 	"element": TYPE_STRING, "is_melee": TYPE_BOOL,
 	"bullet_life": TYPE_FLOAT, "bullet_radius": TYPE_FLOAT, "muzzle": TYPE_FLOAT,
 }
-# 可选键及默认值
-const WEAPON_OPTIONAL := {"range": 0, "arc_deg": 0.0}
+# 可选键及默认值；locked:TYPE_BOOL（M2-T6）紫/橙默认锁定标记：不进 weapons 掉落池，留在 weapons_all
+const WEAPON_OPTIONAL := {"range": 0, "arc_deg": 0.0, "locked": false}
 # 敌人（t10）：required 仅 5 键，其余全部 optional 默认 0
 const ENEMY_SCHEMA := {
 	"id": TYPE_STRING, "name": TYPE_STRING, "archetype": TYPE_STRING,
@@ -86,7 +86,8 @@ const TABLES := {
 	"drinks": "res://data/drinks.json",
 }
 
-var weapons: Dictionary = {}
+var weapons: Dictionary = {}        # 掉落池（locked 已排除）；消费方：FloorScene._roll_weapon / ShopLogic._weapons / validate_hero_row / get_weapon
+var weapons_all: Dictionary = {}    # 全量 115 把（含 locked）；图鉴侧出口（M2-T20 CodexSystem 直接读此表）
 var enemies: Dictionary = {}
 var rooms: Dictionary = {}
 var buffs: Dictionary = {}
@@ -96,6 +97,14 @@ var load_ok := true
 
 func _ready() -> void:
 	weapons = _load_table("res://data/weapons.json", WEAPON_SCHEMA, WEAPON_OPTIONAL)
+	# M2-T6 附录 A 解锁规则：紫/橙 49 把 locked:true 不进掉落池（weapons），
+	# 全量留在 weapons_all 供图鉴展示（M2-T20 直接读 GameDB.weapons_all）。
+	# get_weapon 仍走 weapons：locked 武器当前无获取途径（不掉落/非初始/熔铸未落地），
+	# 解锁后再进池（T20 按 SaveSystem.unlocked 过滤）。
+	weapons_all = weapons.duplicate(true)
+	for id: String in weapons_all:
+		if bool((weapons_all[id] as Dictionary).get("locked", false)):
+			weapons.erase(id)
 	enemies = _load_table("res://data/enemies.json", ENEMY_SCHEMA, ENEMY_OPTIONAL)
 	rooms = _load_table(TABLES["rooms"], ROOM_SCHEMA, ROOM_OPTIONAL, validate_room_row)
 	buffs = _load_table(TABLES["buffs"], BUFF_SCHEMA, BUFF_OPTIONAL, validate_buff_row)
