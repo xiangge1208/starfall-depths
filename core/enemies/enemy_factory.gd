@@ -16,8 +16,19 @@ const ARCHETYPES := {
 	"suicide": preload("res://core/enemies/archetypes/suicide.gd"),
 	"dummy": preload("res://core/enemies/archetypes/dummy.gd"),
 	"mushroom_spore": preload("res://core/enemies/archetypes/mushroom_spore.gd"),
+	# m2-t9：附录 B 原型通用族（B.1 分裂 / B.2 重装·炮台·召唤·弹幕）
+	"splitter": preload("res://core/enemies/archetypes/splitter.gd"),
+	"heavy": preload("res://core/enemies/archetypes/heavy.gd"),
+	"turret": preload("res://core/enemies/archetypes/turret.gd"),
+	"summoner": preload("res://core/enemies/archetypes/summoner.gd"),
+	"barrage": preload("res://core/enemies/archetypes/barrage.gd"),
 	"combo_charger": preload("res://core/enemies/elites/combo_charger.gd"),
 	"zibao_wangchong": preload("res://core/enemies/elites/zibao_wangchong.gd"),
+	# m2-t9：附录 B.3 小 Boss 池补齐 ×4
+	"stone_shield_monk": preload("res://core/enemies/elites/stone_shield_monk.gd"),
+	"undead_gunner": preload("res://core/enemies/elites/undead_gunner.gd"),
+	"volt_spider": preload("res://core/enemies/elites/volt_spider.gd"),
+	"marsh_toad": preload("res://core/enemies/elites/marsh_toad.gd"),
 }
 
 ## M1 仅交付 A1 Boss；路径键仍与数据行契约一致，但所有值都是编译期 preload。

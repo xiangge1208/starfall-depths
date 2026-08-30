@@ -5,9 +5,12 @@ extends EnemyBase
 const KITE_MIN_PX := 140.0
 const KITE_MAX_PX := 200.0
 const VOLLEY_SPREAD_DEG := 8.0   # m1-t12 弹幕大师：extra 发每级 ±8° 对称展开
+const DEFAULT_BURST_INTERVAL := 8   # m2-t9 连发：A3 灰烬射手「3 连发点射」缺省间隔
 
 var _phase := "idle"
 var _phase_left := 0
+var _burst_left := 0             # m2-t9 连发剩余发数（0 = 单发行为，既有行不变）
+var _burst_wait := 0
 
 func _engage(frame: int) -> void:
 	_kite_move(frame)
@@ -20,14 +23,38 @@ func _engage(frame: int) -> void:
 			_phase_left -= 1
 			if _phase_left <= 0:
 				_fire_volley(frame)
-				_phase = "cool"
-				_phase_left = maxi(int(row.get("cd_ticks", 108)) - int(row.get("windup_ticks", 30)), 0)
+				_after_volley_shot()
+		"burst":   # m2-t9 连发：首发已在 windup 到点拍落地，余发按间隔逐发点射
+			if _burst_wait > 0:
+				_burst_wait -= 1
+			else:
+				fire_bullet(_player_pos(), frame)
+				_burst_left -= 1
+				_burst_wait = _burst_gap()
+				if _burst_left <= 0:
+					_begin_cool()
 		"cool":
 			_phase_left -= 1
 			if _phase_left <= 0:
 				_phase = "windup"
 				_phase_left = _windup_ticks(30)          # 同上：狂暴激活时 ×0.7
 				Fx.on_enemy_hit(self, {"telegraph": true})   # 同上：cool→windup 亦为 windup 进入拍
+
+## m2-t9：单发行（burst_count 缺省 1）保持原「发射即冷却」；连发行进入 burst 相续发。
+func _after_volley_shot() -> void:
+	_burst_left = int(row.get("burst_count", 1)) - 1
+	if _burst_left > 0:
+		_phase = "burst"
+		_burst_wait = _burst_gap()
+	else:
+		_begin_cool()
+
+func _burst_gap() -> int:
+	return maxi(int(row.get("burst_interval_ticks", DEFAULT_BURST_INTERVAL)) - 1, 0)
+
+func _begin_cool() -> void:
+	_phase = "cool"
+	_phase_left = maxi(int(row.get("cd_ticks", 108)) - int(row.get("windup_ticks", 30)), 0)
 
 ## m1-t12 弹幕大师：每轮 volley = 1 + barrage_extra 发——首发瞄向玩家，extra 发
 ## 沿瞄准方向交替左右展开（±8°，每侧逐级加倍偏角）。节拍不变（fired_this_tick 单拍一轮语义不变）。
