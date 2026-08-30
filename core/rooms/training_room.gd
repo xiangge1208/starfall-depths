@@ -39,6 +39,7 @@ func _ready() -> void:
 # ---- 玩家接线（t12 契约的玩家侧在 RoomCombat._adopt_or_spawn_player 完成；此处补操控/初始枪） ----
 
 func _wire_player() -> void:
+	ArtLookup.apply_player_sprite(player)     # m1-t28：无 hero meta（训练房）→ 缺省 vanguard
 	var rig := player.get_node("WeaponRig") as WeaponRig
 	rig.equip("laohuoji")                     # 初始手枪；其余 5 把自武器架拾取
 	player.combat = combat_room.combat        # m1-t5：影袭经 player.combat 写必暴窗（同 rig 契约）
@@ -72,13 +73,15 @@ func _dress_enemy(e: EnemyBase) -> void:
 	shape.radius = 6.0
 	cs.shape = shape
 	e.add_child(cs)
-	var vis := Polygon2D.new()
-	vis.name = "Sprite"                       # Fx 白闪按名寻址
-	vis.polygon = PackedVector2Array([
-		Vector2(-6, -7), Vector2(6, -7), Vector2(6, 7), Vector2(-6, 7),
-	])
-	vis.color = Color(0.65, 0.5, 0.35)
-	e.add_child(vis)
+	# m1-t28：木桩为训练专用靶材（不入敌人名录 → 无生成贴图），保留色块表现。
+	if not ArtLookup.dress_enemy_sprite(e, DUMMY_ROW):
+		var vis := Polygon2D.new()
+		vis.name = "Sprite"                       # Fx 白闪按名寻址
+		vis.polygon = PackedVector2Array([
+			Vector2(-6, -7), Vector2(6, -7), Vector2(6, 7), Vector2(-6, 7),
+		])
+		vis.color = Color(0.65, 0.5, 0.35)
+		e.add_child(vis)
 
 # ---- 武器架（6 台：E 键交互 equip 入玩家双槽；m1-t6 E 化，接触拾取已移除） ----
 
@@ -96,12 +99,16 @@ func _build_rack_station(weapon_id: String, pos: Vector2) -> void:
 	shape.radius = 12.0
 	cs.shape = shape
 	station.add_child(cs)
-	var vis := Polygon2D.new()
-	vis.name = "Sprite"
-	vis.polygon = PackedVector2Array([
-		Vector2(-8, -8), Vector2(8, -8), Vector2(8, 8), Vector2(-8, 8),
-	])
-	vis.color = Color(0.28, 0.4, 0.6)
+	# m1-t28：武器架展示 ui/weapons/<id>.png 图标；缺图回落原色块。
+	var vis: Node2D = ArtLookup.make_sprite(ArtLookup.weapon_icon_path(weapon_id))
+	if vis == null:
+		var poly := Polygon2D.new()
+		poly.name = "Sprite"
+		poly.polygon = PackedVector2Array([
+			Vector2(-8, -8), Vector2(8, -8), Vector2(8, 8), Vector2(-8, 8),
+		])
+		poly.color = Color(0.28, 0.4, 0.6)
+		vis = poly
 	station.add_child(vis)
 	var label := Label.new()
 	label.text = _weapon_name(weapon_id)
@@ -209,12 +216,16 @@ func _build_walls_and_signage() -> void:
 	_solid(Rect2(0, 254, 488, 16))            # 南墙（训练侧）
 	_solid(Rect2(472, 0, 16, 120))            # 隔墙上半（走廊缺口 y∈[120,152]）
 	_solid(Rect2(472, 152, 16, 118))          # 隔墙下半
-	var floor_vis := Polygon2D.new()
-	floor_vis.polygon = PackedVector2Array([
-		TRAIN_INTERIOR.position, Vector2(TRAIN_INTERIOR.end.x, TRAIN_INTERIOR.position.y),
-		TRAIN_INTERIOR.end, Vector2(TRAIN_INTERIOR.position.x, TRAIN_INTERIOR.end.y),
-	])
-	floor_vis.color = Color(0.14, 0.16, 0.15)
+	# m1-t28：训练侧为出生/庭院生物群系 → floor_garden/wall_garden（缺图回落原染色）。
+	var floor_vis: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path("floor_garden"),
+		TRAIN_INTERIOR)
+	if floor_vis == null:
+		floor_vis = Polygon2D.new()
+		(floor_vis as Polygon2D).polygon = PackedVector2Array([
+			TRAIN_INTERIOR.position, Vector2(TRAIN_INTERIOR.end.x, TRAIN_INTERIOR.position.y),
+			TRAIN_INTERIOR.end, Vector2(TRAIN_INTERIOR.position.x, TRAIN_INTERIOR.end.y),
+		])
+		(floor_vis as Polygon2D).color = Color(0.14, 0.16, 0.15)
 	floor_vis.z_index = -10
 	add_child(floor_vis)
 	_label_at("TRAINING RANGE", Vector2(24, 20))
@@ -229,14 +240,18 @@ func _solid(rect: Rect2) -> void:
 	cs.shape = shape
 	body.add_child(cs)
 	add_child(body)
-	var vis := Polygon2D.new()
-	var h := rect.size / 2.0
-	vis.polygon = PackedVector2Array([
-		Vector2(-h.x, -h.y), Vector2(h.x, -h.y), Vector2(h.x, h.y), Vector2(-h.x, h.y),
-	])
-	vis.position = rect.get_center()
-	vis.color = Color(0.36, 0.3, 0.28)
-	add_child(vis)
+	# m1-t28：墙体贴 wall_garden.png（16x16 无缝平铺）。
+	var vis: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path("wall_garden"),
+		Rect2(-rect.size / 2.0, rect.size))
+	if vis == null:
+		var poly := Polygon2D.new()
+		var h := rect.size / 2.0
+		poly.polygon = PackedVector2Array([
+			Vector2(-h.x, -h.y), Vector2(h.x, -h.y), Vector2(h.x, h.y), Vector2(-h.x, h.y),
+		])
+		poly.color = Color(0.36, 0.3, 0.28)
+		vis = poly
+	body.add_child(vis)
 
 func _label_at(text: String, pos: Vector2) -> void:
 	var label := Label.new()

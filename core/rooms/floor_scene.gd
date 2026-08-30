@@ -58,9 +58,9 @@ const ARCHETYPE_COLORS := {
 	"charger": Color(0.7, 0.4, 0.8), "orbiter": Color(0.45, 0.42, 0.55),
 	"dummy": Color(0.65, 0.5, 0.35), "mushroom_spore": Color(0.58, 0.82, 0.46),
 }
-const PLAYER_BULLET_COLOR := Color(1.0, 0.9, 0.35)
-const ENEMY_BULLET_COLOR := Color(1.0, 0.35, 0.3)
 const LOOT_RARITY_WEIGHTS := {"common": 60, "rare": 30, "epic": 10}   # 白/绿/蓝
+## m1-t28 美术接线（ArtLookup 表驱动）：地块按生物群系选 floor_*/wall_*。
+const BULLET_VISUAL_SCALE := 0.75      # 8x8 弹底图 ≈ 原 5px 方块
 
 signal room_event(room_type: String, room_id: int)
 ## m1-t27：boss 房清（巨像死亡）——宿主 RunRoot 据此开层间中转。
@@ -85,7 +85,7 @@ var _rig_rng: RandomNumberGenerator
 var _loot_rng: RandomNumberGenerator
 var _registered_combat: CombatSystem = null
 var _bullet_layer: Node2D = null
-var _bullet_sprites: Array[Polygon2D] = []
+var _bullet_sprites: Array[Sprite2D] = []
 var _built := false
 var _spawn_frames: Dictionary = {}    # enemy instance_id -> 刷出帧（ttk）
 ## m1-t27：楼层流程挂起（boss 房清 → 层间中转接管玩家期间停用按图进房检测，
@@ -216,23 +216,42 @@ func _build_room(id: int, data: Dictionary) -> void:
 		room.add_child(room.combat)
 
 
-## 房内几何：地板染色 + 四面墙（模板门方向留 32px 门洞）。M0 _solid 习语。
+## 房内几何：地板贴图 + 四面墙（模板门方向留 32px 门洞）。M0 _solid 习语。
+## m1-t28：地块按生物群系选 floor_*/wall_*（16x16 无缝平铺）；缺图回落原染色。
 func _build_floor_and_walls(room: FloorRoom, w: float, h: float, doors: Array) -> void:
 	var interior := Rect2(WALL_T, WALL_T, w - WALL_T * 2.0, h - WALL_T * 2.0)
-	var tint := Color(0.17, 0.15, 0.2)
-	if room.type == "start":
-		tint = Color(0.14, 0.16, 0.15)
-	elif room.type == "boss":
-		tint = Color(0.2, 0.13, 0.16)
-	var floor_vis := Polygon2D.new()
-	floor_vis.polygon = _rect_poly(interior)
-	floor_vis.color = tint
+	var tiles := _biome_tiles(room.type)
+	var floor_vis: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path(tiles[0]), interior)
+	if floor_vis == null:
+		floor_vis = Polygon2D.new()
+		(floor_vis as Polygon2D).polygon = _rect_poly(interior)
+		(floor_vis as Polygon2D).color = _biome_tint(room.type)
 	floor_vis.z_index = -10
 	room.add_child(floor_vis)
 	var cx := _door_axis(w)
 	var cy := _door_axis(h)
 	for seg in _wall_segments(Vector2(w, h), cx, cy, doors):
-		_solid_child(room, seg)
+		_solid_child(room, seg, tiles[1])
+
+
+## 生物群系地块：start=庭院 / boss=Boss 房 / 其余=洞穴。
+func _biome_tiles(room_type: String) -> Array[String]:
+	match room_type:
+		"start":
+			return ["floor_garden", "wall_garden"]
+		"boss":
+			return ["floor_boss", "wall_boss"]
+	return ["floor_cave", "wall_cave"]
+
+
+## 原染色表（贴图缺图回落用，M0 数值保留）。
+func _biome_tint(room_type: String) -> Color:
+	match room_type:
+		"start":
+			return Color(0.14, 0.16, 0.15)
+		"boss":
+			return Color(0.2, 0.13, 0.16)
+	return Color(0.17, 0.15, 0.2)
 
 
 ## 墙段拆分：有门方向留门洞（门心 ± PASSAGE_HALF），无门方向整墙。
@@ -260,31 +279,32 @@ func _build_unused_door_frames(room: FloorRoom, w: float, h: float, doors: Array
 	var used: Dictionary = _used_dirs.get(room.room_id, {})
 	var cx := _door_axis(w)
 	var cy := _door_axis(h)
+	var wall_tile := _biome_tiles(room.type)[1]
 	for d: String in doors:
 		if used.has(d):
 			continue
 		match d:
 			"N":
-				_solid_child(room, Rect2(cx - PASSAGE_HALF, 0, PASSAGE_HALF * 2.0, WALL_T))
+				_solid_child(room, Rect2(cx - PASSAGE_HALF, 0, PASSAGE_HALF * 2.0, WALL_T), wall_tile)
 			"S":
-				_solid_child(room, Rect2(cx - PASSAGE_HALF, h - WALL_T, PASSAGE_HALF * 2.0, WALL_T))
+				_solid_child(room, Rect2(cx - PASSAGE_HALF, h - WALL_T, PASSAGE_HALF * 2.0, WALL_T), wall_tile)
 			"W":
-				_solid_child(room, Rect2(0, cy - PASSAGE_HALF, WALL_T, PASSAGE_HALF * 2.0))
+				_solid_child(room, Rect2(0, cy - PASSAGE_HALF, WALL_T, PASSAGE_HALF * 2.0), wall_tile)
 			"E":
-				_solid_child(room, Rect2(w - WALL_T, cy - PASSAGE_HALF, WALL_T, PASSAGE_HALF * 2.0))
+				_solid_child(room, Rect2(w - WALL_T, cy - PASSAGE_HALF, WALL_T, PASSAGE_HALF * 2.0), wall_tile)
 
 
-## 模板陈设：pillar/crate 实体阻挡，bush 仅视觉；vine 减速带本卡数据占位视觉。
+## 模板陈设：pillar/crate 实体阻挡，bush 仅视觉。m1-t28：prop_*.png 接线。
 func _build_props(room: FloorRoom, tpl: Dictionary) -> void:
 	for p: Dictionary in tpl.get("props", []):
 		var center := _tile_center(p.get("grid", [0, 0]))
 		match String(p.get("kind", "")):
 			"pillar":
-				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), Color(0.5, 0.48, 0.52))
+				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_pillar")
 			"crate":
-				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), Color(0.55, 0.4, 0.24))
+				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_crate")
 			"bush":
-				_vis_child(room, Rect2(center - Vector2(7, 7), Vector2(14, 14)), Color(0.25, 0.42, 0.24))
+				_vis_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_bush")
 
 
 func _build_hazards(room: FloorRoom, tpl: Dictionary) -> void:
@@ -292,12 +312,22 @@ func _build_hazards(room: FloorRoom, tpl: Dictionary) -> void:
 		if String(hz.get("kind", "")) != "vine":
 			continue
 		var center := _tile_center(hz.get("grid", [0, 0]))
-		var vis := Polygon2D.new()
-		var pts := PackedVector2Array()
-		for i in 12:
-			pts.append(center + Vector2.from_angle(TAU * i / 12.0) * float(hz.get("radius", 24)))
-		vis.polygon = pts
-		vis.color = Color(0.3, 0.55, 0.3, 0.18)
+		var radius := float(hz.get("radius", 24))
+		# m1-t28：藤蔓减速带贴 hazard_vine.png（32x32 半透明整圆缩放至 2r）。
+		var vis: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("hazard_vine"))
+		if vis == null:
+			var poly := Polygon2D.new()
+			var pts := PackedVector2Array()
+			for i in 12:
+				pts.append(Vector2.from_angle(TAU * i / 12.0) * radius)
+			poly.polygon = pts
+			poly.color = Color(0.3, 0.55, 0.3, 0.18)
+			vis = poly
+			vis.position = center
+		else:
+			(vis as Sprite2D).scale = Vector2.ONE * (radius * 2.0 / (vis as Sprite2D).texture.get_size().x)
+			vis.position = center
+			vis.modulate = Color(1, 1, 1, 0.9)
 		vis.z_index = -5
 		room.add_child(vis)
 
@@ -351,9 +381,13 @@ func _build_corridor(c: Dictionary) -> void:
 		_:
 			push_error("FloorScene: bad corridor dir '%s'" % dir)
 			return
-	var corridor_floor := Polygon2D.new()
-	corridor_floor.polygon = _rect_poly(floor_rect)
-	corridor_floor.color = Color(0.13, 0.12, 0.16)
+	# m1-t28：走廊地板贴 corridor_floor.png（缺图回落原染色）。
+	var corridor_floor: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path("corridor_floor"),
+		floor_rect)
+	if corridor_floor == null:
+		corridor_floor = Polygon2D.new()
+		(corridor_floor as Polygon2D).polygon = _rect_poly(floor_rect)
+		(corridor_floor as Polygon2D).color = Color(0.13, 0.12, 0.16)
 	corridor_floor.z_index = -10
 	add_child(corridor_floor)
 	if dir == "E" or dir == "W":
@@ -374,11 +408,17 @@ func _build_corridor(c: Dictionary) -> void:
 	cs.shape = shape
 	gate.add_child(cs)
 	add_child(gate)
-	var panel := Polygon2D.new()
-	var panel_rect := Rect2(-(gate_size.x + 2.0) / 2.0, -(gate_size.y + 2.0) / 2.0,
-		gate_size.x + 2.0, gate_size.y + 2.0)
-	panel.polygon = _rect_poly(panel_rect)
-	panel.color = Color(0.62, 0.4, 0.22)
+	# m1-t28：走廊闸门体贴 door_closed.png（覆盖 gate_size + 2px 压边）。
+	var panel: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("door_closed"))
+	if panel == null:
+		var poly := Polygon2D.new()
+		poly.color = Color(0.62, 0.4, 0.22)
+		poly.polygon = _rect_poly(Rect2(
+			-(gate_size.x + 2.0) / 2.0, -(gate_size.y + 2.0) / 2.0,
+			gate_size.x + 2.0, gate_size.y + 2.0))
+		panel = poly
+	else:
+		(panel as Sprite2D).scale = (gate_size + Vector2(2, 2)) / 16.0
 	panel.position = gate_pos
 	panel.z_index = 5
 	add_child(panel)
@@ -399,6 +439,7 @@ func _place_player_at_start() -> void:
 
 ## 玩家侧公共接线（一次性）：初始枪 / 输入驱动。combat 注入随进房切到当前房。
 func _wire_player_common() -> void:
+	ArtLookup.apply_player_sprite(player)      # m1-t28：英雄 meta 接缝 → hero_<id>.png
 	var rig := player.get_node("WeaponRig") as WeaponRig
 	rig.bind_run_state(RunState)
 	if rig.current().is_empty():
@@ -604,7 +645,8 @@ func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2,
 	return e
 
 
-## 敌人外观（M0 习语）：碰撞圆 + 方块色块；嘉宾按 kind 染色标记。
+## 敌人外观（M0 习语 → m1-t28 表驱动贴图）：生成像素图按行 id；占位嘉宾按
+## guest_kind 变体回落；缺图回落色块并告警。body_scale 由 EnemyBase.setup 整节点放大。
 func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 	var radius := float(row.get("radius", 6.0))
 	var cs := CollisionShape2D.new()
@@ -612,18 +654,21 @@ func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 	shape.radius = radius
 	cs.shape = shape
 	e.add_child(cs)
-	var vis := Polygon2D.new()
-	vis.name = "Sprite"                        # Fx 白闪按名寻址
-	var r := maxf(radius, 5.0)
-	vis.polygon = PackedVector2Array([
-		Vector2(-r, -r), Vector2(r, -r), Vector2(r, r), Vector2(-r, r),
-	])
-	var color: Color = ARCHETYPE_COLORS.get(String(row.get("archetype", "")), Color.WHITE)
-	var kind := String(row.get("guest_kind", ""))
-	if GUEST_COLORS.has(kind):
-		color = GUEST_COLORS[kind]
-	vis.color = color
-	e.add_child(vis)
+	if not ArtLookup.dress_enemy_sprite(e, row):
+		push_warning("FloorScene: no enemy sprite for '%s' — color block fallback"
+			% String(row.get("id", "?")))
+		var vis := Polygon2D.new()
+		vis.name = "Sprite"                        # Fx 白闪按名寻址
+		var r := maxf(radius, 5.0)
+		vis.polygon = PackedVector2Array([
+			Vector2(-r, -r), Vector2(r, -r), Vector2(r, r), Vector2(-r, r),
+		])
+		var color: Color = ARCHETYPE_COLORS.get(String(row.get("archetype", "")), Color.WHITE)
+		var kind := String(row.get("guest_kind", ""))
+		if GUEST_COLORS.has(kind):
+			color = GUEST_COLORS[kind]
+		vis.color = color
+		e.add_child(vis)
 
 
 ## 精确实例死亡路由：EnemyBase.died 直接携带死亡体，消除相同 id 多实例时全局 id
@@ -863,13 +908,17 @@ func refresh_gates() -> void:
 		g["open"] = open
 		var cs: CollisionShape2D = g["shape"]
 		cs.set_deferred("disabled", open)
-		var panel: Polygon2D = g["panel"]
+		var panel: Node2D = g["panel"]
 		if open:
 			DoorAnim.open(panel, true)
 		else:
 			DoorAnim.close(panel)
-		panel.color = Color(0.7, 0.2, 0.2) if (not open and _rule_locked(int(g["a"]), int(g["b"]))) \
-			else Color(0.62, 0.4, 0.22)
+		# m1-t28：规则锁（boss 未解 / 双未清）= door_locked 红门，战斗封门 = door_closed 棕门。
+		var tile := "door_locked" if (not open and _rule_locked(int(g["a"]), int(g["b"]))) \
+			else "door_closed"
+		var t := ArtLookup.tex(ArtLookup.tile_path(tile))
+		if t != null and panel is Sprite2D:
+			(panel as Sprite2D).texture = t
 
 
 func _rule_locked(a: int, b: int) -> bool:
@@ -888,20 +937,24 @@ func gate_is_open(a: int, b: int) -> bool:
 # ================================================================ 客房陈设（数据占位）
 
 ## 宝箱：开箱 → 权重 roll 武器（loot 遥测）→ 掉落台出现在箱位（再按 E 换手）。
+## m1-t28：箱体贴 chest_closed.png（开箱后 modulate 压暗表示已开启）。
 func _build_chest(room: FloorRoom, local_pos: Vector2) -> void:
 	var chest := FixtureInteractable.new()
 	chest.name = "Chest"
 	chest.position = local_pos
 	chest.action_label = "打开宝箱"
 	chest.add_child(_fixture_body())
-	var vis := Polygon2D.new()
-	vis.name = "Sprite"
-	vis.polygon = _rect_poly(Rect2(-9, -7, 18, 14))
-	vis.color = Color(0.75, 0.58, 0.2)
+	var vis: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("chest_closed"))
+	if vis == null:
+		vis = Polygon2D.new()
+		(vis as Polygon2D).color = Color(0.75, 0.58, 0.2)
+		(vis as Polygon2D).polygon = _rect_poly(Rect2(-9, -7, 18, 14))
+	else:
+		vis.name = "Sprite"
 	chest.add_child(vis)
 	chest.on_interact_cb = func(p: Node2D) -> void:
 		chest.enabled = false                       # 一次性
-		vis.color = Color(0.4, 0.34, 0.16)
+		vis.modulate = Color(0.55, 0.5, 0.4)
 		var rarity := _roll_rarity()
 		var wid := _roll_weapon(rarity)
 		Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, rarity])
@@ -911,7 +964,7 @@ func _build_chest(room: FloorRoom, local_pos: Vector2) -> void:
 	room.add_child(chest)
 
 
-## 武器掉落台：宝箱→掉落的落地形态，再按 E 换手（一次性）。
+## 武器掉落台：宝箱→掉落的落地形态，再按 E 换手（一次性）。m1-t28：weapon_crate.png。
 func _build_loot_station(room: FloorRoom, local_pos: Vector2,
 		weapon_id: String) -> FixtureInteractable:
 	var station := FixtureInteractable.new()
@@ -921,9 +974,11 @@ func _build_loot_station(room: FloorRoom, local_pos: Vector2,
 	var weapon_row := GameDB.get_weapon(weapon_id)
 	station.action_label = "拾取武器：%s" % String(weapon_row.get("name", weapon_id))
 	station.add_child(_fixture_body())
-	var sv := Polygon2D.new()
-	sv.polygon = _rect_poly(Rect2(-6, -6, 12, 12))
-	sv.color = Color(0.3, 0.6, 0.75)
+	var sv: Node2D = ArtLookup.make_sprite(ArtLookup.pickup_texture_path("weapon_crate"))
+	if sv == null:
+		sv = Polygon2D.new()
+		(sv as Polygon2D).color = Color(0.3, 0.6, 0.75)
+		(sv as Polygon2D).polygon = _rect_poly(Rect2(-6, -6, 12, 12))
 	station.add_child(sv)
 	station.on_interact_cb = func(p: Node2D) -> void:
 		station.enabled = false
@@ -938,9 +993,11 @@ func _build_stub(room: FloorRoom, local_pos: Vector2, label: String) -> void:
 	stub.position = local_pos
 	stub.action_label = label
 	stub.add_child(_fixture_body())
-	var vis := Polygon2D.new()
-	vis.polygon = _rect_poly(Rect2(-8, -8, 16, 16))
-	vis.color = Color(0.35, 0.35, 0.45)
+	var vis: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("prop_crate"))
+	if vis == null:
+		vis = Polygon2D.new()
+		(vis as Polygon2D).color = Color(0.35, 0.35, 0.45)
+		(vis as Polygon2D).polygon = _rect_poly(Rect2(-8, -8, 16, 16))
 	stub.add_child(vis)
 	room.add_child(stub)
 
@@ -1043,7 +1100,8 @@ func _attach_camera() -> void:
 	add_child(cam)
 
 
-## 表现层弹幕镜像（M0 习语）：当前房 combat 池 → 共享多边形逐帧同步。
+## 表现层弹幕镜像（M0 习语）：当前房 combat 池 → 共享 Sprite2D 逐帧同步。
+## m1-t28：弹丸贴图按阵营/元素换装（bullet_player/bullet_enemy/elem_*）。
 func _sync_bullet_visuals() -> void:
 	var active: Array = []
 	var room: FloorRoom = _rooms.get(flow.current_room)
@@ -1052,10 +1110,9 @@ func _sync_bullet_visuals() -> void:
 	if _bullet_layer == null:
 		return
 	while _bullet_sprites.size() < active.size() and _bullet_sprites.size() < BULLET_VISUAL_CAP:
-		var vis := Polygon2D.new()
-		vis.polygon = PackedVector2Array([
-			Vector2(-2.5, -2.5), Vector2(2.5, -2.5), Vector2(2.5, 2.5), Vector2(-2.5, 2.5),
-		])
+		var vis := Sprite2D.new()
+		vis.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		vis.scale = Vector2.ONE * BULLET_VISUAL_SCALE
 		_bullet_layer.add_child(vis)
 		_bullet_sprites.append(vis)
 	for i in _bullet_sprites.size():
@@ -1064,8 +1121,9 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
-			var base := PLAYER_BULLET_COLOR if p.faction == Projectile.Faction.PLAYER else ENEMY_BULLET_COLOR
-			vis.modulate = base * p.modulate
+			vis.texture = ArtLookup.tex(ArtLookup.projectile_texture_path(
+				p.faction == Projectile.Faction.PLAYER, p.element))
+			vis.modulate = p.modulate
 		else:
 			vis.visible = false
 
@@ -1164,7 +1222,8 @@ func _tile_center(grid: Array) -> Vector2:
 	return Vector2(float(grid[0]) * TILE + TILE / 2.0, float(grid[1]) * TILE + TILE / 2.0)
 
 
-func _solid_child(room: FloorRoom, rect: Rect2, color: Color = Color(0.36, 0.3, 0.28)) -> void:
+## 实体阻挡块：tile_name 非空时贴 tiles/<名>.png（16x16 无缝平铺），缺图回落原染色。
+func _solid_child(room: FloorRoom, rect: Rect2, tile_name: String = "") -> void:
 	var body := StaticBody2D.new()
 	body.position = rect.get_center()
 	var cs := CollisionShape2D.new()
@@ -1173,9 +1232,15 @@ func _solid_child(room: FloorRoom, rect: Rect2, color: Color = Color(0.36, 0.3, 
 	cs.shape = shape
 	body.add_child(cs)
 	room.add_child(body)
-	var vis := Polygon2D.new()
-	vis.polygon = _rect_poly(Rect2(-rect.size.x / 2.0, -rect.size.y / 2.0, rect.size.x, rect.size.y))
-	vis.color = color
+	var vis: Node2D = null
+	if not tile_name.is_empty():
+		vis = ArtLookup.make_tiled(ArtLookup.tile_path(tile_name),
+			Rect2(-rect.size / 2.0, rect.size))
+	if vis == null:
+		var poly := Polygon2D.new()
+		poly.polygon = _rect_poly(Rect2(-rect.size.x / 2.0, -rect.size.y / 2.0, rect.size.x, rect.size.y))
+		poly.color = Color(0.36, 0.3, 0.28) if tile_name.is_empty() else _prop_fallback_color(tile_name)
+		vis = poly
 	body.add_child(vis)
 
 
@@ -1188,18 +1253,40 @@ func _solid_world(rect: Rect2) -> void:
 	cs.shape = shape
 	body.add_child(cs)
 	add_child(body)
-	var vis := Polygon2D.new()
-	vis.polygon = _rect_poly(Rect2(-rect.size.x / 2.0, -rect.size.y / 2.0, rect.size.x, rect.size.y))
-	vis.color = Color(0.36, 0.3, 0.28)
+	# m1-t28：走廊墙体贴 wall_cave.png（16x16 无缝平铺）。
+	var vis: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path("wall_cave"),
+		Rect2(-rect.size / 2.0, rect.size))
+	if vis == null:
+		var poly := Polygon2D.new()
+		poly.polygon = _rect_poly(Rect2(-rect.size.x / 2.0, -rect.size.y / 2.0, rect.size.x, rect.size.y))
+		poly.color = Color(0.36, 0.3, 0.28)
+		vis = poly
 	body.add_child(vis)
 
 
-func _vis_child(room: FloorRoom, rect: Rect2, color: Color) -> void:
-	var vis := Polygon2D.new()
-	vis.polygon = _rect_poly(Rect2(-rect.size.x / 2.0, -rect.size.y / 2.0, rect.size.x, rect.size.y))
+## 纯视觉块：tile_name 非空时贴 tiles/<名>.png（居中，原尺寸）。
+func _vis_child(room: FloorRoom, rect: Rect2, tile_name: String = "") -> void:
+	var vis: Node2D = null
+	if not tile_name.is_empty():
+		vis = ArtLookup.make_sprite(ArtLookup.tile_path(tile_name))
+	if vis == null:
+		vis = Polygon2D.new()
+		(vis as Polygon2D).polygon = _rect_poly(Rect2(-rect.size.x / 2.0, -rect.size.y / 2.0, rect.size.x, rect.size.y))
+		(vis as Polygon2D).color = _prop_fallback_color(tile_name)
 	vis.position = rect.get_center()
-	vis.color = color
 	room.add_child(vis)
+
+
+## 陈设缺图回落的 M0 染色（与原色块数值一致）。
+func _prop_fallback_color(tile_name: String) -> Color:
+	match tile_name:
+		"prop_pillar":
+			return Color(0.5, 0.48, 0.52)
+		"prop_crate":
+			return Color(0.55, 0.4, 0.24)
+		"prop_bush":
+			return Color(0.25, 0.42, 0.24)
+	return Color(0.36, 0.3, 0.28)
 
 
 func _rect_poly(rect: Rect2) -> PackedVector2Array:

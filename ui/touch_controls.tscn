@@ -1,7 +1,11 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://ui/touch_controls.gd" id="1_touch"]
 [ext_resource type="PackedScene" path="res://ui/virtual_joystick.tscn" id="2_stick"]
+[ext_resource type="Texture2D" path="res://art/generated/ui/btn_skill.png" id="3_btn_skill"]
+[ext_resource type="Texture2D" path="res://art/generated/ui/btn_roll.png" id="4_btn_roll"]
+[ext_resource type="Texture2D" path="res://art/generated/ui/btn_switch.png" id="5_btn_switch"]
+[ext_resource type="Texture2D" path="res://art/generated/ui/btn_interact.png" id="6_btn_interact"]
 
 [node name="TouchControls" type="CanvasLayer"]
 layer = 40
@@ -52,6 +56,7 @@ offset_bottom = -190.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "技能"
+icon = ExtResource("3_btn_skill")
 
 [node name="RollButton" type="Button" parent="Root"]
 layout_mode = 1
@@ -67,6 +72,7 @@ offset_bottom = -190.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "翻滚"
+icon = ExtResource("4_btn_roll")
 
 [node name="SwitchButton" type="Button" parent="Root"]
 layout_mode = 1
@@ -79,6 +85,7 @@ offset_right = -80.0
 offset_bottom = 70.0
 grow_horizontal = 0
 text = "切枪"
+icon = ExtResource("5_btn_switch")
 
 [node name="InteractButton" type="Button" parent="Root"]
 layout_mode = 1
@@ -91,3 +98,4 @@ offset_right = -5.0
 offset_bottom = 70.0
 grow_horizontal = 0
 text = "交互"
+icon = ExtResource("6_btn_interact")
