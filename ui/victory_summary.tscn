@@ -1,0 +1,80 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/victory_summary.gd" id="1_vicsum"]
+
+[node name="VictorySummary" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_vicsum")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.06, 0.1, 0.9)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -210.0
+offset_top = -104.0
+offset_right = 210.0
+offset_bottom = 104.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="Title" type="Label" parent="Panel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+text = "守夜人凯旋"
+horizontal_alignment = 1
+
+[node name="Hero" type="Label" parent="Panel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "英雄：——　　通关层数 0 / 3"
+horizontal_alignment = 1
+
+[node name="Stats" type="Label" parent="Panel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "击杀 0　　房数 0　　金币 0"
+horizontal_alignment = 1
+
+[node name="Gems" type="Label" parent="Panel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "蓝晶结算：+0（通关全额入账）"
+horizontal_alignment = 1
+
+[node name="Preview" type="Label" parent="Panel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "更多内容与试炼模式即将开放"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Panel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.55)
+theme_override_font_sizes/font_size = 8
+text = "—— 按任意键返回 ——"
+horizontal_alignment = 1

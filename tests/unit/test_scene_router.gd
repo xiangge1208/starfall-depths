@@ -1,9 +1,8 @@
 class_name TestSceneRouter
 extends GdUnitTestSuite
 ## m1-t23 场景路由 + 主菜单契约测试。
-## 1) 路由表 ROUTES 完整：menu/hero_select/game/death 四键，值均为 res://*.tscn；
-##    除 "death" 外路径均已在盘（death_summary.tscn 属 T22 交付物——文档化例外断言，
-##    T22 合并后翻转为 is_true）。
+## 1) 路由表 ROUTES 完整：menu/hero_select/game/death/victory 五键（m2-t18 +victory），
+##    值均为 res://*.tscn 且全部在盘。
 ## 2) goto 真切换：headless 下经真实 autoload 路由，current_scene 逐键变正确；
 ##    未知键 / 目标缺失 fail-loud（push_error）且不动当前场景、不建过场层。
 ## 3) 主菜单：M2 占位钮 disabled、设置内联面板经 SaveSystem（临时路径注入）即时落盘
@@ -15,6 +14,7 @@ const ROUTER_SCRIPT := "res://autoload/scene_router.gd"
 const MENU_SCENE := "res://ui/main_menu.tscn"
 const HERO_SELECT_SCENE := "res://ui/hero_select.tscn"
 const DEATH_SCENE := "res://ui/death_summary.tscn"
+const VICTORY_SCENE := "res://ui/victory_summary.tscn"   # m2-t18
 
 ## 测试期间经由真实 autoload 切换的场景，after_test 卸载还原（root 无残留 current_scene）
 func after_test() -> void:
@@ -40,23 +40,27 @@ func test_routes_table_complete() -> void:
 	var script: GDScript = load(ROUTER_SCRIPT)
 	assert_object(script).is_not_null()
 	var routes: Dictionary = script.get_script_constant_map()["ROUTES"]
-	assert_int(routes.size()).is_equal(4)
-	for key in ["menu", "hero_select", "game", "death"]:
+	assert_int(routes.size()).is_equal(5)
+	for key in ["menu", "hero_select", "game", "death", "victory"]:
 		assert_bool(routes.has(key)).is_true()
 		var path := String(routes[key])
 		assert_bool(path.begins_with("res://")).is_true()
 		assert_bool(path.ends_with(".tscn")).is_true()
 	# GDD §19 流程键位钉死（改表须同步本断言）。m1-t27：game → 局根节点（真实主循环），
 	# training_room 为 M0 时代占位（仍在盘，作为独立调试场景保留）。
+	# m2-t18：victory → 第 3 层 Boss 通关结算面板（RunRoot 经 InterFloorFlow.victory_achieved 切入）。
 	assert_str(String(routes["menu"])).is_equal(MENU_SCENE)
 	assert_str(String(routes["hero_select"])).is_equal(HERO_SELECT_SCENE)
 	assert_str(String(routes["game"])).is_equal("res://core/rooms/run_root.tscn")
 	assert_str(String(routes["death"])).is_equal(DEATH_SCENE)
+	assert_str(String(routes["victory"])).is_equal(VICTORY_SCENE)
 
 
 func test_route_paths_exist_on_disk_except_death() -> void:
-	# T22 已交付 death_summary.tscn → 四路径全部在盘（原"缺失"断言按计划翻转）。
+	# T22 已交付 death_summary.tscn、m2-t18 已交付 victory_summary.tscn → 五路径全部在盘
+	# （原"缺失"断言按计划翻转）。
 	assert_bool(ResourceLoader.exists(DEATH_SCENE)).is_true()
+	assert_bool(ResourceLoader.exists(VICTORY_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists(MENU_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists(HERO_SELECT_SCENE)).is_true()
 	assert_bool(ResourceLoader.exists("res://core/rooms/run_root.tscn")).is_true()

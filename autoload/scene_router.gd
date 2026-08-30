@@ -15,6 +15,8 @@ const ROUTES := {
 	# m1-t27：game 键从 M0 时代的 training_room 切到局根节点（选角 → 真实楼层主循环）。
 	"game": "res://core/rooms/run_root.tscn",
 	"death": "res://ui/death_summary.tscn",
+	# m2-t18：第 3 层 Boss 通关后的胜利结算面板（RunRoot 经本键切换）。
+	"victory": "res://ui/victory_summary.tscn",
 }
 
 const FADE_TIME := 0.2   # 过场时长（brief 规格 0.2s）
