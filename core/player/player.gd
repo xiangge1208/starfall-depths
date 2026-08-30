@@ -43,6 +43,7 @@ var weapon_rig: WeaponRig = null   # tscn 子节点（_ready 解析；测试可�
 var combat: CombatSystem = null    # m1-t5：技能经 player.combat 写必暴窗（房间注入，同 rig.combat 契约）
 var rampage_active_until := -1     # 狂潮(升级)减伤窗：frame < 此值时受伤 ×0.7（技能写入）
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
+var friction_mult := 1.0           # m2-t4 冰面接缝：IceZone 进域写 0.25 / 出域回 1.0（MoveMath 摩擦参数临时替换）
 var _roll_left := 0
 var _roll_vel := Vector2.ZERO
 var _roll_end_frame := -999
@@ -75,7 +76,8 @@ func _physics_process(_delta: float) -> void:
 		if (Input.is_action_just_pressed("roll") or Input.is_action_just_pressed("touch_roll")) \
 				and roll_ready_at(f):
 			start_roll(dir if dir != Vector2.ZERO else facing, f)
-		velocity = MoveMath.accelerate(velocity, dir, effective_move_speed(f), ACCEL, FRICTION)
+		velocity = MoveMath.accelerate(velocity, dir, effective_move_speed(f), ACCEL,
+			FRICTION * friction_mult)
 	move_and_slide()
 	_shield_tick(f)
 
