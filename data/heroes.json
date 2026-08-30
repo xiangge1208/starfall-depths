@@ -89,5 +89,24 @@
     "skill_name": "生命潮汐",
     "skill_desc": "CD 14s，耗蓝 30：立即回 2 HP + 生成 3s 治疗法阵（0.5 HP/s）",
     "upgraded": false
+  },
+  "assassin": {
+    "id": "assassin",
+    "name": "刺客·蝉",
+    "hp": 6,
+    "shield": 3,
+    "energy": 100,
+    "speed": 84.0,
+    "crit_chance": 0.05,
+    "start_weapons": ["shuangbi"],
+    "skill_script": "res://core/player/skills/shadowstep_assassin.gd",
+    "skill_cd": 480,
+    "skill_energy": 0,
+    "passive_id": "shadow_reap",
+    "has_defiance": false,
+    "skill_name": "残影斩",
+    "skill_desc": "CD 8s：向瞄准方向突进 220px（无敌），4s 内射击必暴击、弹速 +20%",
+    "upgraded": false,
+    "dash_dist_px": 220.0
   }
 }

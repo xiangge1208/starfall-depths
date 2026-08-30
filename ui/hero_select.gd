@@ -20,6 +20,7 @@ const PASSIVES := {
 	"spare_parts": "备件：开局带 1 台便携炮台（存活 12s），每进入新一层补 1 台",
 	"echo": "回响：法杖/激光类武器伤害 +15%",
 	"blessing": "祝福：每进入新层回满护盾并 +5% 全伤害（单局至多叠 4 层）",
+	"shadow_reap": "掠影：近战击杀返还 5 蓝，1s 内翻滚无冷却",
 }
 
 static var last_chosen := ""   # 静态暂存 fallback（RunState 未合并期间的选角结果）

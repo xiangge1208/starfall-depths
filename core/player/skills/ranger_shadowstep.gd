@@ -12,7 +12,8 @@ extends SkillBase
 ## 掷签流可经 hawk_rng 注入；未注入时从当前 RunState 楼层的独立 "hawk" 盐流惰性派生。
 ## 技能脚本按角色注入（T11），游侠才挂本节点 → 被动天然随角色门控（同坚守挂玩家的先例）。
 
-const DASH_DIST_PX := 140.0         # 瞬步距离（GDD §6）
+const DASH_DIST_PX := 140.0         # 游侠瞬步距离默认（GDD §6）
+var dash_dist_px := DASH_DIST_PX    # m2-t13 参数化接缝：变体（刺客 220px）经子类 _init/英雄行 dash_dist_px 覆写
 const BUFF_TICKS := 240             # 4s：必暴 + 弹速窗
 const IFRAME_TICKS := 15            # 0.25s
 const IFRAME_TICKS_UPGRADED := 36   # 0.6s（升级版）
@@ -29,6 +30,13 @@ func _init() -> void:
 
 func _load(data: Dictionary) -> void:
 	upgraded = bool(data.get("upgraded", false))
+	# m2-t13 变体参数化（同 turret summon_cap 先例）：距离读英雄行 dash_dist_px
+	# （HeroApplier 落 meta 在挂技能之前，时序见 hero_applier.apply）；无 meta
+	# （纯逻辑测试/未装配角色）保持本实例当前值（游侠 140 / 刺客子类 _init 已置 220）。
+	# 下限 1px：坏行不得把位移做成 0/负。
+	if player != null and player.has_meta("hero"):
+		dash_dist_px = maxf(1.0, float((player.get_meta("hero") as Dictionary).get(
+			"dash_dist_px", dash_dist_px)))
 
 func setup(p: Player, data: Dictionary) -> void:
 	super.setup(p, data)
@@ -38,7 +46,7 @@ func setup(p: Player, data: Dictionary) -> void:
 func _activate(frame: int) -> void:
 	if player == null:
 		return
-	player.position += player.facing.normalized() * DASH_DIST_PX          # 单帧位移（披露见头注）
+	player.position += player.facing.normalized() * dash_dist_px          # 单帧位移（披露见头注；m2-t13 参数化）
 	player.apply_iframes(IFRAME_TICKS_UPGRADED if upgraded else IFRAME_TICKS, frame)
 	if player.weapon_rig != null:
 		player.weapon_rig.crit_boost_until = frame + BUFF_TICKS           # 状态镜像窗

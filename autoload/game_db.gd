@@ -92,7 +92,10 @@ const BUFF_FLAG_KEYS: Array[String] = [
 	"anti_fire", "anti_ice", "anti_poison", "phoenix_flag",
 	"element_vision", "resonance_vision",
 ]
-# 角色（t11）：16 键全部必填，无 optional；行级校验 validate_hero_row（start_weapons 白名单）
+# 角色（t11）：16 键全部必填；m2-t13 附加键 optional 注册（T8 评审遗留收口：此前键外
+# 直通无校验/无默认）——summon_cap（T8 工程师召唤物库存上限，缺省 0 = 非召唤系）、
+# dash_dist_px（T13 刺客影袭变体突进距离，缺省 = 游侠 140px）；
+# 行级校验 validate_hero_row（start_weapons 白名单）
 const HERO_SCHEMA := {
 	"id": TYPE_STRING, "name": TYPE_STRING,
 	"hp": TYPE_INT, "shield": TYPE_INT, "energy": TYPE_INT,
@@ -102,7 +105,7 @@ const HERO_SCHEMA := {
 	"passive_id": TYPE_STRING, "has_defiance": TYPE_BOOL,
 	"skill_name": TYPE_STRING, "skill_desc": TYPE_STRING, "upgraded": TYPE_BOOL,
 }
-const HERO_OPTIONAL := {}
+const HERO_OPTIONAL := {"summon_cap": 0, "dash_dist_px": 140.0}
 # 饮料（t16）：5 键全部必填，无 optional；行级校验 validate_drink_row（effect 白名单）
 # value 统一 TYPE_INT：百分比按整数值（5 = +5%），延时/CD 按 ticks（30 = -0.5s）；
 # random 行 value 固定 0（实际效果由 DrinkMachine 注入 rng 现抽）
