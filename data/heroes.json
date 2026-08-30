@@ -53,5 +53,41 @@
     "skill_desc": "CD 12s：部署炮台（存活 12s，2/s 攻击 240px 内最近敌人；与被动共用库存上限 2）",
     "upgraded": false,
     "summon_cap": 2
+  },
+  "mage": {
+    "id": "mage",
+    "name": "法师·烬",
+    "hp": 5,
+    "shield": 5,
+    "energy": 160,
+    "speed": 80.0,
+    "crit_chance": 0.05,
+    "start_weapons": ["xuetufazhang"],
+    "skill_script": "res://core/player/skills/arcane_nova.gd",
+    "skill_cd": 600,
+    "skill_energy": 20,
+    "passive_id": "echo",
+    "has_defiance": false,
+    "skill_name": "奥术新星",
+    "skill_desc": "CD 10s，耗蓝 20：半径 120px 冰霜新星，24 伤害 + 冻结 1.2s（精英减半）",
+    "upgraded": false
+  },
+  "guardian": {
+    "id": "guardian",
+    "name": "守护者·萄",
+    "hp": 7,
+    "shield": 6,
+    "energy": 130,
+    "speed": 80.0,
+    "crit_chance": 0.05,
+    "start_weapons": ["xinghuizhang"],
+    "skill_script": "res://core/player/skills/life_tide.gd",
+    "skill_cd": 840,
+    "skill_energy": 30,
+    "passive_id": "blessing",
+    "has_defiance": false,
+    "skill_name": "生命潮汐",
+    "skill_desc": "CD 14s，耗蓝 30：立即回 2 HP + 生成 3s 治疗法阵（0.5 HP/s）",
+    "upgraded": false
   }
 }

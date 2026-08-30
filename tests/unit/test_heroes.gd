@@ -8,10 +8,10 @@ const HERO_SELECT_SCENE := preload("res://ui/hero_select.tscn")
 
 # ---- 数据层：heroes 装载 + schema ----
 
-func test_three_heroes_loaded() -> void:
+func test_five_heroes_loaded() -> void:
 	assert_bool(GameDB.load_ok).is_true()
-	assert_dict(GameDB.heroes).contains_keys("vanguard", "ranger", "engineer")
-	assert_int(GameDB.heroes.size()).is_equal(3)   # M2-T8：+engineer（工程师·铆）
+	assert_dict(GameDB.heroes).contains_keys("vanguard", "ranger", "engineer", "mage", "guardian")
+	assert_int(GameDB.heroes.size()).is_equal(5)   # M2-T8：+engineer；M2-T11：+mage/+guardian
 
 func test_hero_schema_all_16_keys_required() -> void:
 	var want := {
@@ -218,12 +218,12 @@ func test_hero_select_static_fallback_stores_choice() -> void:
 	assert_str(HeroSelect.last_chosen).is_equal("ranger")
 	_reset_last_chosen()
 
-func test_hero_select_scene_builds_three_cards() -> void:
+func test_hero_select_scene_builds_all_hero_cards() -> void:
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
-	assert_int(ui._cards.size()).is_equal(3)   # M2-T8：GameDB 驱动自动扩展（+engineer）
-	assert_int(ui._ids.size()).is_equal(3)
+	assert_int(ui._cards.size()).is_equal(5)   # M2-T8/T11：GameDB 驱动自动扩展（+engineer/+mage/+guardian）
+	assert_int(ui._ids.size()).is_equal(5)
 
 func test_hero_select_choose_emits_signal_and_stores_static() -> void:
 	_reset_last_chosen()
