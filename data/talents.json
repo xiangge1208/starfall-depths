@@ -1,0 +1,122 @@
+{
+	"red_sharpen": {
+		"id": "red_sharpen", "name": "磨刃", "branch": "red", "tier": 1, "cost": 100,
+		"desc": "常年磨砺，伤害 +3%", "requires": [],
+		"effects": {"talent_dmg_pct": 0.03}
+	},
+	"red_deadeye": {
+		"id": "red_deadeye", "name": "神射校准", "branch": "red", "tier": 2, "cost": 200,
+		"desc": "暴击率 +4%", "requires": ["red_sharpen"],
+		"effects": {"crit_pct": 0.04}
+	},
+	"red_rapid_hammer": {
+		"id": "red_rapid_hammer", "name": "高速击锤", "branch": "red", "tier": 3, "cost": 300,
+		"desc": "攻击速度 +6%", "requires": ["red_deadeye"],
+		"effects": {"atk_speed_pct": 0.06}
+	},
+	"red_gouge": {
+		"id": "red_gouge", "name": "创口撕扯", "branch": "red", "tier": 4, "cost": 350,
+		"desc": "暴击伤害 +25%", "requires": ["red_rapid_hammer"],
+		"effects": {"crit_dmg_pct": 0.25}
+	},
+	"red_catalyst": {
+		"id": "red_catalyst", "name": "侵蚀催化剂", "branch": "red", "tier": 5, "cost": 450,
+		"desc": "异常状态积累速度 +10%", "requires": ["red_deadeye"],
+		"effects": {"status_rate_pct": 0.10}
+	},
+	"red_ballistics": {
+		"id": "red_ballistics", "name": "弹道优化", "branch": "red", "tier": 6, "cost": 550,
+		"desc": "弹速 +8%", "requires": ["red_gouge"],
+		"effects": {"bullet_speed_pct": 0.08}
+	},
+	"red_conduit": {
+		"id": "red_conduit", "name": "元素导联", "branch": "red", "tier": 7, "cost": 650,
+		"desc": "武器附魔触发概率 +5%", "requires": ["red_catalyst"],
+		"effects": {"element_proc_chance": 0.05}
+	},
+	"red_apex": {
+		"id": "red_apex", "name": "处刑时刻", "branch": "red", "tier": 8, "cost": 800,
+		"desc": "伤害 +5%，暴击率 +2%", "requires": ["red_ballistics"],
+		"effects": {"talent_dmg_pct": 0.05, "crit_pct": 0.02}
+	},
+	"blue_vitality": {
+		"id": "blue_vitality", "name": "活体强化", "branch": "blue", "tier": 1, "cost": 100,
+		"desc": "生命上限 +2", "requires": [],
+		"effects": {"hp_max": 2}
+	},
+	"blue_barrier": {
+		"id": "blue_barrier", "name": "相位屏障", "branch": "blue", "tier": 2, "cost": 200,
+		"desc": "护盾上限 +1", "requires": ["blue_vitality"],
+		"effects": {"shield_max": 1}
+	},
+	"blue_tuning_fork": {
+		"id": "blue_tuning_fork", "name": "屏障谐振", "branch": "blue", "tier": 3, "cost": 300,
+		"desc": "护盾回复延时 -0.5s", "requires": ["blue_barrier"],
+		"effects": {"shield_delay_reduction_ticks": 30}
+	},
+	"blue_fleet_step": {
+		"id": "blue_fleet_step", "name": "疾风步", "branch": "blue", "tier": 4, "cost": 350,
+		"desc": "移动速度 +8%", "requires": ["blue_tuning_fork"],
+		"effects": {"move_speed_pct": 0.08}
+	},
+	"blue_second_wind": {
+		"id": "blue_second_wind", "name": "二段呼吸", "branch": "blue", "tier": 5, "cost": 400,
+		"desc": "护盾上限 +1", "requires": ["blue_barrier"],
+		"effects": {"shield_max": 1}
+	},
+	"blue_adrenaline": {
+		"id": "blue_adrenaline", "name": "肾上腺素", "branch": "blue", "tier": 6, "cost": 550,
+		"desc": "翻滚冷却 -12%", "requires": ["blue_fleet_step"],
+		"effects": {"roll_cd_pct": -0.12}
+	},
+	"blue_phase_shift": {
+		"id": "blue_phase_shift", "name": "相位偏移", "branch": "blue", "tier": 7, "cost": 600,
+		"desc": "受击无敌帧时长 +10%", "requires": ["blue_second_wind"],
+		"effects": {"talent_hurt_iframe_pct": 0.10}
+	},
+	"blue_bulwark": {
+		"id": "blue_bulwark", "name": "钢铁堡垒", "branch": "blue", "tier": 8, "cost": 800,
+		"desc": "生命上限 +2，护盾回复延时 -1.0s", "requires": ["blue_adrenaline"],
+		"effects": {"hp_max": 2, "shield_delay_reduction_ticks": 60}
+	},
+	"green_deep_cell": {
+		"id": "green_deep_cell", "name": "深层电池", "branch": "green", "tier": 1, "cost": 100,
+		"desc": "能量上限 +15", "requires": [],
+		"effects": {"energy_max": 15}
+	},
+	"green_scavenge": {
+		"id": "green_scavenge", "name": "拾荒直觉", "branch": "green", "tier": 2, "cost": 200,
+		"desc": "金币获取 +5%", "requires": ["green_deep_cell"],
+		"effects": {"talent_coin_gain_pct": 0.05}
+	},
+	"green_magnet": {
+		"id": "green_magnet", "name": "磁化场", "branch": "green", "tier": 3, "cost": 300,
+		"desc": "金币磁吸范围 +10%", "requires": ["green_scavenge"],
+		"effects": {"talent_pickup_radius_pct": 0.10}
+	},
+	"green_crystal_vein": {
+		"id": "green_crystal_vein", "name": "晶脉勘探", "branch": "green", "tier": 4, "cost": 350,
+		"desc": "蓝晶获取 +5%", "requires": ["green_magnet"],
+		"effects": {"talent_gem_gain_pct": 0.05}
+	},
+	"green_super_cell": {
+		"id": "green_super_cell", "name": "超容电池", "branch": "green", "tier": 5, "cost": 400,
+		"desc": "能量上限 +25", "requires": ["green_deep_cell"],
+		"effects": {"energy_max": 25}
+	},
+	"green_prospector": {
+		"id": "green_prospector", "name": "矿脉商人", "branch": "green", "tier": 6, "cost": 550,
+		"desc": "金币获取 +10%", "requires": ["green_crystal_vein"],
+		"effects": {"talent_coin_gain_pct": 0.10}
+	},
+	"green_resonator": {
+		"id": "green_resonator", "name": "晶石共鸣", "branch": "green", "tier": 7, "cost": 600,
+		"desc": "蓝晶获取 +10%", "requires": ["green_super_cell"],
+		"effects": {"talent_gem_gain_pct": 0.10}
+	},
+	"green_vortex": {
+		"id": "green_vortex", "name": "汇流涡场", "branch": "green", "tier": 8, "cost": 800,
+		"desc": "金币磁吸范围 +20%", "requires": ["green_prospector"],
+		"effects": {"talent_pickup_radius_pct": 0.20}
+	}
+}

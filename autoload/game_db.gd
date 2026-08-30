@@ -71,6 +71,47 @@ const DRINK_EFFECTS: Array[String] = [
 	"shield_delay_reduction_ticks", "roll_cd_ticks", "status_rate_pct", "random",
 ]
 const DRINK_RANDOM_EFFECT := "random"
+# 天赋（m2-t2）：8 键全部必填，无 optional；行级校验 validate_talent_row（分支/价格梯度/
+# requires 自指重复/effects 键白名单与幅度上限），跨行校验 validate_talent_refs（引用存在 +
+# 前置 tier 更低）+ validate_talent_acyclic（DFS 无环）由 _finalize_talents 收口，任一失败整表拒收。
+const TALENT_SCHEMA := {
+	"id": TYPE_STRING, "name": TYPE_STRING, "desc": TYPE_STRING,
+	"branch": TYPE_STRING, "tier": TYPE_INT, "cost": TYPE_INT,
+	"requires": TYPE_ARRAY, "effects": TYPE_DICTIONARY,
+}
+const TALENT_OPTIONAL := {}
+const TALENT_BRANCHES: Array[String] = ["red", "blue", "green"]
+const TALENT_COST_MIN := 100   # GDD §14.3 节点价格梯度下限
+const TALENT_COST_MAX := 800   # 节点价格梯度上限
+# effects 键白名单（m2-t2 控制器决议）：不带 talent_ 前缀的键必须与 BuffManager 聚合键
+# 同名同义（GameDB.BUFF_*_KEYS，消费面为 M1 已接线的 Player/WeaponRig 公开字段）；
+# 新键一律 talent_ 前缀，消费方逐键声明（数据表附录 I）：
+#   talent_dmg_pct → M2-T15 TalentSystem → WeaponRig 伤害乘区
+#   talent_hurt_iframe_pct → M2-T15 → Player.apply_iframes/HURT_IFRAME_TICKS 乘区
+#   talent_gem_gain_pct → M2-T31 蓝晶结算（RunState → SaveSystem.add_gems 乘区）
+#   talent_coin_gain_pct → M2-T15 → Pickup coin 结算（on_collect 计数），T31 结算复核
+#   talent_pickup_radius_pct → M2-T15 → Pickup.MAGNET_RANGE_PX 乘区
+const TALENT_PCT_KEYS: Array[String] = [
+	"crit_pct", "crit_dmg_pct", "atk_speed_pct", "bullet_speed_pct",
+	"status_rate_pct", "move_speed_pct", "roll_cd_pct", "element_proc_chance",
+	"talent_dmg_pct", "talent_hurt_iframe_pct",
+	"talent_gem_gain_pct", "talent_coin_gain_pct", "talent_pickup_radius_pct",
+]
+const TALENT_INT_KEYS: Array[String] = [
+	"hp_max", "shield_max", "energy_max", "shield_delay_reduction_ticks",
+]
+# 单键幅度上限（GDD §14 基调：永久天赋 = 小额强化）。roll_cd_pct 沿用 buffs.json
+# 约定：负值 = 缩短（Player.effective_roll_cd_ticks 用 1.0 + pct）。
+# crit_dmg_pct 0.25（暴伤自身刻度：增益即 +50% 一档）、pickup 0.30（磁吸基线 56px，
+# +10% 仅 5.6px 无感，QoL 键按自身刻度）为唯二放宽项。
+const TALENT_KEY_MAX := {
+	"crit_pct": 0.10, "crit_dmg_pct": 0.25, "atk_speed_pct": 0.10,
+	"bullet_speed_pct": 0.10, "status_rate_pct": 0.15, "move_speed_pct": 0.10,
+	"roll_cd_pct": 0.15, "element_proc_chance": 0.10,
+	"talent_dmg_pct": 0.10, "talent_hurt_iframe_pct": 0.15,
+	"talent_gem_gain_pct": 0.10, "talent_coin_gain_pct": 0.10,
+	"talent_pickup_radius_pct": 0.30,
+}
 const ROOM_SIZE := [22, 14]   # A1 标准房间 22x14 格（x 0..21, y 0..13）
 const DOOR_TILES := {"N": [11, 0], "S": [11, 13], "E": [21, 7], "W": [0, 7]}
 const ROOM_TILE_PX := 16        # 格坐标转像素
@@ -83,7 +124,7 @@ const TABLES := {
 	"weapons": "res://data/weapons.json", "enemies": "res://data/enemies.json",
 	"rooms": "res://data/rooms/a1_templates.json",
 	"buffs": "res://data/buffs.json", "heroes": "res://data/heroes.json",
-	"drinks": "res://data/drinks.json",
+	"drinks": "res://data/drinks.json", "talents": "res://data/talents.json",
 }
 
 var weapons: Dictionary = {}
@@ -92,6 +133,7 @@ var rooms: Dictionary = {}
 var buffs: Dictionary = {}
 var heroes: Dictionary = {}
 var drinks: Dictionary = {}
+var talents: Dictionary = {}
 var load_ok := true
 
 func _ready() -> void:
@@ -101,6 +143,8 @@ func _ready() -> void:
 	buffs = _load_table(TABLES["buffs"], BUFF_SCHEMA, BUFF_OPTIONAL, validate_buff_row)
 	heroes = _load_table(TABLES["heroes"], HERO_SCHEMA, HERO_OPTIONAL, validate_hero_row)
 	drinks = _load_table(TABLES["drinks"], DRINK_SCHEMA, DRINK_OPTIONAL, validate_drink_row)
+	talents = _finalize_talents(_load_table(
+		TABLES["talents"], TALENT_SCHEMA, TALENT_OPTIONAL, validate_talent_row))
 	if not load_ok:
 		push_error("GameDB: data validation failed")
 		get_tree().quit(1)
@@ -119,6 +163,9 @@ func get_hero(id: String) -> Dictionary:
 
 func get_drink(id: String) -> Dictionary:
 	return drinks.get(id, {})
+
+func get_talent(id: String) -> Dictionary:
+	return talents.get(id, {})
 
 func validate_row(row: Dictionary, schema: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -357,6 +404,113 @@ func validate_hero_row(row: Dictionary) -> Array[String]:
 		if typeof(w) != TYPE_STRING or not weapons.has(w):
 			errors.append("unknown start weapon: %s" % str(w))
 	return errors
+
+## 天赋行语义校验（m2-t2），作为 talents 表 _load_table 的 extra_check。
+## 约束：branch ∈ 红/蓝/绿；tier ∈ 1..8；cost ∈ 价格梯度 [100, 800]；
+## requires 元素全为 String、无重复、无自指（引用存在性与层序由跨行校验负责）；
+## effects 非空、键在白名单（复用 buff_manager 键 + talent_ 前缀新键）内、
+## 百分键幅度 ≤ TALENT_KEY_MAX（roll_cd_pct 约定负值 = 缩短）、整型键为正 int。
+func validate_talent_row(row: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	if not TALENT_BRANCHES.has(row.get("branch")):
+		errors.append("bad branch: %s" % str(row.get("branch")))
+	var tier := int(row.get("tier", 0))
+	if tier < 1 or tier > 8:
+		errors.append("tier must be in 1..8: %d" % tier)
+	var cost := int(row.get("cost", 0))
+	if cost < TALENT_COST_MIN or cost > TALENT_COST_MAX:
+		errors.append("cost must be in [%d, %d]: %d" % [TALENT_COST_MIN, TALENT_COST_MAX, cost])
+	var requires: Variant = row.get("requires")
+	if typeof(requires) != TYPE_ARRAY:
+		errors.append("requires must be array")
+	else:
+		var seen := {}
+		for req: Variant in requires:
+			if typeof(req) != TYPE_STRING:
+				errors.append("requires element must be string: %s" % str(req))
+				continue
+			if req == row.get("id"):
+				errors.append("requires self: %s" % req)
+			elif seen.has(req):
+				errors.append("duplicate requires: %s" % req)
+			else:
+				seen[req] = true
+	var eff: Variant = row.get("effects")
+	if typeof(eff) != TYPE_DICTIONARY or (eff as Dictionary).is_empty():
+		errors.append("effects must be non-empty object")
+		return errors
+	for k: String in eff:
+		var v: Variant = eff[k]
+		if TALENT_PCT_KEYS.has(k):
+			if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
+				errors.append("effect %s must be number" % k)
+				continue
+			var f := float(v)
+			if k == "roll_cd_pct":
+				if f > 0.0 or absf(f) > float(TALENT_KEY_MAX[k]):
+					errors.append("effect %s must be negative and |v| <= %s" % [k, str(TALENT_KEY_MAX[k])])
+			elif f <= 0.0 or f > float(TALENT_KEY_MAX[k]):
+				errors.append("effect %s must be in (0, %s]" % [k, str(TALENT_KEY_MAX[k])])
+		elif TALENT_INT_KEYS.has(k):
+			if typeof(v) != TYPE_INT:
+				errors.append("effect %s must be int" % k)
+			elif int(v) < 1 or int(v) > 100:
+				errors.append("effect %s must be int in [1, 100]: %d" % [k, int(v)])
+		else:
+			errors.append("unknown effect key: %s" % k)
+	return errors
+
+## 天赋跨行校验（m2-t2）：requires 引用必须存在于同表，且前置 tier 严格更低。
+## 层序规则保证「价格随层单调」→ 最便宜优先购买集必为合法前置闭包（60% 经济数学前提）。
+static func validate_talent_refs(nodes: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	for id: String in nodes:
+		var row: Dictionary = nodes[id]
+		for req: Variant in row.get("requires", []):
+			if not nodes.has(req):
+				errors.append("%s: unknown requires: %s" % [id, str(req)])
+			elif int((nodes[req] as Dictionary).get("tier", 0)) >= int(row.get("tier", 0)):
+				errors.append("%s: requires tier must be lower: %s" % [id, str(req)])
+	return errors
+
+## 天赋环检测（m2-t2，纯函数可单测）：按 requires 建边（节点 → 前置），DFS 三色标记，
+## 遇灰色回边即有环。缺失引用不在此判定（归 validate_talent_refs），视为无该边跳过。
+static func validate_talent_acyclic(nodes: Dictionary) -> bool:
+	var state := {}
+	for id: String in nodes:
+		state[id] = 0
+	for id: String in nodes:
+		if int(state[id]) == 0 and not _talent_dfs(id, nodes, state):
+			return false
+	return true
+
+static func _talent_dfs(id: String, nodes: Dictionary, state: Dictionary) -> bool:
+	state[id] = 1
+	for req: Variant in (nodes[id] as Dictionary).get("requires", []):
+		if not nodes.has(req) or typeof(req) != TYPE_STRING:
+			continue
+		var s := int(state[req])
+		if s == 1:
+			return false
+		if s == 0 and not _talent_dfs(req, nodes, state):
+			return false
+	state[id] = 2
+	return true
+
+## talents 装载收口（fail-closed）：行级校验已由 _load_table 完成，此处整表执行
+## 跨行校验（引用存在 + 层序）与无环检测，任一失败即整表拒收并置 load_ok = false
+## （_ready 据此 push_error + quit(1)）。
+func _finalize_talents(nodes: Dictionary) -> Dictionary:
+	if nodes.is_empty():
+		return nodes
+	var errors := validate_talent_refs(nodes)
+	if errors.is_empty() and not validate_talent_acyclic(nodes):
+		errors.append("requires cycle detected")
+	if not errors.is_empty():
+		load_ok = false
+		push_error("GameDB talents: %s" % ", ".join(errors))
+		return {}
+	return nodes
 
 func _is_grid(v: Variant) -> bool:
 	return typeof(v) == TYPE_ARRAY and v.size() == 2 \
