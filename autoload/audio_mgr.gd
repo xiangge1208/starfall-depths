@@ -14,17 +14,26 @@ extends Node
 ## - 音量：set_sfx_volume(0..1 线性) → clamp → linear_to_db 施加到全池，
 ##   并经 SaveSystem.set_setting("sfx_volume") 持久化；_ready 读回。
 ##   （0 线性映射 -80 dB 而非 -inf，避免 volume_db 出现无穷值。）
+## - set_music_volume/get_music_volume 镜像 sfx 的持久化契约（clamp → set_setting，
+##   _ready 读回）；music 通道本体（2 通道/总线布局）留给 T23，本卡不施加到任何节点。
 
 const POOL_SIZE := 8
 const DEFAULT_VOLUME := 1.0
 const MUTE_DB := -80.0                    # 0 线性音量对应的 dB（替代 -inf）
 const SFX_DIR_DEFAULT := "res://audio/generated/sfx/"
 
-## 已知音效 key（spec 固定表；player_hurt/door_open/ui_click 本卡已有 WAV）
+## 已知音效 key（spec 固定表；player_hurt/door_open/ui_click 本卡已有 WAV）。
+## "death" 为 spec 字面键，实际音源为 enemy_die.wav（经 KEY_FILE 映射，评审 Major①）。
 const KEYS := [
 	"shoot_player", "shoot_enemy", "melee_swing", "hit_enemy", "crit_hit",
 	"pickup_coin", "pickup_energy", "pickup_heart", "player_hurt", "door_open", "ui_click",
+	"death",
 ]
+
+## key → 文件基名差异表（未列出 = 与 key 同名 .wav）。仅在缓存 miss 路径查表，热路径零开销。
+const KEY_FILE := {
+	"death": "enemy_die",
+}
 
 ## 设置宿主可注入（测试用临时路径 SaveSystem 替身）；null → 全局 SaveSystem。
 var settings_host: Node = null
@@ -32,6 +41,8 @@ var settings_host: Node = null
 var sfx_dir := SFX_DIR_DEFAULT
 ## 当前线性音量快照（0..1，经 clamp）。
 var sfx_volume := DEFAULT_VOLUME
+## music 通道线性音量快照（0..1，经 clamp）；通道本体 T23 建。
+var music_volume := DEFAULT_VOLUME
 
 var _pool: Array[AudioStreamPlayer] = []
 var _streams: Dictionary = {}             # key -> AudioStream（含 null=缺失，缓存负结果）
@@ -64,8 +75,16 @@ func set_sfx_volume(v: float) -> void:
 func get_sfx_volume() -> float:
 	return sfx_volume
 
+func set_music_volume(v: float) -> void:
+	music_volume = clampf(v, 0.0, 1.0)
+	_settings().set_setting("music_volume", music_volume)   # 通道本体 T23；先落 API+持久化契约
+
+func get_music_volume() -> float:
+	return music_volume
+
 func _load_volume() -> void:
 	sfx_volume = clampf(float(_settings().get_setting("sfx_volume", DEFAULT_VOLUME)), 0.0, 1.0)
+	music_volume = clampf(float(_settings().get_setting("music_volume", DEFAULT_VOLUME)), 0.0, 1.0)
 
 func _apply_volume() -> void:
 	var db := MUTE_DB if sfx_volume <= 0.0 else linear_to_db(sfx_volume)
@@ -78,7 +97,7 @@ func _stream_for(key: String) -> AudioStream:
 		return null
 	if _streams.has(key):
 		return _streams[key] as AudioStream
-	var path := sfx_dir + key + ".wav"
+	var path := sfx_dir + String(KEY_FILE.get(key, key)) + ".wav"
 	var stream: AudioStream = null
 	if ResourceLoader.exists(path):
 		stream = load(path) as AudioStream

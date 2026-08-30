@@ -162,3 +162,49 @@ func test_ready_reads_persisted_volume() -> void:
 	assert_float(mgr.get_sfx_volume()).is_equal(0.25)
 	for p in _players(mgr):
 		assert_float((p as AudioStreamPlayer).volume_db).is_equal_approx(linear_to_db(0.25), 0.001)
+
+
+func test_death_key_maps_to_enemy_die_wav() -> void:
+	# 规格字面键 "death" 经 KEY_FILE 映射到 enemy_die.wav（评审 Major①）：
+	# 可播出 + 同实例缓存复用 + 资源确为 enemy_die
+	var mgr := _fresh()
+	mgr.play("death")
+	mgr.play("death")
+	var players := _players(mgr)
+	var s0: AudioStream = (players[0] as AudioStreamPlayer).stream
+	var s1: AudioStream = (players[1] as AudioStreamPlayer).stream
+	assert_that(s0).is_not_null()
+	assert_bool(s0 == s1).is_true()   # 同 key 缓存复用（load 缓存同实例）
+	assert_bool(s0 == load("res://audio/generated/sfx/enemy_die.wav")).is_true()
+
+
+func test_set_music_volume_clamps_and_roundtrips() -> void:
+	var mgr := _fresh(_tmp_settings())
+	mgr.set_music_volume(0.4)
+	assert_float(mgr.get_music_volume()).is_equal(0.4)
+	mgr.set_music_volume(2.0)             # 上越界 → 1.0
+	assert_float(mgr.get_music_volume()).is_equal(1.0)
+	mgr.set_music_volume(-0.5)            # 下越界 → 0.0
+	assert_float(mgr.get_music_volume()).is_equal(0.0)
+	mgr.set_music_volume(0.0)             # music 音量不得泄漏到 sfx 池（通道本体 T23）
+	for p in _players(mgr):
+		assert_float((p as AudioStreamPlayer).volume_db).is_equal_approx(0.0, 0.001)
+
+
+func test_music_volume_persisted_to_settings_and_disk() -> void:
+	var host := _tmp_settings()
+	var mgr := _fresh(host)
+	mgr.set_music_volume(0.3)
+	# 活动设置读回（AudioMgr._ready 同源）
+	assert_float(float(host.get_setting("music_volume", 1.0))).is_equal(0.3)
+	# 落盘（set_setting → save_now 原子写）
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(host.get("save_path")))
+	assert_that(parsed).is_not_null()
+	assert_float(float((parsed as Dictionary)["settings"]["music_volume"])).is_equal(0.3)
+
+
+func test_ready_reads_persisted_music_volume() -> void:
+	var host := _tmp_settings()
+	host.set_setting("music_volume", 0.35)   # 预置已保存音量
+	var mgr := _fresh(host)                   # add_child 触发 _ready → 读取
+	assert_float(mgr.get_music_volume()).is_equal(0.35)

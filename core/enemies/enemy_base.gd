@@ -146,6 +146,7 @@ func die() -> void:
 	if state == State.DEAD:
 		return
 	state = State.DEAD
+	AudioMgr.play("death")   # m2-t5 评审 Major①：所有敌型（含 Boss/分裂体）唯一死亡路径，状态门保证每敌一次
 	_split_spawn_children()   # m1-t12 分裂词缀：先落子体再退场
 	var delay := int(row.get("delayed_death_ticks", 0))
 	if delay > 0:
