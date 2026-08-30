@@ -122,6 +122,12 @@ func _physics_process(_delta: float) -> void:
 				"player_damage": player_shot,
 				"slow_pct": p.slow_pct, "slow_ticks": p.slow_ticks,
 			})
+			# m2-t5：玩家弹有效命中音（普通命中 / 暴击升调）；敌方弹打玩家不发声
+			if player_shot:
+				if roll["is_crit"]:
+					AudioMgr.play("crit_hit", 1.15)
+				else:
+					AudioMgr.play("hit_enemy")
 			if p.pierce_left > 0:
 				p.pierce_left -= 1
 			else:

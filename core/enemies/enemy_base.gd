@@ -118,6 +118,7 @@ func fire_bullet(target: Vector2, frame: int) -> void:
 		"source_type": "projectile", "source_id": String(row.get("id", "")),
 		"source_name": String(row.get("name", row.get("id", ""))), "attack_name": "弹幕",
 	})
+	AudioMgr.play("shoot_enemy")         # m2-t5：敌方实际出弹音（combat 未注入的脑层测试不触发）
 
 func take_hit(ctx: Dictionary) -> void:
 	if state == State.DEAD:
@@ -145,6 +146,7 @@ func die() -> void:
 	if state == State.DEAD:
 		return
 	state = State.DEAD
+	AudioMgr.play("death")   # m2-t5 评审 Major①：所有敌型（含 Boss/分裂体）唯一死亡路径，状态门保证每敌一次
 	_split_spawn_children()   # m1-t12 分裂词缀：先落子体再退场
 	var delay := int(row.get("delayed_death_ticks", 0))
 	if delay > 0:
