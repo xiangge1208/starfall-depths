@@ -29,7 +29,12 @@ const TOUCH_MOVE_RIGHT := &"touch_move_right"
 const TOUCH_MOVE_UP := &"touch_move_up"
 const TOUCH_MOVE_DOWN := &"touch_move_down"
 
+## m1-t28：摇杆视觉接线 ui/joystick_base.png（48x48）/ joystick_nub.png（24x24）。
+const TEX_BASE := preload("res://art/generated/ui/joystick_base.png")
+const TEX_NUB := preload("res://art/generated/ui/joystick_nub.png")
+
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # 像素风必需
 	_refresh_visibility()
 
 ## 触屏设备/mobile 导出自动显示；桌面隐藏（force_visible 优先，供无触屏调试）。
@@ -139,9 +144,12 @@ func _release_actions() -> void:
 
 func _draw() -> void:
 	var b := _base if _active else size * 0.5
-	draw_circle(b, radius, Color(1.0, 1.0, 1.0, 0.12))
-	draw_arc(b, radius, 0.0, TAU, 40, Color(1.0, 1.0, 1.0, 0.35), 2.0)
-	draw_circle(b + _nub_offset, nub_radius, Color(1.0, 1.0, 1.0, 0.55))
+	# m1-t28：底盘/帽头换 ui/joystick_*.png（拉伸绘制到既定半径，半透明基座由贴图自带）。
+	draw_texture_rect(TEX_BASE, Rect2(b - Vector2(radius, radius), Vector2(radius, radius) * 2.0),
+		false, Color(1, 1, 1, 0.6))
+	draw_texture_rect(TEX_NUB,
+		Rect2(b + _nub_offset - Vector2(nub_radius, nub_radius), Vector2(nub_radius, nub_radius) * 2.0),
+		false, Color(1, 1, 1, 0.9))
 
 ## 纯函数：像素偏移 → 输出向量。先除以半径归一，模长钳到 1；
 ## 死区（≤ dead）内置零；死区外按 (len-dead)/(1-dead) 重缩放，保留中心细控。

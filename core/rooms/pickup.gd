@@ -20,10 +20,14 @@ func _ready() -> void:
 	shape.radius = 6.0
 	cs.shape = shape
 	add_child(cs)
-	var vis := Polygon2D.new()
+	# m1-t28：pickups/<kind>.png 接线（coin/energy/heart 8x8）；未知种类回落色块。
+	var vis: Node2D = ArtLookup.make_sprite(ArtLookup.pickup_texture_path(kind))
+	if vis == null:
+		var poly := Polygon2D.new()
+		poly.polygon = _shape_for(kind)
+		poly.color = COLORS.get(kind, Color.WHITE)
+		vis = poly
 	vis.name = "Sprite"
-	vis.polygon = _shape_for(kind)
-	vis.color = COLORS.get(kind, Color.WHITE)
 	add_child(vis)
 	body_entered.connect(_on_body_entered)
 

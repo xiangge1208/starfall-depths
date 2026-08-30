@@ -14,6 +14,8 @@
 
 [ext_resource type="PackedScene" path="res://ui/touch_controls.tscn" id="7_touch"]
 
+[ext_resource type="Texture2D" path="res://art/generated/characters/hero_vanguard.png" id="8_hero"]
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_t7a"]
 radius = 6.0
 
@@ -24,9 +26,10 @@ script = ExtResource("1_t7player")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_t7a")
 
-[node name="Sprite" type="Polygon2D" parent="."]
-color = Color(0.909804, 0.835294, 0.690196, 1)
-polygon = PackedVector2Array(-6, -7, 6, -7, 6, 7, -6, 7)
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.75, 0.75)
+texture = ExtResource("8_hero")
 
 [node name="WeaponRig" type="Node" parent="."]
 script = ExtResource("2_t8rig")

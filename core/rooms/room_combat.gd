@@ -34,9 +34,12 @@ const ARCHETYPE_COLORS := {
 	"charger": Color(0.7, 0.4, 0.8), "orbiter": Color(0.45, 0.42, 0.55),
 	"dummy": Color(0.65, 0.5, 0.35), "mushroom_spore": Color(0.58, 0.82, 0.46),
 }
-const PLAYER_BULLET_COLOR := Color(1.0, 0.9, 0.35)
-const ENEMY_BULLET_COLOR := Color(1.0, 0.35, 0.3)
 const BULLET_VISUAL_CAP := 500
+## m1-t28 美术接线（ArtLookup 表驱动）：地块/门/敌人/弹丸纹理统一 res://art/generated。
+const TILE_FLOOR := "floor_cave"
+const TILE_WALL := "wall_cave"
+const TILE_DOOR := "door_closed"
+const BULLET_VISUAL_SCALE := 0.75      # 8x8 弹底图 ≈ 原 5px 方块
 
 ## 训练房并入时置 false：复用外部玩家/相机/HUD，不自带操控
 @export var spawn_player := true
@@ -50,13 +53,13 @@ var entry_frame := -1
 var _cfg: Dictionary = {}
 var _enemies: Array[EnemyBase] = []
 var _spawn_frames: Dictionary = {}          # instance_id -> 刷出帧（ttk）
-var _door_panels: Array[Polygon2D] = []
+var _door_panels: Array[Sprite2D] = []
 var _entry_gate: CollisionShape2D
 var _entered := false
 var _spawned_wave := -1                    # 已刷的最高波索引（波推进由物理帧检测补刷）
 var _coins_collected := 0
 var _bullet_layer: Node2D
-var _bullet_sprites: Array[Polygon2D] = []
+var _bullet_sprites: Array[Sprite2D] = []
 
 func _ready() -> void:
 	if _cfg.is_empty():
@@ -188,14 +191,20 @@ func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 	shape.radius = radius
 	cs.shape = shape
 	e.add_child(cs)
-	var vis := Polygon2D.new()
-	vis.name = "Sprite"                        # Fx 白闪按名寻址
-	var r := maxf(radius, 5.0)
-	vis.polygon = PackedVector2Array([
-		Vector2(-r, -r), Vector2(r, -r), Vector2(r, r), Vector2(-r, r),
-	])
-	vis.color = ARCHETYPE_COLORS.get(String(row.get("archetype", "")), Color.WHITE)
-	e.add_child(vis)
+	# m1-t28：生成像素图按行 id 接线（guest 占位行按 guest_kind 变体回落）；
+	# 缺图回落 ARCHETYPE_COLORS 色块并告警留痕。body_scale 由 EnemyBase.setup
+	# 整节点 ×1.25，视觉随之放大。
+	if not ArtLookup.dress_enemy_sprite(e, row):
+		push_warning("RoomCombat: no enemy sprite for '%s' — color block fallback"
+			% String(row.get("id", "?")))
+		var vis := Polygon2D.new()
+		vis.name = "Sprite"                        # Fx 白闪按名寻址
+		var r := maxf(radius, 5.0)
+		vis.polygon = PackedVector2Array([
+			Vector2(-r, -r), Vector2(r, -r), Vector2(r, r), Vector2(-r, r),
+		])
+		vis.color = ARCHETYPE_COLORS.get(String(row.get("archetype", "")), Color.WHITE)
+		e.add_child(vis)
 
 func _on_enemy_died(e: EnemyBase) -> void:
 	if not _enemies.has(e):
@@ -280,6 +289,7 @@ func _adopt_or_spawn_player() -> void:
 		push_error("RoomCombat: no player to wire")
 		return
 	var rig := player.get_node("WeaponRig") as WeaponRig
+	ArtLookup.apply_player_sprite(player)      # m1-t28：英雄 meta 接缝 → hero_<id>.png
 	var melee := player.get_node("Melee") as Melee
 	var combat_rng := RunState.stream(RunState.SALT_RIG)   # m1-t15：rig/melee 走 "rig" 盐（与 CombatSystem 的 "proj_crit" 盐分溪，避免散布/暴击共用序列）
 	rig.combat = combat
@@ -350,33 +360,47 @@ func _solid(rect: Rect2) -> void:
 	cs.shape = shape
 	body.add_child(cs)
 	add_child(body)
-	var vis := Polygon2D.new()
-	var h := rect.size / 2.0
-	vis.polygon = PackedVector2Array([
-		Vector2(-h.x, -h.y), Vector2(h.x, -h.y), Vector2(h.x, h.y), Vector2(-h.x, h.y),
-	])
-	vis.position = rect.get_center()
-	vis.color = Color(0.36, 0.3, 0.28)
-	add_child(vis)
+	# m1-t28：墙体贴 wall_cave.png（16x16 无缝平铺，顶部 1px 亮色内嵌）；缺图回落色块。
+	var vis: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path(TILE_WALL),
+		Rect2(-rect.size / 2.0, rect.size))
+	if vis == null:
+		var poly := Polygon2D.new()
+		var h := rect.size / 2.0
+		poly.polygon = PackedVector2Array([
+			Vector2(-h.x, -h.y), Vector2(h.x, -h.y), Vector2(h.x, h.y), Vector2(-h.x, h.y),
+		])
+		poly.color = Color(0.36, 0.3, 0.28)
+		vis = poly
+	body.add_child(vis)
 
 func _floor_tint() -> void:
-	var floor_vis := Polygon2D.new()
-	floor_vis.polygon = PackedVector2Array([
-		INTERIOR.position, Vector2(INTERIOR.end.x, INTERIOR.position.y),
-		INTERIOR.end, Vector2(INTERIOR.position.x, INTERIOR.end.y),
-	])
-	floor_vis.color = Color(0.17, 0.15, 0.2)
+	# m1-t28：地板贴 floor_cave.png（16x16 无缝平铺）。
+	var floor_vis: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path(TILE_FLOOR), INTERIOR)
+	if floor_vis == null:
+		floor_vis = Polygon2D.new()
+		(floor_vis as Polygon2D).polygon = PackedVector2Array([
+			INTERIOR.position, Vector2(INTERIOR.end.x, INTERIOR.position.y),
+			INTERIOR.end, Vector2(INTERIOR.position.x, INTERIOR.end.y),
+		])
+		(floor_vis as Polygon2D).color = Color(0.17, 0.15, 0.2)
 	floor_vis.z_index = -10
 	add_child(floor_vis)
 
 func _build_doors() -> void:
 	for i in DOOR_POSITIONS.size():
-		var panel := Polygon2D.new()
+		# m1-t28：门体贴 door_closed.png（16x36 盖板 = 16px 墙厚 + 32px 门洞）；
+		# 开门仍走 DoorAnim 滑出收进墙体（M0 习语）。
+		var panel: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path(TILE_DOOR))
+		if panel == null:
+			var poly := Polygon2D.new()
+			poly.color = Color(0.62, 0.4, 0.22)
+			poly.polygon = PackedVector2Array([
+				Vector2(-8, -18), Vector2(8, -18), Vector2(8, 18), Vector2(-8, 18),
+			])
+			panel = poly
+		else:
+			(panel as Sprite2D).scale = Vector2(1.0, 36.0 / 16.0)
 		panel.name = "Door%d" % i
-		panel.polygon = PackedVector2Array([
-			Vector2(-8, -18), Vector2(8, -18), Vector2(8, 18), Vector2(-8, 18),
-		])
-		panel.color = Color(0.62, 0.4, 0.22)
 		panel.position = DOOR_POSITIONS[i] + DoorAnim.PARK_OFFSET   # 初始敞开（藏进门体）
 		panel.z_index = 5
 		add_child(panel)
@@ -404,17 +428,18 @@ func _build_entry_zone() -> void:
 	zone.body_entered.connect(_on_entry_zone_entered)
 	add_child(zone)
 
-# ---- 弹幕可视化（表现层镜像：Projectile 本体无外观，逐帧同步共享多边形） ----
+# ---- 弹幕可视化（表现层镜像：Projectile 本体无外观，逐帧同步共享 Sprite2D） ----
+## m1-t28：弹丸贴图按阵营/元素换装（bullet_player/bullet_enemy/elem_*），
+## p.modulate 保留反弹染色语义；laser 谱系 M1 无弹形（laser_seg.png 预留）。
 
 func _sync_bullet_visuals() -> void:
 	if combat == null:
 		return
 	var active := combat.pool.active
 	while _bullet_sprites.size() < active.size() and _bullet_sprites.size() < BULLET_VISUAL_CAP:
-		var vis := Polygon2D.new()
-		vis.polygon = PackedVector2Array([
-			Vector2(-2.5, -2.5), Vector2(2.5, -2.5), Vector2(2.5, 2.5), Vector2(-2.5, 2.5),
-		])
+		var vis := Sprite2D.new()
+		vis.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		vis.scale = Vector2.ONE * BULLET_VISUAL_SCALE
 		_bullet_layer.add_child(vis)
 		_bullet_sprites.append(vis)
 	for i in _bullet_sprites.size():
@@ -423,7 +448,8 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
-			var base := PLAYER_BULLET_COLOR if p.faction == Projectile.Faction.PLAYER else ENEMY_BULLET_COLOR
-			vis.modulate = base * p.modulate   # 反弹弹带 (1,1,0.4) 染色（setup 已重置为 WHITE）
+			vis.texture = ArtLookup.tex(ArtLookup.projectile_texture_path(
+				p.faction == Projectile.Faction.PLAYER, p.element))
+			vis.modulate = p.modulate          # 反弹弹带 (1,1,0.4) 染色（setup 已重置为 WHITE）
 		else:
 			vis.visible = false
