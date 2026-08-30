@@ -17,6 +17,7 @@ const IDLE_BORDER := Color(0.25, 0.27, 0.32)
 const PASSIVES := {
 	"defiance": "坚守：护盾破碎时对 60px 内敌人 1 伤+击退+眩晕 0.5s",
 	"hawk_eye": "鹰眼：暴击时 50% 概率返还 1 蓝",
+	"spare_parts": "备件：开局带 1 台便携炮台（存活 12s），每进入新一层补 1 台",
 }
 
 static var last_chosen := ""   # 静态暂存 fallback（RunState 未合并期间的选角结果）
