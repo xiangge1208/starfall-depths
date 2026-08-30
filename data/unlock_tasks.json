@@ -1,0 +1,198 @@
+{
+	"yahuozhe": {
+		"id": "yahuozhe", "weapon": "yahuozhe", "type": "kill_x", "param": 0, "goal": 300,
+		"forge_only": false, "desc": "累计击杀 300 名敌人"
+	},
+	"dianque": {
+		"id": "dianque", "weapon": "dianque", "type": "resonate_x", "param": 0, "goal": 120,
+		"forge_only": false, "desc": "累计触发 120 次元素共鸣"
+	},
+	"yingwan": {
+		"id": "yingwan", "weapon": "yingwan", "type": "kill_x", "param": 0, "goal": 400,
+		"forge_only": false, "desc": "累计击杀 400 名敌人"
+	},
+	"shezhezhe": {
+		"id": "shezhezhe", "weapon": "shezhezhe", "type": "kill_x", "param": 0, "goal": 350,
+		"forge_only": false, "desc": "累计击杀 350 名敌人"
+	},
+	"bingzhuiji": {
+		"id": "bingzhuiji", "weapon": "bingzhuiji", "type": "resonate_x", "param": 0, "goal": 150,
+		"forge_only": false, "desc": "累计触发 150 次元素共鸣"
+	},
+	"duyepensa": {
+		"id": "duyepensa", "weapon": "duyepensa", "type": "resonate_x", "param": 0, "goal": 150,
+		"forge_only": false, "desc": "累计触发 150 次元素共鸣"
+	},
+	"cibao": {
+		"id": "cibao", "weapon": "cibao", "type": "resonate_x", "param": 0, "goal": 180,
+		"forge_only": false, "desc": "累计触发 180 次元素共鸣"
+	},
+	"laobing": {
+		"id": "laobing", "weapon": "laobing", "type": "kill_x", "param": 0, "goal": 600,
+		"forge_only": false, "desc": "累计击杀 600 名敌人"
+	},
+	"ranshaodanlian": {
+		"id": "ranshaodanlian", "weapon": "ranshaodanlian", "type": "resonate_x", "param": 0, "goal": 150,
+		"forge_only": false, "desc": "累计触发 150 次元素共鸣"
+	},
+	"donghehe": {
+		"id": "donghehe", "weapon": "donghehe", "type": "resonate_x", "param": 0, "goal": 150,
+		"forge_only": false, "desc": "累计触发 150 次元素共鸣"
+	},
+	"longxi": {
+		"id": "longxi", "weapon": "longxi", "type": "resonate_x", "param": 0, "goal": 200,
+		"forge_only": false, "desc": "累计触发 200 次元素共鸣"
+	},
+	"liuhuang": {
+		"id": "liuhuang", "weapon": "liuhuang", "type": "resonate_x", "param": 0, "goal": 200,
+		"forge_only": false, "desc": "累计触发 200 次元素共鸣"
+	},
+	"suijingpao": {
+		"id": "suijingpao", "weapon": "suijingpao", "type": "resonate_x", "param": 0, "goal": 200,
+		"forge_only": false, "desc": "累计触发 200 次元素共鸣"
+	},
+	"huoshenzhongpao": {
+		"id": "huoshenzhongpao", "weapon": "huoshenzhongpao", "type": "kill_x", "param": 0, "goal": 450,
+		"forge_only": false, "desc": "累计击杀 450 名敌人"
+	},
+	"duantoutai": {
+		"id": "duantoutai", "weapon": "duantoutai", "type": "kill_x", "param": 0, "goal": 500,
+		"forge_only": false, "desc": "累计击杀 500 名敌人"
+	},
+	"guanri": {
+		"id": "guanri", "weapon": "guanri", "type": "clear_floor_x", "param": 2, "goal": 2,
+		"forge_only": false, "desc": "通过第 2 层 2 次"
+	},
+	"liedizhe": {
+		"id": "liedizhe", "weapon": "liedizhe", "type": "kill_x", "param": 0, "goal": 550,
+		"forge_only": false, "desc": "累计击杀 550 名敌人"
+	},
+	"lengjingquanzhang": {
+		"id": "lengjingquanzhang", "weapon": "lengjingquanzhang", "type": "resonate_x", "param": 0, "goal": 260,
+		"forge_only": false, "desc": "累计触发 260 次元素共鸣"
+	},
+	"dianhubian": {
+		"id": "dianhubian", "weapon": "dianhubian", "type": "resonate_x", "param": 0, "goal": 250,
+		"forge_only": false, "desc": "累计触发 250 次元素共鸣"
+	},
+	"chuanlengjing": {
+		"id": "chuanlengjing", "weapon": "chuanlengjing", "type": "kill_x", "param": 0, "goal": 450,
+		"forge_only": false, "desc": "累计击杀 450 名敌人"
+	},
+	"yunshizhang": {
+		"id": "yunshizhang", "weapon": "yunshizhang", "type": "clear_floor_x", "param": 2, "goal": 3,
+		"forge_only": false, "desc": "通过第 2 层 3 次"
+	},
+	"xinghuizhang": {
+		"id": "xinghuizhang", "weapon": "xinghuizhang", "type": "collect_gems_x", "param": 0, "goal": 1200,
+		"forge_only": false, "desc": "累计获得 1200 蓝晶"
+	},
+	"jingmianzhang": {
+		"id": "jingmianzhang", "weapon": "jingmianzhang", "type": "resonate_x", "param": 0, "goal": 240,
+		"forge_only": false, "desc": "累计触发 240 次元素共鸣"
+	},
+	"huixuanrengong": {
+		"id": "huixuanrengong", "weapon": "huixuanrengong", "type": "kill_x", "param": 0, "goal": 400,
+		"forge_only": false, "desc": "累计击杀 400 名敌人"
+	},
+	"leimingnu": {
+		"id": "leimingnu", "weapon": "leimingnu", "type": "resonate_x", "param": 0, "goal": 260,
+		"forge_only": false, "desc": "累计触发 260 次元素共鸣"
+	},
+	"fenliejian": {
+		"id": "fenliejian", "weapon": "fenliejian", "type": "kill_x", "param": 0, "goal": 380,
+		"forge_only": false, "desc": "累计击杀 380 名敌人"
+	},
+	"diancimaichonglei": {
+		"id": "diancimaichonglei", "weapon": "diancimaichonglei", "type": "kill_x", "param": 0, "goal": 420,
+		"forge_only": false, "desc": "累计击杀 420 名敌人"
+	},
+	"xuewenci": {
+		"id": "xuewenci", "weapon": "xuewenci", "type": "kill_x", "param": 0, "goal": 500,
+		"forge_only": false, "desc": "累计击杀 500 名敌人"
+	},
+	"zhuixingdajian": {
+		"id": "zhuixingdajian", "weapon": "zhuixingdajian", "type": "clear_floor_x", "param": 2, "goal": 1,
+		"forge_only": false, "desc": "通过第 2 层 1 次"
+	},
+	"guangjian": {
+		"id": "guangjian", "weapon": "guangjian", "type": "clear_floor_x", "param": 2, "goal": 2,
+		"forge_only": false, "desc": "通过第 2 层 2 次"
+	},
+	"fenshenxinhaotan": {
+		"id": "fenshenxinhaotan", "weapon": "fenshenxinhaotan", "type": "buy_x", "param": 0, "goal": 25,
+		"forge_only": false, "desc": "累计在商店购买 25 件商品"
+	},
+	"chuansongbiaoqiang": {
+		"id": "chuansongbiaoqiang", "weapon": "chuansongbiaoqiang", "type": "buy_x", "param": 0, "goal": 30,
+		"forge_only": false, "desc": "累计在商店购买 30 件商品"
+	},
+	"wurenjimujian": {
+		"id": "wurenjimujian", "weapon": "wurenjimujian", "type": "collect_gems_x", "param": 0, "goal": 1000,
+		"forge_only": false, "desc": "累计获得 1000 蓝晶"
+	},
+	"zhongyanjicu": {
+		"id": "zhongyanjicu", "weapon": "zhongyanjicu", "type": "kill_x", "param": 0, "goal": 1000,
+		"forge_only": false, "desc": "累计击杀 1000 名敌人"
+	},
+	"caijue": {
+		"id": "caijue", "weapon": "caijue", "type": "clear_floor_x", "param": 3, "goal": 1,
+		"forge_only": false, "desc": "通过第 3 层 1 次"
+	},
+	"yaniemhaojiao": {
+		"id": "yaniemhaojiao", "weapon": "yaniemhaojiao", "type": "craft_x", "param": 0, "goal": 10,
+		"forge_only": false, "desc": "累计完成 10 次熔铸"
+	},
+	"xingyunpao": {
+		"id": "xingyunpao", "weapon": "xingyunpao", "type": "craft_x", "param": 0, "goal": 8,
+		"forge_only": true, "desc": "累计完成 8 次熔铸（★熔铸限定）"
+	},
+	"dianciguidao": {
+		"id": "dianciguidao", "weapon": "dianciguidao", "type": "resonate_x", "param": 0, "goal": 800,
+		"forge_only": false, "desc": "累计触发 800 次元素共鸣"
+	},
+	"shenpanzhiri": {
+		"id": "shenpanzhiri", "weapon": "shenpanzhiri", "type": "kill_x", "param": 0, "goal": 1200,
+		"forge_only": false, "desc": "累计击杀 1200 名敌人"
+	},
+	"caihongfashengqi": {
+		"id": "caihongfashengqi", "weapon": "caihongfashengqi", "type": "resonate_x", "param": 0, "goal": 1000,
+		"forge_only": false, "desc": "累计触发 1000 次元素共鸣"
+	},
+	"guidaobiaojiqi": {
+		"id": "guidaobiaojiqi", "weapon": "guidaobiaojiqi", "type": "clear_floor_x", "param": 3, "goal": 2,
+		"forge_only": false, "desc": "通过第 3 层 2 次"
+	},
+	"zhongyanzhizhang": {
+		"id": "zhongyanzhizhang", "weapon": "zhongyanzhizhang", "type": "clear_floor_x", "param": 3, "goal": 3,
+		"forge_only": false, "desc": "通过第 3 层 3 次"
+	},
+	"guanxinggong": {
+		"id": "guanxinggong", "weapon": "guanxinggong", "type": "kill_x", "param": 0, "goal": 900,
+		"forge_only": false, "desc": "累计击杀 900 名敌人"
+	},
+	"heidongfashengqi": {
+		"id": "heidongfashengqi", "weapon": "heidongfashengqi", "type": "collect_gems_x", "param": 0, "goal": 5000,
+		"forge_only": false, "desc": "累计获得 5000 蓝晶"
+	},
+	"xingheliudan": {
+		"id": "xingheliudan", "weapon": "xingheliudan", "type": "resonate_x", "param": 0, "goal": 900,
+		"forge_only": false, "desc": "累计触发 900 次元素共鸣"
+	},
+	"leishenzhichui": {
+		"id": "leishenzhichui", "weapon": "leishenzhichui", "type": "craft_x", "param": 0, "goal": 6,
+		"forge_only": true, "desc": "累计完成 6 次熔铸（★熔铸限定）"
+	},
+	"zhanjiandao": {
+		"id": "zhanjiandao", "weapon": "zhanjiandao", "type": "craft_x", "param": 0, "goal": 10,
+		"forge_only": true, "desc": "累计完成 10 次熔铸（★熔铸限定）"
+	},
+	"shijianshalou": {
+		"id": "shijianshalou", "weapon": "shijianshalou", "type": "buy_x", "param": 0, "goal": 60,
+		"forge_only": false, "desc": "累计在商店购买 60 件商品"
+	},
+	"yamiehexin": {
+		"id": "yamiehexin", "weapon": "yamiehexin", "type": "craft_x", "param": 0, "goal": 12,
+		"forge_only": true, "desc": "累计完成 12 次熔铸（★熔铸限定）"
+	}
+}
