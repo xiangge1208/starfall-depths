@@ -2,7 +2,11 @@
 """占位像素素材生成器（可重复运行，输出确定性一致）。
 
 用法:
-    python tools/gen_placeholder_art.py
+    python tools/gen_placeholder_art.py                # 全量再生（清空目录后重建）
+    python tools/gen_placeholder_art.py --hero-sheets  # m2-t17 定点：仅英雄行走帧表+MANIFEST 行
+
+说明: 全量入口当前依赖 M2 批次(gen_placeholder_art_m2)武器并集断言与 T6 落地的
+data/weapons.json(115 行)对齐后方可使用；--hero-sheets 为 characters/** 窄通道。
 
 输出:
     art/generated/<分类>/*.png   占位素材本体
@@ -227,6 +231,306 @@ def gen_hero_ranger():
     save(img, "characters/hero_ranger.png", "英雄「游侠·苇」站立像（正面）",
          "core/player/player.tscn:27-29 同上（两位英雄共用同一 Sprite 节点）",
          "同骑士·凛；另需影袭残影帧（半透明复制帧即可）")
+
+
+# ---------------------------------------------------------------- hero walk sheets (m2-t17)
+# 四向行走帧表：64x64 = 4 行(下/上/左/右) x 4 列(idle + walk x3)，16px/帧。
+# 契约（消费端 core/player/player.gd ANIM_* 常量）：
+#   frame = 方向行 * 4 + 列；idle=列0，行走循环=列1..3（8t/帧）。
+# 纪律：本节**零共享 RNG**（纯确定性像素数学）——插入主流程不扰动其它子树字节。
+HERO_WALK_SPEC = {
+    # 配色/头饰与站立像（gen_hero_* / gen_heroes_m2）逐英雄对齐
+    "vanguard": {"name": "骑士·凛", "body": "#9aa8bd", "cloak": "#6d7c94", "hat": "helm",
+                 "hair": "#b8c6d8", "weapon": "sword", "shield": True},
+    "ranger":   {"name": "游侠·苇", "body": "#7a8a5a", "cloak": "#4e5f3c", "hat": "hood",
+                 "hood": "#5a7a44", "hair": "#4e5f3c", "weapon": "bow", "shield": False},
+    "engineer": {"name": "工程师·铆", "body": "#c88a3c", "cloak": "#96682a", "hat": "goggles",
+                 "hair": "#96682a", "weapon": "gun", "shield": False},
+    "mage":     {"name": "法师·烬", "body": "#8a6ab8", "cloak": "#6a4a94", "hat": "wizard",
+                 "hair": "#5c4530", "weapon": "staff", "shield": False},
+    "assassin": {"name": "刺客·蝉", "body": "#4a4a5c", "cloak": "#33333f", "hat": "hood",
+                 "hood": "#33333f", "hair": "#33333f", "weapon": "dagger", "shield": False},
+    "guardian": {"name": "守护者·萄", "body": "#7a9ab8", "cloak": "#54748f", "hat": "halo",
+                 "hair": "#d8b040", "weapon": "mace", "shield": False},
+}
+
+
+def _hero_walk_roster():
+    """数据驱动英雄清单：data/heroes.json 全部行优先；数据行尚未落地的美术名录英雄
+    （T11 mage / T13 assassin+guardian）按 HERO_WALK_SPEC 兜底补齐——新英雄进数据表后
+    重跑生成器即自动覆盖（并集去重，与顺序无关，字节稳定）。"""
+    heroes = json.load(open(ROOT / "data" / "heroes.json", encoding="utf-8"))
+    roster = [(hid, str(row.get("name", hid))) for hid, row in heroes.items()]
+    known = set(heroes.keys())
+    for hid, spec in HERO_WALK_SPEC.items():
+        if hid not in known:
+            roster.append((hid, spec["name"]))
+    return roster
+
+
+def _hero_legs(img, d, phase):
+    """腿部四相位：0=并立(idle) 1=左/后腿抬 2=passing(双腿收拢+下沉) 3=右/前腿抬。"""
+    leg = C("#3a3444")
+    if d in (0, 1):                       # 正/背面：左右腿交替抬落
+        if phase == 0:
+            rect(img, 5, 12, 6, 14, leg)
+            rect(img, 9, 12, 10, 14, leg)
+        elif phase == 1:
+            rect(img, 5, 11, 6, 12, leg)  # 左腿抬起（短）
+            rect(img, 9, 12, 10, 14, leg)
+        elif phase == 2:
+            rect(img, 5, 12, 6, 13, leg)  # 双腿微收（配合躯干下沉）
+            rect(img, 9, 12, 10, 13, leg)
+        else:
+            rect(img, 5, 12, 6, 14, leg)
+            rect(img, 9, 11, 10, 12, leg) # 右腿抬起
+    else:                                 # 侧面：前后腿跨步（朝向前腿在行进侧）
+        if d == 3:                        # 朝右：前腿 +x / 后腿 -x
+            fx0, fx1, ftoe, bx0, bx1, btoe = 9, 10, 11, 6, 7, 5
+        else:                             # 朝左：前腿 -x / 后腿 +x
+            fx0, fx1, ftoe, bx0, bx1, btoe = 6, 7, 5, 9, 10, 11
+        if phase == 0:
+            rect(img, 7, 12, 8, 14, leg)
+            rect(img, 9, 12, 10, 14, leg)
+        elif phase == 1:
+            rect(img, bx0, 12, bx1, 13, leg)        # 后腿抬
+            rect(img, fx0, 12, fx1, 14, leg)        # 前腿撑地
+            px(img, ftoe, 14, leg)                  # 前脚尖
+        elif phase == 2:
+            rect(img, 7, 12, 8, 13, leg)
+            rect(img, 9, 12, 10, 13, leg)
+        else:
+            rect(img, fx0, 12, fx1, 13, leg)        # 前腿抬
+            rect(img, bx0, 12, bx1, 14, leg)        # 后腿撑地
+            px(img, btoe, 14, leg)                  # 后脚尖
+    return leg
+
+
+def _hero_hat(img, spec, d, y):
+    """头饰四向。d: 0=down 1=up 2=left 3=right；y 为本相位头部纵向偏移。"""
+    kind = spec["hat"]
+    cloak = C(spec["cloak"])
+    if kind == "helm":
+        helm = C("#b8c6d8")
+        if d == 0:                        # 盔体+金沿+红翎正面
+            rect(img, 3, y, 12, 3 + y, helm)
+            hline(img, 3, 12, 3 + y, C("#e2c04c"))
+            rect(img, 7, y, 8, 1 + y, C("#d23b3b"))
+            rect(img, 7, 1 + y, 8, 1 + y, C("#a02a2a"))
+        elif d == 1:                      # 背面盔体+红翎
+            rect(img, 3, y, 12, 3 + y, helm)
+            rect(img, 7, y, 8, 1 + y, C("#d23b3b"))
+            hline(img, 3, 12, 3 + y, C("#8194ad"))
+        else:                             # 侧面盔体+纵贯红翎条
+            rect(img, 4, y, 11, 3 + y, helm)
+            hline(img, 5, 10, y, C("#d23b3b"))
+            hline(img, 5, 10, 1 + y, C("#a02a2a"))
+            hline(img, 4, 11, 3 + y, C("#e2c04c"))
+    elif kind == "hood":
+        hc = C(spec.get("hood", spec["cloak"]))
+        if d == 0:
+            rect(img, 3, y, 12, 3 + y, hc)
+            px(img, 4, 3 + y, hc)
+            px(img, 11, 3 + y, hc)
+            hline(img, 5, 10, 3 + y, shade(C(spec["body"]), 0.6))
+            if spec["weapon"] == "dagger":           # 刺客兜帽红眼光
+                px(img, 6, 3 + y, C("#e83a4a"))
+                px(img, 9, 3 + y, C("#e83a4a"))
+        elif d == 1:
+            rect(img, 3, y, 12, 4 + y, hc)
+            hline(img, 4, 11, 4 + y, shade(hc, 0.7))
+        else:
+            rect(img, 4, y, 11, 3 + y, hc)
+            px(img, 3 if d == 2 else 12, 1 + y, hc)  # 兜帽尖角在后侧
+            hline(img, 5, 10, 3 + y, shade(C(spec["body"]), 0.6))
+    elif kind == "wizard":
+        light = shade(cloak, 1.25)
+        if d == 0:
+            rect(img, 2, y, 13, 1 + y, cloak)        # 帽檐
+            rect(img, 4, 1 + y, 11, 2 + y, cloak)
+            rect(img, 6, 2 + y, 9, 3 + y, light)
+            px(img, 13, y, C("#ffd94a"))
+        elif d == 1:
+            rect(img, 2, 1 + y, 13, 2 + y, cloak)
+            rect(img, 5, y, 10, 1 + y, cloak)
+            rect(img, 7, y, 9, 1 + y, light)
+        else:
+            rect(img, 4, 1 + y, 12, 2 + y, cloak)
+            rect(img, 6, y, 10, 1 + y, cloak)
+            rect(img, 7, y, 10, 1 + y, light)
+    elif kind == "goggles":
+        cap = C("#c8d0dc")
+        if d == 0:
+            rect(img, 3, 2 + y, 12, 4 + y, cap)
+            rect(img, 4, 3 + y, 6, 4 + y, C("#5ab0ff"))
+            rect(img, 9, 3 + y, 11, 4 + y, C("#5ab0ff"))
+            px(img, 13, 1 + y, C("#e2c04c"))
+        elif d == 1:
+            rect(img, 3, 1 + y, 12, 3 + y, cap)
+            hline(img, 3, 12, 3 + y, shade(cap, 0.8))
+        else:
+            rect(img, 4, 1 + y, 11, 3 + y, cap)
+            rect(img, 9 if d == 3 else 4, 2 + y, 11 if d == 3 else 6, 3 + y, C("#5ab0ff"))
+    elif kind == "halo":
+        hline(img, 5, 10, y, C("#ffe86a"))
+        hline(img, 4, 11, 2 + y, C("#e2c04c"))
+
+
+def _hero_weapon(img, spec, d, y):
+    """武器剪影：侧面=持握朝向；正/背面=身侧配件（与站立像一致）。"""
+    kind = spec["weapon"]
+    blade = C("#d7dee8")
+    wood = C("#7a5230")
+    if d in (2, 3):
+        if d == 2:                        # 朝左：全部镜像到左侧
+            def hh(x0, x1, yy, c):
+                hline(img, 15 - x1, 15 - x0, yy, c)
+
+            def vv(x, y0, y1, c):
+                vline(img, 15 - x, y0, y1, c)
+
+            def rr(x0, y0, x1, y1, c):
+                rect(img, 15 - x1, y0, 15 - x0, y1, c)
+        else:
+            def hh(x0, x1, yy, c):
+                hline(img, x0, x1, yy, c)
+
+            def vv(x, y0, y1, c):
+                vline(img, x, y0, y1, c)
+
+            def rr(x0, y0, x1, y1, c):
+                rect(img, x0, y0, x1, y1, c)
+        if kind == "sword":
+            hh(11, 14, 8 + y, blade)
+            hh(11, 14, 9 + y, shade(blade, 0.8))
+            px(img, 11 if d == 3 else 4, 9 + y, C("#e2c04c"))
+            hh(10, 10, 8 + y, wood)
+        elif kind == "bow":
+            vv(13, 3 + y, 11 + y, wood)
+            vv(14, 4 + y, 10 + y, C("#e8e4da"))
+            px(img, 12, 3 + y, wood)
+            px(img, 12, 11 + y, wood)
+        elif kind == "staff":
+            vv(13, 3 + y, 12 + y, wood)
+            disk(img, 13 if d == 3 else 2, 2 + y, 1, C("#8ae8ff"))
+        elif kind == "dagger":
+            hh(11, 12, 8 + y, blade)
+            px(img, 11 if d == 3 else 4, 9 + y, C("#e2c04c"))
+        elif kind == "gun":
+            rr(11, 8 + y, 13, 9 + y, C("#5c4530"))
+            px(img, 14 if d == 3 else 1, 8 + y, C("#3a3444"))
+        elif kind == "mace":
+            vv(13, 6 + y, 10 + y, wood)
+            disk(img, 13 if d == 3 else 2, 5 + y, 1, C("#c8d0dc"))
+    else:
+        if spec.get("shield") and d == 0:
+            rect(img, 1, 7 + y, 3, 12 + y, C("#8194ad"))
+            rect(img, 1, 7 + y, 3, 8 + y, C("#a5b6cc"))
+            px(img, 2, 9 + y, C("#e2c04c"))
+            px(img, 13, 9 + y, wood)                  # 剑柄露头
+            px(img, 13, 8 + y, blade)
+        elif spec.get("shield") and d == 1:
+            rect(img, 12, 8 + y, 14, 12 + y, C("#8194ad"))   # 背面盾背在身后
+            px(img, 13, 10 + y, C("#e2c04c"))
+        else:
+            rect(img, 13, 9 + y, 14, 12 + y, wood if kind != "staff" else C("#7a5230"))
+            if kind == "staff" and d == 1:
+                disk(img, 13, 8 + y, 1, C("#8ae8ff"))
+            if kind == "bow":
+                vline(img, 13, 3 + y, 10 + y, wood)   # 背弓露出肩侧
+
+
+def _paint_hero_frame(spec, d, phase):
+    """单帧 16x16。d: 0=down 1=up 2=left 3=right；phase: 0=idle 1..3=walk。"""
+    img = canvas(16, 16)
+    body = C(spec["body"])
+    cloak = C(spec["cloak"])
+    skin = C("#f2dfbe")
+    y = 1 if phase == 2 else 0            # passing 相位躯干下沉 1px（步幅顶点恢复）
+    _hero_legs(img, d, phase)
+    if d in (0, 1):                       # 正/背面躯干
+        rect(img, 4, 7 + y, 11, 12 + y, body)
+        rect(img, 4, 7 + y, 11, 8 + y, shade(body, 1.18))
+        if d == 0:
+            rect(img, 4, 8 + y, 5, 12 + y, cloak)    # 侧披
+            rect(img, 10, 8 + y, 11, 12 + y, cloak)
+        else:
+            rect(img, 4, 8 + y, 11, 12 + y, cloak)   # 背面整片披风
+        rect(img, 4, 1 + y, 11, 7 + y, skin if d == 0 else C(spec["hair"]))
+        if d == 0:
+            eyes(img, 8, 4 + y, gap=2)
+    else:                                 # 侧面躯干（窄身）
+        rect(img, 6, 7 + y, 9, 12 + y, body)
+        rect(img, 6, 7 + y, 9, 8 + y, shade(body, 1.18))
+        bx = 6 if d == 3 else 8                     # 披风在后侧
+        rect(img, bx, 8 + y, bx + 1, 12 + y, cloak)
+        rect(img, 5, 1 + y, 10, 6 + y, skin)
+        ex = 9 if d == 3 else 6                     # 单眼朝向边缘
+        px(img, ex, 4 + y, C("#f4f4f0"))
+        px(img, ex, 5 + y, C("#20242c"))
+        px(img, 11 if d == 3 else 4, 5 + y, shade(skin, 0.85))  # 鼻尖
+    _hero_hat(img, spec, d, y)
+    _hero_weapon(img, spec, d, y)
+    return img
+
+
+def gen_hero_walk_sheets():
+    for hid, name in _hero_walk_roster():
+        spec = HERO_WALK_SPEC.get(hid)
+        if spec is None:
+            print(f"[walk] 跳过 {hid}（HERO_WALK_SPEC 无视觉规格，待补表重跑）")
+            continue
+        sheet = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        for d in range(4):
+            for ph in range(4):
+                frame = _paint_hero_frame(spec, d, ph)
+                outline(frame)
+                sheet.paste(frame, (ph * 16, d * 16))
+        save(sheet, f"characters/hero_{hid}_sheet.png",
+             f"英雄「{name}」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧）",
+             "core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4",
+             "m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变）")
+
+
+MANIFEST_SHEET_ANCHOR = "| `characters/hero_ranger.png` |"
+MANIFEST_SHEET_MARK = "`characters/hero_vanguard_sheet.png`"
+MANIFEST_GAP_OLD = "| 四向行走动画 | 占位图只有 1 帧站立 | 每英雄 4 向 x (idle+walk2) 帧，16x16/帧；可由本占位图做连锁重绘基底 |"
+MANIFEST_GAP_NEW = "| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画见 T21 |"
+
+
+def _manifest_splice_hero_sheets():
+    """把 SPEC 内帧表行定点拼接进既有 MANIFEST（幂等；锚点=hero_ranger 行）。
+    全量 main() 在武器数据/暂定 slug 对齐修复前会连带其它子树重写，本拼接是
+    characters/** 的窄通道；write_manifest 的静态文案已同步为交付后口径。"""
+    p = OUT / "MANIFEST.md"
+    text = p.read_text(encoding="utf-8")
+    if MANIFEST_SHEET_MARK in text:
+        return                          # 幂等：已拼接（重跑零字节漂移）
+    out = []
+    inserted = False
+    for line in text.split("\n"):
+        out.append(line)
+        if line.startswith(MANIFEST_SHEET_ANCHOR):
+            for rel, purpose, current, note in SPEC:
+                img = Image.open(OUT / rel)
+                out.append(f"| `{rel}` | {img.width}x{img.height} | {purpose} | {current} | "
+                           f"{note if note else '—'} |")
+            inserted = True
+    if not inserted:
+        raise RuntimeError("MANIFEST 锚点行缺失: " + MANIFEST_SHEET_ANCHOR)
+    text = "\n".join(out)
+    if MANIFEST_GAP_OLD in text:
+        text = text.replace(MANIFEST_GAP_OLD, MANIFEST_GAP_NEW)
+    p.write_text(text, encoding="utf-8")
+
+
+def gen_hero_sheets_scoped():
+    """m2-t17 定点再生入口：仅重写 characters/hero_*_sheet.png + 拼接 MANIFEST 行。
+    不清空、不触碰其它子树（全量 main() 依赖 M2 批次武器并集修复后再用）。"""
+    SPEC.clear()
+    gen_hero_walk_sheets()
+    _manifest_splice_hero_sheets()
+    print(f"[scoped] 英雄行走帧表 {len(SPEC)} 张 -> {OUT / 'characters'}（MANIFEST 已同步）")
 
 
 ENEMY_SPRITES = {
@@ -1442,7 +1746,7 @@ def write_manifest():
         "| 项 | 说明 | 建议 |",
         "|---|---|---|",
         "| 像素中文字体 | 全 UI 伤害数字/菜单/对话用默认字体，无像素风格 | 开源可选：缝合怪像素字体 Fusion Pixel Font（OFL）、Zpix（个人免费）；落位 `art/fonts/` |",
-        "| 四向行走动画 | 占位图只有 1 帧站立 | 每英雄 4 向 x (idle+walk2) 帧，16x16/帧；可由本占位图做连锁重绘基底 |",
+        "| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画见 T21 |",
         "| 敌人受击/死亡动画 | 目前仅白闪+爆粒子 | 每敌 2-4 帧即可显著提升手感 |",
         "| 雕像四 kinds 精绘 | 通用底 + 4 属性变体已备（shrine_*.png），披肩/徽记方案区分 | 正式素材按变体配色委托精绘即可 |",
         "| 地图整块背景装饰 | 墙沿/悬挂物/裂纹大图 | 可后置，优先级低 |",
@@ -1510,6 +1814,7 @@ def main():
     SPEC.clear()
     gen_hero_vanguard()
     gen_hero_ranger()
+    gen_hero_walk_sheets()
     for eid, (name, cur, note), fn in (
         ("kuli_bug", ENEMY_SPRITES["kuli_bug"], paint_kuli),
         ("cave_bat", ENEMY_SPRITES["cave_bat"], paint_bat),
@@ -1558,4 +1863,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys as _argv
+    if "--hero-sheets" in _argv.argv[1:]:
+        gen_hero_sheets_scoped()
+    else:
+        main()

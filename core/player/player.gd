@@ -15,6 +15,16 @@ const RAMPAGE_DR := 0.7            # 狂潮(升级)：受伤 ×0.7（向下取�
 const DEFIANCE_RADIUS_PX := 60.0   # 坚守：AoE 半径
 const DEFIANCE_KNOCKBACK_PX := 8.0 # 坚守：击退距离
 const DEFIANCE_STUN_TICKS := 30    # 坚守：眩晕 0.5s
+# m2-t17 四向行走帧表：art/generated/characters/hero_<id>_sheet.png（64x64，
+# 4 行=下/上/左/右 × 4 列=idle+walk×3，16px/帧）。帧序 = 方向行*4 + 列。
+const ANIM_SHEET_COLS := 4
+const ANIM_SHEET_ROWS := 4
+const ANIM_SHEET_PATH_FMT := "res://art/generated/characters/hero_%s_sheet.png"
+const ANIM_WALK_TICKS := 8         # 行走 8t/帧 → 三帧循环 7.5fps
+const ANIM_DIR_DOWN := 0
+const ANIM_DIR_UP := 1
+const ANIM_DIR_LEFT := 2
+const ANIM_DIR_RIGHT := 3
 
 var hp := 8
 var hp_max := 8
@@ -51,6 +61,15 @@ var _roll_cd_until := -999
 var _iframe_until := -999
 var _last_damaged_frame := -999
 var _shield_next_at := -999
+# m2-t17 行走动画：帧表一次性缓存（hero_id → Texture2D/ null，非热路径）；
+# _anim_seen_tex 用于识别进房重装（ArtLookup.apply_player_sprite 写回站立像）。
+var _anim_sprite: Sprite2D = null
+var _anim_sheet: Texture2D = null
+var _anim_seen_tex: Texture2D = null
+var _anim_dir := ANIM_DIR_DOWN
+var _anim_frame := -1
+
+static var _anim_sheet_cache: Dictionary = {}
 
 func _test_init() -> void:
 	# 纯逻辑测试入口：不进场景树也能测状态机
@@ -59,6 +78,8 @@ func _test_init() -> void:
 func _ready() -> void:
 	if weapon_rig == null:
 		weapon_rig = get_node_or_null("WeaponRig")
+	_anim_sprite = get_node_or_null("Sprite") as Sprite2D
+	_load_anim_sheet()
 	EventBus.shield_broken.connect(_on_shield_broken)
 
 func _physics_process(_delta: float) -> void:
@@ -80,6 +101,7 @@ func _physics_process(_delta: float) -> void:
 			FRICTION * friction_mult)
 	move_and_slide()
 	_shield_tick(f)
+	_update_walk_anim(dir, f)
 
 func start_roll(dir: Vector2, frame: int) -> void:
 	var d := dir.normalized()
@@ -88,6 +110,74 @@ func start_roll(dir: Vector2, frame: int) -> void:
 	_roll_end_frame = frame + ROLL_TICKS
 	_roll_cd_until = _roll_end_frame + effective_roll_cd_ticks()
 	Fx.on_roll(self)
+
+# ---- m2-t17 四向行走动画（帧表驱动，纯整数运算零分配） ----
+
+## 方向行号：主轴优先（|x|>=|y| 取横向），对角输入落横行；静止由调用方保留上一行。
+static func anim_dir_index(dir: Vector2) -> int:
+	if absf(dir.x) >= absf(dir.y):
+		return ANIM_DIR_RIGHT if dir.x >= 0.0 else ANIM_DIR_LEFT
+	return ANIM_DIR_DOWN if dir.y >= 0.0 else ANIM_DIR_UP
+
+## 行走循环列（1..3，8t/帧）；idle 恒列 0。
+static func anim_walk_col(frame: int) -> int:
+	return 1 + int(floor(float(frame) / ANIM_WALK_TICKS)) % 3
+
+## 帧序号纯函数：dir 为移动输入（ZERO=idle，沿用 last_dir 行）。
+static func anim_frame_index(dir: Vector2, last_dir: int, frame: int) -> int:
+	var row := last_dir
+	if dir != Vector2.ZERO:
+		row = anim_dir_index(dir)
+	var col := 0
+	if dir != Vector2.ZERO:
+		col = anim_walk_col(frame)
+	return row * ANIM_SHEET_COLS + col
+
+## 帧表装配：hero meta → hero_<id>_sheet.png（ArtLookup.tex 缓存载入，一次性）。
+## 缺表（新英雄未出帧表）回落 hframes=1 单帧＝ArtLookup.apply_player_sprite 的站立像。
+func _load_anim_sheet() -> void:
+	if _anim_sprite == null:
+		return
+	var hero_id := "vanguard"
+	if has_meta("hero"):
+		hero_id = String((get_meta("hero") as Dictionary).get("id", hero_id))
+	if not _anim_sheet_cache.has(hero_id):
+		_anim_sheet_cache[hero_id] = ArtLookup.tex(ANIM_SHEET_PATH_FMT % hero_id)
+	_anim_sheet = _anim_sheet_cache[hero_id]
+	_apply_anim_texture()
+
+func _apply_anim_texture() -> void:
+	if _anim_sprite == null:
+		return
+	if _anim_sheet == null:
+		_anim_sprite.hframes = 1          # 站立像单帧（帧表缺失英雄的回落）
+		_anim_sprite.vframes = 1
+		_anim_sprite.frame = 0
+		_anim_frame = -1
+		_anim_seen_tex = _anim_sprite.texture
+		return
+	_anim_sprite.texture = _anim_sheet
+	_anim_sprite.hframes = ANIM_SHEET_COLS
+	_anim_sprite.vframes = ANIM_SHEET_ROWS
+	_anim_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_anim_seen_tex = _anim_sheet
+	_anim_frame = -1
+
+## 移动方向自动切行动画：进房被 apply_player_sprite 写回站立像（或 run_root 装配
+## 晚于 _ready 落 meta）时按贴图同一性懒重解析；帧序只在变化时写 Sprite（零热路径分配）。
+func _update_walk_anim(dir: Vector2, frame: int) -> void:
+	if _anim_sprite == null:
+		return
+	if _anim_sprite.texture != _anim_seen_tex:
+		_load_anim_sheet()
+	if _anim_sheet == null:
+		return
+	if dir != Vector2.ZERO:
+		_anim_dir = anim_dir_index(dir)
+	var idx := anim_frame_index(dir, _anim_dir, frame)
+	if idx != _anim_frame:
+		_anim_sprite.frame = idx
+		_anim_frame = idx
 
 func roll_ready_at(frame: int) -> bool:
 	return frame >= _roll_cd_until
