@@ -2,7 +2,7 @@
 
 > GDD 契约出处：数据表附录 A「解锁规则」（紫/橙 49 把默认锁定，图鉴任务解锁后进掉落池；示例：击杀 300 敌人解锁「哑火者」、完成 10 次熔铸解锁「湮灭号角」）、设计文档 §8.1（49 把 = 约 42% 内容构成 20h 长线目标）与 §14.3（20h 图鉴解锁 80%）。
 > 本文为图鉴解锁任务全表定稿（设计 + 数据卡）：49 条 = `data/weapons.json` 全部 `locked:true` 武器（紫 33 + 橙 16）逐一给出解锁条件。
-> 数据文件 `data/unlock_tasks.json`（纯数据卡，FileAccess 直读，暂不经 GameDB 装载）；契约测试 `tests/unit/test_unlock_data.gd`（schema 自校验 fail-closed，照抄 T2 `test_talents_data.gd` 模式）。
+> 数据文件 `data/unlock_tasks.json`（纯数据卡，FileAccess 直读，暂不经 GameDB 装载）；契约测试 `tests/unit/test_unlock_data.gd`（schema 自校验 fail-closed；fail-closed/负样本风格同 T2 `test_talents_data.gd`，装载机制为 FileAccess 直读独立校验——trials 数据卡先行模式，见评审 Minor ③勘误）。
 > 系统落地消费方：M2-T20（`core/meta/codex_system.gd`：`progress(task_id) -> {cur, goal}`，解锁→`SaveSystem.unlocked` + 武器进掉落池）、M2-T25（存档 v2：计数器持久化字段）、M2-T33（成就系统共享计数源）。
 
 ## J.1 任务 Schema（契约）
@@ -29,8 +29,8 @@ JSON 数字解析为 float 的整值还原口径与 `GameDB._normalize_row` 一�
 | `clear_floor_x` | 通过指定层 | 层号 1..3 | 通过次数 | `floor_clear` 事件（按层分桶）→ `counters.floor_clears[i]` |
 | `craft_x` | 累计完成熔铸 | 0 | 熔铸次数 | 熔铸台 `item_forged` 事件 → `counters.crafts_total` |
 | `resonate_x` | 累计触发元素共鸣 | 0 | 共鸣次数 | `EventBus.resonance_triggered`（既有信号）→ `counters.resonances_total` |
-| `collect_gems_x` | 累计获得蓝晶 | 0 | 蓝晶枚数 | 层通过/击杀/首杀/成就蓝晶入账事件 → `counters.gems_earned_total` |
-| `buy_x` | 累计商店购买 | 0 | 件数 | 商店/饮料机成交事件 → `counters.purchases_total` |
+| `collect_gems_x` | 累计获得蓝晶 | 0 | 蓝晶枚数 | 层通过蓝晶事件（附录 H 已定）→ `counters.gems_earned_total`；击杀/首杀/成就蓝晶入账口径依赖 M2-T32/T33 结算 |
+| `buy_x` | 累计商店购买 | 0 | 件数 | `shop_purchase(kind)` 信号（K.2 声明；shop.gd/drink_machine.gd 现无购买信号/遥测，发射点归 M2-T35 接线卡）→ `counters.purchases_total` |
 
 全部 6 类可由既有遥测行或 RunState 字段判定；**计数一律为跨局累计口径**（本局值由 RunState/Telemetry 会话计数提供，入档聚合由 M2-T25 migration v2 落地）。解锁判定 = `progress(task_id).cur >= goal`（M2-T20 实现）。
 
@@ -38,7 +38,7 @@ JSON 数字解析为 float 的整值还原口径与 `GameDB._normalize_row` 一�
 
 1. **附录 A 既定示例优先照录**（数值唯一出处，Global Constraint 3）：哑火者 `kill_x 300`、湮灭号角 `craft_x 10`。
 2. **裁定③**：4 把★熔铸限定（星陨炮/雷神之锤/斩舰刀/湮灭核心）条件类型一律 `craft_x`（熔铸获取），并携带 `forge_only:true`（J.6）。
-3. **元素武器 → `resonate_x`**：`weapons.json` 中 `element != none` 的 12 把（紫 11 + 橙 1 电磁轨道）——元素附魔是共鸣玩法的输入，解锁线与玩法线同构。
+3. **元素武器 → `resonate_x`**：`weapons.json` 中 `element != none` 的 13 把（紫 11 + 橙 2：电磁轨道、★雷神之锤，均 shock）——元素附魔是共鸣玩法的输入，解锁线与玩法线同构；其中★雷神之锤已被规则 2（裁定③ craft_x）先行覆盖，故实际走 resonate_x 的为 12 把。
 4. **共鸣特性武器 → `resonate_x`**：彩虹发生器（四元素每 1s 轮换）、星核榴弹（必触发已有异常的共鸣）——特性文本直接绑定共鸣；光学分裂系（棱镜权杖、镜面杖）同归此线（分光/分裂视觉即共鸣表达）。
 5. **直射/穿透/近战输出向 → `kill_x`**：狙击重炮、高伤近战、速射清怪系（含穿棱镜「穿透一切」、老兵「资历」）。
 6. **层进阶向 → `clear_floor_x`**：紫档挂 A2（param 2）、橙档挂 A3（param 3）——紫武 = 中期推进奖励，橙武 = 毕业推进奖励。
@@ -143,35 +143,61 @@ JSON 数字解析为 float 的整值还原口径与 `GameDB._normalize_row` 一�
 - **★4 把（`forge_only:true`）例外**：解锁后**仍不入普通掉落池**，只保留熔铸产出路径（附录 D 固定配方）——图鉴只点亮条目。T20 的池过滤必须同时检查 `unlock_tasks[id].forge_only`（该键即为本约定在数据面的落地，weapons.json 无需也不得加此键）。
 - 计数器持久化：M2-T25 存档 v2 的 `unlock_tasks` 进度字段（J.2 六类计数器）；M2-T33 成就系统复用同一计数源（计划卡 T33 明文）。
 
-## J.7 增益效果键白名单扩展（M2-T3 定稿 → M2-T12 消费）
+## J.7 增益效果键白名单扩展（权威 = M2-T12 实现）
 
-`data/buffs.json` 现有 16 条（M1），附录 C 全 36 条 → 剩余 20 条新增益（T12 转录；计划卡行文「+21」，与附录 C 实际清点 36−16=20 差 1，见 J.9）。本节定稿其效果键扩展白名单：**新键 21 个覆盖 20 条**（共鸣增幅占 2 键）。键名与 T12 卡已声明聚合键（`haggle_pct, heart_sense_pct, pickup_radius_pct, phoenix_flag, anti_fire/ice/poison, element_vision, vengeance_pct, wealth_pct…`）逐字对齐。T12 须同步扩展 `GameDB.BUFF_PCT_KEYS/BUFF_INT_KEYS` 并新增 BOOL 键组；**本卡不改 `data/buffs.json`**（文件所有权归 T12）。
+**权威声明（评审 Major ① 勘误）**：本节原按 T3 预估出具 21 键；M2-T12（`.worktrees/m2-t12`，commit `137eed1` "feat(m2-t12): complete 36 buffs"）已并行落地 **25 个新效果键（11 pct + 8 int + 6 flag）**，并以 `GameDB.BUFF_PCT_KEYS/BUFF_INT_KEYS/BUFF_FLAG_KEYS` + `BuffManager.EFFECT_DEFAULTS/PLAYER_META_KEYS/RIG_META_KEYS` 为运行时白名单。**键名以 T12 实现为唯一权威**，本表按 T12 实键重排（原预估拆键差异：蓝能汲取/弹药转化/元素视界拆为对键、复仇者增设时长键）。T15（天赋 effects 键「复用 buff_manager 键」）及 T20/T33 一律按本表（= T12 实键）取名，**不得使用下节映射表中 T3 原名**。
 
-| 新键 | 类型 | 幅度 | 增益（附录 C） | 消费卡号 |
-|---|---|---|---|---|
-| `wealth_pct` | float | 0.20 | 财富：金币获取 +20% | M2-T12 → Pickup 金币结算（T31 复核） |
-| `big_eater_pct` | float | 0.50 | 大胃王：饮料效果 +50% | M2-T12 → DrinkMachine |
-| `pickup_radius_pct` | float | 0.60 | 捡拾磁铁：拾取范围 +60% | M2-T12 → Pickup.MAGNET_RANGE_PX 乘区 |
-| `heart_sense_pct` | float | 0.50 | 红心感应：红心掉率 +50% | M2-T12 → 掉落 roll |
-| `energy_siphon_pct` | float | 0.10 | 蓝能汲取：击杀 10% 概率回 2 蓝 | M2-T12 → kill 钩子（能量系统） |
-| `ammo_convert_energy` | int | 10 | 弹药转化：每 30s 被动回 10 蓝 | M2-T12 → 周期计时器 |
-| `haggle_pct` | float | 0.15 | 议价：商店价格 −15% | M2-T12 → ShopLogic 价格乘区 |
-| `element_vision` | int | 9（ticks） | 元素视界：弹幕/激光预警 +0.15s | M2-T12 → 预警组件（T7 警示线加时消费） |
-| `resonance_vision_flag` | bool | true | 共鸣视界：异常状态敌人高亮描边 | M2-T12 → 敌人渲染钩子 |
-| `vengeance_pct` | float | 0.25 | 复仇者：受击后 3s 伤害 +25% | M2-T12 → DamageCalc 条件乘区 |
-| `hunter_vs_status_pct` | float | 0.20 | 猎杀者：对异常目标伤害 +20% | M2-T12 → DamageCalc 条件乘区 |
-| `resonance_radius_pct` | float | 0.30 | 共鸣增幅：共鸣 AoE 半径 +30% | M2-T12 → core/combat/resonance.gd |
-| `resonance_duration_ticks` | int | 60 | 共鸣增幅：持续 +1s | M2-T12 → core/combat/resonance.gd |
-| `nerve_reflex_ticks` | int | 15 | 神经反射：受击无敌帧 +0.25s | M2-T12 → Player.apply_iframes |
-| `bullet_resist_pct` | float | 0.08 | 甲壳：受弹幕伤害 −8% | M2-T12 → 受击结算 |
-| `thorns_dmg` | int | 3 | 荆棘护甲：被接触时反伤 3 | M2-T12 → 接触伤害回调 |
-| `dash_extend_pct` | float | 0.25 | 冲刺延伸：翻滚距离 +25% | M2-T12 → 翻滚冲量乘区 |
-| `phoenix_flag` | bool | true | 不死鸟（唯一）：致死保留 1 HP，每局 1 次 | M2-T12 → Player 死亡拦截 |
-| `anti_fire` | bool | true | 抗火：免疫燃烧；岩浆伤害 −50% | M2-T12 → status（T10 hazard_magma 岩浆减半消费） |
-| `anti_ice` | bool | true | 抗冰：免疫冰缓与冰面打滑 | M2-T12 → status（T4 ice_floor 打滑免疫消费） |
-| `anti_poison` | bool | true | 抗毒：免疫中毒 | M2-T12 → status |
+拆键比预估多的原因：单键混合「概率 × 幅度」或「周期 × 数值」会迫使消费方硬编码伴生参数——T12 拆为对键（如 `kill_energy_chance` + `kill_energy_amount`）后每个键语义单一，聚合与消费各自独立。符号约定沿用 `roll_cd_pct`：**负值 = 方向减益**（`bullet_dmg_taken_pct: -0.08` 受伤减免、`haggle_pct: -0.15` 降价）。
 
-既有 15 键（`BUFF_PCT_KEYS` 9 + `BUFF_INT_KEYS` 6）语义不变，T12 对既有 16 条的「修正」只动数值不动键名（附录 C 修正口径归 T12 卡）。
+### J.7.1 白名单（25 新键，键名 = T12 实键）
+
+| 新键 | 类型 | 幅度 | 增益（附录 C / T12 id） | 聚合落地 | 消费点 | 接线卡 |
+|---|---|---|---|---|---|---|
+| `dmg_vs_statused_pct` | float | 0.20 | 猎杀者 `hunter` | rig meta | CombatSystem 命中结算（目标异常伤害乘区） | 待 T35 接线 |
+| `resonance_radius_pct` | float | 0.30 | 共鸣增幅 `resonance_amp` | rig meta | 共鸣结算 AoE 扩散 | 待 T35 接线 |
+| `resonance_duration_ticks` | int | 60 | 共鸣增幅 `resonance_amp` | rig meta | 共鸣结算持续 | 待 T35 接线 |
+| `vengeance_pct` | float | 0.25 | 复仇者 `avenger` | rig meta | CombatSystem 输出乘区（受击后窗口） | 待 T35 接线 |
+| `vengeance_ticks` | int | 180 | 复仇者 `avenger` | rig meta | 同上（3s 窗口时长） | 待 T35 接线 |
+| `bullet_dmg_taken_pct` | float | −0.08 | 甲壳 `carapace` | player meta | Player.take_hit_ctx 弹幕来伤乘区（1+pct） | 待 T35 接线 |
+| `roll_distance_pct` | float | 0.25 | 冲刺延伸 `dash_extend` | player meta | Player.start_roll 翻滚距离乘区 | 待 T35 接线 |
+| `phoenix_flag` | flag | 1 | 不死鸟（唯一）`phoenix` | player meta | Player.take_hit_ctx 致死分支（每局 1 次） | 待 T35 接线 |
+| `hurt_iframe_bonus_ticks` | int | 15 | 神经反射 `nerve_reflex` | player meta | Player.take_hit_ctx 无敌帧加算 | 待 T35 接线 |
+| `thorns_contact_dmg` | int | 3 | 荆棘护甲 `thorn_armor` | player meta | 接触伤路径反伤 | 待 T35 接线 |
+| `wealth_pct` | float | 0.20 | 财富 `wealth` | player meta | Pickup 金币 on_collect 乘区（天赋同义键 T15/T31） | 待 T35 接线 |
+| `drink_effect_pct` | float | 0.50 | 大胃王 `glutton` | player meta | DrinkMachine._apply_drink 效果值乘区 | 待 T35 接线 |
+| `pickup_radius_pct` | float | 0.60 | 捡拾磁铁 `pickup_magnet` | player meta | Pickup.MAGNET_RANGE_PX 乘区（天赋同义键 T15；掉落面 T20） | 待 T35 接线 |
+| `kill_energy_chance` | float | 0.10 | 蓝能汲取 `energy_siphon` | player meta | 击杀结算钩（RoomCombat 敌死亡掷签） | 待 T35 接线 |
+| `kill_energy_amount` | int | 2 | 蓝能汲取 `energy_siphon` | player meta | 同上（回蓝量） | 待 T35 接线 |
+| `heart_sense_pct` | float | 0.50 | 红心感应 `heart_sense` | player meta | 红心掉落掷签权重乘区 | 待 T35 接线 |
+| `passive_energy_interval_ticks` | int | 1800 | 弹药转化 `ammo_convert` | player meta | 房间帧循环周期回蓝（30s） | 待 T35 接线 |
+| `passive_energy_amount` | int | 10 | 弹药转化 `ammo_convert` | player meta | 同上（每次回蓝量） | 待 T35 接线 |
+| `haggle_pct` | float | −0.15 | 议价 `haggle` | player meta | ShopLogic 商店结算乘区（1+pct，负=降价） | 待 T35 接线 |
+| `element_vision` | flag | 1 | 元素视界 `element_vision` | player meta | 敌方弹幕/激光预警展示开关 | **M2-T7**（警示线）+ T35（展示侧） |
+| `telegraph_bonus_ticks` | int | 9 | 元素视界 `element_vision` | player meta | 预警 +0.15s（9 ticks）加时 | **M2-T7**（敌激光警示线） |
+| `resonance_vision` | flag | 1 | 共鸣视界 `resonance_vision` | player meta | 敌人异常高亮描边渲染钩子 | **M2-T21**（敌人渲染接线） |
+| `anti_fire` | flag | 1 | 抗火 `anti_fire` | player meta | 岩浆伤害 −50%；燃烧免疫 | **M2-T10**（岩浆减半）+ T35（免疫系） |
+| `anti_ice` | flag | 1 | 抗冰 `anti_ice` | player meta | 冰面打滑免疫；冰缓免疫 | 待 T35 接线（T4 冰面组件已合，读侧补线） |
+| `anti_poison` | flag | 1 | 抗毒 `anti_poison` | player meta | 中毒免疫 | 待 T35 接线 |
+
+「聚合落地」列 = T12 `BuffManager` 已写入 `buff_<key>` meta（player/rig，绝对值幂等重写）；「接线卡」列 = 读侧消费的责任卡——**除 T7/T10/T21 三张在途卡各自接线外，其余读侧接线统一归 M2-T35 接线卡**（T12 只落聚合不落消费，全库 `get_meta("buff_*")` 读点当前为零，评审已核实）。既有 15 键（`BUFF_PCT_KEYS` 原 9 + `BUFF_INT_KEYS` 原 6）语义不变。
+
+### J.7.2 T3 原名 → T12 实键映射（历史对照，取键勿用左列）
+
+| T3 原预估键 | T12 实键（权威） |
+|---|---|
+| `big_eater_pct` | `drink_effect_pct` |
+| `energy_siphon_pct` | `kill_energy_chance` + `kill_energy_amount`（拆对） |
+| `ammo_convert_energy` | `passive_energy_interval_ticks` + `passive_energy_amount`（拆对） |
+| `element_vision`（int 9t） | `element_vision`（flag）+ `telegraph_bonus_ticks`（int 9，拆对） |
+| `resonance_vision_flag` | `resonance_vision` |
+| `hunter_vs_status_pct` | `dmg_vs_statused_pct` |
+| `nerve_reflex_ticks` | `hurt_iframe_bonus_ticks` |
+| `bullet_resist_pct` | `bullet_dmg_taken_pct`（名+符号向变更：负值=减伤） |
+| `thorns_dmg` | `thorns_contact_dmg` |
+| `dash_extend_pct` | `roll_distance_pct` |
+| （未预估） | `vengeance_ticks`（复仇者 3s 窗口，T12 增补） |
+
+其余 11 键（wealth_pct / pickup_radius_pct / heart_sense_pct / haggle_pct / vengeance_pct / resonance_radius_pct / resonance_duration_ticks / phoenix_flag / anti_fire / anti_ice / anti_poison）两边逐字一致。
 
 ## J.8 校验清单（`tests/unit/test_unlock_data.gd`，全部 fail-closed）
 
@@ -185,6 +211,7 @@ JSON 数字解析为 float 的整值还原口径与 `GameDB._normalize_row` 一�
 8. desc 文案含阈值数字（与 `goal` 字段一致；`clear_floor_x` 另含层号）。
 9. 行级校验器负样本：坏 type / goal ≤ 0 / 小数 goal / 越界 param / 非 floor 带 param / 缺键 / id≠weapon / 空 desc / forge_only 非 bool。
 
-## J.9 与规格出处的计数勘误（上报留档）
+## J.9 与规格出处的计数勘误（评审闭环留档）
 
-- 附录 C 全 36 条 − M1 已有 16 条 = **剩余 20 条**新增益；计划卡 T12 行文「+21 → 36」按 16+21=37 计，与附录 C 实际总和差 1。本卡按附录 C（数值唯一出处）实际清点 20 条出具白名单（21 个新键，共鸣增幅占 2 键）；若 T12 按「21 条」执行，多出的 1 条以附录 C 全表为准对齐，键须落入本白名单或由 T12 卡补宣言。
+- **增益条数**：附录 C 全 36 条 − M1 已有 16 条 = **剩余 20 条**新增益（计划卡 T12 行文「+21 → 36」按 16+21=37 计，差 1；另 T12 卡稀有度行文「白14/绿12/蓝10」与附录 C 实际「白15/绿11/蓝10」亦差档）。**已由 T12 落地定稿：36 条（白15/绿11/蓝10）+ 25 新键（J.7.1），两处行文偏差以附录 C 与 T12 实数据为准，勘误闭环。**
+- **元素武器清点**：locked 且 `element != none` 为 13 把（紫 11 + 橙 2），J.3 原文「12 把」漏计★雷神之锤（shock，已被裁定③ craft_x 覆盖，分配结果不受影响）——已勘误（评审 Minor ①）。
