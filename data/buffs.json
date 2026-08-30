@@ -62,5 +62,90 @@
 	"crit_detonate": {
 		"id": "crit_detonate", "name": "暴虐回响", "rarity": "rare",
 		"desc": "唯一：暴击时 20% 立即强制共鸣", "effects": {"crit_detonate_pct": 0.2}
+	},
+	"hunter": {
+		"id": "hunter", "name": "猎杀者", "rarity": "rare",
+		"desc": "对处于异常状态的目标伤害 +20%", "effects": {"dmg_vs_statused_pct": 0.2}
+	},
+	"resonance_amp": {
+		"id": "resonance_amp", "name": "共鸣增幅", "rarity": "rare",
+		"desc": "共鸣 AoE 半径 +30%、持续 +1s",
+		"effects": {"resonance_radius_pct": 0.3, "resonance_duration_ticks": 60}
+	},
+	"avenger": {
+		"id": "avenger", "name": "复仇者", "rarity": "rare",
+		"desc": "受击后 3s 内伤害 +25%",
+		"effects": {"vengeance_pct": 0.25, "vengeance_ticks": 180}
+	},
+	"anti_fire": {
+		"id": "anti_fire", "name": "抗火", "rarity": "common",
+		"desc": "免疫燃烧；岩浆伤害 -50%", "effects": {"anti_fire": 1}
+	},
+	"anti_ice": {
+		"id": "anti_ice", "name": "抗冰", "rarity": "common",
+		"desc": "免疫冰缓与冰面打滑", "effects": {"anti_ice": 1}
+	},
+	"anti_poison": {
+		"id": "anti_poison", "name": "抗毒", "rarity": "common",
+		"desc": "免疫中毒", "effects": {"anti_poison": 1}
+	},
+	"nerve_reflex": {
+		"id": "nerve_reflex", "name": "神经反射", "rarity": "uncommon",
+		"desc": "受击无敌帧 +0.25s", "effects": {"hurt_iframe_bonus_ticks": 15}
+	},
+	"carapace": {
+		"id": "carapace", "name": "甲壳", "rarity": "uncommon",
+		"desc": "受弹幕伤害 -8%", "effects": {"bullet_dmg_taken_pct": -0.08}
+	},
+	"thorn_armor": {
+		"id": "thorn_armor", "name": "荆棘护甲", "rarity": "uncommon",
+		"desc": "被接触时反伤 3", "effects": {"thorns_contact_dmg": 3}
+	},
+	"dash_extend": {
+		"id": "dash_extend", "name": "冲刺延伸", "rarity": "rare",
+		"desc": "翻滚距离 +25%", "effects": {"roll_distance_pct": 0.25}
+	},
+	"phoenix": {
+		"id": "phoenix", "name": "不死鸟", "rarity": "rare",
+		"desc": "唯一：致死伤害保留 1 HP（每局 1 次）", "effects": {"phoenix_flag": 1}
+	},
+	"wealth": {
+		"id": "wealth", "name": "财富", "rarity": "common",
+		"desc": "金币获取 +20%", "effects": {"wealth_pct": 0.2}
+	},
+	"glutton": {
+		"id": "glutton", "name": "大胃王", "rarity": "common",
+		"desc": "饮料效果 +50%", "effects": {"drink_effect_pct": 0.5}
+	},
+	"pickup_magnet": {
+		"id": "pickup_magnet", "name": "捡拾磁铁", "rarity": "common",
+		"desc": "拾取范围 +60%", "effects": {"pickup_radius_pct": 0.6}
+	},
+	"energy_siphon": {
+		"id": "energy_siphon", "name": "蓝能汲取", "rarity": "uncommon",
+		"desc": "击杀 10% 概率回 2 蓝",
+		"effects": {"kill_energy_chance": 0.1, "kill_energy_amount": 2}
+	},
+	"heart_sense": {
+		"id": "heart_sense", "name": "红心感应", "rarity": "uncommon",
+		"desc": "红心掉率 +50%", "effects": {"heart_sense_pct": 0.5}
+	},
+	"ammo_convert": {
+		"id": "ammo_convert", "name": "弹药转化", "rarity": "uncommon",
+		"desc": "每 30s 被动回 10 蓝",
+		"effects": {"passive_energy_interval_ticks": 1800, "passive_energy_amount": 10}
+	},
+	"haggle": {
+		"id": "haggle", "name": "议价", "rarity": "rare",
+		"desc": "商店价格 -15%", "effects": {"haggle_pct": -0.15}
+	},
+	"element_vision": {
+		"id": "element_vision", "name": "元素视界", "rarity": "rare",
+		"desc": "弹幕/激光预警 +0.15s，预警线更醒目",
+		"effects": {"element_vision": 1, "telegraph_bonus_ticks": 9}
+	},
+	"resonance_vision": {
+		"id": "resonance_vision", "name": "共鸣视界", "rarity": "rare",
+		"desc": "处于异常状态的敌人高亮描边", "effects": {"resonance_vision": 1}
 	}
 }

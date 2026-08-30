@@ -37,15 +37,60 @@ const BUFF_SCHEMA := {
 }
 const BUFF_OPTIONAL := {}
 const BUFF_RARITIES: Array[String] = ["common", "uncommon", "rare"]
-# effects 键白名单（t9 控制器决议）：百分比键取数值，整型键取 int（_normalize_row 已还原）
+# effects 键白名单（t9 控制器决议 + m2-t12 附录 C 全量键位对齐）：
+# 百分比键取数值，整型键取 int（_normalize_row 已还原）。
+# m2-t12 新增 25 键【消费方待接线 → T35】（编排者已立卡：meta 生效接线，含
+# player/pickup/shop_logic/drink_machine/weapon_rig/fx 的 get_meta("buff_<key>") 读取）。
+# 【评审 Major 修复① 注记改真】逐键核实：截至本 commit，下列键在代码库中零消费
+# （无任何 get_meta("buff_*") 调用；T4 ice_floor/biome_fx 不读 meta，T10 岩浆未交付，
+# Player.take_hit_ctx 用固定 HURT_IFRAME_TICKS 常量、Pickup/ShopLogic 均常量结算）。
+# 各键原注记声称的「M1 既有消费方」均为失实，改为目标消费模块 + T35 待接线状态：
+#   攻击侧（rig meta；目标消费 = CombatSystem 命中/共鸣结算路径）：
+#     hunter         dmg_vs_statused_pct / resonance_amp resonance_radius_pct +
+#                    resonance_duration_ticks / avenger vengeance_pct + vengeance_ticks
+#   防御侧（player meta）：
+#     抗性三键       anti_fire / anti_ice / anti_poison（目标 = StatusComponent 免疫 +
+#                    岩浆/冰面抗性；T4 冰面、T10 岩浆在 T35 一并接 meta）
+#     nerve_reflex   hurt_iframe_bonus_ticks（目标 = Player 受击无敌帧加算）
+#     carapace       bullet_dmg_taken_pct（目标 = Player 弹幕来伤乘区 1+pct）
+#     thorn_armor    thorns_contact_dmg（目标 = 接触伤路径反伤）
+#     dash_extend    roll_distance_pct（目标 = Player.start_roll 翻滚距离乘区）
+#     phoenix        phoenix_flag（目标 = Player 致死结算保留 1 HP，每局 1 次）
+#   资源/功能侧（player meta）：
+#     wealth         wealth_pct（目标 = Pickup coin 结算乘区）
+#     glutton        drink_effect_pct（目标 = DrinkMachine 效果值乘区）
+#     pickup_magnet  pickup_radius_pct（目标 = Pickup.MAGNET_RANGE_PX 乘区）
+#     energy_siphon  kill_energy_chance + kill_energy_amount（目标 = 击杀结算钩）
+#     heart_sense    heart_sense_pct（目标 = 红心掉落掷签乘区）
+#     ammo_convert   passive_energy_interval_ticks + passive_energy_amount（目标 = 周期回蓝）
+#     haggle         haggle_pct（目标 = ShopLogic 商店结算乘区 1+pct；负值 = 降价，
+#                    同 roll_cd_pct 约定。消费方约定【评审修复③】：T35 落地时须
+#                    clamp 到 [-0.5, 0] 或更窄——两三个议价叠加的理论极端值不得
+#                    产生 ≤0 价格或正收益）
+#     element_vision element_vision + telegraph_bonus_ticks（目标 = 敌方预警展示，
+#                    数值部分 = 预警 +0.15s = 9t；「预警线更醒目」视觉部分由消费方渲染）
+#     resonance_vision resonance_vision（目标 = 敌人异常高亮渲染）
 const BUFF_PCT_KEYS: Array[String] = [
 	"move_speed_pct", "crit_pct", "crit_dmg_pct", "atk_speed_pct",
 	"bullet_speed_pct", "status_rate_pct", "roll_cd_pct", "crit_detonate_pct",
 	"element_proc_chance",
+	"dmg_vs_statused_pct", "resonance_radius_pct", "vengeance_pct",
+	"bullet_dmg_taken_pct", "roll_distance_pct",
+	"wealth_pct", "drink_effect_pct", "pickup_radius_pct",
+	"kill_energy_chance", "heart_sense_pct", "haggle_pct",
 ]
 const BUFF_INT_KEYS: Array[String] = [
 	"hp_max", "shield_max", "energy_max", "shield_delay_reduction_ticks",
 	"element_enchant", "extra_projectiles",
+	"resonance_duration_ticks", "vengeance_ticks", "hurt_iframe_bonus_ticks",
+	"thorns_contact_dmg", "passive_energy_interval_ticks", "passive_energy_amount",
+	"kill_energy_amount", "telegraph_bonus_ticks",
+]
+# 0/1 语义 flag 键（免疫系/视界系/不死鸟）：行值仅 0 或 1；聚合取 max
+# （BuffManager.aggregate，重复拾取不叠加，结果恒 0/1）——m2-t12 评审修复②。
+const BUFF_FLAG_KEYS: Array[String] = [
+	"anti_fire", "anti_ice", "anti_poison", "phoenix_flag",
+	"element_vision", "resonance_vision",
 ]
 # 角色（t11）：16 键全部必填，无 optional；行级校验 validate_hero_row（start_weapons 白名单）
 const HERO_SCHEMA := {
@@ -360,7 +405,10 @@ func validate_buff_row(row: Dictionary) -> Array[String]:
 		return errors
 	for k: String in eff:
 		var v: Variant = eff[k]
-		if BUFF_PCT_KEYS.has(k):
+		if BUFF_FLAG_KEYS.has(k):
+			if typeof(v) != TYPE_INT or int(v) < 0 or int(v) > 1:
+				errors.append("effect %s must be int flag 0/1" % k)
+		elif BUFF_PCT_KEYS.has(k):
 			if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
 				errors.append("effect %s must be number" % k)
 		elif BUFF_INT_KEYS.has(k):
