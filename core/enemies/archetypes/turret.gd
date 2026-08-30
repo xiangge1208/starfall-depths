@@ -41,7 +41,13 @@ func _engage(frame: int) -> void:
 				Fx.on_enemy_hit(self, {"telegraph": true})
 
 ## windup 结束拍：扇形一次性齐射；连发先落第 1 发（间隔从下一拍起算）。
+## m2-t7：行键 laser=true → 激光形态（A2 岩晶炮台）：改发 EnemyLaser（直线激光束，
+## 命中晶柱 45° 折射一次，见 core/enemies/enemy_laser.gd），随后照常进冷却。
 func _begin_volley(frame: int) -> void:
+	if bool(row.get("laser", false)):
+		_fire_laser()
+		_begin_cool()
+		return
 	var fan := int(row.get("fan_count", 0))
 	if fan > 1:
 		_fire_fan(fan)
@@ -58,6 +64,36 @@ func _begin_volley(frame: int) -> void:
 
 func _burst_gap() -> int:
 	return maxi(int(row.get("burst_interval_ticks", DEFAULT_BURST_INTERVAL)) - 1, 0)
+
+
+## m2-t7 激光形态发射：EnemyLaser 挂自身（炮台死亡束随体消亡）；晶柱折射源 =
+## 场景 refraction_pillars 组（FloorScene 建柱时登记，世界坐标）；bound = 房间
+## 可玩内域（combat_bounds，脑层测试空矩形 = 无界）。参数复用行内 bullet_* 键。
+func _fire_laser() -> void:
+	fired_this_tick = true
+	var d := (_player_pos() - brain_pos).normalized()
+	if d == Vector2.ZERO:
+		d = Vector2.RIGHT
+	var pillars: Array[Vector2] = []
+	if is_inside_tree():
+		for node in get_tree().get_nodes_in_group(EnemyLaser.PILLAR_GROUP):
+			var p := node as Node2D
+			if p != null and is_instance_valid(p):
+				pillars.append(p.global_position)
+	var laser := EnemyLaser.new()
+	laser.name = "EnemyLaser"
+	add_child(laser)
+	laser.setup({
+		"pos": brain_pos, "dir": d,
+		"speed_px": float(row.get("bullet_speed", EnemyLaser.DEFAULT_SPEED_PX)),
+		"damage": int(row.get("bullet_dmg", 5)),
+		"life_ticks": TimeConst.ticks(float(row.get("bullet_life_seconds", 2.0))),
+		"pillars": pillars, "bounds": combat_bounds, "player": player_ref,
+		"source_id": String(row.get("id", "")),
+		"source_name": String(row.get("name", row.get("id", ""))),
+		"attack_name": "晶棱激光",
+	})
+	AudioMgr.play("shoot_enemy")
 
 func _begin_cool() -> void:
 	_phase = "cool"

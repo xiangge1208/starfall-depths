@@ -35,6 +35,15 @@ const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店�
 const BULLET_VISUAL_CAP := 500
 const BLACK_SHOP_CHANCE := 0.25
 
+## m2-t7 危险地块视觉常量（表现，非玩法数值——周期/伤害在 HazardSpikes/RollingRock）。
+const SPIKE_WARN_COLOR := Color(1.0, 0.35, 0.3, 0.35)    # 地面红纹（预警）
+const SPIKE_OUT_COLOR := Color(0.9, 0.15, 0.1, 1.0)      # 伸出（伤害窗）
+const SPIKE_TILE_PX := 16.0                              # 地刺判定/视觉一格瓦片
+## m2-t7 滚石发射侧 → 滚动方向（从该侧垂直滚入房）。
+const ROCK_SIDE_DIRS := {
+	"W": Vector2.RIGHT, "E": Vector2.LEFT, "N": Vector2.DOWN, "S": Vector2.UP,
+}
+
 ## A1 名录（data/enemies.json）：楼层垃圾怪池，波次按房号确定性轮转组合。
 const A1_TRASH := ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"]
 ## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（swift+berserk 词缀，
@@ -82,6 +91,14 @@ var buffs_manager: BuffManager = null
 var biome_a2 := false
 var biome_fx: BiomeFx = null
 var biome_ice: IceZone = null
+## m2-t7 危险地块注册表（模板 hazards 字段实例化，_build_hazards 填充）：
+## 藤蔓减速域（整层单实例多 zone）+ 地刺/滚石逐 hazard 实例（_tick_hazards 帧驱动）。
+var hazard_vines: VineZone = null
+var _spikes: Array[HazardSpikes] = []
+var _spikes_vis: Array[CanvasItem] = []
+var _rocks: Array[RollingRock] = []
+var _rock_vis: Array[CanvasItem] = []
+var _rock_line_vis: Array[CanvasItem] = []
 
 var _rooms: Dictionary = {}           # int id -> FloorRoom
 var _gates: Dictionary = {}           # "min|max" -> {shape, panel, a, b, open}
@@ -168,6 +185,7 @@ func _physics_process(_delta: float) -> void:
 	# m2-t4 A2 冰面：帧级进出接缝（进域 ×0.25 / 出域回 1.0，只写玩家）。
 	if biome_ice != null and player != null:
 		biome_ice.tick(player)
+	_tick_hazards(frame)
 	var room: FloorRoom = _rooms.get(flow.current_room)
 	if room != null and room.combat != null:
 		for e in room.enemies:
@@ -337,41 +355,161 @@ func _build_unused_door_frames(room: FloorRoom, w: float, h: float, doors: Array
 
 
 ## 模板陈设：pillar/crate 实体阻挡，bush 仅视觉。m1-t28：prop_*.png 接线。
+## m2-t7：pillar（含 A2 晶柱形态，GDD §10「晶柱折射敌方激光」）登记
+## refraction_pillars 组——EnemyLaser 折射判定按组取世界坐标。
 func _build_props(room: FloorRoom, tpl: Dictionary) -> void:
 	for p: Dictionary in tpl.get("props", []):
 		var center := _tile_center(p.get("grid", [0, 0]))
 		match String(p.get("kind", "")):
 			"pillar":
-				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_pillar")
+				var body := _solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_pillar")
+				body.add_to_group(EnemyLaser.PILLAR_GROUP)
 			"crate":
 				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_crate")
 			"bush":
 				_vis_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_bush")
 
 
+## m2-t7 危险地块实例化（模板 hazards 字段驱动，GDD §10）：vine=藤蔓减速带（A1）
+## / spikes=周期地刺（A2）/ rock=滚石发射口（A1）。未知 kind 告警跳过（fail-soft；
+## 当前 GameDB hazards 白名单仅 vine，spikes/rock 行待 A2/A3 模板卡扩展 schema 落库）。
 func _build_hazards(room: FloorRoom, tpl: Dictionary) -> void:
 	for hz: Dictionary in tpl.get("hazards", []):
-		if String(hz.get("kind", "")) != "vine":
-			continue
-		var center := _tile_center(hz.get("grid", [0, 0]))
-		var radius := float(hz.get("radius", 24))
-		# m1-t28：藤蔓减速带贴 hazard_vine.png（32x32 半透明整圆缩放至 2r）。
-		var vis: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("hazard_vine"))
-		if vis == null:
-			var poly := Polygon2D.new()
-			var pts := PackedVector2Array()
-			for i in 12:
-				pts.append(Vector2.from_angle(TAU * i / 12.0) * radius)
-			poly.polygon = pts
-			poly.color = Color(0.3, 0.55, 0.3, 0.18)
-			vis = poly
-			vis.position = center
-		else:
-			(vis as Sprite2D).scale = Vector2.ONE * (radius * 2.0 / (vis as Sprite2D).texture.get_size().x)
-			vis.position = center
-			vis.modulate = Color(1, 1, 1, 0.9)
-		vis.z_index = -5
-		room.add_child(vis)
+		var grid: Array = hz.get("grid", [0, 0])
+		var local := _tile_center(grid)
+		var world := room.position + local
+		match String(hz.get("kind", "")):
+			"vine":
+				_build_vine(room, local, float(hz.get("radius", 24)))
+			"spikes":
+				_build_spikes(room, grid, world)
+			"rock":
+				_build_rock(room, hz, world)
+			_:
+				push_warning("FloorScene: unknown hazard kind '%s'" % String(hz.get("kind", "")))
+
+
+## 藤蔓减速带（A1）：VineZone 域（世界坐标外接方）+ 视觉（m1-t28 贴图回落原染色圆）。
+func _build_vine(room: FloorRoom, local: Vector2, radius: float) -> void:
+	if hazard_vines == null:
+		hazard_vines = VineZone.new()
+	hazard_vines.add_zone(Rect2(local - Vector2(radius, radius) + room.position,
+		Vector2(radius * 2.0, radius * 2.0)))
+	# m1-t28：藤蔓减速带贴 hazard_vine.png（32x32 半透明整圆缩放至 2r）。
+	var vis: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("hazard_vine"))
+	if vis == null:
+		var poly := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for i in 12:
+			pts.append(Vector2.from_angle(TAU * i / 12.0) * radius)
+		poly.polygon = pts
+		poly.color = Color(0.3, 0.55, 0.3, 0.18)
+		vis = poly
+		vis.position = local
+	else:
+		(vis as Sprite2D).scale = Vector2.ONE * (radius * 2.0 / (vis as Sprite2D).texture.get_size().x)
+		vis.position = local
+		vis.modulate = Color(1, 1, 1, 0.9)
+	vis.z_index = -5
+	room.add_child(vis)
+
+
+## 周期地刺（A2）：一瓦片判定域；错峰偏移 = 网格确定性散列（同层多簇不同步）。
+func _build_spikes(room: FloorRoom, grid: Array, world: Vector2) -> void:
+	var zone := Rect2(world - Vector2(SPIKE_TILE_PX / 2.0, SPIKE_TILE_PX / 2.0),
+		Vector2(SPIKE_TILE_PX, SPIKE_TILE_PX))
+	var stagger := (int(grid[0]) * 7 + int(grid[1]) * 13) % HazardSpikes.cycle_ticks()
+	var s := HazardSpikes.new()
+	s.setup(zone, stagger)
+	_spikes.append(s)
+	var vis := Polygon2D.new()
+	vis.polygon = _rect_poly(Rect2(-SPIKE_TILE_PX / 2.0, -SPIKE_TILE_PX / 2.0,
+		SPIKE_TILE_PX, SPIKE_TILE_PX))
+	vis.position = world - room.position
+	vis.z_index = -4
+	vis.visible = false
+	room.add_child(vis)
+	_spikes_vis.append(vis)
+
+
+## 滚石发射口（A1）：出生瓦片 + 发射侧方向 + 房内域（撞墙即消）；预警线视觉
+## 沿滚动方向整条车道，石体视觉 ROLL 相位随位镜像。
+func _build_rock(room: FloorRoom, hz: Dictionary, world: Vector2) -> void:
+	var dir_v: Vector2 = ROCK_SIDE_DIRS.get(String(hz.get("side", "W")), Vector2.RIGHT)
+	var interior := _room_interior(room)
+	var r := RollingRock.new()
+	r.setup(world, dir_v, interior, int(hz.get("interval_ticks", 0)))
+	_rocks.append(r)
+	var local := world - room.position
+	var lane_len: float = interior.size.x if absf(dir_v.x) > 0.5 else interior.size.y
+	var perp := Vector2(-dir_v.y, dir_v.x) * 2.0
+	var lane_end := local + dir_v * lane_len
+	var line := Polygon2D.new()
+	line.polygon = PackedVector2Array([local - perp, local + perp,
+		lane_end + perp, lane_end - perp])
+	line.color = Color(1.0, 0.75, 0.2, 0.25)
+	line.z_index = -4
+	line.visible = false
+	room.add_child(line)
+	_rock_line_vis.append(line)
+	var rock := Polygon2D.new()
+	rock.polygon = _rect_poly(Rect2(-RollingRock.ROCK_RADIUS_PX, -RollingRock.ROCK_RADIUS_PX,
+		RollingRock.ROCK_RADIUS_PX * 2.0, RollingRock.ROCK_RADIUS_PX * 2.0))
+	rock.color = Color(0.45, 0.4, 0.38)
+	rock.z_index = 4
+	rock.visible = false
+	room.add_child(rock)
+	_rock_vis.append(rock)
+
+
+## 房间可玩内域（世界坐标）——滚石撞墙判定 / 敌方激光飞行界共用几何。
+func _room_interior(room: FloorRoom) -> Rect2:
+	return Rect2(room.outer.position + Vector2(WALL_T, WALL_T),
+		room.outer.size - Vector2(WALL_T * 2.0, WALL_T * 2.0))
+
+
+## m2-t7 危险地块帧驱动：藤蔓减速（进出接缝）+ 地刺相位推进/伤害 + 滚石生命周期/
+## 伤害。伤害经 player.take_hit（玩家 0.8s 受击无敌帧天然节流同源连击）；伤害 ctx
+## 仅命中拍构建（事件频率，同敌方接触伤害口径）；视觉仅翻可见性/引用常量色。
+func _tick_hazards(frame: int) -> void:
+	if hazard_vines != null:
+		hazard_vines.tick(player, frame)
+	var player_pos := player.global_position
+	for i in _spikes.size():
+		var s := _spikes[i]
+		s.advance()
+		var vis: CanvasItem = _spikes_vis[i]
+		match s.phase():
+			HazardSpikes.Phase.WARN:
+				vis.visible = true
+				vis.modulate = SPIKE_WARN_COLOR
+			HazardSpikes.Phase.OUT:
+				vis.visible = true
+				vis.modulate = SPIKE_OUT_COLOR
+			_:
+				vis.visible = false
+		if s.damage_at(player_pos) > 0:
+			player.take_hit({
+				"amount": HazardSpikes.DAMAGE, "is_crit": false,
+				"element": Elements.Id.NONE, "from": player_pos,
+				"source_type": "hazard", "source_id": "spikes",
+				"source_name": "地刺", "attack_name": "地刺穿刺",
+			})
+	for i in _rocks.size():
+		var r := _rocks[i]
+		r.advance()
+		_rock_line_vis[i].visible = r.warning_active()
+		var rock_vis: CanvasItem = _rock_vis[i]
+		rock_vis.visible = r.rock_active()
+		if r.rock_active():
+			rock_vis.global_position = r.rock_pos
+		if r.damage_at(player_pos) > 0:
+			player.take_hit({
+				"amount": RollingRock.DAMAGE, "is_crit": false,
+				"element": Elements.Id.NONE, "from": r.rock_pos,
+				"source_type": "hazard", "source_id": "rock",
+				"source_name": "滚石", "attack_name": "滚石碾压",
+			})
 
 
 func _init_spawn_points(room: FloorRoom, tpl: Dictionary) -> void:
@@ -1175,6 +1313,24 @@ func room_count() -> int:
 	return _rooms.size()
 
 
+# ---- m2-t7 危险地块查询面（测试/HUD；越界返回 null 不崩） ----
+
+func hazard_spikes_count() -> int:
+	return _spikes.size()
+
+
+func hazard_rock_count() -> int:
+	return _rocks.size()
+
+
+func hazard_spike(i: int) -> HazardSpikes:
+	return _spikes[i] if i >= 0 and i < _spikes.size() else null
+
+
+func hazard_rock(i: int) -> RollingRock:
+	return _rocks[i] if i >= 0 and i < _rocks.size() else null
+
+
 func gate_count() -> int:
 	return _gates.size()
 
@@ -1264,7 +1420,8 @@ func _tile_center(grid: Array) -> Vector2:
 
 
 ## 实体阻挡块：tile_name 非空时贴 tiles/<名>.png（16x16 无缝平铺），缺图回落原染色。
-func _solid_child(room: FloorRoom, rect: Rect2, tile_name: String = "") -> void:
+## m2-t7 返回实体（pillar 陈设需登记 refraction_pillars 组——敌方激光折射判定源）。
+func _solid_child(room: FloorRoom, rect: Rect2, tile_name: String = "") -> StaticBody2D:
 	var body := StaticBody2D.new()
 	body.position = rect.get_center()
 	var cs := CollisionShape2D.new()
@@ -1283,6 +1440,7 @@ func _solid_child(room: FloorRoom, rect: Rect2, tile_name: String = "") -> void:
 		poly.color = Color(0.36, 0.3, 0.28) if tile_name.is_empty() else _prop_fallback_color(tile_name)
 		vis = poly
 	body.add_child(vis)
+	return body
 
 
 func _solid_world(rect: Rect2) -> void:
