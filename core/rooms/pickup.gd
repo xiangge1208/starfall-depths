@@ -53,6 +53,7 @@ func _on_body_entered(body: Node2D) -> void:
 		"heart":
 			pl.heal(1)
 	Telemetry.log_row(["pickup", Engine.get_physics_frames(), kind])
+	AudioMgr.play("pickup_" + kind)      # m2-t5：coin/energy/heart → pickup_* 三连 key
 	queue_free()                             # flush 上下文中安全（延迟到帧末释放）
 
 func _find_player() -> Player:

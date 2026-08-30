@@ -29,6 +29,7 @@ func try_attack(frame: int) -> bool:
 	_swing_left = SWING_TICKS
 	_swing_tick = 0
 	_hit_done = false
+	AudioMgr.play("melee_swing")         # m2-t5：挥击起始音
 	return true
 
 func is_parry_tick(tick: int) -> bool:

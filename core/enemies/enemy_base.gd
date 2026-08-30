@@ -118,6 +118,7 @@ func fire_bullet(target: Vector2, frame: int) -> void:
 		"source_type": "projectile", "source_id": String(row.get("id", "")),
 		"source_name": String(row.get("name", row.get("id", ""))), "attack_name": "弹幕",
 	})
+	AudioMgr.play("shoot_enemy")         # m2-t5：敌方实际出弹音（combat 未注入的脑层测试不触发）
 
 func take_hit(ctx: Dictionary) -> void:
 	if state == State.DEAD:
