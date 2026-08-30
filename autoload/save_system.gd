@@ -112,6 +112,10 @@ func add_gems(n: int) -> void:
 func gems() -> int:
 	return int(data.get("gems", 0))
 
+func is_setting_explicit(key: String) -> bool:
+	return data.get("settings", {}).has(key)   # 键存在即用户显式设置过（含 false）
+
+
 func get_setting(key: String, default: Variant) -> Variant:
 	var settings: Variant = data.get("settings")
 	if typeof(settings) != TYPE_DICTIONARY:

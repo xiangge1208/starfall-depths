@@ -25,7 +25,8 @@ func _refresh_visibility() -> void:
 		DisplayServer.is_touchscreen_available(),
 		OS.has_feature("mobile"),
 		bool(SaveSystem.get_setting("touch_controls", false)),
-		true if force_visible else null)
+		null,
+		SaveSystem.is_setting_explicit("touch_controls") == true) 		or force_visible
 	visible = touch_enabled
 	# 子摇杆也有独立的桌面隐藏守卫；父层被显式强制显示时同步刷新，避免出现
 	# “按钮可见但双摇杆仍隐藏”的半套调试界面。

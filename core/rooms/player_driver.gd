@@ -70,7 +70,8 @@ func _touch_mode() -> bool:
 		DisplayServer.is_touchscreen_available(),
 		OS.has_feature("mobile"),
 		bool(SaveSystem.get_setting("touch_controls", false)),
-		touch_mode_override)
+		touch_mode_override,
+		SaveSystem.is_setting_explicit("touch_controls") == true)
 
 func _explicit_aim() -> Vector2:
 	if _touch_controls != null:

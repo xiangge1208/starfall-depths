@@ -43,7 +43,8 @@ func _refresh_visibility() -> void:
 		DisplayServer.is_touchscreen_available(),
 		OS.has_feature("mobile"),
 		bool(SaveSystem.get_setting("touch_controls", false)),
-		true if force_visible else null)
+		null,
+		SaveSystem.is_setting_explicit("touch_controls") == true) 		or force_visible
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:

@@ -8,9 +8,14 @@ extends RefCounted
 
 
 static func enabled(_system_touchscreen: bool, mobile_feature: bool,
-		setting_enabled: bool = false, override_value: Variant = null) -> bool:
+		setting_enabled: bool = false, override_value: Variant = null,
+		setting_explicit: bool = false) -> bool:
 	if override_value != null:
 		return bool(override_value)
 	# 保留 _system_touchscreen 参数是为了让所有生产调用点显式传入并可测试
 	# “触屏硬件存在但未授权触屏模式”的桌面契约；它本身不启用模式。
+	# 2026-08-30 用户裁定：触屏 Windows 桌面上设置显式关闭（false）时强制隐藏，
+	# 硬件报告触屏不构成显示理由；仅当用户从未设置（非显式）且移动端导出时自动显示。
+	if setting_explicit:
+		return setting_enabled
 	return mobile_feature or setting_enabled

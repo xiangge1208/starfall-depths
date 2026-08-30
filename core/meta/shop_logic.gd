@@ -5,7 +5,7 @@ extends RefCounted
 ## {common:20, uncommon:42, rare:85, epic:155, legend:260}（附录 H 锚点中值）；
 ## 稀有度权重：设计文档 §8.2 掉落权重表按层取行（A1 70/25/5/0/0、A2 45/35/16/4/0、
 ## A3 25/33/25/13/4）。同名武器不重复（exclude 由调用方累积传入）。
-## 注意：M1 现役 data/weapons.json 仅 6 把全 common——高稀有度桶在真实数据下
+## 注意：M1 data/weapons.json 已扩至 40 把（T25；M1 期全 common，M2 扩池后含高稀有）——高稀有度桶在真实数据下
 ## 统一经「向下回退」落到 common（预期行为，数据补齐后自动生效）。
 
 const RARITIES: Array[String] = ["common", "uncommon", "rare", "epic", "legend"]

@@ -3,3 +3,5 @@
 user_export/
 /reports/
 .worktrees/
+__pycache__/
+*.pyc
