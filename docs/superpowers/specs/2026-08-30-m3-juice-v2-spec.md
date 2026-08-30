@@ -36,7 +36,7 @@
 
 ### J3 粒子与命中表现 v2
 
-- 命中火花：色块粒子 → **4 帧火花条带**（P0-4 素材包）；通用 `spark_hit_strip4`，元素命中换 `spark_{fire|ice|poison|elec}_strip4`，暴击 `spark_crit_strip4`（金色 + 1.3× 缩放）。
+- 命中火花：色块粒子 → **4 帧火花条带**（P0-4 素材包）；通用 `spark_hit_strip4`，元素命中换 `spark_{fire|ice|poison|shock}_strip4`（电元素代码命名为 `shock`，见 `core/combat/elements.gd`；素材文件名已对齐代码），暴击 `spark_crit_strip4`（金色 + 1.3× 缩放）。
 - 击杀爆散：v1 爆散之上叠加 **6 帧碎片环** `kill_shard_strip6`；掉落吸附保持 v1。
 - 枪口焰：`fx_muzzle` 单帧 → `muzzle_v2_strip3` 三帧，按武器类别 tint（步枪/霰弹/激光三组预设色）。
 - 粒子预算：同屏粒子 **≤200**；全池化、热路径零分配；超预算自动降级（关帧动画退化为单帧贴图）——对齐 GDD §18.3「先降粒子」预案的第一档。
@@ -65,7 +65,7 @@
 
 ## 3. 素材依赖（M3-P0-4 先行交付，本卡只消费）
 
-`spark_hit_strip4 / spark_crit_strip4 / spark_fire_strip4 / spark_ice_strip4 / spark_poison_strip4 / spark_elec_strip4 / muzzle_v2_strip3 / kill_shard_strip6`——由 `tools/spritegen_m3.py` 生成于 `art/generated/fx/`；ArtLookup 注册 + 池化消费在 M3 执行卡 J-C 落地，届时向 `tests/unit/test_art_lookup.gd` 追加存在性断言（沿用 M2-T28 模式）。
+`spark_hit_strip4 / spark_crit_strip4 / spark_fire_strip4 / spark_ice_strip4 / spark_poison_strip4 / spark_shock_strip4 / muzzle_v2_strip3 / kill_shard_strip6`（另有试炼图标 `trial_gate.png` / `trial_medal.png` 归 R-B 消费）——由 `tools/spritegen_m3.py` 生成于 `art/generated/fx/`；ArtLookup 注册 + 池化消费在 M3 执行卡 J-C 落地，届时向 `tests/unit/test_art_lookup.gd` 追加存在性断言（沿用 M2-T28 模式）。
 
 ## 4. 验收（M3 执行期）
 
