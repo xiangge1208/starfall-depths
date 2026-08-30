@@ -8,12 +8,27 @@ const TELEGRAPH_DECAY_PER_SEC := 2.0  # 蓄力/引信红闪更持久（约 0.5s�
 const HITSTOP_CRIT_MS := 40
 const HITSTOP_KILL_MS := 60
 
+const ELEMENT_SHAPES := {
+	Elements.Id.FIRE: "▲",    # 火 = 三角
+	Elements.Id.ICE: "◆",     # 冰 = 菱形
+	Elements.Id.POISON: "●",  # 毒 = 圆
+	Elements.Id.SHOCK: "ϟ",   # 电 = 闪电折线
+}
+const ELEMENT_COLORS := {
+	Elements.Id.FIRE: Color(1.0, 0.28, 0.12),
+	Elements.Id.ICE: Color(0.2, 0.9, 1.0),
+	Elements.Id.POISON: Color(0.35, 1.0, 0.25),
+	Elements.Id.SHOCK: Color(0.75, 0.35, 1.0),
+}
+
 var trauma := 0.0                     # 震屏强度，相机每渲染帧调 decay_step() 衰减
 var _restore_timer: SceneTreeTimer = null   # 当前"权威"恢复定时器（最长剩余者）
 var _flash: Dictionary = {}           # instance_id -> {item, mat, amount, speed}（键用 id：宿主释放后不悬垂）
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if not EventBus.status_applied.is_connected(_on_status_applied):
+		EventBus.status_applied.connect(_on_status_applied)
 
 ## 帧冻结：暂停树，真实毫秒后恢复（create_timer ignore_time_scale，brief 契约）。
 ## 并发调用取更长：只认剩余时间最长的"权威"定时器恢复；换权威时**断开旧定时器**的
@@ -38,6 +53,17 @@ func _on_hitstop_elapsed() -> void:
 	get_tree().paused = false
 	_restore_timer = null
 
+## 立即结束仍在生效的 hitstop。场景/测试边界可用它清理 Autoload 持有的权威
+## 定时器；必须先断开回调，避免旧定时器稍后再次改写新一轮冻结状态。
+func cancel_hitstop() -> void:
+	if _restore_timer != null and is_instance_valid(_restore_timer) \
+			and _restore_timer.timeout.is_connected(_on_hitstop_elapsed):
+		_restore_timer.timeout.disconnect(_on_hitstop_elapsed)
+	_restore_timer = null
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = false
+
 ## 震屏：trauma 取 max；duration 仅占位（衰减率由 decay_step 契约固定 ×0.9/帧）。
 ## m1-t18 juice v1.5：hitstop 冻结拍（树暂停中）早退不吃震屏——冻结期叠的 trauma
 ## 会在解冻前被白白衰减掉，且冻帧上无位移可看。
@@ -46,6 +72,11 @@ func shake(strength: float, _duration: float) -> void:
 	if tree != null and tree.paused:
 		return
 	trauma = maxf(trauma, strength)
+
+## 玩家设置是相机振幅倍率，而非 trauma 的逻辑值：同一拍多相机时不能重复缩放 trauma。
+## 读取处夹到 0..1，损坏档/未来版本的异常数值不会放大到设置允许范围外。
+func screen_shake_scale() -> float:
+	return clampf(float(SaveSystem.get_setting("screen_shake", 1.0)), 0.0, 1.0)
 
 ## 由相机每渲染帧调用（brief 契约：×0.9，300 帧后 ≈0）。
 func decay_step() -> void:
@@ -69,6 +100,10 @@ func on_enemy_hit(enemy: Node2D, ctx: Dictionary) -> void:
 	var is_crit := bool(ctx.get("is_crit", false))
 	_flash_item(_find_sprite(enemy), Color.WHITE, FLASH_DECAY_PER_SEC)
 	spawn_damage_number(enemy.global_position, amount, is_crit)
+	spawn_element_shape(enemy.global_position, int(ctx.get("element", Elements.Id.NONE)))
+	var proc_element := int(ctx.get("proc_element", Elements.Id.NONE))
+	if proc_element != int(ctx.get("element", Elements.Id.NONE)):
+		spawn_element_shape(enemy.global_position + Vector2(10.0, 0.0), proc_element)
 	Telemetry.log_row(["hit", Engine.get_physics_frames(), amount, 1 if is_crit else 0])
 	if is_crit:
 		hitstop(HITSTOP_CRIT_MS)        # 暴击 hitstop（brief：40ms + 数字放大 1.5×）
@@ -82,8 +117,11 @@ func on_enemy_killed(at: Vector2) -> void:
 
 ## 伤害数字：简单 spawn + tween 上飘淡出 + 自毁（M0 命中频率下短命对象分配有界，
 ## 池化收益低——控制器允许二选一，此处取简单方案）。暴击放大 1.5×。
-func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool) -> void:
+func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool) -> Label:
+	if not bool(SaveSystem.get_setting("damage_numbers", true)):
+		return null
 	var label := Label.new()
+	label.name = "DamageNumber"
 	label.text = str(amount)
 	label.position = pos + Vector2(-4.0, -14.0)
 	label.z_index = 50
@@ -99,6 +137,42 @@ func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool) -> void:
 	tw.tween_property(label, "position:y", label.position.y - 10.0, 0.5)
 	tw.tween_property(label, "modulate:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
 	tw.tween_callback(label.queue_free).set_delay(0.55)
+	return label
+
+## 色弱形状编码是颜色以外的第二视觉通道。M1 在每次元素命中位置短暂显示编码：
+## 火=三角、冰=菱形、毒=圆、电=闪电折线；关闭设置时完全不创建表现节点。
+func spawn_element_shape(pos: Vector2, element: int) -> Label:
+	if not bool(SaveSystem.get_setting("colorblind_shapes", false)):
+		return null
+	var glyph := element_shape(element)
+	if glyph.is_empty():
+		return null
+	var label := Label.new()
+	label.name = "ElementShape"
+	label.text = glyph
+	label.position = pos + Vector2(5.0, -19.0)
+	label.z_index = 51
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color",
+		ELEMENT_COLORS.get(element, Color.WHITE) as Color)
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
+	label.add_theme_constant_override("outline_size", 2)
+	add_child(label)
+	var tw := label.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(label, "position:y", label.position.y - 8.0, 0.45)
+	tw.tween_property(label, "modulate:a", 0.0, 0.45).set_ease(Tween.EASE_IN)
+	tw.tween_callback(label.queue_free).set_delay(0.5)
+	return label
+
+## 状态达到阈值时再给一次偏左的形状确认；命中形状与状态形状都复用同一映射，
+## 玩家无需仅凭红/青/绿/紫颜色判断“命中元素”或“异常已生效”。
+func _on_status_applied(target: Node, element: int) -> void:
+	if target is Node2D:
+		spawn_element_shape((target as Node2D).global_position + Vector2(-10.0, -3.0), element)
+
+static func element_shape(element: int) -> String:
+	return String(ELEMENT_SHAPES.get(element, ""))
 
 # ---- 内部：白闪 / 粒子 ----
 

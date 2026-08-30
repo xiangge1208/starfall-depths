@@ -7,7 +7,8 @@ extends Interactable
 ## add_coins(n)（缺该方法则回收架隐藏）。T15 RunState 落地后即满足此接缝。
 ## M1 简化（披露）：买武器直接 weapon_rig.equip（首空槽），无换手替换 UI；
 ## 道具价 25/20 为固定常量（规格明示），不吃 floor/黑市系数；黑市仅改
-## 武器价（ShopLogic.price ×1.8）与标题。
+## 武器价（ShopLogic.price ×1.8）与标题。商店第六饮料卡消费 stock.drink，
+## 与房内独立 DrinkMachine 的每层 3 次状态完全隔离。
 
 const TITLE := "商店"
 const BLACK_TITLE := "黑市商人"
@@ -23,13 +24,16 @@ const ITEM_PRICES := {"heart": 25, "energy": 20}
 const ITEM_NAMES := {"heart": "红心", "energy": "蓝瓶"}
 const ITEM_EFFECTS := {"heart": "回复 2 HP", "energy": "蓝 +20"}
 const WEAPON_SLOTS := 3
+const STOCK_STATE_KEY := "_shop_runtime_state"
 
 var stock: Dictionary = {}                 # ShopLogic.roll_stock 产物
 var wallet: Object = null                  # duck-typed 金币接缝
 var black := false                         # 黑市变体：标题 + 武器价 ×1.8
 var drop_weapon: Callable = Callable()     # 回收：func(player) -> {id,name,rarity}
+var drink_rng: RandomNumberGenerator = null # 测试/接线可注入；缺省取当前局 loot 分盐流
 
 var _player: Node2D = null
+var _stock_state: Dictionary = {}
 var _weapon_ids: Array[String] = []
 var _sold: Array[bool] = []
 var _item_sold := {}                       # kind -> bool
@@ -42,6 +46,12 @@ var _weapon_name_labels: Array[Label] = []
 var _weapon_price_labels: Array[Label] = []
 var _item_cards := {}                      # kind -> PanelContainer
 var _item_price_labels := {}               # kind -> Label
+var _drink_id := ""
+var _drink_sold := false
+var _drink_card: PanelContainer = null
+var _drink_name_label: Label = null
+var _drink_effect_label: Label = null
+var _drink_price_label: Label = null
 var _recycle_card: PanelContainer = null
 var _recycle_label: Label = null
 
@@ -90,6 +100,47 @@ func _unhandled_input(event: InputEvent) -> void:
 			close()
 
 
+## 售罄/回收状态属于货架库存实例，而不是一次 UI 打开。
+## 同一个 stock 字典关闭后再交互会复用这里的状态；新字典即使内容相同，
+## 因为没有该命名空间键，也会初始化成一套全新的货架状态。
+func _bind_stock_state() -> void:
+	var state_value: Variant = stock.get(STOCK_STATE_KEY)
+	if typeof(state_value) == TYPE_DICTIONARY:
+		_stock_state = state_value
+	else:
+		_stock_state = {}
+		stock[STOCK_STATE_KEY] = _stock_state
+
+	var raw_weapons: Array = []
+	var weapons_value: Variant = _stock_state.get("weapons_sold", [])
+	if typeof(weapons_value) == TYPE_ARRAY:
+		raw_weapons = weapons_value
+	var normalized_weapons: Array[bool] = []
+	for i in WEAPON_SLOTS:
+		normalized_weapons.append(i < raw_weapons.size() \
+			and typeof(raw_weapons[i]) == TYPE_BOOL and bool(raw_weapons[i]))
+	_sold = normalized_weapons
+	_stock_state["weapons_sold"] = _sold
+
+	var raw_items: Dictionary = {}
+	var items_value: Variant = _stock_state.get("items_sold", {})
+	if typeof(items_value) == TYPE_DICTIONARY:
+		raw_items = items_value
+	var normalized_items := {}
+	for kind: String in ITEM_PRICES.keys():
+		var value: Variant = raw_items.get(kind, false)
+		normalized_items[kind] = typeof(value) == TYPE_BOOL and bool(value)
+	_item_sold = normalized_items
+	_stock_state["items_sold"] = _item_sold
+
+	var drink_value: Variant = _stock_state.get("drink_sold", false)
+	_drink_sold = typeof(drink_value) == TYPE_BOOL and bool(drink_value)
+	_stock_state["drink_sold"] = _drink_sold
+	var recycled_value: Variant = _stock_state.get("recycled", false)
+	_recycled = typeof(recycled_value) == TYPE_BOOL and bool(recycled_value)
+	_stock_state["recycled"] = _recycled
+
+
 # ---------------------------------------------------------------- 购买路径
 
 ## 买武器卡 idx：扣款成功 → 直接装备（M1 简化）+ 已售；失败 → 价签闪红拒绝。
@@ -110,6 +161,7 @@ func _buy_weapon(idx: int) -> void:
 	if p != null and p.weapon_rig != null:
 		p.weapon_rig.equip(id)
 	_sold[idx] = true
+	_stock_state["weapons_sold"] = _sold
 	_weapon_price_labels[idx].text = "已售"
 	_refresh_coins()
 
@@ -129,8 +181,61 @@ func _buy_item(kind: String) -> void:
 		elif kind == "energy":
 			p.add_energy(20)
 	_item_sold[kind] = true
+	_stock_state["items_sold"] = _item_sold
 	(_item_price_labels[kind] as Label).text = "已售"
 	_refresh_coins()
+
+
+## 买商店第六饮料卡：使用 stock.drink 指向的 GameDB 行内价格与效果。
+## 这是商店的一次性货位，不读写 DrinkMachine._state / uses_left；效果应用则复用
+## DrinkMachine 的唯一效果应用器，避免两条购买路径的数值口径漂移。
+func _buy_drink() -> void:
+	if _drink_sold or _drink_id.is_empty() or _drink_card == null or not _drink_card.visible:
+		return
+	var row := GameDB.get_drink(_drink_id)
+	var p := _player as Player
+	if row.is_empty() or p == null:
+		return
+	var random_effect := String(row.get("effect", "")) == GameDB.DRINK_RANDOM_EFFECT
+	var concrete_ids: Array[String] = []
+	if random_effect:
+		# 支付前只验证候选池，不掷签、不推进 loot RNG。
+		concrete_ids = _concrete_drink_ids()
+		if concrete_ids.is_empty():
+			return
+	var cost := int(row.get("price", 0))
+	if wallet == null or not wallet.spend_coins(cost):
+		_flash(_drink_price_label)
+		return
+	# 只有支付成功后，神秘混合才从已验证的具体饮料池掷签。
+	var applied_row := _draw_drink_effect_row(row, concrete_ids)
+	DrinkMachine._apply_drink(String(applied_row.get("effect", "")),
+		float(int(applied_row.get("value", 0))), p)
+	_drink_sold = true
+	_stock_state["drink_sold"] = true
+	_drink_price_label.text = "已售"
+	_refresh_coins()
+
+
+## 神秘混合的候选池按 id 排序，以保证相同 RNG 状态下结果稳定。
+func _concrete_drink_ids() -> Array[String]:
+	var concrete: Array[String] = []
+	for id: String in GameDB.drinks:
+		var candidate := GameDB.get_drink(id)
+		if not candidate.is_empty() \
+				and String(candidate.get("effect", "")) != GameDB.DRINK_RANDOM_EFFECT:
+			concrete.append(id)
+	concrete.sort()
+	return concrete
+
+
+## 神秘混合沿当前局 loot 分盐流从 7 条具体饮料中选 1；调用方必须先支付。
+## 具体饮料不消费 RNG，直接返回原行。
+func _draw_drink_effect_row(row: Dictionary, concrete: Array[String]) -> Dictionary:
+	if String(row.get("effect", "")) != GameDB.DRINK_RANDOM_EFFECT:
+		return row
+	var rng := drink_rng if drink_rng != null else RunState.stream(RunState.SALT_LOOT)
+	return GameDB.get_drink(concrete[rng.randi_range(0, concrete.size() - 1)])
 
 
 ## 回收副手：drop_weapon.call() 执行丢弃并返回武器信息，按其稀有度入账回收价。
@@ -147,6 +252,7 @@ func _recycle() -> void:
 	if wallet != null and wallet.has_method("add_coins"):
 		wallet.add_coins(amount)
 	_recycled = true
+	_stock_state["recycled"] = true
 	_recycle_card.visible = false
 	_refresh_coins()
 
@@ -187,6 +293,34 @@ func item_sold(kind: String) -> bool:
 	return bool(_item_sold.get(kind, false))
 
 
+func drink_visible() -> bool:
+	return _drink_card != null and _drink_card.visible
+
+
+func drink_id() -> String:
+	return _drink_id
+
+
+func drink_name_text() -> String:
+	return _drink_name_label.text if _drink_name_label != null else ""
+
+
+func drink_effect_text() -> String:
+	return _drink_effect_label.text if _drink_effect_label != null else ""
+
+
+func drink_price_text() -> String:
+	return _drink_price_label.text if _drink_price_label != null else ""
+
+
+func drink_price_color() -> Color:
+	return _drink_price_label.modulate if _drink_price_label != null else Color.WHITE
+
+
+func drink_sold() -> bool:
+	return _drink_sold
+
+
 func recycle_visible() -> bool:
 	return _recycle_card != null and _recycle_card.visible
 
@@ -220,10 +354,14 @@ func _build_ui() -> void:
 		var effect_l := _add_label(card)
 		effect_l.text = String(ITEM_EFFECTS[kind])
 		_item_price_labels[kind] = _add_label(card)
-	var drink := _card(Color("6b6f76"))
-	var drink_l := _add_label(drink)
-	drink_l.text = "神秘饮料\n（未开放）"          # T16 接真实饮料前的占位卡
-	item_row.add_child(drink)
+	# GDD §11 的商店第六货位（3 武器 + 2 道具 + 1 饮料）。它与 GDD §13.2
+	# 房内独立 DrinkMachine 的每层 3 次设施并存，且不共享售罄状态。
+	_drink_card = _card(Color("5ab0ff"))
+	_drink_card.gui_input.connect(_on_drink_input)
+	item_row.add_child(_drink_card)
+	_drink_name_label = _add_label(_drink_card)
+	_drink_effect_label = _add_label(_drink_card)
+	_drink_price_label = _add_label(_drink_card)
 	# 回收卡与道具同排（480×270 视口竖向空间紧，单排溢出屏外）
 	var rec := _card(Color("ffa64d"))
 	rec.gui_input.connect(_on_recycle_input)
@@ -239,13 +377,12 @@ func _fill() -> void:
 	var t := BLACK_TITLE if black else TITLE
 	_title.text = t
 	action_label = t
+	_bind_stock_state()
 	_weapon_ids.clear()
-	_sold.clear()
 	var in_stock: Array = stock.get("weapons", [])
 	for i in WEAPON_SLOTS:
 		var id := String(in_stock[i]) if i < in_stock.size() else ""
 		_weapon_ids.append(id)
-		_sold.append(false)
 		var card := _weapon_cards[i]
 		card.modulate = Color.WHITE
 		var name_l := _weapon_name_labels[i]
@@ -258,8 +395,8 @@ func _fill() -> void:
 		var col: Color = RARITY_COLORS.get(String(row.get("rarity", "common")), Color.WHITE)
 		card.add_theme_stylebox_override("panel", _card_style(col))
 		name_l.text = String(row.get("name", id))
-		price_l.text = "%d 金币" % ShopLogic.price(String(row.get("rarity", "common")),
-			_floor_idx(), black)
+		price_l.text = "已售" if _sold[i] else "%d 金币" % ShopLogic.price(
+			String(row.get("rarity", "common")), _floor_idx(), black)
 	# 道具卡：货单内才可购
 	var kinds := {}
 	for it: Variant in stock.get("items", []):
@@ -270,18 +407,37 @@ func _fill() -> void:
 		var price_l := _item_price_labels[kind] as Label
 		card.visible = kinds.has(kind)
 		card.modulate = Color.WHITE
-		price_l.text = "%d 金币" % int(ITEM_PRICES[kind])
-	_item_sold.clear()
-	_recycled = false
+		price_l.text = "已售" if bool(_item_sold.get(kind, false)) \
+			else "%d 金币" % int(ITEM_PRICES[kind])
+	_fill_drink()
 	_fill_recycle()
 	_refresh_coins()
 	_ui.show()
 
 
+## 商店饮料卡由 stock.drink 填充；售罄状态来自绑定到该库存实例的运行态。
+func _fill_drink() -> void:
+	_drink_id = String(stock.get("drink", ""))
+	_drink_card.modulate = Color.WHITE
+	_drink_price_label.modulate = Color.WHITE
+	var row := GameDB.get_drink(_drink_id)
+	_drink_card.visible = not _drink_id.is_empty() and not row.is_empty()
+	if not _drink_card.visible:
+		_drink_name_label.text = ""
+		_drink_effect_label.text = ""
+		_drink_price_label.text = ""
+		return
+	_drink_name_label.text = String(row.get("name", _drink_id))
+	_drink_effect_label.text = DrinkMachine.effect_desc(
+		String(row.get("effect", "")), row.get("value", 0))
+	_drink_price_label.text = "已售" if _drink_sold \
+		else "%d 金币" % int(row.get("price", 0))
+
+
 ## 回收卡文案：X 取玩家副手（rig 非当前槽）预览价；副手空 → 仅文案不计价。
 ## 入账仍以点击时 drop_weapon 返回的稀有度为准（丢弃瞬间权威）。
 func _fill_recycle() -> void:
-	_recycle_card.visible = _recycle_available()
+	_recycle_card.visible = not _recycled and _recycle_available()
 	if not _recycle_card.visible:
 		return
 	var amount := _recycle_preview()
@@ -341,6 +497,13 @@ func _on_item_input(event: InputEvent, kind: String) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 			_buy_item(kind)
+
+
+func _on_drink_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			_buy_drink()
 
 
 func _on_recycle_input(event: InputEvent) -> void:

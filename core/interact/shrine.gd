@@ -25,7 +25,7 @@ var kind := ""
 var used_kinds: Dictionary = {}     # 调用方持有的每局状态字典（kind -> true）
 var wallet = null                   # duck-typed：spend_coins(n) -> bool
 var combat = null                   # 可选 CombatSystem 接缝（精灵像传给 ShieldSpirit）
-var rng: RandomNumberGenerator = null   # 星髓像随机附魔用（可注入保测试确定性）
+var rng: RandomNumberGenerator = null   # 星髓像随机附魔用；注入优先，兜底走 RunState 分盐流
 
 ## 装配类别与每局状态；未知 kind 标记无效（can_interact 恒 false，fail-closed）。
 func setup(kind_: String, used_kinds_: Dictionary = {}) -> Shrine:
@@ -60,12 +60,17 @@ func activate(player: Player, frame: int) -> bool:
 	used_kinds[kind] = true               # 每局每类限 1 次
 	match kind:
 		"zhanshen":
-			player.set_meta("atk_speed_boost_until", frame + ATK_BOOST_TICKS)
-			player.set_meta("atk_speed_boost_pct", ATK_BOOST_PCT)
+			player.atk_speed_boost_until = frame + ATK_BOOST_TICKS
+			player.atk_speed_boost_pct = ATK_BOOST_PCT
+			player.set_meta("atk_speed_boost_until", player.atk_speed_boost_until)
+			player.set_meta("atk_speed_boost_pct", player.atk_speed_boost_pct)
 		"fengshen":
-			player.set_meta("move_speed_boost_until", frame + WIND_BOOST_TICKS)
-			player.set_meta("move_speed_boost_pct", WIND_BOOST_PCT)
-			player.set_meta("energy_free_until", frame + WIND_BOOST_TICKS)
+			player.move_speed_boost_until = frame + WIND_BOOST_TICKS
+			player.move_speed_boost_pct = WIND_BOOST_PCT
+			player.energy_free_until = frame + WIND_BOOST_TICKS
+			player.set_meta("move_speed_boost_until", player.move_speed_boost_until)
+			player.set_meta("move_speed_boost_pct", player.move_speed_boost_pct)
+			player.set_meta("energy_free_until", player.energy_free_until)
 		"xingsui":
 			_apply_enchant(player, frame)
 		"jingling":
@@ -79,8 +84,11 @@ func activate(player: Player, frame: int) -> bool:
 func _apply_enchant(player: Player, frame: int) -> void:
 	var rig := player.weapon_rig
 	if rng == null:
-		rng = RandomNumberGenerator.new()
-	var prev := int(rig.enchant_element)
-	rig.enchant_element = ENCHANTABLE[rng.randi_range(0, ENCHANTABLE.size() - 1)]
-	player.set_meta("enchant_element_prev", prev)
-	player.set_meta("enchant_element_until", frame + ENCHANT_TICKS)
+		# 独立场景/测试未注入时也必须加入本局可回放种子链，不能裸建随机源。
+		rng = RunState.stream(RunState.SALT_LOOT)
+	var chosen := ENCHANTABLE[rng.randi_range(0, ENCHANTABLE.size() - 1)]
+	rig.temporary_enchant_element = chosen
+	rig.temporary_enchant_until = frame + ENCHANT_TICKS
+	# 兼容 HUD/旧查询，同时永久 Buff 始终保留在 rig.enchant_element。
+	player.set_meta("enchant_element_prev", rig.enchant_element)
+	player.set_meta("enchant_element_until", rig.temporary_enchant_until)

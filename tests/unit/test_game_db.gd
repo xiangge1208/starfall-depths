@@ -21,6 +21,12 @@ func test_weapon_schema_v2_has_float_keys() -> void:
 	assert_int(GameDB.WEAPON_SCHEMA.get("bullet_radius", -1)).is_equal(TYPE_FLOAT)
 	assert_int(GameDB.WEAPON_SCHEMA.get("muzzle", -1)).is_equal(TYPE_FLOAT)
 
+func test_enemy_schema_defaults_projectile_radius() -> void:
+	assert_bool(GameDB.ENEMY_OPTIONAL.has("bullet_radius")).is_true()
+	assert_float(float(GameDB.ENEMY_OPTIONAL["bullet_radius"])).is_equal(3.0)
+	assert_float(float(GameDB.get_enemy("crossbowman")["bullet_radius"])).is_equal(3.0)
+	assert_float(float(GameDB.get_enemy("vine_colossus")["bullet_radius"])).is_equal(4.0)
+
 func test_v2_rows_ranged_values() -> void:
 	for id in ["laohuoji", "maodingqiang", "duangong", "xuetufazhang"]:
 		var w := GameDB.get_weapon(id)

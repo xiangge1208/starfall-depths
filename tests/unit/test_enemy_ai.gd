@@ -9,8 +9,7 @@ class SpyPlayer extends Node2D:
 		hits.append(ctx)
 
 func test_state_transitions() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "crossbowman", "archetype": "shooter", "hp": 16, "contact_dmg": 3, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+	var e: EnemyBase = auto_free(EnemyFactory.create({"id": "crossbowman", "archetype": "shooter", "hp": 16, "contact_dmg": 3, "speed": 60, "windup_ticks": 30, "cd_ticks": 108}))
 	e.on_player_seen(0)
 	assert_int(e.state).is_equal(EnemyBase.State.ALERT)
 	e.brain_tick(23)
@@ -19,8 +18,7 @@ func test_state_transitions() -> void:
 	assert_int(e.state).is_equal(EnemyBase.State.ENGAGE)
 
 func test_shooter_cadence() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "crossbowman", "archetype": "shooter", "hp": 16, "contact_dmg": 3, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+	var e: EnemyBase = auto_free(EnemyFactory.create({"id": "crossbowman", "archetype": "shooter", "hp": 16, "contact_dmg": 3, "speed": 60, "windup_ticks": 30, "cd_ticks": 108}))
 	e.on_player_seen(0)
 	for f in range(1, 25): e.brain_tick(f)
 	var shots := 0
@@ -30,17 +28,33 @@ func test_shooter_cadence() -> void:
 	# 0.4s 警觉后首射，随后每 1.8s：约 (300-24)/108 + 1 ≈ 3
 	assert_int(shots).is_between(2, 4)
 
+func test_enemy_fire_bullet_consumes_row_radius_and_source() -> void:
+	var root: Node2D = auto_free(Node2D.new())
+	add_child(root)
+	var combat := CombatSystem.new(root, RngSvc.stream(1, "enemy_radius_test"))
+	root.add_child(combat)
+	var e: EnemyBase = auto_free(EnemyFactory.create({
+		"id": "crossbowman", "name": "弩兵", "archetype": "shooter", "hp": 16,
+		"bullet_dmg": 3, "bullet_speed": 110, "bullet_life_seconds": 2.5,
+		"bullet_radius": 4.5,
+	}))
+	e.combat = combat
+	e.fire_bullet(Vector2.RIGHT * 100.0, 12)
+	assert_int(combat.pool.active.size()).is_equal(1)
+	assert_float((combat.pool.active[0] as Projectile).radius).is_equal(4.5)
+	var meta: Dictionary = combat._proj_meta[(combat.pool.active[0] as Projectile).get_instance_id()]
+	assert_str(String(meta["source_name"])).is_equal("弩兵")
+	assert_str(String(meta["attack_name"])).is_equal("弹幕")
+
 func test_suicide_fuse_and_explosion_params() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+	var e: EnemyBase = auto_free(EnemyFactory.create({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8}))
 	e.on_player_seen(0)
 	for f in range(1, 25): e.brain_tick(f)
 	e.brain_tick(24 + 30)     # ENGAGE 后贴身引信 30 ticks
 	assert_bool(e.exploded).is_true()
 
 func test_charger_dash_distance() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "vine_charger", "archetype": "charger", "hp": 18, "contact_dmg": 4, "walk_speed": 45, "dash_speed": 285, "windup_ticks": 30, "dash_ticks": 27, "dash_cooldown_ticks": 90})
+	var e: EnemyBase = auto_free(EnemyFactory.create({"id": "vine_charger", "archetype": "charger", "hp": 18, "contact_dmg": 4, "walk_speed": 45, "dash_speed": 285, "windup_ticks": 30, "dash_ticks": 27, "dash_cooldown_ticks": 90}))
 	e.on_player_seen(0)
 	for f in range(1, 25):
 		e.brain_tick(f)                   # 第 24 帧进入 ENGAGE
@@ -58,11 +72,10 @@ func test_charger_dash_distance() -> void:
 
 ## fix4（附录 B.1「死亡即刻爆」）：苦力虫受击致死同样引爆——40px 内替身恰好吃 1×8。
 func test_kuli_death_by_damage_explodes_on_player_within_aoe() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+	var e: EnemyBase = auto_free(EnemyFactory.create({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8}))
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2.ZERO             # 与 e.brain_pos 同点（40px 内）
-	e.set("player_ref", spy)                 # set_script 后须经 Object.set（同 setup 注）
+	e.player_ref = spy
 	e.take_hit({"amount": 99, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
 	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
 	assert_int(spy.hits.size()).is_equal(1)
@@ -72,8 +85,7 @@ func test_kuli_death_by_damage_explodes_on_player_within_aoe() -> void:
 
 ## fix4：40px 外受击致死——爆而不中。
 func test_kuli_death_by_damage_beyond_aoe_no_hit() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+	var e: EnemyBase = auto_free(EnemyFactory.create({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8}))
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2(50, 0)           # 50px > aoe_radius 40
 	e.set("player_ref", spy)
@@ -83,8 +95,7 @@ func test_kuli_death_by_damage_beyond_aoe_no_hit() -> void:
 
 ## fix4 去重：引信致死（exploded=true → die()）恰好一次爆炸，不再双重结算。
 func test_kuli_fuse_death_explodes_exactly_once() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+	var e: EnemyBase = auto_free(EnemyFactory.create({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8}))
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2.ZERO             # 贴身（0 < 14px）：转换拍即点燃
 	e.set("player_ref", spy)

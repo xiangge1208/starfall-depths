@@ -5,19 +5,41 @@ extends GdUnitTestSuite
 
 const GamepadAimScript := preload("res://core/player/gamepad_aim.gd")
 const VirtualJoystickScript := preload("res://ui/virtual_joystick.gd")
+const TouchModeScript := preload("res://ui/touch_mode.gd")
+
+var _saved_aim_events: Dictionary = {}
+var _saved_touch_controls := false
+
+func before_test() -> void:
+	_saved_aim_events.clear()
+	for action in [&"aim_right_x", &"aim_right_y"]:
+		_saved_aim_events[action] = InputMap.action_get_events(action).duplicate()
+	_saved_touch_controls = bool(SaveSystem.get_setting("touch_controls", false))
+	# 单测明确从桌面默认设置开始；只改内存，不触发 save_now 污染真人试玩档。
+	SaveSystem.data["settings"]["touch_controls"] = false
 
 func after_test() -> void:
-	Input.action_release("fire")   # 合成输入用例后复位，避免污染其他套件
+	for action in ["fire", "skill", "roll", "switch_weapon", "interact",
+			"move_left", "move_right", "move_up", "move_down", "touch_fire",
+			"touch_skill", "touch_roll", "touch_switch_weapon", "touch_interact",
+			"touch_move_left", "touch_move_right", "touch_move_up", "touch_move_down",
+			"aim_right_x", "aim_right_y"]:
+		Input.action_release(action)   # 合成输入用例后复位，避免污染其他套件
+	for action: StringName in _saved_aim_events:
+		InputMap.action_erase_events(action)
+		for event: InputEvent in _saved_aim_events[action]:
+			InputMap.action_add_event(action, event)
+	SaveSystem.data["settings"]["touch_controls"] = _saved_touch_controls
 
 # ---------- AutoAim.pick_target：锥形选择 ----------
 
 func test_pick_target_empty_returns_minus_one() -> void:
 	assert_int(AutoAim.pick_target(Vector2.ZERO, 0.0, [])).is_equal(-1)
 
-func test_pick_target_picks_min_angle_over_min_distance() -> void:
-	# 锥内选最小偏角：0 号角度更小但更远，仍应胜出（同角才比距离）
+func test_pick_target_picks_nearest_inside_cone_not_smallest_angle() -> void:
+	# 文档要求：先滤锥外，再取锥内最近者；1 号偏角更大但更近，应胜出。
 	var enemies: Array[Vector2] = [Vector2(200, 20), Vector2(60, 30)]
-	assert_int(AutoAim.pick_target(Vector2.ZERO, 0.0, enemies)).is_equal(0)
+	assert_int(AutoAim.pick_target(Vector2.ZERO, 0.0, enemies)).is_equal(1)
 
 func test_pick_target_distance_tiebreak_on_equal_angle() -> void:
 	# 同一方向上两个敌人：偏角相同（都为 0），取更近者
@@ -58,9 +80,9 @@ func test_pick_target_skips_enemy_on_player_position() -> void:
 # ---------- AutoAim.aim_vector：归一化 + 回退 ----------
 
 func test_aim_vector_toward_picked_target_normalized() -> void:
-	# 锥内取最小偏角（(40,30) 偏角 0° 胜出）→ 返回指向该目标的单位向量 (0.8, 0.6)
+	# 两者都在锥内且等距；稳定取输入顺序中的首个 → (0.6, 0.8)。
 	var v := AutoAim.aim_vector(Vector2.ZERO, [Vector2(30, 40), Vector2(40, 30)] as Array[Vector2], Vector2(8, 6))
-	assert_vector(v).is_equal_approx(Vector2(0.8, 0.6), Vector2(0.001, 0.001))
+	assert_vector(v).is_equal_approx(Vector2(0.6, 0.8), Vector2(0.001, 0.001))
 
 func test_aim_vector_fallback_when_no_targets() -> void:
 	# 无目标 → 回退当前瞄准方向（归一化）
@@ -96,23 +118,72 @@ func test_stick_output_custom_dead_zone() -> void:
 	assert_vector(GamepadAimScript.stick_output(0.45, 0.0, 0.4)).is_equal(Vector2(1, 0))
 	assert_vector(GamepadAimScript.stick_output(0.35, 0.0, 0.4)).is_equal(Vector2.ZERO)
 
-# ---------- GamepadAim 合成输入（player.gd 零改动的关键） ----------
+# ---------- GamepadAim 显式输入源 ----------
 
-func test_gamepad_aim_presses_fire_beyond_threshold() -> void:
+func test_gamepad_aim_exposes_direction_without_mutating_global_fire() -> void:
 	var node: Node = auto_free(GamepadAimScript.new())
+	Input.action_press("fire")
 	var v: Vector2 = node._apply_axes(1.0, 0.0)
 	assert_vector(v).is_equal(Vector2(1, 0))
 	assert_vector(node.aim_vector).is_equal(Vector2(1, 0))
 	assert_bool(Input.is_action_pressed("fire")).is_true()
 
-func test_gamepad_aim_releases_fire_below_threshold() -> void:
+func test_gamepad_aim_return_to_center_does_not_release_other_fire_source() -> void:
 	var node: Node = auto_free(GamepadAimScript.new())
+	Input.action_press("fire")
 	node._apply_axes(1.0, 0.0)
 	node._apply_axes(0.2, 0.0)
 	assert_vector(node.aim_vector).is_equal(Vector2.ZERO)
-	assert_bool(Input.is_action_pressed("fire")).is_false()
+	assert_bool(Input.is_action_pressed("fire")).is_true()
+
+func test_gamepad_aim_reads_aim_actions_after_inputmap_remap() -> void:
+	# 所有按键均须支持 InputMap 重映射。把瞄准动作从旧轴 2/3 改到 0/1 后，
+	# 新轴必须立即生效；旧轴事件即使送达节点也必须失效。
+	var node: Node = auto_free(GamepadAimScript.new())
+	add_child(node)
+	await _send_joy_motion(node, JOY_AXIS_RIGHT_X, 1.0)
+	assert_vector(node._read_aim_actions()).is_equal(Vector2.RIGHT)
+
+	_remap_axis_action(&"aim_right_x", JOY_AXIS_LEFT_X)
+	_remap_axis_action(&"aim_right_y", JOY_AXIS_LEFT_Y)
+	assert_vector(node._read_aim_actions()).is_equal(Vector2.ZERO)
+	await _send_joy_motion(node, JOY_AXIS_RIGHT_X, -1.0)
+	assert_vector(node._read_aim_actions()).is_equal(Vector2.ZERO)
+
+	await _send_joy_motion(node, JOY_AXIS_LEFT_X, 0.8)
+	await _send_joy_motion(node, JOY_AXIS_LEFT_Y, -0.6)
+	assert_vector(node._read_aim_actions()).is_equal_approx(Vector2(0.8, -0.6), Vector2(0.001, 0.001))
+	node._physics_process(0.0)
+	assert_vector(node.aim_vector).is_equal_approx(Vector2(0.8, -0.6), Vector2(0.001, 0.001))
+
+func _remap_axis_action(action: StringName, axis: JoyAxis) -> void:
+	InputMap.action_erase_events(action)
+	for polarity: float in [-1.0, 1.0]:
+		var motion := InputEventJoypadMotion.new()
+		motion.axis = axis
+		motion.axis_value = polarity
+		InputMap.action_add_event(action, motion)
+
+func _send_joy_motion(_node: Node, axis: JoyAxis, value: float) -> void:
+	var motion := InputEventJoypadMotion.new()
+	motion.axis = axis
+	motion.axis_value = value
+	Input.parse_input_event(motion)
+	await get_tree().process_frame
 
 # ---------- VirtualJoystickScript.joystick_output：死区/钳制/归一化 ----------
+
+func test_touch_mode_touch_capable_desktop_stays_desktop_until_setting_enabled() -> void:
+	assert_bool(TouchModeScript.enabled(false, false)).is_false()
+	# Windows 触摸屏能力只是硬件事实，不是启用虚拟控件/自动瞄准的授权。
+	assert_bool(TouchModeScript.enabled(true, false, false)).is_false()
+	assert_bool(TouchModeScript.enabled(true, false, true)).is_true()
+
+func test_touch_mode_pure_logic_supports_mobile_and_explicit_override() -> void:
+	assert_bool(TouchModeScript.enabled(false, true)).is_true()
+	assert_bool(TouchModeScript.enabled(false, false, true)).is_true()
+	assert_bool(TouchModeScript.enabled(false, false, false, true)).is_true()
+	assert_bool(TouchModeScript.enabled(true, true, true, false)).is_false()
 
 func test_joystick_output_unit_radius() -> void:
 	assert_vector(VirtualJoystickScript.joystick_output(Vector2(48, 0))).is_equal_approx(Vector2(1, 0), Vector2(0.001, 0.001))
@@ -143,27 +214,33 @@ func test_joystick_move_output_via_apply_raw() -> void:
 	var node: Control = auto_free(VirtualJoystickScript.new())
 	node._apply_raw(Vector2(48, 0))
 	assert_vector(node.output).is_equal_approx(Vector2(1, 0), Vector2(0.001, 0.001))
+	assert_bool(Input.is_action_pressed("touch_move_right")).is_true()
+	assert_bool(Input.is_action_pressed("move_right")).is_false()
 	node._apply_raw(Vector2.ZERO)
 	assert_vector(node.output).is_equal(Vector2.ZERO)
+	assert_bool(Input.is_action_pressed("touch_move_right")).is_false()
 
 func test_joystick_aim_presses_fire_beyond_dead_zone() -> void:
 	var node: Control = auto_free(VirtualJoystickScript.new())
 	node.is_aim = true
 	node._apply_raw(Vector2(48, 0))
 	assert_vector(node.aim_vector).is_equal_approx(Vector2(1, 0), Vector2(0.001, 0.001))
-	assert_bool(Input.is_action_pressed("fire")).is_true()
+	assert_bool(Input.is_action_pressed("touch_fire")).is_true()
+	assert_bool(Input.is_action_pressed("fire")).is_false()
 
 func test_joystick_aim_releases_fire_on_center() -> void:
 	var node: Control = auto_free(VirtualJoystickScript.new())
 	node.is_aim = true
+	Input.action_press("fire")
 	node._apply_raw(Vector2(48, 0))
 	node._apply_raw(Vector2(3, 0))   # 死区内
-	assert_bool(Input.is_action_pressed("fire")).is_false()
+	assert_bool(Input.is_action_pressed("touch_fire")).is_false()
+	assert_bool(Input.is_action_pressed("fire")).is_true()
 
 func test_joystick_hidden_on_desktop_unless_forced() -> void:
 	var node: Control = auto_free(VirtualJoystickScript.new())
 	node._refresh_visibility()
-	assert_bool(node.visible).is_false()          # headless 无触屏 → 隐藏
+	assert_bool(node.visible).is_false()          # 设置关闭的桌面/无头模式 → 隐藏
 	node.force_visible = true
 	node._refresh_visibility()
 	assert_bool(node.visible).is_true()
@@ -187,6 +264,75 @@ func test_joystick_touch_drag_release_glue() -> void:
 	release.position = Vector2(148, 100)
 	node._gui_input(release)
 	assert_vector(node.output).is_equal(Vector2.ZERO)
+
+func test_joystick_mouse_drag_release_uses_same_inputmap_path() -> void:
+	var node: Control = auto_free(VirtualJoystickScript.new())
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = Vector2(100, 100)
+	node._gui_input(press)
+	var drag := InputEventMouseMotion.new()
+	drag.button_mask = MOUSE_BUTTON_MASK_LEFT
+	drag.position = Vector2(148, 100)
+	node._gui_input(drag)
+	assert_vector(node.output).is_equal_approx(Vector2.RIGHT, Vector2(0.001, 0.001))
+	assert_bool(Input.is_action_pressed("touch_move_right")).is_true()
+	assert_bool(Input.is_action_pressed("fire")).is_false()
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = drag.position
+	node._gui_input(release)
+	assert_vector(node.output).is_equal(Vector2.ZERO)
+	assert_bool(Input.is_action_pressed("touch_move_right")).is_false()
+
+func test_joystick_public_mouse_capture_tracks_mouse_only() -> void:
+	var node: Control = auto_free(VirtualJoystickScript.new())
+	var touch := InputEventScreenTouch.new()
+	touch.index = 2
+	touch.pressed = true
+	touch.position = Vector2(20, 20)
+	node._gui_input(touch)
+	assert_bool(node.captures_mouse_pointer()).is_false()
+	touch.pressed = false
+	node._gui_input(touch)
+
+	var mouse := InputEventMouseButton.new()
+	mouse.device = 0
+	mouse.button_index = MOUSE_BUTTON_LEFT
+	mouse.pressed = true
+	mouse.position = Vector2(20, 20)
+	node._gui_input(mouse)
+	assert_bool(node.captures_mouse_pointer()).is_true()
+	mouse.pressed = false
+	node._gui_input(mouse)
+	assert_bool(node.captures_mouse_pointer()).is_false()
+
+	var emulated := InputEventMouseButton.new()
+	emulated.device = InputEvent.DEVICE_ID_EMULATION
+	emulated.button_index = MOUSE_BUTTON_LEFT
+	emulated.pressed = true
+	node._gui_input(emulated)
+	assert_bool(node.captures_mouse_pointer()).is_false()
+
+func test_touch_fire_release_does_not_cancel_held_physical_fire() -> void:
+	var node: Control = auto_free(VirtualJoystickScript.new())
+	node.is_aim = true
+	Input.action_press("fire")
+	node._apply_raw(Vector2.RIGHT * 48.0)
+	assert_bool(Input.is_action_pressed("touch_fire")).is_true()
+	node._apply_raw(Vector2.ZERO)
+	assert_bool(Input.is_action_pressed("touch_fire")).is_false()
+	assert_bool(Input.is_action_pressed("fire")).is_true()
+
+func test_move_joystick_release_does_not_cancel_keyboard_move() -> void:
+	var node: Control = auto_free(VirtualJoystickScript.new())
+	Input.action_press("move_right")
+	node._apply_raw(Vector2.RIGHT * 48.0)
+	node._apply_raw(Vector2.ZERO)
+	assert_bool(Input.is_action_pressed("touch_move_right")).is_false()
+	assert_bool(Input.is_action_pressed("move_right")).is_true()
 
 # ---------- InputMap 手柄绑定（setup_input.gd 幂等写入后） ----------
 
@@ -251,3 +397,9 @@ func test_inputmap_keeps_keyboard_bindings() -> void:
 		if ev is InputEventKey and ev.physical_keycode == KEY_A:
 			has_key = true
 	assert_bool(has_key).is_true()
+
+func test_touch_actions_are_unbound_and_source_isolated() -> void:
+	for action in ["touch_move_left", "touch_move_right", "touch_move_up", "touch_move_down",
+			"touch_fire", "touch_roll", "touch_switch_weapon", "touch_interact", "touch_skill"]:
+		assert_bool(InputMap.has_action(action)).override_failure_message(action).is_true()
+		assert_int(InputMap.action_get_events(action).size()).override_failure_message(action).is_zero()

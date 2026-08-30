@@ -40,7 +40,8 @@ func _summon_ring() -> void:
 	var count := mini(room, RING_COUNT)
 	for i in count:
 		var ang := TAU * float(i) / float(RING_COUNT)
-		var child: Node = spawn_callback.call(SUMMON_ROW, brain_pos + Vector2.from_angle(ang) * RING_RADIUS_PX)
+		var child: Node = spawn_callback.call(SUMMON_ROW,
+			brain_pos + Vector2.from_angle(ang) * RING_RADIUS_PX, {})
 		if child != null:
 			_summoned.append(child)
 

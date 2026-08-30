@@ -1,0 +1,1058 @@
+core\rooms\training_room.gd-55-# ---- 假人 ----
+core\rooms\training_room.gd-56-
+core\rooms\training_room.gd-57-func _spawn_dummies() -> void:
+core\rooms\training_room.gd-58-	for pos in DUMMY_POINTS:
+core\rooms\training_room.gd:59:		var e := EnemyBase.new()
+core\rooms\training_room.gd-60-		e.position = pos
+core\rooms\training_room.gd-61-		add_child(e)
+core\rooms\training_room.gd-62-		e.setup(DUMMY_ROW.duplicate())        # 原型换装 + status 惰性挂载
+core\rooms\training_room.gd-63-		e.combat = combat_room.combat
+--
+core\rooms\room_combat.gd-136-	_spawned_wave = flow.wave_index()
+core\rooms\room_combat.gd-137-	var points := valid_spawn_points()
+core\rooms\room_combat.gd-138-	var i := 0
+core\rooms\room_combat.gd-139-	for id in flow.current_wave_ids():
+core\rooms\room_combat.gd:140:		_spawn_enemy(String(id), points[i % points.size()])
+core\rooms\room_combat.gd-141-		i += 1
+core\rooms\room_combat.gd-142-
+core\rooms\room_combat.gd:143:func _spawn_enemy(id: String, pos: Vector2) -> void:
+core\rooms\room_combat.gd-144-	var row := GameDB.get_enemy(id)
+core\rooms\room_combat.gd-145-	if row.is_empty():
+core\rooms\room_combat.gd-146-		push_error("RoomCombat: unknown enemy '%s'" % id)
+core\rooms\room_combat.gd-147-		flow.notify_killed(id, Engine.get_physics_frames())   # 坏行不计波次
+core\rooms\room_combat.gd-148-		return
+core\rooms\room_combat.gd:149:	var e := EnemyBase.new()
+core\rooms\room_combat.gd-150-	e.position = pos
+core\rooms\room_combat.gd-151-	add_child(e)
+core\rooms\room_combat.gd-152-	e.setup(row)                               # 原型换装 + status 惰性挂载（t12 接线）
+core\rooms\room_combat.gd-153-	e.combat = combat
+--
+core\rooms\floor_scene.gd-508-		push_error("FloorScene: room %d has no spawn points" % room.room_id)
+core\rooms\floor_scene.gd-509-		return
+core\rooms\floor_scene.gd-510-	var i := 0
+core\rooms\floor_scene.gd-511-	for enemy_id: String in room.room_flow.current_wave_ids():
+core\rooms\floor_scene.gd:512:		_spawn_enemy(room, enemy_id, points[i % points.size()])
+core\rooms\floor_scene.gd-513-		i += 1
+core\rooms\floor_scene.gd-514-
+core\rooms\floor_scene.gd-515-
+core\rooms\floor_scene.gd:516:func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2) -> void:
+core\rooms\floor_scene.gd-517-	var is_guest := GUEST_SPECS.has(id)
+core\rooms\floor_scene.gd-518-	var row: Dictionary = guest_row(id) if is_guest else GameDB.get_enemy(id)
+core\rooms\floor_scene.gd-519-	if row.is_empty():
+core\rooms\floor_scene.gd-520-		push_error("FloorScene: unknown enemy '%s'" % id)
+--
+core\rooms\floor_scene.gd-540-			% [typeof(spawned), id])
+core\rooms\floor_scene.gd-541-	# m1-t27：默认真实嘉宾（数据行替换占位；真实行缺失时落回占位路径）
+core\rooms\floor_scene.gd-542-	if is_guest and use_real_guests and _spawn_real_guest(room, id, world_pos):
+core\rooms\floor_scene.gd-543-		return
+core\rooms\floor_scene.gd:544:	var e := EnemyBase.new()
+core\rooms\floor_scene.gd-545-	e.position = world_pos - room.position   # 房间子节点：世界刷点 → 房间局部
+core\rooms\floor_scene.gd-546-	room.add_child(e)
+core\rooms\floor_scene.gd-547-	e.setup(row)
+core\rooms\floor_scene.gd-548-	e.combat = room.combat
+--
+core\rooms\floor_scene.gd-568-		push_warning("FloorScene: real guest row '%s' missing — placeholder fallback" % real_id)
+core\rooms\floor_scene.gd-569-		return false
+core\rooms\floor_scene.gd-570-	real_row["guest_kind"] = String((GUEST_SPECS[wave_id] as Dictionary)["kind"])
+core\rooms\floor_scene.gd-571-	real_row["wave_id"] = wave_id
+core\rooms\floor_scene.gd:572:	var e := EnemyBase.new()
+core\rooms\floor_scene.gd-573-	e.position = world_pos - room.position   # 房间子节点：世界刷点 → 房间局部
+core\rooms\floor_scene.gd-574-	room.add_child(e)
+core\rooms\floor_scene.gd-575-	e.setup(real_row)
+core\rooms\floor_scene.gd-576-	e.combat = room.combat
+--
+core\player\weapon_rig.gd-22-var bullet_speed_mult: float = 1.0           # 弹速倍率（弹速强化）
+core\player\weapon_rig.gd-23-var temporary_enchant_element: int = Elements.Id.NONE
+core\player\weapon_rig.gd-24-var temporary_enchant_until := -1
+core\player\weapon_rig.gd-25-
+core\player\weapon_rig.gd:26:func _test_init() -> void:
+core\player\weapon_rig.gd-27-	slots = [{}, {}]
+core\player\weapon_rig.gd-28-
+core\player\weapon_rig.gd-29-func equip(weapon_id: String) -> void:
+core\player\weapon_rig.gd-30-	var w := GameDB.get_weapon(weapon_id)
+--
+tests/unit\test_weapon_rig.gd-19-func _rig() -> RigProbe:
+tests/unit\test_weapon_rig.gd-20-	# 注：brief 原文 `var p := auto_free(Player.new())`，auto_free 返回 Variant，:= 无法推断类型
+tests/unit\test_weapon_rig.gd-21-	# （同 test_player_state.gd / test_combat_system.gd 既定决议），需显式类型标注。
+tests/unit\test_weapon_rig.gd-22-	var p: Player = auto_free(Player.new())
+tests/unit\test_weapon_rig.gd:23:	p._test_init()
+tests/unit\test_weapon_rig.gd-24-	var r := RigProbe.new()
+tests/unit\test_weapon_rig.gd-25-	p.add_child(r)
+tests/unit\test_weapon_rig.gd:26:	r._test_init()
+tests/unit\test_weapon_rig.gd-27-	return r
+tests/unit\test_weapon_rig.gd-28-
+tests/unit\test_weapon_rig.gd-29-func test_rate_limiting() -> void:
+tests/unit\test_weapon_rig.gd-30-	var r := _rig()
+--
+tests/unit\test_vine_colossus.gd-21-		hits.append(ctx)
+tests/unit\test_vine_colossus.gd-22-
+tests/unit\test_vine_colossus.gd-23-func _boss() -> VineColossus:
+tests/unit\test_vine_colossus.gd-24-	var b: VineColossus = auto_free(VineColossus.new())
+tests/unit\test_vine_colossus.gd:25:	b._test_init(ROW.duplicate(true))
+tests/unit\test_vine_colossus.gd-26-	return b
+tests/unit\test_vine_colossus.gd-27-
+tests/unit\test_vine_colossus.gd-28-func _ctx(amount: int) -> Dictionary:
+tests/unit\test_vine_colossus.gd-29-	return {"amount": amount, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO}
+--
+tests/unit\test_vine_colossus.gd-299-	var b := _boss()
+tests/unit\test_vine_colossus.gd-300-	var spawned: Array = []
+tests/unit\test_vine_colossus.gd-301-	var pos_log: Array = []
+tests/unit\test_vine_colossus.gd-302-	var minions: Array = []
+tests/unit\test_vine_colossus.gd:303:	b.spawn_callback = func(arch: String, pos: Vector2) -> Variant:
+tests/unit\test_vine_colossus.gd-304-		spawned.append(arch)
+tests/unit\test_vine_colossus.gd-305-		pos_log.append(pos)
+tests/unit\test_vine_colossus.gd-306-		var m := Node.new()
+tests/unit\test_vine_colossus.gd-307-		minions.append(m)
+--
+tests/unit\test_vine_colossus.gd-321-		if is_instance_valid(m):
+tests/unit\test_vine_colossus.gd-322-			m.free()
+tests/unit\test_vine_colossus.gd-323-
+tests/unit\test_vine_colossus.gd-324-func test_summon_without_callback_never_starts() -> void:
+tests/unit\test_vine_colossus.gd:325:	# 未接线（spawn_callback 空调用）→ 召唤招不入序列（生产接线归房间层，披露）
+tests/unit\test_vine_colossus.gd-326-	var b := _boss()
+tests/unit\test_vine_colossus.gd-327-	_take_to_phase(b, 561, FRAME - 100)   # 800-561=239 ≤ 240 → P2
+tests/unit\test_vine_colossus.gd-328-	for m in _run_collect(b, _engage_ready(b), 800):
+tests/unit\test_vine_colossus.gd-329-		assert_bool(m != "summon").is_true()
+--
+tests/unit\test_vine_colossus.gd-334-	var row := GameDB.get_enemy("vine_colossus")
+tests/unit\test_vine_colossus.gd-335-	assert_int(row.get("hp", 0)).is_equal(800)
+tests/unit\test_vine_colossus.gd-336-	assert_bool(row.has("phases")).is_true()
+tests/unit\test_vine_colossus.gd-337-	assert_bool(row.has("boss_script")).is_true()
+tests/unit\test_vine_colossus.gd:338:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_vine_colossus.gd:339:	e._test_init(row)                                     # 生产同路径：_test_init 内 boss_script 换装
+tests/unit\test_vine_colossus.gd-340-	assert_bool(e is VineColossus).is_true()
+tests/unit\test_vine_colossus.gd-341-	assert_bool(e is BossBase).is_true()
+tests/unit\test_vine_colossus.gd-342-	e.on_player_seen(0)
+tests/unit\test_vine_colossus.gd-343-	for f in range(1, 26):
+--
+core\player\player.gd-48-var _iframe_until := -999
+core\player\player.gd-49-var _last_damaged_frame := -999
+core\player\player.gd-50-var _shield_next_at := -999
+core\player\player.gd-51-
+core\player\player.gd:52:func _test_init() -> void:
+core\player\player.gd-53-	# 纯逻辑测试入口：不进场景树也能测状态机
+core\player\player.gd-54-	pass
+core\player\player.gd-55-
+core\player\player.gd-56-func _ready() -> void:
+--
+tests/unit\test_telemetry.gd-77-
+tests/unit\test_telemetry.gd-78-func test_hurt_row_logged_from_player_take_hit_ctx() -> void:
+tests/unit\test_telemetry.gd-79-	_clean()
+tests/unit\test_telemetry.gd-80-	var p: Player = auto_free(Player.new())
+tests/unit\test_telemetry.gd:81:	p._test_init()
+tests/unit\test_telemetry.gd-82-	p.take_hit_ctx({"amount": 3, "is_crit": false}, 100)   # 护盾 4 吸收：hp 仍 8
+tests/unit\test_telemetry.gd-83-	Telemetry.flush()
+tests/unit\test_telemetry.gd-84-	var text := FileAccess.get_file_as_string("user://telemetry.csv")
+tests/unit\test_telemetry.gd-85-	assert_str(text).contains("hurt,100,3,8")
+--
+tests/unit\test_enemy_ai.gd-8-	func take_hit(ctx: Dictionary) -> void:
+tests/unit\test_enemy_ai.gd-9-		hits.append(ctx)
+tests/unit\test_enemy_ai.gd-10-
+tests/unit\test_enemy_ai.gd-11-func test_state_transitions() -> void:
+tests/unit\test_enemy_ai.gd:12:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:13:	e._test_init({"id": "crossbowman", "archetype": "shooter", "hp": 16, "contact_dmg": 3, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+tests/unit\test_enemy_ai.gd-14-	e.on_player_seen(0)
+tests/unit\test_enemy_ai.gd-15-	assert_int(e.state).is_equal(EnemyBase.State.ALERT)
+tests/unit\test_enemy_ai.gd-16-	e.brain_tick(23)
+tests/unit\test_enemy_ai.gd-17-	assert_int(e.state).is_equal(EnemyBase.State.ALERT)     # 0.4s=24 ticks 前摇
+tests/unit\test_enemy_ai.gd-18-	e.brain_tick(24)
+tests/unit\test_enemy_ai.gd-19-	assert_int(e.state).is_equal(EnemyBase.State.ENGAGE)
+tests/unit\test_enemy_ai.gd-20-
+tests/unit\test_enemy_ai.gd-21-func test_shooter_cadence() -> void:
+tests/unit\test_enemy_ai.gd:22:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:23:	e._test_init({"id": "crossbowman", "archetype": "shooter", "hp": 16, "contact_dmg": 3, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+tests/unit\test_enemy_ai.gd-24-	e.on_player_seen(0)
+tests/unit\test_enemy_ai.gd-25-	for f in range(1, 25): e.brain_tick(f)
+tests/unit\test_enemy_ai.gd-26-	var shots := 0
+tests/unit\test_enemy_ai.gd-27-	for f in range(25, 300):
+--
+tests/unit\test_enemy_ai.gd-34-	var root: Node2D = auto_free(Node2D.new())
+tests/unit\test_enemy_ai.gd-35-	add_child(root)
+tests/unit\test_enemy_ai.gd-36-	var combat := CombatSystem.new(root, RngSvc.stream(1, "enemy_radius_test"))
+tests/unit\test_enemy_ai.gd-37-	root.add_child(combat)
+tests/unit\test_enemy_ai.gd:38:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:39:	e._test_init({
+tests/unit\test_enemy_ai.gd-40-		"id": "crossbowman", "name": "弩兵", "archetype": "shooter", "hp": 16,
+tests/unit\test_enemy_ai.gd-41-		"bullet_dmg": 3, "bullet_speed": 110, "bullet_life_seconds": 2.5,
+tests/unit\test_enemy_ai.gd-42-		"bullet_radius": 4.5,
+tests/unit\test_enemy_ai.gd-43-	})
+--
+tests/unit\test_enemy_ai.gd-49-	assert_str(String(meta["source_name"])).is_equal("弩兵")
+tests/unit\test_enemy_ai.gd-50-	assert_str(String(meta["attack_name"])).is_equal("弹幕")
+tests/unit\test_enemy_ai.gd-51-
+tests/unit\test_enemy_ai.gd-52-func test_suicide_fuse_and_explosion_params() -> void:
+tests/unit\test_enemy_ai.gd:53:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:54:	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+tests/unit\test_enemy_ai.gd-55-	e.on_player_seen(0)
+tests/unit\test_enemy_ai.gd-56-	for f in range(1, 25): e.brain_tick(f)
+tests/unit\test_enemy_ai.gd-57-	e.brain_tick(24 + 30)     # ENGAGE 后贴身引信 30 ticks
+tests/unit\test_enemy_ai.gd-58-	assert_bool(e.exploded).is_true()
+tests/unit\test_enemy_ai.gd-59-
+tests/unit\test_enemy_ai.gd-60-func test_charger_dash_distance() -> void:
+tests/unit\test_enemy_ai.gd:61:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:62:	e._test_init({"id": "vine_charger", "archetype": "charger", "hp": 18, "contact_dmg": 4, "walk_speed": 45, "dash_speed": 285, "windup_ticks": 30, "dash_ticks": 27, "dash_cooldown_ticks": 90})
+tests/unit\test_enemy_ai.gd-63-	e.on_player_seen(0)
+tests/unit\test_enemy_ai.gd-64-	for f in range(1, 25):
+tests/unit\test_enemy_ai.gd-65-		e.brain_tick(f)                   # 第 24 帧进入 ENGAGE
+tests/unit\test_enemy_ai.gd-66-	for f in range(25, 55):
+--
+tests/unit\test_enemy_ai.gd-76-# ---- m0-final fix 回归 ----
+tests/unit\test_enemy_ai.gd-77-
+tests/unit\test_enemy_ai.gd-78-## fix4（附录 B.1「死亡即刻爆」）：苦力虫受击致死同样引爆——40px 内替身恰好吃 1×8。
+tests/unit\test_enemy_ai.gd-79-func test_kuli_death_by_damage_explodes_on_player_within_aoe() -> void:
+tests/unit\test_enemy_ai.gd:80:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:81:	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+tests/unit\test_enemy_ai.gd-82-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_enemy_ai.gd-83-	spy.brain_pos = Vector2.ZERO             # 与 e.brain_pos 同点（40px 内）
+tests/unit\test_enemy_ai.gd-84-	e.set("player_ref", spy)                 # set_script 后须经 Object.set（同 setup 注）
+tests/unit\test_enemy_ai.gd-85-	e.take_hit({"amount": 99, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
+--
+tests/unit\test_enemy_ai.gd-90-	assert_int(int(spy.hits[0]["element"])).is_equal(Elements.Id.NONE)
+tests/unit\test_enemy_ai.gd-91-
+tests/unit\test_enemy_ai.gd-92-## fix4：40px 外受击致死——爆而不中。
+tests/unit\test_enemy_ai.gd-93-func test_kuli_death_by_damage_beyond_aoe_no_hit() -> void:
+tests/unit\test_enemy_ai.gd:94:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:95:	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+tests/unit\test_enemy_ai.gd-96-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_enemy_ai.gd-97-	spy.brain_pos = Vector2(50, 0)           # 50px > aoe_radius 40
+tests/unit\test_enemy_ai.gd-98-	e.set("player_ref", spy)
+tests/unit\test_enemy_ai.gd-99-	e.take_hit({"amount": 99, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
+--
+tests/unit\test_enemy_ai.gd-101-	assert_int(spy.hits.size()).is_equal(0)
+tests/unit\test_enemy_ai.gd-102-
+tests/unit\test_enemy_ai.gd-103-## fix4 去重：引信致死（exploded=true → die()）恰好一次爆炸，不再双重结算。
+tests/unit\test_enemy_ai.gd-104-func test_kuli_fuse_death_explodes_exactly_once() -> void:
+tests/unit\test_enemy_ai.gd:105:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd:106:	e._test_init({"id": "kuli_bug", "archetype": "suicide", "hp": 12, "speed": 95, "fuse_ticks": 30, "aoe_radius": 40, "aoe_dmg": 8})
+tests/unit\test_enemy_ai.gd-107-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_enemy_ai.gd-108-	spy.brain_pos = Vector2.ZERO             # 贴身（0 < 14px）：转换拍即点燃
+tests/unit\test_enemy_ai.gd-109-	e.set("player_ref", spy)
+tests/unit\test_enemy_ai.gd-110-	e.on_player_seen(0)
+--
+tests/unit\test_enemy_ai.gd-121-	add_child(root)
+tests/unit\test_enemy_ai.gd-122-	var rng := RngSvc.stream(0, "combat")
+tests/unit\test_enemy_ai.gd-123-	var cs := CombatSystem.new(root, rng)
+tests/unit\test_enemy_ai.gd-124-	root.add_child(cs)
+tests/unit\test_enemy_ai.gd:125:	var trig: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd-126-	trig.position = Vector2(100, 100)
+tests/unit\test_enemy_ai.gd-127-	root.add_child(trig)
+tests/unit\test_enemy_ai.gd-128-	trig.setup({"id": "trigger", "hp": 100, "radius": 6.0})
+tests/unit\test_enemy_ai.gd-129-	trig.combat = cs
+tests/unit\test_enemy_ai.gd-130-	cs.register_body(trig, trig.combat_faction())
+tests/unit\test_enemy_ai.gd:131:	var other: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd-132-	other.position = Vector2(130, 100)       # 30px，90px AoE 内
+tests/unit\test_enemy_ai.gd-133-	root.add_child(other)
+tests/unit\test_enemy_ai.gd-134-	other.setup({"id": "victim", "hp": 100, "radius": 6.0})
+tests/unit\test_enemy_ai.gd-135-	other.combat = cs
+tests/unit\test_enemy_ai.gd-136-	cs.register_body(other, other.combat_faction())
+tests/unit\test_enemy_ai.gd:137:	var corpse: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_enemy_ai.gd-138-	corpse.position = Vector2(160, 100)      # 60px，AoE 内但已死
+tests/unit\test_enemy_ai.gd-139-	root.add_child(corpse)
+tests/unit\test_enemy_ai.gd-140-	corpse.setup({"id": "corpse", "hp": 100, "radius": 6.0})
+tests/unit\test_enemy_ai.gd-141-	cs.register_body(corpse, corpse.combat_faction())
+--
+tests/unit\test_elites.gd-27-# ---- 原型映射改造（重构回归：对外契约不变） ----
+tests/unit\test_elites.gd-28-
+tests/unit\test_elites.gd-29-func test_archetype_map_mounts_preloaded_scripts() -> void:
+tests/unit\test_elites.gd-30-	for arch in ["charger", "shooter", "orbiter", "suicide", "dummy"]:
+tests/unit\test_elites.gd:31:		var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:32:		e._test_init({"id": "t", "archetype": arch, "hp": 10})
+tests/unit\test_elites.gd-33-		var s := e.get_script() as Script
+tests/unit\test_elites.gd-34-		assert_str(s.resource_path).is_equal(ARCHETYPE_BASE + arch + ".gd")
+tests/unit\test_elites.gd-35-		assert_bool(e.row == e.get("row")).is_true()       # 行/成员经 Object.set 落到新实例
+tests/unit\test_elites.gd-36-		assert_int(e.hp).is_equal(10)
+tests/unit\test_elites.gd-37-		assert_int(e.hp_max).is_equal(10)
+tests/unit\test_elites.gd-38-
+tests/unit\test_elites.gd-39-func test_unknown_archetype_stays_on_base_and_warns() -> void:
+tests/unit\test_elites.gd:40:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:41:	e._test_init({"id": "t", "archetype": "nope", "hp": 10})
+tests/unit\test_elites.gd-42-	var s := e.get_script() as Script
+tests/unit\test_elites.gd-43-	assert_str(s.resource_path).is_equal("res://core/enemies/enemy_base.gd")
+tests/unit\test_elites.gd-44-
+tests/unit\test_elites.gd-45-func test_boss_subclass_is_not_remounted() -> void:
+tests/unit\test_elites.gd-46-	var b: BossBase = auto_free(BossBase.new())
+tests/unit\test_elites.gd:47:	b._test_init({"id": "boss_test", "hp": 800, "radius": 14.0, "phases": [1.0, 0.6]})
+tests/unit\test_elites.gd-48-	var s := b.get_script() as Script
+tests/unit\test_elites.gd-49-	assert_str(s.resource_path).is_equal("res://core/enemies/boss_base.gd")   # 二次换装守卫保持
+tests/unit\test_elites.gd-50-	assert_int(b.hp).is_equal(800)
+tests/unit\test_elites.gd-51-
+tests/unit\test_elites.gd-52-# ---- 词缀数值（TDD：迅捷/坚甲断言） ----
+tests/unit\test_elites.gd-53-
+tests/unit\test_elites.gd-54-func test_swift_multiplies_all_row_speed_keys() -> void:
+tests/unit\test_elites.gd:55:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-56-	var row := {"id": "t", "archetype": "charger", "hp": 10, "speed": 100, "walk_speed": 40, "dash_speed": 200.0}
+tests/unit\test_elites.gd:57:	e._test_init(row)
+tests/unit\test_elites.gd-58-	EliteAffix.apply(e, "swift")
+tests/unit\test_elites.gd-59-	assert_float(float(e.row["speed"])).is_equal_approx(130.0, 0.001)
+tests/unit\test_elites.gd-60-	assert_float(float(e.row["walk_speed"])).is_equal_approx(52.0, 0.001)
+tests/unit\test_elites.gd-61-	assert_float(float(e.row["dash_speed"])).is_equal_approx(260.0, 0.001)
+tests/unit\test_elites.gd-62-	assert_bool(row == e.row).is_false()   # 与传入行解耦（不污染共享表）
+tests/unit\test_elites.gd-63-
+tests/unit\test_elites.gd-64-func test_armored_triples_hp_and_max() -> void:
+tests/unit\test_elites.gd:65:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:66:	e._test_init({"id": "t", "archetype": "dummy", "hp": 20})
+tests/unit\test_elites.gd-67-	EliteAffix.apply(e, "armored")
+tests/unit\test_elites.gd-68-	assert_int(e.hp).is_equal(60)
+tests/unit\test_elites.gd-69-	assert_int(e.hp_max).is_equal(60)
+tests/unit\test_elites.gd-70-
+tests/unit\test_elites.gd-71-func test_unknown_affix_is_ignored() -> void:
+tests/unit\test_elites.gd:72:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:73:	e._test_init({"id": "t", "archetype": "dummy", "hp": 20})
+tests/unit\test_elites.gd-74-	EliteAffix.apply(e, "bogus")
+tests/unit\test_elites.gd-75-	assert_int(e.hp).is_equal(20)
+tests/unit\test_elites.gd-76-	assert_bool(bool(e.get("split_on_death"))).is_false()
+tests/unit\test_elites.gd-77-
+tests/unit\test_elites.gd-78-func test_affix_table_has_six_entries() -> void:
+tests/unit\test_elites.gd-79-	assert_int(EliteAffix.AFFIXES.size()).is_equal(6)
+tests/unit\test_elites.gd-80-
+tests/unit\test_elites.gd:81:# ---- 分裂（die 后 2 子体，hp 减半，经 spawn_callback 接缝；子体行剥离词缀） ----
+tests/unit\test_elites.gd-82-
+tests/unit\test_elites.gd-83-## 记录型召唤回调：3 参（分裂路径传净行 row_override），返回可写 hp 的替身。
+tests/unit\test_elites.gd-84-var _split_calls: Array = []
+tests/unit\test_elites.gd-85-
+--
+tests/unit\test_elites.gd-89-	return m
+tests/unit\test_elites.gd-90-
+tests/unit\test_elites.gd-91-func test_splitter_spawns_two_half_hp_children_at_death() -> void:
+tests/unit\test_elites.gd-92-	_split_calls = []
+tests/unit\test_elites.gd:93:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-94-	var row := {"id": "vine_charger", "archetype": "charger", "hp": 20, "radius": 6.0,
+tests/unit\test_elites.gd-95-		"windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90,
+tests/unit\test_elites.gd-96-		"elite_affixes": ["splitter", "swift"]}   # 词缀行：子体必须剥离
+tests/unit\test_elites.gd:97:	e._test_init(row)
+tests/unit\test_elites.gd:98:	e.set("spawn_callback", Callable(self, "_record_split_spawn"))
+tests/unit\test_elites.gd-99-	EliteAffix.apply(e, "splitter")
+tests/unit\test_elites.gd-100-	assert_bool(e.split_on_death).is_true()
+tests/unit\test_elites.gd-101-	e.take_hit({"amount": 99, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
+tests/unit\test_elites.gd-102-	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
+--
+tests/unit\test_elites.gd-111-		assert_int((_split_calls[i]["minion"] as StubMinion).hp).is_equal(10)   # hp ×0.5
+tests/unit\test_elites.gd-112-		(_split_calls[i]["minion"] as StubMinion).free()         # 替身自清（非 auto_free 通路）
+tests/unit\test_elites.gd-113-
+tests/unit\test_elites.gd-114-func test_splitter_without_callback_dies_cleanly() -> void:
+tests/unit\test_elites.gd:115:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:116:	e._test_init({"id": "vine_charger", "archetype": "charger", "hp": 20, "windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
+tests/unit\test_elites.gd-117-	e.set("split_on_death", true)          # 接缝未注入：静默跳过
+tests/unit\test_elites.gd-118-	e.take_hit({"amount": 99, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
+tests/unit\test_elites.gd-119-	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
+tests/unit\test_elites.gd-120-
+--
+tests/unit\test_elites.gd-122-
+tests/unit\test_elites.gd-123-func test_leech_heals_on_contact_hit() -> void:
+tests/unit\test_elites.gd-124-	var root: Node2D = auto_free(Node2D.new())
+tests/unit\test_elites.gd-125-	add_child(root)
+tests/unit\test_elites.gd:126:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-127-	e.position = Vector2.ZERO
+tests/unit\test_elites.gd-128-	root.add_child(e)
+tests/unit\test_elites.gd-129-	e.setup({"id": "t", "archetype": "dummy", "hp": 30, "contact_dmg": 3, "radius": 6.0})
+tests/unit\test_elites.gd-130-	e.set("hp", 10)                        # 先扣到 10/30
+--
+tests/unit\test_elites.gd-142-
+tests/unit\test_elites.gd-143-func test_no_leech_keeps_hp() -> void:
+tests/unit\test_elites.gd-144-	var root: Node2D = auto_free(Node2D.new())
+tests/unit\test_elites.gd-145-	add_child(root)
+tests/unit\test_elites.gd:146:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-147-	e.position = Vector2.ZERO
+tests/unit\test_elites.gd-148-	root.add_child(e)
+tests/unit\test_elites.gd-149-	e.setup({"id": "t", "archetype": "dummy", "hp": 30, "contact_dmg": 3, "radius": 6.0})
+tests/unit\test_elites.gd-150-	e.set("hp", 10)
+--
+tests/unit\test_elites.gd-158-
+tests/unit\test_elites.gd-159-# ---- 狂暴（词缀门控 + 50% 血阈值 + windup ×0.7） ----
+tests/unit\test_elites.gd-160-
+tests/unit\test_elites.gd-161-func test_berserk_threshold_strict_below_half() -> void:
+tests/unit\test_elites.gd:162:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:163:	e._test_init({"id": "t", "archetype": "charger", "hp": 100})
+tests/unit\test_elites.gd-164-	e.set("hp", 49)
+tests/unit\test_elites.gd-165-	assert_bool(e.berserk_active()).is_false()   # fix1：无词缀门控——低血也不激活
+tests/unit\test_elites.gd-166-	EliteAffix.apply(e, "berserk")
+tests/unit\test_elites.gd-167-	assert_bool(e.has_berserk).is_true()
+--
+tests/unit\test_elites.gd-173-	assert_bool(e.berserk_active()).is_true()    # 49%：激活
+tests/unit\test_elites.gd-174-
+tests/unit\test_elites.gd-175-## fix1 覆盖：M0 普通藤蔓冲锋者半血以下 windup 不变（未带词缀）。
+tests/unit\test_elites.gd-176-func test_m0_charger_below_half_hp_keeps_windup() -> void:
+tests/unit\test_elites.gd:177:	var c: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:178:	c._test_init({"id": "vine_charger", "archetype": "charger", "hp": 18, "windup_ticks": 30,
+tests/unit\test_elites.gd-179-		"dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
+tests/unit\test_elites.gd-180-	c.set("hp", 8)                                # 8×2=16 < 18：血线在阈值下
+tests/unit\test_elites.gd-181-	assert_bool(c.berserk_active()).is_false()    # 无词缀：不激活
+tests/unit\test_elites.gd-182-	assert_int(c._windup_ticks(30)).is_equal(30)  # windup 原样
+--
+tests/unit\test_elites.gd-184-	for f in range(1, 26): c.brain_tick(f)
+tests/unit\test_elites.gd-185-	assert_int(int(c.get("_phase_left"))).is_equal(30)   # 行为层：ENGAGE 首拍蓄力窗仍 30
+tests/unit\test_elites.gd-186-
+tests/unit\test_elites.gd-187-func test_berserk_scales_windup_in_charger_and_shooter() -> void:
+tests/unit\test_elites.gd:188:	var c: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:189:	c._test_init({"id": "t", "archetype": "charger", "hp": 18, "windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
+tests/unit\test_elites.gd-190-	assert_int(c._windup_ticks(30)).is_equal(30)     # 满血：不变
+tests/unit\test_elites.gd-191-	EliteAffix.apply(c, "berserk")                   # fix1：词缀门控
+tests/unit\test_elites.gd-192-	c.set("hp", 8)                                   # 8×2=16 < 18 → 狂暴
+tests/unit\test_elites.gd-193-	assert_int(c._windup_ticks(30)).is_equal(21)     # ×0.7
+tests/unit\test_elites.gd:194:	var s: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:195:	s._test_init({"id": "t", "archetype": "shooter", "hp": 16, "windup_ticks": 30, "cd_ticks": 108, "speed": 60})
+tests/unit\test_elites.gd-196-	s.set("hp", 7)                                   # 未带词缀：仍不激活
+tests/unit\test_elites.gd-197-	assert_int(s._windup_ticks(30)).is_equal(30)
+tests/unit\test_elites.gd-198-	EliteAffix.apply(s, "berserk")
+tests/unit\test_elites.gd-199-	s.set("hp", 7)                                   # 7×2=14 < 16 → 狂暴
+--
+tests/unit\test_elites.gd-218-	add_child(root)
+tests/unit\test_elites.gd-219-	var rng := RngSvc.stream(0, "combat")
+tests/unit\test_elites.gd-220-	var cs := SpyCombat.new(root, rng)
+tests/unit\test_elites.gd-221-	root.add_child(cs)
+tests/unit\test_elites.gd:222:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-223-	e.position = Vector2.ZERO
+tests/unit\test_elites.gd-224-	root.add_child(e)
+tests/unit\test_elites.gd-225-	e.setup({"id": "t", "archetype": "shooter", "hp": 16, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+tests/unit\test_elites.gd-226-	e.combat = cs
+--
+tests/unit\test_elites.gd-236-	assert_int(cs.spawned.size()).is_equal(1)   # 基线：单发
+tests/unit\test_elites.gd-237-	# 弹幕大师 ×2 → 3 发对称扇形
+tests/unit\test_elites.gd-238-	var cs2 := SpyCombat.new(root, rng)
+tests/unit\test_elites.gd-239-	root.add_child(cs2)
+tests/unit\test_elites.gd:240:	var e2: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-241-	e2.position = Vector2.ZERO
+tests/unit\test_elites.gd-242-	root.add_child(e2)
+tests/unit\test_elites.gd-243-	e2.setup({"id": "t", "archetype": "shooter", "hp": 16, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+tests/unit\test_elites.gd-244-	e2.combat = cs2
+--
+tests/unit\test_elites.gd-260-const COMBO_ROW := {"id": "shuangdao_lizardman", "archetype": "combo_charger", "hp": 180,
+tests/unit\test_elites.gd-261-	"windup_ticks": 30, "dash_ticks": 20, "dash_speed": 300.0, "dash_cooldown_ticks": 120}
+tests/unit\test_elites.gd-262-
+tests/unit\test_elites.gd-263-func test_combo_charger_mounts_elite_script() -> void:
+tests/unit\test_elites.gd:264:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:265:	e._test_init(COMBO_ROW)
+tests/unit\test_elites.gd-266-	var s := e.get_script() as Script
+tests/unit\test_elites.gd-267-	assert_str(s.resource_path).is_equal(ELITE_BASE + "combo_charger.gd")
+tests/unit\test_elites.gd-268-
+tests/unit\test_elites.gd-269-## 逐拍分类位移：蓄力/停顿窗零位移，三段冲锋窗各 20t×5px=100px（参数取行 walk/dash 字段）。
+tests/unit\test_elites.gd-270-func test_combo_charger_three_dash_pattern() -> void:
+tests/unit\test_elites.gd:271:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:272:	e._test_init(COMBO_ROW)
+tests/unit\test_elites.gd-273-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_elites.gd-274-	spy.brain_pos = e.brain_pos + Vector2(200, 0)
+tests/unit\test_elites.gd-275-	e.set("player_ref", spy)
+tests/unit\test_elites.gd-276-	e.on_player_seen(0)
+--
+tests/unit\test_elites.gd-294-		assert_float(traveled).is_equal_approx(100.0, 0.1)
+tests/unit\test_elites.gd-295-
+tests/unit\test_elites.gd-296-## 第三段大前摇进入拍重新锁定方向（B.3 最大输出窗语义：可走位躲第三段）。
+tests/unit\test_elites.gd-297-func test_combo_charger_reaims_on_big_windup() -> void:
+tests/unit\test_elites.gd:298:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:299:	e._test_init(COMBO_ROW)
+tests/unit\test_elites.gd-300-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_elites.gd-301-	spy.brain_pos = e.brain_pos + Vector2(200, 0)
+tests/unit\test_elites.gd-302-	e.set("player_ref", spy)
+tests/unit\test_elites.gd-303-	e.on_player_seen(0)
+--
+tests/unit\test_elites.gd-326-	_summon_made = []
+tests/unit\test_elites.gd-327-
+tests/unit\test_elites.gd-328-func test_zibao_summon_ring_cadence_and_cap() -> void:
+tests/unit\test_elites.gd-329-	_reset_summon_recording()
+tests/unit\test_elites.gd:330:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:331:	e._test_init({"id": "zibao_wangchong", "archetype": "zibao_wangchong", "hp": 180, "speed": 0, "fuse_ticks": 30, "aoe_radius": 72, "aoe_dmg": 16, "delayed_death_ticks": 60})
+tests/unit\test_elites.gd-332-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_elites.gd-333-	spy.brain_pos = Vector2(100, 0)       # >14px：引信不燃，王虫原地（speed 0）
+tests/unit\test_elites.gd-334-	e.set("player_ref", spy)
+tests/unit\test_elites.gd:335:	e.set("spawn_callback", Callable(self, "_record_summon"))
+tests/unit\test_elites.gd-336-	var s := e.get_script() as Script
+tests/unit\test_elites.gd-337-	assert_str(s.resource_path).is_equal(ELITE_BASE + "zibao_wangchong.gd")
+tests/unit\test_elites.gd-338-	e.on_player_seen(0)
+tests/unit\test_elites.gd-339-	for f in range(1, 25): e.brain_tick(f)
+--
+tests/unit\test_elites.gd-356-			m.free()                                       # 替身自清
+tests/unit\test_elites.gd-357-
+tests/unit\test_elites.gd-358-func test_zibao_without_callback_ticks_cleanly() -> void:
+tests/unit\test_elites.gd-359-	_reset_summon_recording()
+tests/unit\test_elites.gd:360:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:361:	e._test_init({"id": "zibao_wangchong", "archetype": "zibao_wangchong", "hp": 180, "speed": 0, "fuse_ticks": 30, "aoe_radius": 72, "aoe_dmg": 16, "delayed_death_ticks": 60})
+tests/unit\test_elites.gd-362-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_elites.gd-363-	spy.brain_pos = Vector2(100, 0)
+tests/unit\test_elites.gd-364-	e.set("player_ref", spy)
+tests/unit\test_elites.gd-365-	e.on_player_seen(0)
+--
+tests/unit\test_elites.gd-376-	add_child(root)
+tests/unit\test_elites.gd-377-	var rng := RngSvc.stream(0, "combat")
+tests/unit\test_elites.gd-378-	var cs := CombatSystem.new(root, rng)
+tests/unit\test_elites.gd-379-	root.add_child(cs)
+tests/unit\test_elites.gd:380:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-381-	e.position = Vector2.ZERO
+tests/unit\test_elites.gd-382-	root.add_child(e)
+tests/unit\test_elites.gd-383-	e.setup(ZIBAO_BLAST_ROW)
+tests/unit\test_elites.gd-384-	e.combat = cs
+--
+tests/unit\test_elites.gd-407-	add_child(root)
+tests/unit\test_elites.gd-408-	var rng := RngSvc.stream(0, "combat")
+tests/unit\test_elites.gd-409-	var cs := CombatSystem.new(root, rng)
+tests/unit\test_elites.gd-410-	root.add_child(cs)
+tests/unit\test_elites.gd:411:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-412-	e.position = Vector2(100, 0)             # 爆点在 (100,0)
+tests/unit\test_elites.gd-413-	root.add_child(e)
+tests/unit\test_elites.gd-414-	e.setup(ZIBAO_BLAST_ROW)
+tests/unit\test_elites.gd-415-	e.combat = cs
+--
+tests/unit\test_elites.gd-437-	assert_bool(true).is_true()               # 走到这里即无崩溃
+tests/unit\test_elites.gd-438-
+tests/unit\test_elites.gd-439-## fix1 rider：无 combat 且不在树内时 die()——延迟爆炸分支即时释放 blast，不泄漏不崩溃。
+tests/unit\test_elites.gd-440-func test_delayed_death_no_combat_no_tree_dies_cleanly() -> void:
+tests/unit\test_elites.gd:441:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:442:	e._test_init(ZIBAO_BLAST_ROW)             # 不入树、无 combat
+tests/unit\test_elites.gd-443-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+tests/unit\test_elites.gd-444-	spy.brain_pos = Vector2(1000, 0)          # 爆炸圈外（语义无关，此处只验路径）
+tests/unit\test_elites.gd-445-	e.set("player_ref", spy)
+tests/unit\test_elites.gd-446-	e.take_hit({"amount": 999, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO})
+--
+tests/unit\test_elites.gd-449-
+tests/unit\test_elites.gd-450-# ---- 体型 1.25（战斗半径 ×1.25 + 视觉缩放） ----
+tests/unit\test_elites.gd-451-
+tests/unit\test_elites.gd-452-func test_body_scale_scales_combat_radius_and_visual() -> void:
+tests/unit\test_elites.gd:453:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd:454:	e._test_init({"id": "t", "archetype": "dummy", "hp": 10, "radius": 6.0, "body_scale": 1.25})
+tests/unit\test_elites.gd-455-	assert_float(e.combat_radius()).is_equal_approx(7.5, 0.001)
+tests/unit\test_elites.gd:456:	var e2: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-457-	e2.setup({"id": "t", "archetype": "dummy", "hp": 10, "radius": 6.0, "body_scale": 1.25})
+tests/unit\test_elites.gd-458-	assert_vector(e2.scale).is_equal_approx(Vector2(1.25, 1.25), Vector2(0.001, 0.001))
+tests/unit\test_elites.gd:459:	var e3: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-460-	e3.setup({"id": "t", "archetype": "dummy", "hp": 10, "radius": 6.0})
+tests/unit\test_elites.gd-461-	assert_float(e3.combat_radius()).is_equal_approx(6.0, 0.001)   # 无 body_scale：原行为
+tests/unit\test_elites.gd-462-	assert_vector(e3.scale).is_equal_approx(Vector2.ONE, Vector2(0.001, 0.001))
+tests/unit\test_elites.gd-463-
+tests/unit\test_elites.gd-464-# ---- 行驱动词缀（setup 末尾应用；小 Boss 数据契约） ----
+tests/unit\test_elites.gd-465-
+tests/unit\test_elites.gd-466-func test_row_elite_affixes_applied_at_setup_end() -> void:
+tests/unit\test_elites.gd:467:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_elites.gd-468-	e.setup({"id": "t", "archetype": "shooter", "hp": 180, "speed": 100, "windup_ticks": 30, "cd_ticks": 108,
+tests/unit\test_elites.gd-469-		"elite_affixes": ["armored", "swift"]})
+tests/unit\test_elites.gd-470-	assert_int(e.hp).is_equal(540)           # 坚甲：180×3
+tests/unit\test_elites.gd-471-	assert_int(e.hp_max).is_equal(540)
+--
+core\player\melee.gd-13-var _swing_tick := -1
+core\player\melee.gd-14-var _hit_done := false
+core\player\melee.gd-15-var _next_frame := 0
+core\player\melee.gd-16-
+core\player\melee.gd:17:func _test_init() -> void:
+core\player\melee.gd-18-	pass
+core\player\melee.gd-19-
+core\player\melee.gd-20-func try_attack(frame: int) -> bool:
+core\player\melee.gd-21-	var w := rig.current()
+--
+tests/unit\test_boss_base.gd-10-# ---- 血量线解析与 phase() ----
+tests/unit\test_boss_base.gd-11-
+tests/unit\test_boss_base.gd-12-func test_phase_thresholds_floored_from_row() -> void:
+tests/unit\test_boss_base.gd-13-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:14:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-15-	# 800×[1.0,0.6,0.3] → 绝对血线 [800,480,240]（floor）
+tests/unit\test_boss_base.gd-16-	assert_int(e.hp).is_equal(800)
+tests/unit\test_boss_base.gd-17-	assert_int(e.phase()).is_equal(0)
+tests/unit\test_boss_base.gd-18-
+tests/unit\test_boss_base.gd-19-func test_threshold_floor_999_hp_03() -> void:
+tests/unit\test_boss_base.gd-20-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:21:	e._test_init({"id": "boss_test", "hp": 999, "radius": 14.0, "phases": [1.0, 0.3]})
+tests/unit\test_boss_base.gd-22-	# floor(999×0.3)=floor(299.7)=299：299 入 P1，300 仍 P0
+tests/unit\test_boss_base.gd-23-	e._take_hit_at(_ctx(700), FRAME)          # 999-700=299
+tests/unit\test_boss_base.gd-24-	assert_int(e.hp).is_equal(299)
+tests/unit\test_boss_base.gd-25-	assert_int(e.phase()).is_equal(1)
+tests/unit\test_boss_base.gd-26-
+tests/unit\test_boss_base.gd-27-func test_threshold_floor_boundary_keeps_phase0() -> void:
+tests/unit\test_boss_base.gd-28-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:29:	e._test_init({"id": "boss_test", "hp": 999, "radius": 14.0, "phases": [1.0, 0.3]})
+tests/unit\test_boss_base.gd-30-	e._take_hit_at(_ctx(699), FRAME)          # 999-699=300 > 299 → 未跨线
+tests/unit\test_boss_base.gd-31-	assert_int(e.hp).is_equal(300)
+tests/unit\test_boss_base.gd-32-	assert_int(e.phase()).is_equal(0)
+tests/unit\test_boss_base.gd-33-
+tests/unit\test_boss_base.gd-34-# ---- 主剧本（brief TDD 清单）：481→P0 / 480→P1（无敌窗）/ 100→P2 / 不回退 / 死亡 ----
+tests/unit\test_boss_base.gd-35-
+tests/unit\test_boss_base.gd-36-func test_phase_progression_script() -> void:
+tests/unit\test_boss_base.gd-37-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:38:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-39-	# 800→481：未跨 480 线，仍 P0
+tests/unit\test_boss_base.gd-40-	e._take_hit_at(_ctx(319), FRAME)
+tests/unit\test_boss_base.gd-41-	assert_int(e.hp).is_equal(481)
+tests/unit\test_boss_base.gd-42-	assert_int(e.phase()).is_equal(0)
+--
+tests/unit\test_boss_base.gd-59-	assert_int(e.phase()).is_equal(2)
+tests/unit\test_boss_base.gd-60-
+tests/unit\test_boss_base.gd-61-func test_invuln_window_is_exactly_72_ticks() -> void:
+tests/unit\test_boss_base.gd-62-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:63:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-64-	e._take_hit_at(_ctx(320), FRAME)          # 800→480 → P1，窗至 FRAME+72
+tests/unit\test_boss_base.gd-65-	assert_int(e.phase()).is_equal(1)
+tests/unit\test_boss_base.gd-66-	e._take_hit_at(_ctx(10), FRAME + 71)      # 窗内倒数第二拍：挡
+tests/unit\test_boss_base.gd-67-	assert_int(e.hp).is_equal(480)
+--
+tests/unit\test_boss_base.gd-70-
+tests/unit\test_boss_base.gd-71-func test_phase_never_regresses_multi_cross_advance_only() -> void:
+tests/unit\test_boss_base.gd-72-	# 单次大伤跨多条血线：一步推进到最深跨线阶段（不逐线停留、不回退）
+tests/unit\test_boss_base.gd-73-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:74:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-75-	e._take_hit_at(_ctx(700), FRAME)          # 800→100：跨 480 与 240 → 直接 P2
+tests/unit\test_boss_base.gd-76-	assert_int(e.hp).is_equal(100)
+tests/unit\test_boss_base.gd-77-	assert_int(e.phase()).is_equal(2)
+tests/unit\test_boss_base.gd-78-
+tests/unit\test_boss_base.gd-79-# ---- boss_phase 信号：每次推进恰好一次 ----
+tests/unit\test_boss_base.gd-80-
+tests/unit\test_boss_base.gd-81-func test_boss_phase_signal_emitted_once_per_transition() -> void:
+tests/unit\test_boss_base.gd-82-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:83:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-84-	var events: Array = []
+tests/unit\test_boss_base.gd-85-	var cb := func(boss, idx): events.append([boss, idx])
+tests/unit\test_boss_base.gd-86-	EventBus.boss_phase.connect(cb)
+tests/unit\test_boss_base.gd-87-	e._take_hit_at(_ctx(319), FRAME)          # 未跨线：不发
+--
+tests/unit\test_boss_base.gd-98-# ---- 死亡路径不受影响 ----
+tests/unit\test_boss_base.gd-99-
+tests/unit\test_boss_base.gd-100-func test_death_by_damage_outside_window() -> void:
+tests/unit\test_boss_base.gd-101-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:102:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-103-	var killed: Array = []
+tests/unit\test_boss_base.gd-104-	var cb := func(id): killed.append(id)
+tests/unit\test_boss_base.gd-105-	EventBus.enemy_killed.connect(cb)
+tests/unit\test_boss_base.gd-106-	e._take_hit_at(_ctx(1000), FRAME)         # 一击致死
+--
+tests/unit\test_boss_base.gd-110-	EventBus.enemy_killed.disconnect(cb)
+tests/unit\test_boss_base.gd-111-
+tests/unit\test_boss_base.gd-112-func test_dead_guard_after_death() -> void:
+tests/unit\test_boss_base.gd-113-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:114:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-115-	e._take_hit_at(_ctx(1000), FRAME)
+tests/unit\test_boss_base.gd-116-	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
+tests/unit\test_boss_base.gd-117-	e._take_hit_at(_ctx(10), FRAME + 500)     # 尸体不再受击
+tests/unit\test_boss_base.gd-118-	assert_int(e.hp).is_equal(-200)
+tests/unit\test_boss_base.gd-119-
+tests/unit\test_boss_base.gd-120-func test_public_take_hit_delegates_to_seam() -> void:
+tests/unit\test_boss_base.gd-121-	# 公共 take_hit（真实物理帧源）走同一接缝：初始无窗 → 正常扣血致死
+tests/unit\test_boss_base.gd-122-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:123:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-124-	e.take_hit(_ctx(1000))
+tests/unit\test_boss_base.gd-125-	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
+tests/unit\test_boss_base.gd-126-
+tests/unit\test_boss_base.gd-127-# ---- 子类契约：_on_phase_enter 钩子 + _engage 按 phase() 分支 ----
+--
+tests/unit\test_boss_base.gd-140-		engage_starts.append(frame)
+tests/unit\test_boss_base.gd-141-
+tests/unit\test_boss_base.gd-142-func test_on_phase_enter_hook_called_with_index() -> void:
+tests/unit\test_boss_base.gd-143-	var e: PhaseSpy = auto_free(PhaseSpy.new())
+tests/unit\test_boss_base.gd:144:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-145-	e._take_hit_at(_ctx(319), FRAME)          # 未跨线：无钩子
+tests/unit\test_boss_base.gd-146-	assert_int(e.entered.size()).is_equal(0)
+tests/unit\test_boss_base.gd-147-	e._take_hit_at(_ctx(1), FRAME + 10)       # → P1
+tests/unit\test_boss_base.gd-148-	e._take_hit_at(_ctx(380), FRAME + 82)     # → P2
+--
+tests/unit\test_boss_base.gd-151-	assert_int(e.entered[1]).is_equal(2)
+tests/unit\test_boss_base.gd-152-
+tests/unit\test_boss_base.gd-153-func test_subclass_engage_branches_on_phase() -> void:
+tests/unit\test_boss_base.gd-154-	var e: EngageSpy = auto_free(EngageSpy.new())
+tests/unit\test_boss_base.gd:155:	e._test_init(BOSS_ROW)
+tests/unit\test_boss_base.gd-156-	e.on_player_seen(0)
+tests/unit\test_boss_base.gd-157-	for f in range(1, 25):
+tests/unit\test_boss_base.gd-158-		e.brain_tick(f)                       # 24t 警觉后进入 ENGAGE（_on_engage_start 一拍钩子）
+tests/unit\test_boss_base.gd-159-	assert_array(e.engage_starts).is_equal([24])
+--
+tests/unit\test_boss_base.gd-168-# ---- 数据缺省：无 phases 行退化为单阶段（框架对普通行安全） ----
+tests/unit\test_boss_base.gd-169-
+tests/unit\test_boss_base.gd-170-func test_missing_phases_defaults_single_phase() -> void:
+tests/unit\test_boss_base.gd-171-	var e: BossBase = auto_free(BossBase.new())
+tests/unit\test_boss_base.gd:172:	e._test_init({"id": "boss_test", "hp": 100, "radius": 14.0})
+tests/unit\test_boss_base.gd-173-	e._take_hit_at(_ctx(50), FRAME)
+tests/unit\test_boss_base.gd-174-	assert_int(e.phase()).is_equal(0)
+tests/unit\test_boss_base.gd-175-	assert_int(e.hp).is_equal(50)
+tests/unit\test_boss_base.gd-176-
+--
+tests/unit\test_buffs.gd-185-# ---- BuffManager：聚合落地 ----
+tests/unit\test_buffs.gd-186-
+tests/unit\test_buffs.gd-187-func test_apply_to_player_hp_stacks() -> void:
+tests/unit\test_buffs.gd-188-	var p: Player = auto_free(Player.new())
+tests/unit\test_buffs.gd:189:	p._test_init()
+tests/unit\test_buffs.gd-190-	var bm := _mgr()
+tests/unit\test_buffs.gd-191-	bm.pick("vigor")
+tests/unit\test_buffs.gd-192-	bm.pick("vigor")                      # 强健 ×2 → +4 HP（可叠加）
+tests/unit\test_buffs.gd-193-	bm.pick("shield_tune")
+--
+tests/unit\test_buffs.gd-198-	assert_int(p.energy_max).is_equal(125)  # 100 + 25
+tests/unit\test_buffs.gd-199-
+tests/unit\test_buffs.gd-200-func test_apply_to_player_idempotent() -> void:
+tests/unit\test_buffs.gd-201-	var p: Player = auto_free(Player.new())
+tests/unit\test_buffs.gd:202:	p._test_init()
+tests/unit\test_buffs.gd-203-	var bm := _mgr()
+tests/unit\test_buffs.gd-204-	bm.pick("vigor")
+tests/unit\test_buffs.gd-205-	bm.apply_to_player(p)
+tests/unit\test_buffs.gd-206-	bm.apply_to_player(p)                 # 重复 apply 按已取列表重算，不叠加
+--
+tests/unit\test_combat_system.gd-145-	assert_int(_enemy_alive(cs)).is_equal(400)
+tests/unit\test_combat_system.gd-146-
+tests/unit\test_combat_system.gd-147-## m1-t18：EnemyBase.take_hit 启用 EventBus.enemy_damaged（原死信号）——扣血后、死亡判定前。
+tests/unit\test_combat_system.gd-148-func test_enemy_damaged_emitted_on_take_hit() -> void:
+tests/unit\test_combat_system.gd:149:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_combat_system.gd:150:	e._test_init({"id": "t18_dummy", "hp": 10, "radius": 6.0})
+tests/unit\test_combat_system.gd-151-	var seen: Array = []
+tests/unit\test_combat_system.gd-152-	var cb := func(amount: int, is_crit: bool) -> void:
+tests/unit\test_combat_system.gd-153-		seen.append([amount, is_crit])
+tests/unit\test_combat_system.gd-154-	EventBus.enemy_damaged.connect(cb)
+--
+tests/unit\test_combat_system.gd-160-	assert_int(e.hp).is_equal(6)              # 信号在扣血之后
+tests/unit\test_combat_system.gd-161-	assert_int(e.state).is_equal(EnemyBase.State.IDLE)   # 且在死亡判定之前（未致死）
+tests/unit\test_combat_system.gd-162-
+tests/unit\test_combat_system.gd-163-func test_enemy_damaged_emitted_before_death_check() -> void:
+tests/unit\test_combat_system.gd:164:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_combat_system.gd:165:	e._test_init({"id": "t18_dummy2", "hp": 4, "radius": 6.0})
+tests/unit\test_combat_system.gd-166-	var seen: Array = []
+tests/unit\test_combat_system.gd-167-	var cb := func(amount: int, _is_crit: bool) -> void:
+tests/unit\test_combat_system.gd-168-		seen.append(amount)
+tests/unit\test_combat_system.gd-169-	EventBus.enemy_damaged.connect(cb)
+--
+tests/unit\test_element_combat_chain.gd-15-	func combat_radius() -> float:
+tests/unit\test_element_combat_chain.gd-16-		return 6.0
+tests/unit\test_element_combat_chain.gd-17-
+tests/unit\test_element_combat_chain.gd-18-func _enemy(root: Node2D, cs: CombatSystem, pos: Vector2, row: Dictionary = BASE_ROW) -> EnemyBase:
+tests/unit\test_element_combat_chain.gd:19:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_element_combat_chain.gd-20-	e.position = pos
+tests/unit\test_element_combat_chain.gd-21-	root.add_child(e)
+tests/unit\test_element_combat_chain.gd-22-	e.setup(row.duplicate(true))
+tests/unit\test_element_combat_chain.gd-23-	e.combat = cs
+--
+tests/unit\test_element_combat_chain.gd-45-	for i in e.status.stacks_to_trigger:
+tests/unit\test_element_combat_chain.gd-46-		_hit(e, element, frame + i, amount)
+tests/unit\test_element_combat_chain.gd-47-
+tests/unit\test_element_combat_chain.gd-48-func test_real_enemy_elite_and_boss_status_thresholds() -> void:
+tests/unit\test_element_combat_chain.gd:49:	var normal: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_element_combat_chain.gd:50:	normal._test_init(BASE_ROW)
+tests/unit\test_element_combat_chain.gd-51-	assert_int(normal.status.stacks_to_trigger).is_equal(2)
+tests/unit\test_element_combat_chain.gd-52-	assert_bool(normal.status.is_boss).is_false()
+tests/unit\test_element_combat_chain.gd-53-
+tests/unit\test_element_combat_chain.gd:54:	var elite: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_element_combat_chain.gd:55:	elite._test_init(BASE_ROW.merged({"elite_affixes": ["swift"]}, true))
+tests/unit\test_element_combat_chain.gd-56-	assert_int(elite.status.stacks_to_trigger).is_equal(4)
+tests/unit\test_element_combat_chain.gd-57-	assert_bool(elite.status.is_boss).is_false()
+tests/unit\test_element_combat_chain.gd-58-
+tests/unit\test_element_combat_chain.gd-59-	var boss: BossBase = auto_free(BossBase.new())
+tests/unit\test_element_combat_chain.gd:60:	boss._test_init(BASE_ROW.merged({"archetype": "boss", "phases": [1.0, 0.5]}, true))
+tests/unit\test_element_combat_chain.gd-61-	assert_int(boss.status.stacks_to_trigger).is_equal(4)
+tests/unit\test_element_combat_chain.gd-62-	assert_bool(boss.status.is_boss).is_true()
+tests/unit\test_element_combat_chain.gd-63-
+tests/unit\test_element_combat_chain.gd-64-func test_fire_six_ticks_and_poison_five_ticks() -> void:
+--
+tests/unit\test_element_combat_chain.gd-98-	assert_float(boss.action_speed_multiplier(100)).is_equal(0.7)
+tests/unit\test_element_combat_chain.gd-99-
+tests/unit\test_element_combat_chain.gd-100-func test_ice_slow_reduces_real_enemy_action_frequency() -> void:
+tests/unit\test_element_combat_chain.gd-101-	var e: ActionSpy = auto_free(ActionSpy.new())
+tests/unit\test_element_combat_chain.gd:102:	e._test_init(BASE_ROW)
+tests/unit\test_element_combat_chain.gd-103-	e.state = EnemyBase.State.ENGAGE
+tests/unit\test_element_combat_chain.gd-104-	_activate(e, Elements.Id.ICE, 0)
+tests/unit\test_element_combat_chain.gd-105-	for f in range(10, 110):
+tests/unit\test_element_combat_chain.gd-106-		e.brain_tick(f)
+--
+tests/unit\test_element_combat_chain.gd-148-	assert_int(inside.hp).is_equal(188)
+tests/unit\test_element_combat_chain.gd-149-	assert_int(outside.hp).is_equal(200)
+tests/unit\test_element_combat_chain.gd-150-
+tests/unit\test_element_combat_chain.gd-151-func test_superconduct_amplifies_followup_and_expires() -> void:
+tests/unit\test_element_combat_chain.gd:152:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_element_combat_chain.gd:153:	e._test_init(BASE_ROW)
+tests/unit\test_element_combat_chain.gd-154-	_activate(e, Elements.Id.ICE, 0, 10)
+tests/unit\test_element_combat_chain.gd-155-	_activate(e, Elements.Id.SHOCK, 10, 10)
+tests/unit\test_element_combat_chain.gd-156-	var after_trigger := e.hp
+tests/unit\test_element_combat_chain.gd-157-	_hit(e, Elements.Id.NONE, 20, 10)
+--
+tests/unit\test_element_combat_chain.gd-160-	assert_int(e.hp).is_equal(after_trigger - 24)
+tests/unit\test_element_combat_chain.gd-161-
+tests/unit\test_element_combat_chain.gd-162-func test_boss_superconduct_bonus_is_twenty_percent() -> void:
+tests/unit\test_element_combat_chain.gd-163-	var boss: BossBase = auto_free(BossBase.new())
+tests/unit\test_element_combat_chain.gd:164:	boss._test_init(BASE_ROW.merged({"archetype": "boss"}, true))
+tests/unit\test_element_combat_chain.gd-165-	_activate(boss, Elements.Id.ICE, 0, 10)
+tests/unit\test_element_combat_chain.gd-166-	_activate(boss, Elements.Id.SHOCK, 10, 10)
+tests/unit\test_element_combat_chain.gd-167-	var after_trigger := boss.hp
+tests/unit\test_element_combat_chain.gd-168-	boss._take_hit_at({"amount": 10, "is_crit": false, "element": Elements.Id.NONE, "from": Vector2.ZERO}, 20)
+--
+tests/unit\test_element_combat_chain.gd-200-	s.apply_hit(Elements.Id.SHOCK, 8, 13)
+tests/unit\test_element_combat_chain.gd-201-	assert_dict(s.resonance_event).is_empty()
+tests/unit\test_element_combat_chain.gd-202-
+tests/unit\test_element_combat_chain.gd-203-func test_status_rate_multiplier_changes_real_stack_progress() -> void:
+tests/unit\test_element_combat_chain.gd:204:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_element_combat_chain.gd:205:	e._test_init(BASE_ROW)
+tests/unit\test_element_combat_chain.gd-206-	_hit(e, Elements.Id.FIRE, 0, 1, {"status_rate_mult": 1.25})
+tests/unit\test_element_combat_chain.gd-207-	assert_dict(e.status.active).is_empty()
+tests/unit\test_element_combat_chain.gd-208-	_hit(e, Elements.Id.FIRE, 1, 1, {"status_rate_mult": 1.25})
+tests/unit\test_element_combat_chain.gd-209-	assert_bool(e.status.active.has(Elements.Id.FIRE)).is_true()
+--
+tests/unit\test_element_combat_chain.gd-235-	assert_int(e.status.resonance_icd_until).is_greater(Engine.get_physics_frames())
+tests/unit\test_element_combat_chain.gd-236-	assert_dict(e.status.active).is_empty()
+tests/unit\test_element_combat_chain.gd-237-
+tests/unit\test_element_combat_chain.gd-238-func test_zero_crit_detonate_does_not_force_and_force_respects_icd() -> void:
+tests/unit\test_element_combat_chain.gd:239:	var e: EnemyBase = auto_free(EnemyBase.new())
+tests/unit\test_element_combat_chain.gd:240:	e._test_init(BASE_ROW)
+tests/unit\test_element_combat_chain.gd-241-	_activate(e, Elements.Id.FIRE, 0, 1)
+tests/unit\test_element_combat_chain.gd-242-	_hit(e, Elements.Id.ICE, 10, 2, {"force_resonance": false})
+tests/unit\test_element_combat_chain.gd-243-	assert_bool(e.status.active.has(Elements.Id.FIRE)).is_true()
+tests/unit\test_element_combat_chain.gd-244-	_hit(e, Elements.Id.ICE, 11, 2, {"force_resonance": true})
+--
+tests/unit\test_hud.gd-12-	return r
+tests/unit\test_hud.gd-13-
+tests/unit\test_hud.gd-14-func _player() -> Player:
+tests/unit\test_hud.gd-15-	var p: Player = auto_free(Player.new())
+tests/unit\test_hud.gd:16:	p._test_init()
+tests/unit\test_hud.gd-17-	return p
+tests/unit\test_hud.gd-18-
+tests/unit\test_hud.gd-19-func _rig(p: Player) -> WeaponRig:
+tests/unit\test_hud.gd-20-	var r: WeaponRig = auto_free(WeaponRig.new())
+tests/unit\test_hud.gd:21:	r._test_init()
+tests/unit\test_hud.gd-22-	p.add_child(r)
+tests/unit\test_hud.gd-23-	p.weapon_rig = r
+tests/unit\test_hud.gd-24-	return r
+tests/unit\test_hud.gd-25-
+--
+tests/unit\test_melee_parry.gd-44-func test_parry_window_bounds() -> void:
+tests/unit\test_melee_parry.gd-45-	# 注：brief 原文 `var p := auto_free(...)`，auto_free 返回 Variant，:= 无法推断类型
+tests/unit\test_melee_parry.gd-46-	# （同 test_weapon_rig.gd / test_combat_system.gd 既定决议），需显式类型标注。
+tests/unit\test_melee_parry.gd-47-	var p: Player = auto_free(Player.new())
+tests/unit\test_melee_parry.gd:48:	p._test_init()
+tests/unit\test_melee_parry.gd-49-	var m: Melee = auto_free(Melee.new())
+tests/unit\test_melee_parry.gd-50-	p.add_child(m)
+tests/unit\test_melee_parry.gd:51:	m._test_init()
+tests/unit\test_melee_parry.gd-52-	# 注：rig 持 auto_free，避免孤儿节点（brief 原文 WeaponRig.new() 未入树未释放）。
+tests/unit\test_melee_parry.gd-53-	m.rig = auto_free(WeaponRig.new())
+tests/unit\test_melee_parry.gd-54-	m.rig.slots = [GameDB.get_weapon("tiejian"), {}]   # 近战 2.2/s → 27 ticks
+tests/unit\test_melee_parry.gd-55-	assert_bool(m.try_attack(0)).is_true()
+--
+tests/unit\test_melee_parry.gd-114-func test_swing_routing_block_reflect_damage_once() -> void:
+tests/unit\test_melee_parry.gd-115-	# 控制器裁决补测（闭环审查空白）：逐 tick 手动驱动整段挥击（不经物理帧，直接调 _physics_process）——
+tests/unit\test_melee_parry.gd-116-	# tick1..2 窗口外格挡；tick3..9 窗口内反弹（恰 7 次）；伤害经 bodies_in_arc→take_hit 恰好一次。
+tests/unit\test_melee_parry.gd-117-	var p: Player = auto_free(Player.new())
+tests/unit\test_melee_parry.gd:118:	p._test_init()
+tests/unit\test_melee_parry.gd-119-	var m: Melee = auto_free(Melee.new())
+tests/unit\test_melee_parry.gd-120-	p.add_child(m)
+tests/unit\test_melee_parry.gd:121:	m._test_init()
+tests/unit\test_melee_parry.gd-122-	m.rig = auto_free(WeaponRig.new())
+tests/unit\test_melee_parry.gd-123-	m.rig.slots = [GameDB.get_weapon("tiejian"), {}]
+tests/unit\test_melee_parry.gd-124-	# 注：CsProbe 经 CombatSystem 继承自 Node（非 RefCounted），必须 auto_free，
+tests/unit\test_melee_parry.gd-125-	# 否则探针 + 池根 + 300 预分配弹全部泄漏（auto_free → PREDELETE → 释放池根）。
+--
+core\enemies\boss_base.gd-9-var _phase := 0
+core\enemies\boss_base.gd-10-var _phase_thresholds: Array[int] = []   # 绝对血量线（floor(row.hp × 分数)），下标即阶段
+core\enemies\boss_base.gd-11-var _phase_invuln_until := -1
+core\enemies\boss_base.gd-12-
+core\enemies\boss_base.gd:13:func _test_init(r: Dictionary) -> void:
+core\enemies\boss_base.gd-14-	super(r)          # 基类初始化（BossBase/子类脚本不触发原型换装，无实例重绑问题）
+core\enemies\boss_base.gd-15-	_parse_phases(r)
+core\enemies\boss_base.gd-16-
+core\enemies\boss_base.gd-17-## 行内血量分数 → 绝对血线（向下取整）。无 "phases" 行退化为单阶段 [hp]（框架对普通行安全）。
+--
+tests/unit\test_skills.gd-21-
+tests/unit\test_skills.gd-22-# 注：auto_free 返回 Variant，:= 无法推断类型（同 test_weapon_rig.gd 既定决议），需显式类型标注。
+tests/unit\test_skills.gd-23-func _player() -> Player:
+tests/unit\test_skills.gd-24-	var p: Player = auto_free(Player.new())
+tests/unit\test_skills.gd:25:	p._test_init()
+tests/unit\test_skills.gd-26-	return p
+tests/unit\test_skills.gd-27-
+tests/unit\test_skills.gd-28-func _rig(p: Player) -> RigProbe:
+tests/unit\test_skills.gd-29-	var r := RigProbe.new()
+tests/unit\test_skills.gd-30-	p.add_child(r)
+tests/unit\test_skills.gd:31:	r._test_init()
+tests/unit\test_skills.gd-32-	p.weapon_rig = r
+tests/unit\test_skills.gd-33-	return r
+tests/unit\test_skills.gd-34-
+tests/unit\test_skills.gd-35-func _rampage(p: Player, data: Dictionary = {}) -> VanguardRampage:
+--
+tests/unit\test_skills.gd-39-	return sk
+tests/unit\test_skills.gd-40-
+tests/unit\test_skills.gd-41-## 入树假敌（进 "enemies" 组，坚守 AoE 按 M0 同款分组寻敌）
+tests/unit\test_skills.gd-42-func _enemy(root: Node2D, at: Vector2) -> EnemyBase:
+tests/unit\test_skills.gd:43:	var e := EnemyBase.new()
+tests/unit\test_skills.gd:44:	e._test_init({"id": "defiance_dummy", "hp": 10, "radius": 6.0})
+tests/unit\test_skills.gd-45-	e.brain_pos = at
+tests/unit\test_skills.gd-46-	root.add_child(e)
+tests/unit\test_skills.gd-47-	e.add_to_group("enemies")
+tests/unit\test_skills.gd-48-	return e
+--
+tests/unit\test_skills.gd-181-func test_defiance_blast_hits_stuns_knocks_nearby_only() -> void:
+tests/unit\test_skills.gd-182-	var root: Node2D = auto_free(Node2D.new())
+tests/unit\test_skills.gd-183-	add_child(root)
+tests/unit\test_skills.gd-184-	var p: Player = auto_free(Player.new())
+tests/unit\test_skills.gd:185:	p._test_init()
+tests/unit\test_skills.gd-186-	p.has_defiance = true
+tests/unit\test_skills.gd-187-	p.position = Vector2(500, 100)
+tests/unit\test_skills.gd-188-	root.add_child(p)                                    # 入树 → _ready 连接 shield_broken
+tests/unit\test_skills.gd-189-	var near := _enemy(root, Vector2(540, 100))          # 40px：内
+--
+tests/unit\test_skills.gd-208-func test_defiance_off_no_blast_but_event_still_emits() -> void:
+tests/unit\test_skills.gd-209-	var root: Node2D = auto_free(Node2D.new())
+tests/unit\test_skills.gd-210-	add_child(root)
+tests/unit\test_skills.gd-211-	var p: Player = auto_free(Player.new())
+tests/unit\test_skills.gd:212:	p._test_init()                                       # has_defiance 默认 false（角色数据注入，t11）
+tests/unit\test_skills.gd-213-	p.position = Vector2(500, 100)
+tests/unit\test_skills.gd-214-	root.add_child(p)
+tests/unit\test_skills.gd-215-	var near := _enemy(root, Vector2(540, 100))
+tests/unit\test_skills.gd-216-	var events: Array = []
+--
+tests/unit\test_shop.gd-94-	root.add_child(shop)
+tests/unit\test_shop.gd-95-	var player: Player = auto_free(Player.new())
+tests/unit\test_shop.gd-96-	root.add_child(player)
+tests/unit\test_shop.gd-97-	var rig: WeaponRig = auto_free(WeaponRig.new())
+tests/unit\test_shop.gd:98:	rig._test_init()
+tests/unit\test_shop.gd-99-	player.weapon_rig = rig
+tests/unit\test_shop.gd-100-	if wallet == null:
+tests/unit\test_shop.gd-101-		var w := WalletProbe.new()
+tests/unit\test_shop.gd-102-		w.coins = 500
+--
+tests/unit\test_shop.gd-365-	root.add_child(shop)
+tests/unit\test_shop.gd-366-	var player: Player = auto_free(Player.new())
+tests/unit\test_shop.gd-367-	root.add_child(player)
+tests/unit\test_shop.gd-368-	var rig: WeaponRig = auto_free(WeaponRig.new())
+tests/unit\test_shop.gd:369:	rig._test_init()
+tests/unit\test_shop.gd-370-	player.weapon_rig = rig
+tests/unit\test_shop.gd-371-	var wallet := WalletProbe.new()
+tests/unit\test_shop.gd-372-	wallet.coins = 500
+tests/unit\test_shop.gd-373-	shop.open(_stock(2, ["laohuoji", "maodingqiang", "duangong"]), wallet, player, false)
+--
+tests/unit\test_shop.gd-496-	root2.add_child(shop2)
+tests/unit\test_shop.gd-497-	var player2: Player = auto_free(Player.new())
+tests/unit\test_shop.gd-498-	root2.add_child(player2)
+tests/unit\test_shop.gd-499-	var rig2: WeaponRig = auto_free(WeaponRig.new())
+tests/unit\test_shop.gd:500:	rig2._test_init()
+tests/unit\test_shop.gd-501-	player2.weapon_rig = rig2
+tests/unit\test_shop.gd-502-	shop2.open(_stock(1, ["laohuoji"]), WalletNoAdd.new(), player2, false, cb)
+tests/unit\test_shop.gd-503-	assert_bool(shop2.recycle_visible()).is_false()
+tests/unit\test_shop.gd-504-	# callable 缺省 → 隐藏（ctx 店换空 callable 重开）
+--
+tests/unit\test_shop.gd-568-	root.add_child(shop)
+tests/unit\test_shop.gd-569-	var player: Player = auto_free(Player.new())
+tests/unit\test_shop.gd-570-	root.add_child(player)
+tests/unit\test_shop.gd-571-	var rig: WeaponRig = auto_free(WeaponRig.new())
+tests/unit\test_shop.gd:572:	rig._test_init()
+tests/unit\test_shop.gd-573-	player.weapon_rig = rig
+tests/unit\test_shop.gd-574-	var wallet := WalletProbe.new()
+tests/unit\test_shop.gd-575-	wallet.coins = 60
+tests/unit\test_shop.gd-576-	shop.stock = _stock(1, ["laohuoji", "maodingqiang", "duangong"])
+--
+tests/unit\test_player_state.gd-4-# 注：brief 原文 `var p := auto_free(Player.new())`，auto_free 返回 Variant，:= 无法推断类型
+tests/unit\test_player_state.gd-5-# （同 test_combat_system.gd 既定决议），需显式类型标注。
+tests/unit\test_player_state.gd-6-func _player() -> Player:
+tests/unit\test_player_state.gd-7-	var p: Player = auto_free(Player.new())
+tests/unit\test_player_state.gd:8:	p._test_init()
+tests/unit\test_player_state.gd-9-	return p
+tests/unit\test_player_state.gd-10-
+tests/unit\test_player_state.gd-11-func test_shield_absorbs_first() -> void:
+tests/unit\test_player_state.gd-12-	var p := _player()
+--
+core\enemies\enemy_base.gd-30-var status: Node = null            # StatusComponent，m0-t11 注入
+core\enemies\enemy_base.gd-31-var player_ref = null              # 玩家替身/实例（需有 brain_pos），房间注入
+core\enemies\enemy_base.gd-32-var stun_until := -1               # m1-t2 坚守眩晕窗：frame < stun_until 时 brain 空转
+core\enemies\enemy_base.gd-33-# ---- m1-t12 精英词缀落点（EliteAffix.apply 写入；默认值即无词缀原行为）----
+core\enemies\enemy_base.gd:34:var split_on_death := false        # 分裂：die() 经 spawn_callback 生成 2 个同 row 子体（hp 半）
+core\enemies\enemy_base.gd:35:var spawn_callback := Callable()   # 房间注入：func(row_id: String, pos: Vector2,
+core\enemies\enemy_base.gd-36-                                   #   row_override: Dictionary = {}) -> Node（分裂路径传净行）
+core\enemies\enemy_base.gd-37-var barrage_extra := 0             # 弹幕大师：shooter 每轮 volley = 1 + barrage_extra
+core\enemies\enemy_base.gd-38-var leech := false                 # 虹吸：接触伤害命中时自回等量 hp（≤ hp_max）
+core\enemies\enemy_base.gd-39-var body_scale := 1.0              # 体型：行 body_scale（小 Boss 1.25）→ 战斗半径与视觉同步放大
+core\enemies\enemy_base.gd-40-var has_berserk := false           # 狂暴门控：仅带词缀者 berserk_active() 才可能为真
+core\enemies\enemy_base.gd-41-var _seen_frame := -1
+core\enemies\enemy_base.gd-42-var _slow_action_credit := 0.0     # 冰缓以 0.7 行动频率推进，不永久改写敌人行数据
+core\enemies\enemy_base.gd-43-
+core\enemies\enemy_base.gd:44:func _test_init(r: Dictionary) -> void:
+core\enemies\enemy_base.gd-45-	_apply_archetype_script(r)   # 数据驱动：先按行换上原型脚本（脚本重挂会重建脚本实例并重置成员）
+core\enemies\enemy_base.gd-46-	# 换脚本后当前函数帧仍绑定旧实例，直接写成员会丢失——须经 Object.set 落到新实例
+core\enemies\enemy_base.gd-47-	set("row", r)
+core\enemies\enemy_base.gd-48-	set("hp", int(r.get("hp", 10)))
+--
+core\enemies\enemy_base.gd-85-	# m0-t12 修复：global_position 须在换脚本前读取——_test_init 内换脚本后当前帧
+core\enemies\enemy_base.gd-86-	# 绑定旧实例，此后读原生属性可触发 "Internal error getting property"（4.7.2 实测）。
+core\enemies\enemy_base.gd-87-	var at := global_position
+core\enemies\enemy_base.gd-88-	var bs := float(r.get("body_scale", 1.0))   # 同理：换脚本前取行数据，换后再落视觉缩放
+core\enemies\enemy_base.gd:89:	_test_init(r)
+core\enemies\enemy_base.gd-90-	set("brain_pos", at)   # 同 _test_init：经 Object.set 避开旧实例帧
+core\enemies\enemy_base.gd-91-	if bs != 1.0:
+core\enemies\enemy_base.gd-92-		set("scale", Vector2.ONE * bs)   # m1-t12 体型：视觉（含子碰撞形状）同步 ×body_scale
+core\enemies\enemy_base.gd-93-	# _test_init 已在当前（可能刚换装的）实例上按普通/精英/Boss 行配置状态组件。
+--
+core\enemies\enemy_base.gd-183-		combat.unregister_body(self)
+core\enemies\enemy_base.gd-184-	EventBus.enemy_killed.emit(String(row.get("id", "")))
+core\enemies\enemy_base.gd-185-	queue_free()
+core\enemies\enemy_base.gd-186-
+core\enemies\enemy_base.gd:187:## m1-t12 分裂词缀执行：经 spawn_callback(row_id, pos, row_override) 生成 2 个同 row 子体
+core\enemies\enemy_base.gd-188-## （hp 为行 hp 一半）。row_override 为行拷贝并剥离 elite_affixes——子体是普通体，
+core\enemies\enemy_base.gd-189-## 不经房间 setup 重挂词缀（防分裂链式继承）。回调未注入（脑层测试/未接线）则跳过。
+core\enemies\enemy_base.gd-190-func _split_spawn_children() -> void:
+core\enemies\enemy_base.gd:191:	if not split_on_death or not spawn_callback.is_valid():
+core\enemies\enemy_base.gd-192-		return
+core\enemies\enemy_base.gd-193-	var half := maxi(int(float(row.get("hp", 10)) * 0.5), 1)
+core\enemies\enemy_base.gd-194-	var child_row: Dictionary = (row as Dictionary).duplicate()
+core\enemies\enemy_base.gd-195-	child_row.erase("elite_affixes")
+core\enemies\enemy_base.gd-196-	var r := combat_radius()
+core\enemies\enemy_base.gd-197-	for i in 2:
+core\enemies\enemy_base.gd:198:		var child: Node = spawn_callback.call(String(row.get("id", "")),
+core\enemies\enemy_base.gd-199-			brain_pos + Vector2(r if i == 0 else -r, 0.0), child_row)
+core\enemies\enemy_base.gd-200-		if child != null:
+core\enemies\enemy_base.gd-201-			child.set("hp", half)
+core\enemies\enemy_base.gd-202-
+--
+core\enemies\bosses\vine_colossus.gd-45-const RAIN_DMG := 1
+core\enemies\bosses\vine_colossus.gd-46-const SAFE_RADIUS_PX := 48.0
+core\enemies\bosses\vine_colossus.gd-47-const SAFE_OFFSETS: Array[Vector2] = [Vector2(-160, 0), Vector2.ZERO, Vector2(160, 0)]
+core\enemies\bosses\vine_colossus.gd-48-
+core\enemies\bosses\vine_colossus.gd:49:## 房间注入：spawn_callback.call("shooter", pos) 须返回刷出节点（供上限追踪；返回 null 则止于本次）。
+core\enemies\bosses\vine_colossus.gd-50-## 未注入（Callable 无效）→ 召唤招不入序列。生产接线归房间/流程层（见 task-13 报告）。
+core\enemies\bosses\vine_colossus.gd-51-## 成员声明位于 EnemyBase（m1-t12）；此处不重复声明（parse 冲突）。
+core\enemies\bosses\vine_colossus.gd-52-
+core\enemies\bosses\vine_colossus.gd-53-# ---- 招式序列状态 ----
+--
+core\enemies\bosses\vine_colossus.gd-63-var _sweep_travel_started := false
+core\enemies\bosses\vine_colossus.gd-64-var _sweep_vis: Node2D = null
+core\enemies\bosses\vine_colossus.gd-65-var _summon_next := -1              # 首个 P1+ engage 拍锚定 +240
+core\enemies\bosses\vine_colossus.gd-66-var _summon_side := 1.0             # 召唤落点左右交替
+core\enemies\bosses\vine_colossus.gd:67:var _minions: Array = []            # spawn_callback 返回的活体（失效/死亡自动清）
+core\enemies\bosses\vine_colossus.gd-68-var _rain_until := -1
+core\enemies\bosses\vine_colossus.gd-69-var _rain_next := -1
+core\enemies\bosses\vine_colossus.gd-70-var _rain_circles: Array[Vector2] = []
+core\enemies\bosses\vine_colossus.gd-71-var _fx: Array[Node] = []           # 招式预警视觉（move 结束即清）
+core\enemies\bosses\vine_colossus.gd-72-var _rain_fx: Array[Node] = []      # 毒雨视觉（雨停即清，跨招式存活）
+core\enemies\bosses\vine_colossus.gd-73-
+core\enemies\bosses\vine_colossus.gd-74-## set_script 换装 hazard 自愈：EnemyBase._test_init 按 boss_script 换装后，
+core\enemies\bosses\vine_colossus.gd-75-## BossBase._test_init 内 _parse_phases 的成员写入落在被弃实例（m0-t12 同款丢失）。
+core\enemies\bosses\vine_colossus.gd:76:## 生产路径（RoomCombat: EnemyBase.new()+setup(row)）首次 _engage 时在此补析血线。
+core\enemies\bosses\vine_colossus.gd-77-func _ensure_phases() -> void:
+core\enemies\bosses\vine_colossus.gd-78-	if _phase_thresholds.is_empty():
+core\enemies\bosses\vine_colossus.gd-79-		_parse_phases(row)
+core\enemies\bosses\vine_colossus.gd-80-
+--
+core\enemies\bosses\vine_colossus.gd-84-	if _summon_next < 0 and phase() >= 1:
+core\enemies\bosses\vine_colossus.gd-85-		_summon_next = frame + SUMMON_PERIOD_TICKS
+core\enemies\bosses\vine_colossus.gd-86-	if _move == "":
+core\enemies\bosses\vine_colossus.gd-87-		if phase() >= 1 and _summon_next > 0 and frame >= _summon_next \
+core\enemies\bosses\vine_colossus.gd:88:				and spawn_callback.is_valid() and _alive_minions() < SUMMON_CAP:
+core\enemies\bosses\vine_colossus.gd-89-			_start_move("summon", frame)
+core\enemies\bosses\vine_colossus.gd-90-		else:
+core\enemies\bosses\vine_colossus.gd-91-			_start_move(_pick_move(frame), frame)
+core\enemies\bosses\vine_colossus.gd-92-	_advance_move(frame)
+--
+core\enemies\bosses\vine_colossus.gd-240-	_minions = _minions.filter(func(m): return is_instance_valid(m) and m.get("state") != EnemyBase.State.DEAD)
+core\enemies\bosses\vine_colossus.gd-241-	return _minions.size()
+core\enemies\bosses\vine_colossus.gd-242-
+core\enemies\bosses\vine_colossus.gd-243-func _summon_resolve() -> void:
+core\enemies\bosses\vine_colossus.gd:244:	if not spawn_callback.is_valid():
+core\enemies\bosses\vine_colossus.gd-245-		return
+core\enemies\bosses\vine_colossus.gd-246-	while _alive_minions() < SUMMON_CAP:
+core\enemies\bosses\vine_colossus.gd:247:		var m: Variant = spawn_callback.call(SUMMON_ARCHETYPE,
+core\enemies\bosses\vine_colossus.gd-248-			brain_pos + Vector2(SUMMON_OFFSET_PX * _summon_side, 0.0))
+core\enemies\bosses\vine_colossus.gd-249-		_summon_side = -_summon_side
+core\enemies\bosses\vine_colossus.gd-250-		if m == null:
+core\enemies\bosses\vine_colossus.gd-251-			break                           # 回调未返回实例：无法追踪上限，止于本次
+--
+core\enemies\elites\zibao_wangchong.gd-27-	if frame - _last_summon_frame >= SUMMON_EVERY_TICKS:
+core\enemies\elites\zibao_wangchong.gd-28-		_last_summon_frame = frame
+core\enemies\elites\zibao_wangchong.gd-29-		_summon_ring()
+core\enemies\elites\zibao_wangchong.gd-30-
+core\enemies\elites\zibao_wangchong.gd:31:## 召唤环：存活数 < 上限时补召（一次至多一环，总量夹到上限）；经 spawn_callback 接缝，
+core\enemies\elites\zibao_wangchong.gd-32-## 回调未注入（脑层测试/未接线）则静默跳过。
+core\enemies\elites\zibao_wangchong.gd-33-func _summon_ring() -> void:
+core\enemies\elites\zibao_wangchong.gd:34:	if not spawn_callback.is_valid():
+core\enemies\elites\zibao_wangchong.gd-35-		return
+core\enemies\elites\zibao_wangchong.gd-36-	_prune_tracked()
+core\enemies\elites\zibao_wangchong.gd-37-	var room := MAX_SUMMONED - _summoned.size()
+core\enemies\elites\zibao_wangchong.gd-38-	if room <= 0:
+core\enemies\elites\zibao_wangchong.gd-39-		return
+core\enemies\elites\zibao_wangchong.gd-40-	var count := mini(room, RING_COUNT)
+core\enemies\elites\zibao_wangchong.gd-41-	for i in count:
+core\enemies\elites\zibao_wangchong.gd-42-		var ang := TAU * float(i) / float(RING_COUNT)
+core\enemies\elites\zibao_wangchong.gd:43:		var child: Node = spawn_callback.call(SUMMON_ROW, brain_pos + Vector2.from_angle(ang) * RING_RADIUS_PX)
+core\enemies\elites\zibao_wangchong.gd-44-		if child != null:
+core\enemies\elites\zibao_wangchong.gd-45-			_summoned.append(child)
+core\enemies\elites\zibao_wangchong.gd-46-
+core\enemies\elites\zibao_wangchong.gd-47-## 清理跟踪表：已 free 或已死亡（state==DEAD）者移出存活计数。

@@ -5,10 +5,11 @@ extends GdUnitTestSuite
 ## 2) ShopLogic.recycle_price：×0.3×floor 系数，取整到 5，min 5
 ## 3) roll_weapon_id：§8.2 逐层权重（A1 70/25/5、A2 45/35/16/4、A3 25/33/25/13/4），
 ##    桶内均匀；固定 seed 1000 抽 common 65%~75%；exclude 生效；桶空向下回退；池枯返回 ""
-## 4) roll_stock：形状（3 武器 + 2 道具 + 饮料占位 + floor_idx）、同 seed 确定性、exclude 生效
+## 4) roll_stock：形状（3 武器 + 2 道具 + 1 饮料 + floor_idx）、同 seed 确定性、exclude 生效
 ## 5) Shop UI（headless 实例化 shop.tscn）：开架/买武器（扣款+直装+已售）/余额不足闪红拒绝/
-##    道具（红心 25→heal2、蓝瓶 20→+20 蓝）/回收架（callable+add_coins 双门槛，+X金 入账）/
-##    黑市标题与 ×1.8 价格 / Esc·按钮关店 / 重开重置已售 / interact 预设字段开层
+##    道具（红心 25→heal2、蓝瓶 20→+20 蓝）/第六饮料卡（GameDB 行文案/价格/效果/一次售罄）/
+##    回收架（callable+add_coins 双门槛，+X金 入账）/
+##    黑市标题与 ×1.8 价格 / Esc·按钮关店 / 同货架重开保留售罄·新货架重置 / interact 预设字段开层
 ## 金币接缝：wallet 为鸭子类型（coins:int + spend_coins(n)->bool [+ add_coins(n)]），
 ## 测试用 WalletProbe 桩注入——T15 RunState 落地后即满足该接缝。
 
@@ -25,8 +26,12 @@ class WalletProbe:
 	var coins: int = 0
 	var spent: Array[int] = []
 	var added: Array[int] = []
+	var observed_rng: RandomNumberGenerator = null
+	var rng_state_at_spend: int = 0
 
 	func spend_coins(n: int) -> bool:
+		if observed_rng != null:
+			rng_state_at_spend = observed_rng.state
 		if coins < n:
 			return false
 		coins -= n
@@ -76,12 +81,12 @@ func _rng(seed_value: int) -> RandomNumberGenerator:
 	return rng
 
 
-func _stock(floor_idx: int, ids: Array[String]) -> Dictionary:
+func _stock(floor_idx: int, ids: Array[String], drink_id := "shenmi_hunhe") -> Dictionary:
 	return {
 		"floor_idx": floor_idx,
 		"weapons": ids,
 		"items": [{"kind": "heart"}, {"kind": "energy"}],
-		"drink": "mystery_drink",
+		"drink": drink_id,
 	}
 
 
@@ -307,7 +312,13 @@ func test_roll_stock_shape() -> void:
 	assert_int(items.size()).is_equal(2)
 	assert_str(String(items[0].get("kind", ""))).is_equal("heart")
 	assert_str(String(items[1].get("kind", ""))).is_equal("energy")
-	assert_str(String(stock.get("drink", ""))).is_equal("mystery_drink")
+	assert_str(String(stock.get("drink", ""))).is_equal("shenmi_hunhe")
+
+func test_black_stock_prefers_epic_then_rare() -> void:
+	var stock := ShopLogic.roll_stock(_rng(SEED), 1, [], true)
+	assert_int((stock["weapons"] as Array).size()).is_equal(3)
+	for id: String in stock["weapons"]:
+		assert_bool(["epic", "rare"].has(String(GameDB.get_weapon(id)["rarity"]))).is_true()
 
 func test_roll_stock_deterministic_same_seed() -> void:
 	var a := ShopLogic.roll_stock(_rng(SEED), 1, [])
@@ -350,7 +361,31 @@ func test_open_populates_cards_and_labels() -> void:
 	assert_str(shop.coins_text()).is_equal("500 金币")
 	assert_str(shop.item_price_text("heart")).is_equal("25 金币")
 	assert_str(shop.item_price_text("energy")).is_equal("20 金币")
+	assert_bool(shop.drink_visible()).is_true()
+	assert_str(shop.drink_id()).is_equal("shenmi_hunhe")
+	assert_str(shop.drink_name_text()).is_equal("神秘混合")
+	assert_str(shop.drink_effect_text()).is_equal("随机一条上述效果")
+	assert_str(shop.drink_price_text()).is_equal("20 金币")
 	assert_bool(shop.recycle_visible()).is_false()
+
+func test_drink_card_reads_concrete_game_db_row_verbatim() -> void:
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	shop.open(_stock(1, ["laohuoji", "maodingqiang", "duangong"], "shengming_soda"),
+		ctx["wallet"], ctx["player"], false)
+	assert_str(shop.drink_id()).is_equal("shengming_soda")
+	assert_str(shop.drink_name_text()).is_equal("生命苏打")
+	assert_str(shop.drink_effect_text()).is_equal("HP上限+2")
+	assert_str(shop.drink_price_text()).is_equal("30 金币")
+
+func test_drink_card_hidden_for_missing_or_invalid_stock_id() -> void:
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	shop.open(_stock(1, ["laohuoji"], ""), ctx["wallet"], ctx["player"], false)
+	assert_bool(shop.drink_visible()).is_false()
+	shop.open(_stock(1, ["laohuoji"], "not_in_game_db"),
+		ctx["wallet"], ctx["player"], false)
+	assert_bool(shop.drink_visible()).is_false()
 
 func test_open_uses_floor_idx_from_stock_for_prices() -> void:
 	var root: Node2D = auto_free(Node2D.new())
@@ -465,6 +500,114 @@ func test_heal_clamped_at_max_hp() -> void:
 	shop._buy_item("heart")
 	assert_int(player.hp).is_equal(8)   # heal 上限夹取（player.heal 既有契约）
 
+func test_buy_drink_success_uses_row_price_applies_effect_and_sells_once() -> void:
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	var wallet: WalletProbe = ctx["wallet"]
+	var player: Player = ctx["player"]
+	shop.open(_stock(1, ["laohuoji", "maodingqiang", "duangong"], "shengming_soda"),
+		wallet, player, false)
+	shop._buy_drink()
+	assert_int(wallet.spent.size()).is_equal(1)
+	assert_int(wallet.spent[0]).is_equal(30)
+	assert_int(wallet.coins).is_equal(470)
+	assert_int(player.hp_max).is_equal(10)
+	assert_bool(shop.drink_sold()).is_true()
+	assert_str(shop.drink_price_text()).is_equal("已售")
+	# 同一开架只售一杯：再次点击不再扣款，也不重复落地效果。
+	shop._buy_drink()
+	assert_int(wallet.spent.size()).is_equal(1)
+	assert_int(wallet.coins).is_equal(470)
+	assert_int(player.hp_max).is_equal(10)
+
+func test_buy_drink_insufficient_funds_has_no_side_effect_and_flashes_red() -> void:
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	var wallet: WalletProbe = ctx["wallet"]
+	var player: Player = ctx["player"]
+	wallet.coins = 29
+	shop.open(_stock(1, ["laohuoji"], "shengming_soda"), wallet, player, false)
+	shop._buy_drink()
+	assert_int(wallet.spent.size()).is_equal(0)
+	assert_int(wallet.coins).is_equal(29)
+	assert_int(player.hp_max).is_equal(8)
+	assert_bool(shop.drink_sold()).is_false()
+	assert_str(shop.drink_price_text()).is_equal("30 金币")
+	assert_that(shop.drink_price_color()).is_equal(Shop.FAIL_FLASH)
+
+func test_new_stock_resets_drink_sold_state() -> void:
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	var wallet: WalletProbe = ctx["wallet"]
+	shop.open(_stock(1, ["laohuoji"], "shengming_soda"),
+		wallet, ctx["player"], false)
+	shop._buy_drink()
+	assert_bool(shop.drink_sold()).is_true()
+	shop.open(_stock(1, ["laohuoji"], "yingyan_kafei"),
+		wallet, ctx["player"], false)
+	assert_bool(shop.drink_sold()).is_false()
+	assert_str(shop.drink_id()).is_equal("yingyan_kafei")
+	assert_str(shop.drink_name_text()).is_equal("鹰眼咖啡")
+	assert_str(shop.drink_effect_text()).is_equal("暴击+3%")
+	assert_str(shop.drink_price_text()).is_equal("35 金币")
+
+func test_mystery_drink_insufficient_funds_does_not_advance_rng() -> void:
+	# 支付失败必须是完整 no-op：连随机流也不得掷签/推进。
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	var wallet: WalletProbe = ctx["wallet"]
+	wallet.coins = 19
+	shop.open(_stock(1, ["laohuoji"], "shenmi_hunhe"),
+		wallet, ctx["player"], false)
+	var rng := _rng(141416)
+	shop.drink_rng = rng
+	var state_before := rng.state
+	wallet.observed_rng = rng
+	shop._buy_drink()
+	assert_int(wallet.rng_state_at_spend).is_equal(state_before)
+	assert_int(rng.state).is_equal(state_before)
+	assert_int(wallet.coins).is_equal(19)
+	assert_bool(shop.drink_sold()).is_false()
+
+func test_mystery_drink_success_advances_rng_after_payment() -> void:
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	var wallet: WalletProbe = ctx["wallet"]
+	wallet.coins = 20
+	shop.open(_stock(1, ["laohuoji"], "shenmi_hunhe"),
+		wallet, ctx["player"], false)
+	var rng := _rng(141416)
+	shop.drink_rng = rng
+	var state_before := rng.state
+	wallet.observed_rng = rng
+	shop._buy_drink()
+	# 精确证明顺序：钱包执行支付时 RNG 尚未推进；支付返回成功后才掷签。
+	assert_int(wallet.rng_state_at_spend).is_equal(state_before)
+	assert_int(rng.state).is_not_equal(state_before)
+	assert_int(wallet.coins).is_equal(0)
+	assert_bool(shop.drink_sold()).is_true()
+
+func test_shop_drink_sale_does_not_consume_independent_machine_uses() -> void:
+	# GDD §11 的第六货位与 §13.2 的独立饮料机并存：商店售罄不能偷扣机器 3 次额度。
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	var wallet: WalletProbe = ctx["wallet"]
+	var player: Player = ctx["player"]
+	var machine_state := {"uses_left": DrinkMachine.USES_PER_FLOOR}
+	var machine: DrinkMachine = auto_free(DrinkMachine.new())
+	machine.configure(machine_state, wallet)
+	shop.open(_stock(1, ["laohuoji"], "jifeng_bohe"), wallet, player, false)
+	shop._buy_drink()
+	assert_bool(shop.drink_sold()).is_true()
+	assert_int(machine.uses_left).is_equal(DrinkMachine.USES_PER_FLOOR)
+	assert_int(machine_state["uses_left"]).is_equal(DrinkMachine.USES_PER_FLOOR)
+	# 机器随后仍能独立购买并只消费自己的 1 次。
+	machine.open(machine_state, wallet, player)
+	var machine_idx := machine.drink_ids().find("jifeng_bohe")
+	assert_bool(machine.buy(machine_idx)).is_true()
+	assert_int(machine.uses_left).is_equal(DrinkMachine.USES_PER_FLOOR - 1)
+	assert_int(machine_state["uses_left"]).is_equal(DrinkMachine.USES_PER_FLOOR - 1)
+
 func test_recycle_visible_only_with_callable_and_add_coins() -> void:
 	# 三门槛：callable 有效 + wallet 有 add_coins → 显示；缺一 → 隐藏
 	var ctx := _open_shop()
@@ -543,7 +686,7 @@ func test_close_button_closes() -> void:
 	shop._close()
 	assert_bool(shop.ui_visible()).is_false()
 
-func test_reopen_resets_sold_state() -> void:
+func test_new_stock_resets_weapon_sold_state() -> void:
 	var ctx := _open_shop()
 	var shop: Shop = ctx["shop"]
 	var wallet: WalletProbe = ctx["wallet"]
@@ -552,6 +695,90 @@ func test_reopen_resets_sold_state() -> void:
 	shop.open(_stock(1, ["laohuoji", "maodingqiang", "duangong"]), wallet, ctx["player"], false)
 	assert_bool(shop.is_sold(0)).is_false()
 	assert_str(shop.weapon_price_text(0)).is_equal("20 金币")
+
+func test_same_stock_close_and_interact_preserves_all_consumed_state() -> void:
+	# 生产路径：InteractionSystem 再按 E → interact(player) → open(shop.stock, ...)。
+	# 同一货架关闭/重开不得让武器、道具、饮料或回收架复活。
+	var root: Node2D = auto_free(Node2D.new())
+	add_child(root)
+	var shop: Shop = auto_free((load("res://core/interact/shop.tscn") as PackedScene).instantiate())
+	root.add_child(shop)
+	var player: Player = auto_free(Player.new())
+	root.add_child(player)
+	var rig: WeaponRig = auto_free(WeaponRig.new())
+	rig._test_init()
+	player.weapon_rig = rig
+	player.hp = 3
+	player.energy = 10
+	var wallet := WalletProbe.new()
+	wallet.coins = 1000
+	var recycle_calls: Array[int] = []
+	var cb: Callable = func(_p: Node2D) -> Dictionary:
+		recycle_calls.append(1)
+		return {"id": "shuangbi", "name": "双匕", "rarity": "common"}
+	var same_stock := _stock(1, ["laohuoji", "maodingqiang", "duangong"],
+		"shengming_soda")
+	shop.open(same_stock, wallet, player, false, cb)
+	shop._buy_weapon(0)
+	shop._buy_item("heart")
+	shop._buy_item("energy")
+	shop._buy_drink()
+	shop._recycle()
+	assert_int(recycle_calls.size()).is_equal(1)
+	var coins_after_first_pass := wallet.coins
+	var hp_after_first_pass := player.hp
+	var energy_after_first_pass := player.energy
+	var hp_max_after_first_pass := player.hp_max
+	shop.close()
+	shop.interact(player)
+	assert_bool(shop.is_sold(0)).is_true()
+	assert_str(shop.weapon_price_text(0)).is_equal("已售")
+	assert_bool(shop.item_sold("heart")).is_true()
+	assert_bool(shop.item_sold("energy")).is_true()
+	assert_str(shop.item_price_text("heart")).is_equal("已售")
+	assert_str(shop.item_price_text("energy")).is_equal("已售")
+	assert_bool(shop.drink_sold()).is_true()
+	assert_str(shop.drink_price_text()).is_equal("已售")
+	assert_bool(shop.recycle_visible()).is_false()
+	# 尝试重购/重回收仍必须 no-op。
+	shop._buy_weapon(0)
+	shop._buy_item("heart")
+	shop._buy_item("energy")
+	shop._buy_drink()
+	shop._recycle()
+	assert_int(wallet.coins).is_equal(coins_after_first_pass)
+	assert_int(player.hp).is_equal(hp_after_first_pass)
+	assert_int(player.energy).is_equal(energy_after_first_pass)
+	assert_int(player.hp_max).is_equal(hp_max_after_first_pass)
+	assert_int(recycle_calls.size()).is_equal(1)
+
+func test_fresh_identical_stock_resets_all_consumed_state() -> void:
+	# 新货架即使内容碰巧相同，只要是新注入的库存字典，也应有全新售卖/回收状态。
+	var ctx := _open_shop()
+	var shop: Shop = ctx["shop"]
+	var wallet: WalletProbe = ctx["wallet"]
+	var cb: Callable = func(_p: Node2D) -> Dictionary:
+		return {"id": "shuangbi", "name": "双匕", "rarity": "common"}
+	var first_stock := _stock(1, ["laohuoji", "maodingqiang", "duangong"],
+		"shengming_soda")
+	shop.open(first_stock, wallet, ctx["player"], false, cb)
+	shop._buy_weapon(0)
+	shop._buy_item("heart")
+	shop._buy_item("energy")
+	shop._buy_drink()
+	shop._recycle()
+	var fresh_but_identical := _stock(1, ["laohuoji", "maodingqiang", "duangong"],
+		"shengming_soda")
+	shop.open(fresh_but_identical, wallet, ctx["player"], false, cb)
+	assert_bool(shop.is_sold(0)).is_false()
+	assert_str(shop.weapon_price_text(0)).is_equal("20 金币")
+	assert_bool(shop.item_sold("heart")).is_false()
+	assert_bool(shop.item_sold("energy")).is_false()
+	assert_str(shop.item_price_text("heart")).is_equal("25 金币")
+	assert_str(shop.item_price_text("energy")).is_equal("20 金币")
+	assert_bool(shop.drink_sold()).is_false()
+	assert_str(shop.drink_price_text()).is_equal("30 金币")
+	assert_bool(shop.recycle_visible()).is_true()
 
 func test_interact_opens_with_preset_fields() -> void:
 	# 房间接线约定：FloorScene 注入 stock/wallet/black/drop_weapon 字段后，

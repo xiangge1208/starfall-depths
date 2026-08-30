@@ -2,9 +2,9 @@ extends Control
 ## 触屏虚拟摇杆（m1-t21，GDD §5.1：左虚拟摇杆移动 / 右虚拟摇杆推即射 + 自动瞄准辅助）。
 ##
 ## 用法：把本场景实例化两个到 HUD 层——左侧（默认，移动）与右侧（is_aim = true，
-## 瞄准+推过死区即合成 "fire"）。浮杆式：按下处为基座，拖动偏移经
+## 瞄准+推过死区即写入独立的 "touch_fire"）。浮杆式：按下处为基座，拖动偏移经
 ## joystick_output 归一（死区 0.15 / 半径 48px / 单位圆钳制）。
-## 桌面自动隐藏（DisplayServer.is_touchscreen_available()），force_visible 供调试。
+## 桌面自动隐藏；触屏能力或 mobile feature 任一成立即显示，force_visible 供调试。
 
 @export var is_aim := false        # true：右摇杆语义（瞄准 + 推即射）
 @export var radius := 48.0         # 摇杆可视半径（px）
@@ -21,13 +21,24 @@ var _base := Vector2.ZERO        # 基座中心（局部坐标，浮杆式）
 var _nub_offset := Vector2.ZERO  # 帽头相对基座的像素偏移（已钳制）
 var _active := false
 var _touch_index := -1
+var _mouse_active := false
+
+const TOUCH_FIRE := &"touch_fire"
+const TOUCH_MOVE_LEFT := &"touch_move_left"
+const TOUCH_MOVE_RIGHT := &"touch_move_right"
+const TOUCH_MOVE_UP := &"touch_move_up"
+const TOUCH_MOVE_DOWN := &"touch_move_down"
 
 func _ready() -> void:
 	_refresh_visibility()
 
-## 触屏设备自动显示；桌面隐藏（force_visible 优先，供无触屏调试）。
+## 触屏设备/mobile 导出自动显示；桌面隐藏（force_visible 优先，供无触屏调试）。
 func _refresh_visibility() -> void:
-	visible = force_visible or DisplayServer.is_touchscreen_available()
+	visible = TouchMode.enabled(
+		DisplayServer.is_touchscreen_available(),
+		OS.has_feature("mobile"),
+		bool(SaveSystem.get_setting("touch_controls", false)),
+		true if force_visible else null)
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -46,17 +57,51 @@ func _gui_input(event: InputEvent) -> void:
 		if _active and d.index == _touch_index:
 			_apply_raw(d.position - _base)
 			queue_redraw()
+	elif event is InputEventMouseButton:
+		var button := event as InputEventMouseButton
+		# Godot 可把 ScreenTouch 仿真成 MouseButton；那不是桌面真实鼠标，
+		# 不得据此屏蔽一个同时保持的物理 fire 来源。
+		if button.device == InputEvent.DEVICE_ID_EMULATION \
+				or button.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if button.pressed and not _active and not _mouse_active:
+			accept_event()
+			_active = true
+			_mouse_active = true
+			_base = button.position
+			_nub_offset = Vector2.ZERO
+			_apply_raw(Vector2.ZERO)
+			queue_redraw()
+		elif not button.pressed and _mouse_active:
+			accept_event()
+			_release()
+	elif event is InputEventMouseMotion:
+		var motion := event as InputEventMouseMotion
+		if _mouse_active and (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			accept_event()
+			_apply_raw(motion.position - _base)
+			queue_redraw()
 
 func _release() -> void:
 	_active = false
 	_touch_index = -1
+	_mouse_active = false
 	_nub_offset = Vector2.ZERO
 	_apply_raw(Vector2.ZERO)
 	queue_redraw()
 
 func _exit_tree() -> void:
-	if is_aim and output != Vector2.ZERO:
-		Input.action_release("fire")   # 防卡键
+	_active = false
+	_touch_index = -1
+	_mouse_active = false
+	output = Vector2.ZERO
+	aim_vector = Vector2.ZERO
+	_release_actions()   # 防卡键/卡方向：无论当前输出缓存为何都完整释放
+
+## 供 TouchControls/PlayerDriver 查询桌面鼠标是否正由此摇杆独占。
+## 只报告真实 MouseButton 左键；ScreenTouch 与触摸仿真鼠标始终为 false。
+func captures_mouse_pointer() -> bool:
+	return _mouse_active
 
 ## 由原始像素偏移推进：更新 output/aim_vector，is_aim 时合成 fire。测试可直接调用。
 func _apply_raw(raw: Vector2) -> void:
@@ -65,9 +110,32 @@ func _apply_raw(raw: Vector2) -> void:
 	if is_aim:
 		aim_vector = output
 		if output != Vector2.ZERO:
-			Input.action_press("fire")
+			Input.action_press(TOUCH_FIRE)
 		else:
-			Input.action_release("fire")
+			Input.action_release(TOUCH_FIRE)
+	else:
+		_apply_move_actions(output)
+
+## 左杆也走统一 InputMap，Player 的 Input.get_vector 因而无需触屏旁路。
+## 每次先按当前强度重写四向，归中/释放/退出树都保证清干净。
+func _apply_move_actions(v: Vector2) -> void:
+	_set_action_strength(TOUCH_MOVE_LEFT, maxf(-v.x, 0.0))
+	_set_action_strength(TOUCH_MOVE_RIGHT, maxf(v.x, 0.0))
+	_set_action_strength(TOUCH_MOVE_UP, maxf(-v.y, 0.0))
+	_set_action_strength(TOUCH_MOVE_DOWN, maxf(v.y, 0.0))
+
+func _set_action_strength(action: StringName, strength: float) -> void:
+	if strength > 0.0:
+		Input.action_press(action, strength)
+	else:
+		Input.action_release(action)
+
+func _release_actions() -> void:
+	if is_aim:
+		Input.action_release(TOUCH_FIRE)
+	else:
+		for action in [TOUCH_MOVE_LEFT, TOUCH_MOVE_RIGHT, TOUCH_MOVE_UP, TOUCH_MOVE_DOWN]:
+			Input.action_release(action)
 
 func _draw() -> void:
 	var b := _base if _active else size * 0.5

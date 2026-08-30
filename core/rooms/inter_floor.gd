@@ -32,7 +32,6 @@ var _buff_pick: BuffPick = null
 var _fountain: FlowFixture = null
 var _door: FlowFixture = null
 var _fountain_vis: Polygon2D = null
-var _hud_label: Label = null
 var _victory_label: Label = null
 var _built := false
 
@@ -73,11 +72,9 @@ func open() -> void:
 		str(flow.victory)])
 	if flow.victory:
 		_show_victory_stub()
-		_refresh_hud()
 		return
 	if not offerings.is_empty():
 		_buff_pick.open(offerings)
-	_refresh_hud()
 
 
 # ================================================================ 房间装配
@@ -134,10 +131,6 @@ func _build_chamber() -> void:
 	ui_layer.add_child(_buff_pick)
 	var hud := CanvasLayer.new()
 	hud.layer = 20
-	_hud_label = Label.new()
-	_hud_label.position = Vector2(4, 2)
-	_hud_label.add_theme_font_size_override("font_size", 8)
-	hud.add_child(_hud_label)
 	_victory_label = Label.new()
 	_victory_label.set_anchors_preset(Control.PRESET_CENTER)
 	_victory_label.add_theme_font_size_override("font_size", 24)
@@ -179,7 +172,8 @@ func _on_buff_chosen(id: String) -> void:
 		return
 	RunState.add_buff(id)                       # 局内聚合记账（数值落地见 apply_to_player）
 	buffs_manager.apply_to_player(player)
-	_refresh_hud()
+	if player.weapon_rig != null:
+		buffs_manager.apply_to_rig(player.weapon_rig)
 
 
 func _on_fountain_interact(_p: Node2D) -> void:
@@ -187,7 +181,6 @@ func _on_fountain_interact(_p: Node2D) -> void:
 		return
 	_fountain.enabled = false                   # 一次性：用完禁用
 	_fountain_vis.color = Color(0.25, 0.4, 0.5) # 用尽变暗
-	_refresh_hud()
 
 
 func _on_door_interact(_p: Node2D) -> void:
@@ -203,25 +196,6 @@ func _show_victory_stub() -> void:
 	_victory_label.visible = true
 	_fountain.enabled = false
 	_door.enabled = false
-
-
-func _refresh_hud() -> void:
-	if _hud_label == null:
-		return
-	var station := ""
-	match flow.phase:
-		InterFloorFlow.Phase.BUFF:
-			station = "增益三选一（1/2/3 或点击）"
-		InterFloorFlow.Phase.FOUNTAIN:
-			station = "治疗喷泉（按E回2HP）"
-		InterFloorFlow.Phase.DOOR:
-			station = "下一层门（按E进入）"
-		_:
-			station = "结算"
-	_hud_label.text = "M1-T20 层间 | floor%d | %s | HP %d/%d" % [
-		flow.floor_idx, station, player.hp if player != null else 0,
-		player.hp_max if player != null else 0,
-	]
 
 
 # ================================================================ 小工具

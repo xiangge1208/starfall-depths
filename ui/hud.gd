@@ -47,7 +47,9 @@ static func hud_snapshot(player: Player, run: Node, frame: int = -1) -> Dictiona
 		coins = int(run.get("coins"))
 		floor_idx = int(run.get("floor_idx"))
 		run_seed = int(run.get("run_seed"))
-		run_slot = int(run.get("current_slot"))
+		# T15 的权威字段是 selected_slot；RunState 仍提供 current_slot 兼容别名。
+		var selected: Variant = run.get("selected_slot")
+		run_slot = int(selected) if selected != null else int(run.get("current_slot"))
 		var raw_buffs: Variant = run.get("buffs")
 		if raw_buffs is Array:
 			for b: Variant in raw_buffs:

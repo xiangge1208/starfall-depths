@@ -3,7 +3,7 @@ extends Control
 ## 死亡结算全屏面板（m1-t22）：「守夜人陨落」+ 本局统计 + 致死原因回顾 + 蓝晶死亡保留 50%。
 ## 生产路径：DeathRecorder 致死时 change_scene/SceneRouter.goto("death") 进入本场景，
 ## _ready 直接读 DeathRecorder.current_report 填充；任意键/点击确认 →
-## SaveSystem.add_gems(gems_awarded) 入账（§14/§19 死亡保留 50%，floor）→
+## RunState.settle_death_gems() 一次性消费本局蓝晶 → SaveSystem.add_gems 入账持久化 →
 ## DeathRecorder.reset()（清窗口/报告/Telemetry 会话）→ 回主菜单。
 ##
 ## 【回主菜单路由（披露）】优先 /root/SceneRouter.goto("menu")（T23 可能未合入，
@@ -39,12 +39,18 @@ func label_texts() -> Array[String]:
 func _fill() -> void:
 	var stats: Dictionary = _report.get("stats", {})
 	$Panel/Box/Title.text = "守夜人陨落"
-	$Panel/Box/Stats.text = "房数 %d　　击杀 %d　　金币 %d　　层数 %d\n时长 %s　　受击 %d 次" % [
+	$Panel/Box/Stats.text = "房数 %d　　击杀 %d　　金币 %d　　层数 %d\n时长 %s　　受击 %d 次　　DPS 峰值 %d" % [
 		int(stats.get("rooms", 0)), int(stats.get("kills", 0)),
 		int(stats.get("coins", 0)), int(stats.get("floor", 0)),
 		_format_time(float(stats.get("run_time", 0.0))), int(stats.get("hurt_count", 0)),
+		int(stats.get("peak_dps", 0)),
 	]
 	$Panel/Box/Cause.text = "致死原因：%s" % str(_report.get("cause", "未知"))
+	var fatal_event: Dictionary = _report.get("fatal_event", {})
+	var hp_text := "未知" if int(fatal_event.get("remaining_hp", -1)) < 0 \
+		else str(int(fatal_event.get("remaining_hp", 0)))
+	var roll_text := "可用" if bool(fatal_event.get("roll_available", false)) else "不可用"
+	$Panel/Box/Cause.text += "\n致死后剩余生命：%s　当时翻滚：%s" % [hp_text, roll_text]
 	$Panel/Box/Gems.text = "蓝晶结算：+%d（死亡保留 50%%）" % _gems_awarded()
 	$Panel/Box/Hint.text = "—— 按任意键返回 ——"
 
@@ -78,7 +84,7 @@ func _confirm() -> void:
 	if _confirmed:
 		return
 	_confirmed = true
-	var awarded := _gems_awarded()
+	var awarded := RunState.settle_death_gems()
 	if awarded > 0:
 		SaveSystem.add_gems(awarded)
 	DeathRecorder.reset()

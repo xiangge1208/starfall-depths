@@ -24,6 +24,18 @@ func after_test() -> void:
 
 # ---------------------------------------------------------------- 路由表
 
+func test_project_default_main_scene_is_main_menu() -> void:
+	# Task 23 的默认启动入口属于项目契约，不等同于路由表中的 menu 键。
+	# 两者分别锁定，避免调试用 training_room 再次成为发布入口而测试仍然全绿。
+	var configured_scene := String(ProjectSettings.get_setting("application/run/main_scene", ""))
+	assert_str(configured_scene).is_equal(MENU_SCENE)
+	assert_bool(ResourceLoader.exists(configured_scene, "PackedScene")).is_true()
+	var packed := load(configured_scene) as PackedScene
+	assert_object(packed).is_not_null()
+	var root: Node = auto_free(packed.instantiate())
+	assert_str(root.name).is_equal("MainMenu")
+
+
 func test_routes_table_complete() -> void:
 	var script: GDScript = load(ROUTER_SCRIPT)
 	assert_object(script).is_not_null()
@@ -156,6 +168,7 @@ func test_menu_settings_roundtrip_via_save_system() -> void:
 	assert_bool((menu.get_node("SettingsPanel/Rows/DamageNumbersToggle") as CheckButton).button_pressed).is_true()
 	assert_bool((menu.get_node("SettingsPanel/Rows/ColorblindToggle") as CheckButton).button_pressed).is_false()
 	assert_bool((menu.get_node("SettingsPanel/Rows/AutoAimToggle") as CheckButton).button_pressed).is_true()
+	assert_bool((menu.get_node("SettingsPanel/Rows/TouchControlsToggle") as CheckButton).button_pressed).is_false()
 	# 驱动控件 → 经 set_setting 即时落盘
 	var slider: HSlider = menu.get_node("SettingsPanel/Rows/ScreenShakeSlider")
 	slider.value = 0.4
@@ -166,7 +179,9 @@ func test_menu_settings_roundtrip_via_save_system() -> void:
 	cb.button_pressed = true
 	var aa: CheckButton = menu.get_node("SettingsPanel/Rows/AutoAimToggle")
 	aa.button_pressed = false
-	# 全新实例重读盘 → 四键 roundtrip 一致
+	var touch: CheckButton = menu.get_node("SettingsPanel/Rows/TouchControlsToggle")
+	touch.button_pressed = true
+	# 全新实例重读盘 → 五键 roundtrip 一致
 	var reloaded: Variant = auto_free(load("res://autoload/save_system.gd").new())
 	reloaded.save_path = path
 	reloaded.load_save()
@@ -174,6 +189,7 @@ func test_menu_settings_roundtrip_via_save_system() -> void:
 	assert_bool(reloaded.get_setting("damage_numbers", true)).is_false()
 	assert_bool(reloaded.get_setting("colorblind_shapes", false)).is_true()
 	assert_bool(reloaded.get_setting("auto_aim", true)).is_false()
+	assert_bool(reloaded.get_setting("touch_controls", false)).is_true()
 	_wipe(path)
 
 

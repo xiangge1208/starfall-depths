@@ -71,6 +71,7 @@ func test_defaults_shape() -> void:
 	assert_bool(s.data["settings"]["damage_numbers"]).is_true()
 	assert_bool(s.data["settings"]["colorblind_shapes"]).is_false()
 	assert_bool(s.data["settings"]["auto_aim"]).is_true()
+	assert_bool(s.data["settings"]["touch_controls"]).is_false()
 	_wipe(path)
 
 
@@ -165,9 +166,12 @@ func test_settings_roundtrip() -> void:
 	_wipe(path)
 	var s: Variant = _fresh(path)
 	s.set_setting("auto_aim", false)
+	s.set_setting("touch_controls", true)
 	assert_bool(s.get_setting("auto_aim", true)).is_false()
+	assert_bool(s.get_setting("touch_controls", false)).is_true()
 	var fresh: Variant = _fresh(path)
 	assert_bool(fresh.get_setting("auto_aim", true)).is_false()
+	assert_bool(fresh.get_setting("touch_controls", false)).is_true()
 	# 未写入的键取默认
 	assert_str(fresh.get_setting("not_a_key", "fallback")).is_equal("fallback")
 	_wipe(path)

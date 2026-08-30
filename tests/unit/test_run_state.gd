@@ -11,28 +11,33 @@ func test_start_run_activates_seed() -> void:
 
 func test_start_run_resets_all_fields() -> void:
 	RunState.start_run("vanguard")
-	# 污染全部局内字段（gems 为 meta：T17 口径，start_run 不动）
+	# 污染全部局内字段（gems 是本局待结算所得；局外余额只在 SaveSystem）
 	RunState.floor_idx = 3
 	RunState.coins = 42
 	RunState.buffs.append("swift_trigger")
 	RunState.weapons[0] = "laohuoji"
-	RunState.current_slot = 1
+	RunState.selected_slot = 1
 	RunState.kills = 7
 	RunState.rooms_cleared = 5
 	RunState.run_time_frames = 999
 	RunState.pending_investment = 3
+	RunState.beggar_paid_floor = 2
+	RunState.star_spring_used = true
 	RunState.gems = 55
 	RunState.start_run("ranger")
 	assert_int(RunState.floor_idx).is_equal(1)
 	assert_int(RunState.coins).is_equal(0)
 	assert_array(RunState.buffs).is_empty()
 	assert_array(RunState.weapons).is_equal(["", ""])
-	assert_int(RunState.current_slot).is_equal(0)
+	assert_int(RunState.selected_slot).is_equal(0)
+	assert_int(RunState.current_slot).is_equal(0) # 历史别名与权威字段同步
 	assert_int(RunState.kills).is_equal(0)
 	assert_int(RunState.rooms_cleared).is_equal(0)
 	assert_int(RunState.run_time_frames).is_equal(0)
 	assert_int(RunState.pending_investment).is_equal(0)
-	assert_int(RunState.gems).is_equal(55)   # gems 不重置（meta，T17 口径）
+	assert_int(RunState.beggar_paid_floor).is_equal(0)
+	assert_bool(RunState.star_spring_used).is_false()
+	assert_int(RunState.gems).is_equal(0)
 	assert_str(RunState.hero_id).is_equal("ranger")
 
 func test_start_run_stores_hero_and_last_chosen() -> void:
@@ -96,6 +101,14 @@ func test_next_floor_returns_new_index_and_gems_boundaries() -> void:
 	assert_int(RunState.gems).is_equal(g0 + 380)
 	assert_int(RunState.next_floor()).is_equal(5)
 	assert_int(RunState.gems).is_equal(g0 + 580)   # clamp：第 4 次仍 +200
+
+func test_a1_death_settlement_awards_half_once_and_consumes_pending() -> void:
+	RunState.start_run("vanguard")
+	assert_int(RunState.next_floor()).is_equal(2)
+	assert_int(RunState.gems).is_equal(60)          # A1 通过：本局待结算 +60
+	assert_int(RunState.settle_death_gems()).is_equal(30)
+	assert_int(RunState.gems).is_equal(0)
+	assert_int(RunState.settle_death_gems()).is_equal(0)   # 重复结算不可再领
 
 func test_spend_coins_insufficient() -> void:
 	RunState.start_run("vanguard")

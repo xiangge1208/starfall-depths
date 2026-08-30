@@ -16,8 +16,13 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if follow and target != null and is_instance_valid(target):
 		global_position = target.global_position
-	if Fx.trauma > 0.001:
-		offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * Fx.trauma * MAX_OFFSET_PX
+	var shake_scale := Fx.screen_shake_scale()
+	if Fx.trauma > 0.001 and shake_scale > 0.0:
+		offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) \
+			* shake_amplitude(Fx.trauma, shake_scale)
 	else:
 		offset = Vector2.ZERO
 	Fx.decay_step()
+
+static func shake_amplitude(trauma: float, setting_scale: float) -> float:
+	return maxf(trauma, 0.0) * MAX_OFFSET_PX * clampf(setting_scale, 0.0, 1.0)

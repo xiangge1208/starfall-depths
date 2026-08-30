@@ -5,6 +5,10 @@ extends EnemyBase
 ## 子类照常写 _engage(frame)，按 phase() 分支；_on_engage_start 钩子原样继承。
 
 const PHASE_INVULN_TICKS := 72   # 1.2s 阶段转换无敌窗
+const PHASE_HITSTOP_MS := 120
+const PHASE_SHAKE_PX := 6.0
+const PHASE_SHAKE_SECONDS := 0.25
+const PHASE_FLASH_SECONDS := 0.25
 
 var _phase := 0
 var _phase_thresholds: Array[int] = []   # 绝对血量线（floor(row.hp × 分数)），下标即阶段
@@ -44,11 +48,22 @@ func _take_hit_at(ctx: Dictionary, frame: int) -> void:
 		return
 	if frame < _phase_invuln_until:
 		return   # 阶段转换无敌窗：不掉血、不闪白（死亡亦不可经此窗达成——门在扣血前返回）
-	hp -= int(ctx["amount"])
-	_advance_phase_if_crossed(frame)
-	Fx.on_enemy_hit(self, ctx)
+	var hp_before := maxi(hp, 0)
+	var amount := int(ctx["amount"])
 	if status != null:
-		status.apply_hit(int(ctx.get("element", 0)), int(ctx["amount"]), frame)
+		amount = 0 if amount <= 0 else maxi(1, int(floor(float(amount) * status.damage_multiplier(frame))))
+	var actual := mini(maxi(amount, 0), hp_before)
+	var resolved := ctx.duplicate()
+	resolved["amount"] = actual
+	hp = hp_before - actual
+	EventBus.enemy_damaged.emit(actual, bool(ctx.get("is_crit", false)))
+	if _is_player_damage(ctx):
+		EventBus.player_damage_resolved.emit(actual, frame)
+	_advance_phase_if_crossed(frame)
+	Fx.on_enemy_hit(self, resolved)
+	if status != null:
+		status.apply_hit_context(resolved, actual, frame)
+		_consume_status_events(frame)
 	if hp <= 0:
 		die()
 
@@ -59,8 +74,36 @@ func _advance_phase_if_crossed(frame: int) -> void:
 		return
 	_phase = p
 	_phase_invuln_until = frame + PHASE_INVULN_TICKS
+	# 纯脑测的 Boss 不在场景树，此时只验证阶段逻辑，不应暂停整个
+	# GdUnit 树。生产实例入树后才执行重震、全屏闪光与 120ms hitstop。
+	if is_inside_tree():
+		# Fx.shake 在树暂停时按 Juice v1.5 契约早退，故必须先落重震再启 hitstop。
+		Fx.shake(PHASE_SHAKE_PX, PHASE_SHAKE_SECONDS)
+		_phase_flash()
+		Fx.hitstop(PHASE_HITSTOP_MS)
 	EventBus.boss_phase.emit(self, _phase)
 	_on_phase_enter(_phase)
+
+
+## Boss 阶段全屏白闪：独立 CanvasLayer 避开 Fx 共享热点；PROCESS_MODE_ALWAYS +
+## ignore_time_scale timer 确保 120ms hitstop 冻结期间仍可见，并在 0.25s 后回收。
+func _phase_flash() -> void:
+	if not is_inside_tree():
+		return
+	var layer := CanvasLayer.new()
+	layer.name = "BossPhaseFlash"
+	layer.layer = 1000
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	var flash := ColorRect.new()
+	flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.color = Color(1.0, 1.0, 1.0, 0.82)
+	layer.add_child(flash)
+	get_tree().root.add_child(layer)
+	get_tree().create_timer(PHASE_FLASH_SECONDS, true, false, true).timeout.connect(
+		func() -> void:
+			if is_instance_valid(layer):
+				layer.queue_free())
 
 ## 阶段进入钩子：子类覆写（换弹幕/位移模式等）；基类无操作。
 func _on_phase_enter(_phase_idx: int) -> void:

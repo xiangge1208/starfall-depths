@@ -2,8 +2,9 @@ class_name TestEvents
 extends GdUnitTestSuite
 ## m1-t19 事件房（4 选 1）契约测试。
 ## 1) open_random_event 确定性（注入 rng：同 seed 同事件）+ 合法 id + 4 id 全覆盖
-## 2) 神秘商人：接受 = 直扣 2 HP（绕盾，规格明示）+ 随机饮料效果经 apply_effect 接缝落地（spy）；
-##    拒绝零副作用；HP 夹 0；无接缝时默认 _apply_effect 落地（hp_max 路径实证）
+## 2) 神秘商人：仅 hp > 2 时可用 2 HP 交易（绕盾）+ 随机饮料效果经 apply_effect
+##    接缝落地（spy）；hp=1/2 fail-closed，面板保持可拒绝且不发成功信号/奖励；
+##    无接缝时默认 _apply_effect 落地（hp_max 路径实证）
 ## 3) 乞丐：接受 = spend_coins(40) 成功 → pending_investment=120 + beggar_paid_floor 记层；
 ##    余额不足拒绝零副作用（70% 返还掷签归 T20 跨层结算，本任务只记账——规格明示）
 ## 4) 星髓泉：shield_max+1 且 shield+1，每局一次（RunState.star_spring_used 守卫，二次无效）
@@ -158,13 +159,78 @@ func test_merchant_accept_applies_random_effect_via_seam_spy() -> void:
 	assert_int(EventRoom.DRINK_EFFECT_IDS.size()).is_equal(7)
 
 
-func test_merchant_accept_hp_clamped_at_zero() -> void:
+func test_merchant_accept_with_one_hp_is_fail_closed_and_panel_can_still_refuse() -> void:
 	var ctx := _room("mystery_merchant")
 	var room: EventRoom = ctx["room"]
 	var player: Player = ctx["player"]
 	player.hp = 1
+	var effects: Array[Dictionary] = []
+	var resolved: Array[Dictionary] = []
+	room.apply_effect = func(_effect: String, _value: float, _p: Node2D) -> void:
+		effects.append({})
+	room.event_resolved.connect(func(id: String, accepted: bool) -> void:
+		resolved.append({"id": id, "accepted": accepted}))
+
 	room.accept()
-	assert_int(player.hp).is_equal(0)
+
+	assert_int(player.hp).is_equal(1)
+	assert_array(effects).is_empty()
+	assert_array(resolved).is_empty()
+	assert_bool(room.ui_visible()).is_true()
+	assert_str(room.current_event()).is_equal("mystery_merchant")
+	room.refuse()
+	assert_bool(room.ui_visible()).is_false()
+	assert_int(resolved.size()).is_equal(1)
+	assert_str(String(resolved[0]["id"])).is_equal("mystery_merchant")
+	assert_bool(bool(resolved[0]["accepted"])).is_false()
+
+
+func test_merchant_accept_with_exact_cost_is_fail_closed_without_reward() -> void:
+	var ctx := _room("mystery_merchant")
+	var room: EventRoom = ctx["room"]
+	var player: Player = ctx["player"]
+	player.hp = EventRoom.MERCHANT_HP_COST
+	var effects: Array[Dictionary] = []
+	var resolved: Array[Dictionary] = []
+	room.apply_effect = func(_effect: String, _value: float, _p: Node2D) -> void:
+		effects.append({})
+	room.event_resolved.connect(func(id: String, accepted: bool) -> void:
+		resolved.append({"id": id, "accepted": accepted}))
+
+	room.accept()
+
+	assert_int(player.hp).is_equal(EventRoom.MERCHANT_HP_COST)
+	assert_array(effects).is_empty()
+	assert_array(resolved).is_empty()
+	assert_bool(room.ui_visible()).is_true()
+	assert_str(room.current_event()).is_equal("mystery_merchant")
+	room.refuse()
+	assert_bool(room.ui_visible()).is_false()
+	assert_int(resolved.size()).is_equal(1)
+	assert_str(String(resolved[0]["id"])).is_equal("mystery_merchant")
+	assert_bool(bool(resolved[0]["accepted"])).is_false()
+
+
+func test_merchant_accept_with_three_hp_pays_and_resolves_successfully() -> void:
+	var ctx := _room("mystery_merchant")
+	var room: EventRoom = ctx["room"]
+	var player: Player = ctx["player"]
+	player.hp = EventRoom.MERCHANT_HP_COST + 1
+	var effects: Array[Dictionary] = []
+	var resolved: Array[Dictionary] = []
+	room.apply_effect = func(effect: String, value: float, _p: Node2D) -> void:
+		effects.append({"effect": effect, "value": value})
+	room.event_resolved.connect(func(id: String, accepted: bool) -> void:
+		resolved.append({"id": id, "accepted": accepted}))
+
+	room.accept()
+
+	assert_int(player.hp).is_equal(1)
+	assert_int(effects.size()).is_equal(1)
+	assert_int(resolved.size()).is_equal(1)
+	assert_str(String(resolved[0]["id"])).is_equal("mystery_merchant")
+	assert_bool(bool(resolved[0]["accepted"])).is_true()
+	assert_bool(room.ui_visible()).is_false()
 
 
 func test_merchant_refuse_no_side_effects() -> void:
@@ -196,6 +262,29 @@ func test_merchant_default_apply_increases_hp_max() -> void:
 	player.hp_max = 8
 	room.accept()
 	assert_int(player.hp_max).is_equal(10)
+
+
+func test_merchant_default_path_all_seven_effects_have_real_consumers() -> void:
+	# 不依赖随机抽中：直接走 EventRoom 的缺省消费者，覆盖七种具名效果。
+	var player: Player = auto_free(Player.new())
+	player.hp_max = 8
+	player.energy_max = 100
+	player.move_speed = Player.MOVE_SPEED
+	var room: EventRoom = auto_free(EventRoom.new())
+	room._apply_effect("hp_max", 2.0, player)
+	room._apply_effect("energy_max", 20.0, player)
+	room._apply_effect("move_speed_pct", 0.05, player)
+	room._apply_effect("crit_pct", 3.0, player)
+	room._apply_effect("shield_delay_reduction_ticks", 30.0, player)
+	room._apply_effect("roll_cd_pct", 0.05, player)
+	room._apply_effect("status_rate_pct", 0.20, player)
+	assert_int(player.hp_max).is_equal(10)
+	assert_int(player.energy_max).is_equal(120)
+	assert_float(player.move_speed).is_equal_approx(Player.MOVE_SPEED * 1.05, 0.001)
+	assert_float(player.crit_bonus).is_equal_approx(0.03, 0.0001)
+	assert_int(player.shield_delay_reduction_ticks).is_equal(30)
+	assert_int(player.roll_cd_reduction_ticks).is_equal(3)
+	assert_float(player.status_rate_bonus).is_equal_approx(0.20, 0.0001)
 
 
 func test_merchant_accept_closes_panel_and_consumes_event() -> void:

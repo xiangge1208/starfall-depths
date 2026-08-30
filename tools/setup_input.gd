@@ -40,6 +40,13 @@ const AIM_AXIS_ACTIONS := {
 	"aim_right_y": JOY_AXIS_RIGHT_Y,
 }
 
+# m1-t21 触屏专用动作。它们必须保持无物理事件绑定：TouchControls 通过
+# Input.action_press/release 独立驱动，不能与键鼠/手柄动作共用释放状态。
+const TOUCH_ACTIONS: Array[String] = [
+	"touch_move_left", "touch_move_right", "touch_move_up", "touch_move_down",
+	"touch_fire", "touch_roll", "touch_switch_weapon", "touch_interact", "touch_skill",
+]
+
 func _init() -> void:
 	for action: String in ACTIONS:
 		if not InputMap.has_action(action):
@@ -83,6 +90,7 @@ func _init() -> void:
 			InputMap.action_add_event(action, jm)
 			events.append(jm)
 		ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})
+	configure_touch_actions()
 	# ProjectSettings.save() 会跳过"当前值 == initial(引擎默认值)"的设置项，
 	# 而 60 恰为引擎默认，故仅 set_setting 仍会被省略；
 	# 这里把 initial 改为不同值使其计入保存（仅本脚本进程内存生效，不影响引擎行为），
@@ -92,3 +100,13 @@ func _init() -> void:
 	ProjectSettings.set_initial_value(PHYSICS_TICKS, -1)
 	ProjectSettings.save()
 	quit(0)
+
+
+## 从空配置或旧配置幂等重建触屏动作。保持 public static，供门禁测试验证
+## setup_input.gd 本身（而非当前 project.godot 偶然已有状态）能够完整生成 T21 契约。
+static func configure_touch_actions() -> void:
+	for action: String in TOUCH_ACTIONS:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action, 0.2)
+		InputMap.action_erase_events(action)
+		ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": []})

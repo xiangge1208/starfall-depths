@@ -2,20 +2,18 @@ class_name AutoAim
 extends RefCounted
 ## 自动瞄准纯逻辑（GDD §5.1 触屏辅助：「无右摇杆输入时，向 60° 锥内最近敌人自动开火」）。
 ##
-## 调用点说明（m1-t21 只暴露接口，不接线）：
-##   开火路径的接线属 T23/整合层职责——由调用方（如武器开火前）取敌人位置数组，
-##   调 AutoAim.aim_vector(player_pos, enemies_pos, current_aim) 得到瞄准方向；
-##   返回零向量表示「锥内无目标且无既有瞄准」，调用方不开火。
-##   本文件不修改 player.gd / weapon_rig.gd（文件所有权约束）。
+## 生产接线：PlayerDriver 在无显式触屏右杆输入且 auto_aim=true 时收集存活敌人，
+## 调本类选出 60° 锥内最近目标并自动开火；显式触屏右杆/手柄右杆优先。
+## 返回零向量表示「锥内无目标且无既有瞄准」，调用方不开火。
 ##
-## 选目标规则（任务规格）：锥内取最小偏角；偏角并列取更近者；锥外忽略；无 → -1。
+## 选目标规则（GDD §5.1）：先滤掉 60° 锥外目标，再在锥内取最近者；
+## 距离完全相同才按输入顺序稳定取前者。锥外忽略；无目标 → -1。
 
 ## 在以 player_pos 为顶点、朝向 facing（弧度）、总张角 cone_deg 的扇形内选目标索引。
 ## 返回 enemies_pos 中的索引；锥内无目标返回 -1。与玩家重合的敌人方向未定义，跳过。
 static func pick_target(player_pos: Vector2, facing: float, enemies_pos: Array[Vector2], cone_deg := 60.0) -> int:
 	var half := deg_to_rad(cone_deg) * 0.5
 	var best := -1
-	var best_angle := INF
 	var best_dist := INF
 	for i in enemies_pos.size():
 		var to: Vector2 = enemies_pos[i] - player_pos
@@ -25,9 +23,8 @@ static func pick_target(player_pos: Vector2, facing: float, enemies_pos: Array[V
 		if diff > half + 0.000001:      # 边界含入（1e-6 rad 容差，抗浮点噪声）
 			continue                     # 锥外忽略
 		var d := to.length()
-		if diff < best_angle or (is_equal_approx(diff, best_angle) and d < best_dist):
+		if d < best_dist:
 			best = i
-			best_angle = diff
 			best_dist = d
 	return best
 

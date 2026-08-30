@@ -49,19 +49,30 @@ func test_same_faction_no_hit_and_pierce() -> void:
 		await get_tree().physics_frame
 	assert_int(body.hits.size()).is_equal(0)
 
-func test_crit_rolls_at_hit_time() -> void:
+func test_player_crit_rolls_at_hit_time() -> void:
 	var cs := _make_cs()
 	cs.crit_chance = 1.0                      # 必暴
 	var body: DummyBody = auto_free(DummyBody.new())
 	cs.get_parent().add_child(body)
 	body.position = Vector2(200, 0)
-	cs.register_body(body, Projectile.Faction.PLAYER)
-	# 注：brief 原文此处弹体阵营为 PLAYER，与同阵营不互击契约（test_same_faction_no_hit_and_pierce）
-	# 矛盾导致永不命中；按 test_bullet_hits_registered_body 同型改为 ENEMY，唯一变量即 crit_chance=1.0。
-	cs.spawn_projectile({"pos": Vector2(100, 0), "vel": Vector2.RIGHT * 600, "damage": 4, "faction": Projectile.Faction.ENEMY, "element": 0, "pierce": 0, "bounce": 0, "life_seconds": 1.0, "radius": 3.0})
+	cs.register_body(body, Projectile.Faction.ENEMY)
+	cs.spawn_projectile({"pos": Vector2(100, 0), "vel": Vector2.RIGHT * 600, "damage": 4, "faction": Projectile.Faction.PLAYER, "element": 0, "pierce": 0, "bounce": 0, "life_seconds": 1.0, "radius": 3.0})
 	for _i in 30:
 		await get_tree().physics_frame
 	assert_int(body.hits[0]["amount"]).is_equal(8)
+
+func test_enemy_projectile_damage_is_fixed_even_with_player_crit_chance() -> void:
+	var cs := _make_cs()
+	cs.crit_chance = 1.0
+	var body: DummyBody = auto_free(DummyBody.new())
+	cs.get_parent().add_child(body)
+	body.position = Vector2(200, 0)
+	cs.register_body(body, Projectile.Faction.PLAYER)
+	cs.spawn_projectile({"pos": Vector2(100, 0), "vel": Vector2.RIGHT * 600, "damage": 4, "faction": Projectile.Faction.ENEMY, "element": 0, "pierce": 0, "bounce": 0, "life_seconds": 1.0, "radius": 3.0})
+	for _i in 30:
+		await get_tree().physics_frame
+	assert_int(body.hits[0]["amount"]).is_equal(4)
+	assert_bool(bool(body.hits[0]["is_crit"])).is_false()
 
 # ---- m0-final fix 回归 ----
 
@@ -160,3 +171,32 @@ func test_enemy_damaged_emitted_before_death_check() -> void:
 	EventBus.enemy_damaged.disconnect(cb)
 	assert_int(seen.size()).is_equal(1)       # 致死当拍仍先广播再走 die()
 	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
+
+func test_enemy_damage_events_use_actual_not_overkill_or_negative() -> void:
+	var e: EnemyBase = auto_free(EnemyBase.new())
+	e._test_init({"id": "actual_dummy", "hp": 4, "radius": 6.0})
+	var enemy_seen: Array[int] = []
+	var player_seen: Array[int] = []
+	var enemy_cb := func(amount: int, _is_crit: bool) -> void: enemy_seen.append(amount)
+	var player_cb := func(amount: int, _frame: int) -> void: player_seen.append(amount)
+	EventBus.enemy_damaged.connect(enemy_cb)
+	EventBus.player_damage_resolved.connect(player_cb)
+	e.take_hit({"amount": 999, "is_crit": false, "element": Elements.Id.NONE,
+		"from": Vector2.ZERO, "frame": 10, "player_damage": true})
+	EventBus.enemy_damaged.disconnect(enemy_cb)
+	EventBus.player_damage_resolved.disconnect(player_cb)
+	assert_int(enemy_seen[0]).is_equal(4)
+	assert_int(player_seen[0]).is_equal(4)
+
+func test_zero_damage_emits_zero_and_does_not_apply_status() -> void:
+	var e: EnemyBase = auto_free(EnemyBase.new())
+	e._test_init({"id": "zero_dummy", "hp": 4, "radius": 6.0})
+	var seen: Array[int] = []
+	var cb := func(amount: int, _is_crit: bool) -> void: seen.append(amount)
+	EventBus.enemy_damaged.connect(cb)
+	e.take_hit({"amount": 0, "is_crit": false, "element": Elements.Id.FIRE,
+		"proc_element": Elements.Id.ICE, "from": Vector2.ZERO, "frame": 10})
+	EventBus.enemy_damaged.disconnect(cb)
+	assert_int(seen[0]).is_equal(0)
+	assert_int(e.hp).is_equal(4)
+	assert_dict(e.status.active).is_empty()

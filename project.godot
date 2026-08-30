@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="StarfallDepths"
-run/main_scene="res://core/rooms/training_room.tscn"
+run/main_scene="res://ui/main_menu.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
 
@@ -116,6 +116,42 @@ aim_right_y={
 "events": [Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":0,"axis":3,"axis_value":-1.0,"script":null)
 , Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":0,"axis":3,"axis_value":1.0,"script":null)
 ]
+}
+touch_move_left={
+"deadzone": 0.2,
+"events": []
+}
+touch_move_right={
+"deadzone": 0.2,
+"events": []
+}
+touch_move_up={
+"deadzone": 0.2,
+"events": []
+}
+touch_move_down={
+"deadzone": 0.2,
+"events": []
+}
+touch_fire={
+"deadzone": 0.2,
+"events": []
+}
+touch_roll={
+"deadzone": 0.2,
+"events": []
+}
+touch_switch_weapon={
+"deadzone": 0.2,
+"events": []
+}
+touch_interact={
+"deadzone": 0.2,
+"events": []
+}
+touch_skill={
+"deadzone": 0.2,
+"events": []
 }
 
 [physics]

@@ -26,10 +26,16 @@ var run_seed: int = 0                # 0 = 未开局（各盐流退化为种子 
 var floor_idx: int = 0
 var hero_id: String = ""
 var coins: int = 0
-var gems: int = 0                    # 蓝晶为 meta 货币（T17），start_run 不重置
+var gems: int = 0                    # 本局待结算蓝晶；局外持久余额只存在 SaveSystem
 var buffs: Array[String] = []
 var weapons: Array[String] = []      # 双槽武器 id（空槽 ""），record_weapon 聚合用
-var current_slot: int = 0
+var selected_slot: int = 0           # T15 权威字段：当前武器槽
+## 兼容旧 HUD/测试的历史字段名；读写都代理到 selected_slot，避免双份状态漂移。
+var current_slot: int:
+	get:
+		return selected_slot
+	set(value):
+		selected_slot = value
 var kills: int = 0
 var rooms_cleared: int = 0
 var run_time_frames: int = 0         # 物理帧计（60/s）
@@ -41,20 +47,23 @@ var last_chosen_hero: String = ""    # 与 HeroSelect.last_chosen 静态暂存�
 func start_run(hero: String) -> void:
 	# GDD §9.1「玩家点击时刻」：开局种子允许非确定源——**全代码库仅此处**可用
 	# 墙钟/全局随机（RngSvc 头注释的全局 randi 禁令在此豁免）。
-	run_seed = hash(Time.get_ticks_usec()) ^ randi()
+	run_seed = hash(Time.get_ticks_usec() ^ randi())
 	RngSvc.setup_run(run_seed)
 	floor_idx = 1
 	hero_id = hero
 	last_chosen_hero = hero              # 与 HeroSelect.last_chosen 静态暂存同口径（T11 接缝收编）
 	coins = 0
+	gems = 0
 	buffs.clear()
 	weapons = []
 	weapons.resize(WEAPON_SLOTS)
-	current_slot = 0
+	selected_slot = 0
 	kills = 0
 	rooms_cleared = 0
 	run_time_frames = 0
 	pending_investment = 0
+	beggar_paid_floor = 0
+	star_spring_used = false
 
 ## 选角钩子（T11 守卫契约：HeroSelect 探测 /root/RunState 后调用）= start_run 的别名：
 ## 选角即开局——玩家点击选卡时刻就是 GDD §9.1 的种子激活时刻，故此处直接全程启动；
@@ -69,6 +78,13 @@ func next_floor() -> int:
 	floor_idx += 1
 	gems += FLOOR_GEMS[clampi(floor_idx - 2, 0, FLOOR_GEMS.size() - 1)]
 	return floor_idx
+
+## 死亡结算一次性消费：本局待结算蓝晶按 50% 向下取整入账，随后立即归零。
+## 把防重放在 RunState 而非单个 DeathSummary 节点，重复面板/重复确认均只能领取一次。
+func settle_death_gems() -> int:
+	var awarded := int(floor(gems / 2.0))
+	gems = 0
+	return awarded
 
 ## 分盐流：等价 RngSvc.stream(floor_idx, salt)（一致性由 test_run_state 钉死）。
 func stream(salt: String) -> RandomNumberGenerator:

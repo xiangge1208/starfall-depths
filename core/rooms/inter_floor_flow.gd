@@ -7,8 +7,8 @@ extends RefCounted
 ## 第 3 层（floor_idx >= 3）Boss 后直接胜利结算桩（victory 旗，M2 接完整结算）。
 ##
 ## 乞丐 payout 接缝（T19 规格，duck-typed 防御）：DOOR 阶段 advance() 时若
-## RunState.pending_investment > 0 且 beggar_paid_floor == floor_idx - 1，
-## 以注入 rng 掷 70%：命中 → coins += pending；无论命中与否 pending 结清
+## RunState.pending_investment > 0 且 beggar_paid_floor == floor_idx，
+## 以注入 rng 掷 70%：命中 → coins += pending；无论命中与否 pending/paid_floor 结清
 ## （返还或打水漂，投资在层门处一次性了结；_payout_resolved 保证每门只结一次）。
 ## 字段缺失时整缝静默跳过（`"field" in RunState` 探测），不阻塞层间流程。
 
@@ -103,9 +103,11 @@ func _resolve_beggar_payout() -> void:
 	if not ("beggar_paid_floor" in RunState):
 		return
 	var paid := int(RunState.get("beggar_paid_floor"))
-	if paid != floor_idx - 1:
+	# 事件房记的是「付款发生层」；当前层 Boss 后的 DOOR 正是进入下层前的结算点。
+	if paid != floor_idx:
 		return
 	var roll_rng := payout_rng if payout_rng != null else _offer_rng
 	if roll_rng != null and roll_rng.randf() < PAYOUT_CHANCE:
 		RunState.add_coins(pending)
 	RunState.set("pending_investment", 0)   # 命中与否都结清（一次性了结）
+	RunState.set("beggar_paid_floor", 0)

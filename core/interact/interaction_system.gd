@@ -24,7 +24,8 @@ func _physics_process(_delta: float) -> void:
 			prompt.clear()
 		return
 	prompt.bind(target)                       # 逐拍重绑：跟随目标实时位置
-	if Input.is_action_just_pressed(INTERACT_ACTION):
+	if Input.is_action_just_pressed(INTERACT_ACTION) \
+			or Input.is_action_just_pressed("touch_interact"):
 		target.interact(player)
 
 ## 当前最佳交互目标（组内取半径内最近者；无玩家/无候选 → null）。

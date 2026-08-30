@@ -20,6 +20,7 @@ const ENEMY_OPTIONAL := {
 	"contact_dmg": 0, "speed": 0, "windup_ticks": 0, "cd_ticks": 0,
 	"fuse_ticks": 0, "aoe_radius": 0.0, "aoe_dmg": 0,
 	"bullet_dmg": 0, "bullet_speed": 0, "bullet_life_seconds": 0.0,
+	"bullet_radius": 3.0,
 	"walk_speed": 0, "dash_speed": 0.0, "dash_ticks": 0, "dash_cooldown_ticks": 0,
 	"orbit_radius": 0.0,
 }
@@ -40,6 +41,7 @@ const BUFF_RARITIES: Array[String] = ["common", "uncommon", "rare"]
 const BUFF_PCT_KEYS: Array[String] = [
 	"move_speed_pct", "crit_pct", "crit_dmg_pct", "atk_speed_pct",
 	"bullet_speed_pct", "status_rate_pct", "roll_cd_pct", "crit_detonate_pct",
+	"element_proc_chance",
 ]
 const BUFF_INT_KEYS: Array[String] = [
 	"hp_max", "shield_max", "energy_max", "shield_delay_reduction_ticks",
@@ -309,6 +311,18 @@ func validate_buff_row(row: Dictionary) -> Array[String]:
 				errors.append("effect element_enchant bad Elements.Id: %d" % int(v))
 		else:
 			errors.append("unknown effect key: %s" % k)
+	# 元素附魔是「命中概率附加状态」契约：元素与概率必须成对出现。
+	# 星髓像的 100% 临时覆盖不走 buffs.json，不能用缺省概率把永久 Buff 误做成必触发。
+	var has_element := (eff as Dictionary).has("element_enchant")
+	var has_chance := (eff as Dictionary).has("element_proc_chance")
+	if has_element != has_chance:
+		errors.append("element_enchant and element_proc_chance must appear together")
+	if has_element and int((eff as Dictionary)["element_enchant"]) == Elements.Id.NONE:
+		errors.append("element_enchant must be a non-none Elements.Id")
+	if has_chance:
+		var chance := float((eff as Dictionary)["element_proc_chance"])
+		if chance <= 0.0 or chance > 1.0:
+			errors.append("element_proc_chance must be in (0,1]")
 	return errors
 
 ## 饮料行语义校验（t16），作为 drinks 表 _load_table 的 extra_check。

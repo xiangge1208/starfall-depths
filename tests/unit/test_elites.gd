@@ -23,30 +23,51 @@ class SpyCombat extends CombatSystem:
 ## 召唤物替身：可写 hp（分裂断言用）、无 state（视为存活）。
 class StubMinion extends Node2D:
 	var hp := 0
+	var hp_max := 0
+	var split_on_death := true
+	var counts_for_wave := true
 
-# ---- 原型映射改造（重构回归：对外契约不变） ----
+func _enemy(row: Dictionary) -> EnemyBase:
+	var enemy := EnemyFactory.create(row)
+	assert_object(enemy).is_not_null()
+	return auto_free(enemy) as EnemyBase
 
-func test_archetype_map_mounts_preloaded_scripts() -> void:
-	for arch in ["charger", "shooter", "orbiter", "suicide", "dummy"]:
-		var e: EnemyBase = auto_free(EnemyBase.new())
-		e._test_init({"id": "t", "archetype": arch, "hp": 10})
+# ---- 原型工厂（固定 preload 映射；先构造正确子类再初始化） ----
+
+func test_factory_constructs_registered_preloaded_archetypes_without_mutating_input() -> void:
+	var paths := {
+		"charger": ARCHETYPE_BASE + "charger.gd",
+		"shooter": ARCHETYPE_BASE + "shooter.gd",
+		"orbiter": ARCHETYPE_BASE + "orbiter.gd",
+		"suicide": ARCHETYPE_BASE + "suicide.gd",
+		"dummy": ARCHETYPE_BASE + "dummy.gd",
+		"mushroom_spore": ARCHETYPE_BASE + "mushroom_spore.gd",
+		"combo_charger": ELITE_BASE + "combo_charger.gd",
+		"zibao_wangchong": ELITE_BASE + "zibao_wangchong.gd",
+	}
+	for arch: String in paths:
+		var row := {"id": "t", "archetype": arch, "hp": 10}
+		var before := row.duplicate(true)
+		var e := _enemy(row)
 		var s := e.get_script() as Script
-		assert_str(s.resource_path).is_equal(ARCHETYPE_BASE + arch + ".gd")
-		assert_bool(e.row == e.get("row")).is_true()       # 行/成员经 Object.set 落到新实例
+		assert_str(s.resource_path).is_equal(String(paths[arch]))
+		assert_dict(row).is_equal(before)
 		assert_int(e.hp).is_equal(10)
 		assert_int(e.hp_max).is_equal(10)
 
-func test_unknown_archetype_stays_on_base_and_warns() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "t", "archetype": "nope", "hp": 10})
-	var s := e.get_script() as Script
-	assert_str(s.resource_path).is_equal("res://core/enemies/enemy_base.gd")
+func test_unknown_archetype_fails_closed() -> void:
+	var result: Array = []
+	await assert_error(func() -> void:
+		result.append(EnemyFactory.create({"id": "t", "archetype": "nope", "hp": 10}))) \
+		.is_push_error("EnemyFactory: unknown archetype 'nope'")
+	assert_int(result.size()).is_equal(1)
+	assert_object(result[0]).is_null()
 
-func test_boss_subclass_is_not_remounted() -> void:
-	var b: BossBase = auto_free(BossBase.new())
-	b._test_init({"id": "boss_test", "hp": 800, "radius": 14.0, "phases": [1.0, 0.6]})
+func test_factory_constructs_generic_boss_base() -> void:
+	var b := _enemy({"id": "boss_test", "archetype": "boss", "hp": 800,
+		"radius": 14.0, "phases": [1.0, 0.6]}) as BossBase
 	var s := b.get_script() as Script
-	assert_str(s.resource_path).is_equal("res://core/enemies/boss_base.gd")   # 二次换装守卫保持
+	assert_str(s.resource_path).is_equal("res://core/enemies/boss_base.gd")
 	assert_int(b.hp).is_equal(800)
 
 # ---- 词缀数值（TDD：迅捷/坚甲断言） ----
@@ -107,8 +128,11 @@ func test_splitter_spawns_two_half_hp_children_at_death() -> void:
 		var child_row: Dictionary = _split_calls[i]["row"]
 		assert_bool(child_row.has("elite_affixes")).is_false()   # fix1：子体行无词缀（无链式继承）
 		assert_str(String(child_row["id"])).is_equal("vine_charger")
-		assert_int((child_row["hp"])).is_equal(20)               # 行 hp 基准不变（减半由子体 hp 落）
+		assert_int((child_row["hp"])).is_equal(10)               # 构造行直接减半，hp/hp_max 同源
 		assert_int((_split_calls[i]["minion"] as StubMinion).hp).is_equal(10)   # hp ×0.5
+		assert_int((_split_calls[i]["minion"] as StubMinion).hp_max).is_equal(10)
+		assert_bool((_split_calls[i]["minion"] as StubMinion).split_on_death).is_false()
+		assert_bool((_split_calls[i]["minion"] as StubMinion).counts_for_wave).is_false()
 		(_split_calls[i]["minion"] as StubMinion).free()         # 替身自清（非 auto_free 通路）
 
 func test_splitter_without_callback_dies_cleanly() -> void:
@@ -174,9 +198,9 @@ func test_berserk_threshold_strict_below_half() -> void:
 
 ## fix1 覆盖：M0 普通藤蔓冲锋者半血以下 windup 不变（未带词缀）。
 func test_m0_charger_below_half_hp_keeps_windup() -> void:
-	var c: EnemyBase = auto_free(EnemyBase.new())
-	c._test_init({"id": "vine_charger", "archetype": "charger", "hp": 18, "windup_ticks": 30,
-		"dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
+	var c := _enemy({"id": "vine_charger", "archetype": "charger", "hp": 18,
+		"windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285,
+		"dash_cooldown_ticks": 90})
 	c.set("hp", 8)                                # 8×2=16 < 18：血线在阈值下
 	assert_bool(c.berserk_active()).is_false()    # 无词缀：不激活
 	assert_int(c._windup_ticks(30)).is_equal(30)  # windup 原样
@@ -185,14 +209,15 @@ func test_m0_charger_below_half_hp_keeps_windup() -> void:
 	assert_int(int(c.get("_phase_left"))).is_equal(30)   # 行为层：ENGAGE 首拍蓄力窗仍 30
 
 func test_berserk_scales_windup_in_charger_and_shooter() -> void:
-	var c: EnemyBase = auto_free(EnemyBase.new())
-	c._test_init({"id": "t", "archetype": "charger", "hp": 18, "windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285, "dash_cooldown_ticks": 90})
+	var c := _enemy({"id": "t", "archetype": "charger", "hp": 18,
+		"windup_ticks": 30, "dash_ticks": 27, "dash_speed": 285,
+		"dash_cooldown_ticks": 90})
 	assert_int(c._windup_ticks(30)).is_equal(30)     # 满血：不变
 	EliteAffix.apply(c, "berserk")                   # fix1：词缀门控
 	c.set("hp", 8)                                   # 8×2=16 < 18 → 狂暴
 	assert_int(c._windup_ticks(30)).is_equal(21)     # ×0.7
-	var s: EnemyBase = auto_free(EnemyBase.new())
-	s._test_init({"id": "t", "archetype": "shooter", "hp": 16, "windup_ticks": 30, "cd_ticks": 108, "speed": 60})
+	var s := _enemy({"id": "t", "archetype": "shooter", "hp": 16,
+		"windup_ticks": 30, "cd_ticks": 108, "speed": 60})
 	s.set("hp", 7)                                   # 未带词缀：仍不激活
 	assert_int(s._windup_ticks(30)).is_equal(30)
 	EliteAffix.apply(s, "berserk")
@@ -219,10 +244,10 @@ func test_barrage_extra_expands_shooter_volley() -> void:
 	var rng := RngSvc.stream(0, "combat")
 	var cs := SpyCombat.new(root, rng)
 	root.add_child(cs)
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e.position = Vector2.ZERO
-	root.add_child(e)
-	e.setup({"id": "t", "archetype": "shooter", "hp": 16, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+	var row := {"id": "t", "archetype": "shooter", "hp": 16, "speed": 60,
+		"windup_ticks": 30, "cd_ticks": 108}
+	var e: EnemyBase = auto_free(EnemyFactory.spawn(row, root, Vector2.ZERO))
+	assert_object(e).is_not_null()
 	e.combat = cs
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2(170, 0)       # 游走区间内
@@ -237,10 +262,8 @@ func test_barrage_extra_expands_shooter_volley() -> void:
 	# 弹幕大师 ×2 → 3 发对称扇形
 	var cs2 := SpyCombat.new(root, rng)
 	root.add_child(cs2)
-	var e2: EnemyBase = auto_free(EnemyBase.new())
-	e2.position = Vector2.ZERO
-	root.add_child(e2)
-	e2.setup({"id": "t", "archetype": "shooter", "hp": 16, "speed": 60, "windup_ticks": 30, "cd_ticks": 108})
+	var e2: EnemyBase = auto_free(EnemyFactory.spawn(row, root, Vector2.ZERO))
+	assert_object(e2).is_not_null()
 	e2.combat = cs2
 	e2.set("player_ref", spy)
 	e2.set("barrage_extra", 2)
@@ -260,16 +283,14 @@ func test_barrage_extra_expands_shooter_volley() -> void:
 const COMBO_ROW := {"id": "shuangdao_lizardman", "archetype": "combo_charger", "hp": 180,
 	"windup_ticks": 30, "dash_ticks": 20, "dash_speed": 300.0, "dash_cooldown_ticks": 120}
 
-func test_combo_charger_mounts_elite_script() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init(COMBO_ROW)
+func test_combo_charger_factory_uses_elite_script() -> void:
+	var e := _enemy(COMBO_ROW)
 	var s := e.get_script() as Script
 	assert_str(s.resource_path).is_equal(ELITE_BASE + "combo_charger.gd")
 
 ## 逐拍分类位移：蓄力/停顿窗零位移，三段冲锋窗各 20t×5px=100px（参数取行 walk/dash 字段）。
 func test_combo_charger_three_dash_pattern() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init(COMBO_ROW)
+	var e := _enemy(COMBO_ROW)
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = e.brain_pos + Vector2(200, 0)
 	e.set("player_ref", spy)
@@ -295,8 +316,7 @@ func test_combo_charger_three_dash_pattern() -> void:
 
 ## 第三段大前摇进入拍重新锁定方向（B.3 最大输出窗语义：可走位躲第三段）。
 func test_combo_charger_reaims_on_big_windup() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init(COMBO_ROW)
+	var e := _enemy(COMBO_ROW)
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = e.brain_pos + Vector2(200, 0)
 	e.set("player_ref", spy)
@@ -315,9 +335,9 @@ func test_combo_charger_reaims_on_big_windup() -> void:
 var _summon_calls: Array = []
 var _summon_made: Array = []
 
-func _record_summon(row_id: String, pos: Vector2) -> Node:
+func _record_summon(row_id: String, pos: Vector2, row_override: Dictionary = {}) -> Node:
 	var m := StubMinion.new()
-	_summon_calls.append({"row_id": row_id, "pos": pos, "minion": m})
+	_summon_calls.append({"row_id": row_id, "pos": pos, "row": row_override, "minion": m})
 	_summon_made.append(m)
 	return m
 
@@ -327,8 +347,9 @@ func _reset_summon_recording() -> void:
 
 func test_zibao_summon_ring_cadence_and_cap() -> void:
 	_reset_summon_recording()
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "zibao_wangchong", "archetype": "zibao_wangchong", "hp": 180, "speed": 0, "fuse_ticks": 30, "aoe_radius": 72, "aoe_dmg": 16, "delayed_death_ticks": 60})
+	var e := _enemy({"id": "zibao_wangchong", "archetype": "zibao_wangchong",
+		"hp": 180, "speed": 0, "fuse_ticks": 30, "aoe_radius": 72,
+		"aoe_dmg": 16, "delayed_death_ticks": 60})
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2(100, 0)       # >14px：引信不燃，王虫原地（speed 0）
 	e.set("player_ref", spy)
@@ -357,8 +378,9 @@ func test_zibao_summon_ring_cadence_and_cap() -> void:
 
 func test_zibao_without_callback_ticks_cleanly() -> void:
 	_reset_summon_recording()
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "zibao_wangchong", "archetype": "zibao_wangchong", "hp": 180, "speed": 0, "fuse_ticks": 30, "aoe_radius": 72, "aoe_dmg": 16, "delayed_death_ticks": 60})
+	var e := _enemy({"id": "zibao_wangchong", "archetype": "zibao_wangchong",
+		"hp": 180, "speed": 0, "fuse_ticks": 30, "aoe_radius": 72,
+		"aoe_dmg": 16, "delayed_death_ticks": 60})
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2(100, 0)
 	e.set("player_ref", spy)
@@ -377,10 +399,8 @@ func test_zibao_death_spawns_delayed_blast_detonating_at_60t() -> void:
 	var rng := RngSvc.stream(0, "combat")
 	var cs := CombatSystem.new(root, rng)
 	root.add_child(cs)
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e.position = Vector2.ZERO
-	root.add_child(e)
-	e.setup(ZIBAO_BLAST_ROW)
+	var e: EnemyBase = auto_free(EnemyFactory.spawn(ZIBAO_BLAST_ROW, root, Vector2.ZERO))
+	assert_object(e).is_not_null()
 	e.combat = cs
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2.ZERO             # 爆点 72px 内
@@ -399,6 +419,8 @@ func test_zibao_death_spawns_delayed_blast_detonating_at_60t() -> void:
 	assert_int(spy.hits.size()).is_equal(1)  # 恰 60t：aoe_dmg 经 take_hit（无敌帧节流归玩家侧）
 	assert_int(spy.hits[0]["amount"]).is_equal(16)
 	assert_bool(bool(spy.hits[0]["is_crit"])).is_false()
+	assert_str(String(spy.hits[0]["source_id"])).is_equal("zibao_wangchong")
+	assert_str(String(spy.hits[0]["attack_name"])).is_equal("延迟大爆")
 
 func test_delayed_blast_beyond_radius_no_hit() -> void:
 	var root: Node2D = auto_free(Node2D.new())
@@ -406,10 +428,9 @@ func test_delayed_blast_beyond_radius_no_hit() -> void:
 	var rng := RngSvc.stream(0, "combat")
 	var cs := CombatSystem.new(root, rng)
 	root.add_child(cs)
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e.position = Vector2(100, 0)             # 爆点在 (100,0)
-	root.add_child(e)
-	e.setup(ZIBAO_BLAST_ROW)
+	var e: EnemyBase = auto_free(EnemyFactory.spawn(ZIBAO_BLAST_ROW, root,
+		Vector2(100, 0)))                      # 爆点在 (100,0)
+	assert_object(e).is_not_null()
 	e.combat = cs
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2.ZERO             # 距爆点 100 > 72
@@ -436,8 +457,7 @@ func test_delayed_blast_survives_freed_player() -> void:
 
 ## fix1 rider：无 combat 且不在树内时 die()——延迟爆炸分支即时释放 blast，不泄漏不崩溃。
 func test_delayed_death_no_combat_no_tree_dies_cleanly() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init(ZIBAO_BLAST_ROW)             # 不入树、无 combat
+	var e := _enemy(ZIBAO_BLAST_ROW)          # 不入树、无 combat
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2(1000, 0)          # 爆炸圈外（语义无关，此处只验路径）
 	e.set("player_ref", spy)
@@ -448,23 +468,21 @@ func test_delayed_death_no_combat_no_tree_dies_cleanly() -> void:
 # ---- 体型 1.25（战斗半径 ×1.25 + 视觉缩放） ----
 
 func test_body_scale_scales_combat_radius_and_visual() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init({"id": "t", "archetype": "dummy", "hp": 10, "radius": 6.0, "body_scale": 1.25})
+	var e := _enemy({"id": "t", "archetype": "dummy", "hp": 10,
+		"radius": 6.0, "body_scale": 1.25})
 	assert_float(e.combat_radius()).is_equal_approx(7.5, 0.001)
-	var e2: EnemyBase = auto_free(EnemyBase.new())
-	e2.setup({"id": "t", "archetype": "dummy", "hp": 10, "radius": 6.0, "body_scale": 1.25})
+	var e2 := _enemy({"id": "t", "archetype": "dummy", "hp": 10,
+		"radius": 6.0, "body_scale": 1.25})
 	assert_vector(e2.scale).is_equal_approx(Vector2(1.25, 1.25), Vector2(0.001, 0.001))
-	var e3: EnemyBase = auto_free(EnemyBase.new())
-	e3.setup({"id": "t", "archetype": "dummy", "hp": 10, "radius": 6.0})
+	var e3 := _enemy({"id": "t", "archetype": "dummy", "hp": 10, "radius": 6.0})
 	assert_float(e3.combat_radius()).is_equal_approx(6.0, 0.001)   # 无 body_scale：原行为
 	assert_vector(e3.scale).is_equal_approx(Vector2.ONE, Vector2(0.001, 0.001))
 
 # ---- 行驱动词缀（setup 末尾应用；小 Boss 数据契约） ----
 
 func test_row_elite_affixes_applied_at_setup_end() -> void:
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e.setup({"id": "t", "archetype": "shooter", "hp": 180, "speed": 100, "windup_ticks": 30, "cd_ticks": 108,
-		"elite_affixes": ["armored", "swift"]})
+	var e := _enemy({"id": "t", "archetype": "shooter", "hp": 180, "speed": 100,
+		"windup_ticks": 30, "cd_ticks": 108, "elite_affixes": ["armored", "swift"]})
 	assert_int(e.hp).is_equal(540)           # 坚甲：180×3
 	assert_int(e.hp_max).is_equal(540)
 	assert_float(float(e.row["speed"])).is_equal_approx(130.0, 0.001)   # 迅捷：100×1.3

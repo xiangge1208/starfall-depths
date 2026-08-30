@@ -1,7 +1,7 @@
 class_name TestBuffs
 extends GdUnitTestSuite
 ## M1 t9：增益系统。数据层（buffs.json + GameDB 加载）与 BuffManager（三选一/聚合落地）。
-## 稀有度：common 白 / uncommon 绿 / rare 蓝；16 条 = 白8 + 绿6 + 蓝2（蓝为唯一）。
+## 稀有度：common 白 / uncommon 绿 / rare 蓝；具名清单 16 条 = 白9 + 绿5 + 蓝2。
 
 const ALL_IDS: Array[String] = [
 	"fire_enchant", "ice_enchant", "poison_enchant", "shock_enchant",
@@ -14,7 +14,7 @@ const EFFECT_WHITELIST: Array[String] = [
 	"move_speed_pct", "crit_pct", "crit_dmg_pct", "atk_speed_pct",
 	"bullet_speed_pct", "hp_max", "shield_max", "energy_max",
 	"shield_delay_reduction_ticks", "roll_cd_pct", "element_enchant",
-	"status_rate_pct", "extra_projectiles", "crit_detonate_pct",
+	"element_proc_chance", "status_rate_pct", "extra_projectiles", "crit_detonate_pct",
 ]
 
 # ---- 数据层：buffs.json 经 GameDB fail-closed 加载 ----
@@ -24,13 +24,13 @@ func test_buffs_table_loaded_16_rows() -> void:
 	for id in ALL_IDS:
 		assert_dict(GameDB.buffs).contains_keys(id)
 
-func test_buff_rarity_counts_8_6_2() -> void:
+func test_buff_rarity_counts_follow_appendix_c_9_5_2() -> void:
 	var counts := {"common": 0, "uncommon": 0, "rare": 0}
 	for id: String in GameDB.buffs:
 		var r: String = GameDB.buffs[id]["rarity"]
 		counts[r] = int(counts[r]) + 1
-	assert_int(counts["common"]).is_equal(8)
-	assert_int(counts["uncommon"]).is_equal(6)
+	assert_int(counts["common"]).is_equal(9)
+	assert_int(counts["uncommon"]).is_equal(5)
 	assert_int(counts["rare"]).is_equal(2)
 
 func test_buff_rows_chinese_names() -> void:
@@ -65,6 +65,10 @@ func test_enchant_rows_map_elements_id() -> void:
 	assert_int(GameDB.get_buff("ice_enchant")["effects"]["element_enchant"]).is_equal(Elements.Id.ICE)
 	assert_int(GameDB.get_buff("poison_enchant")["effects"]["element_enchant"]).is_equal(Elements.Id.POISON)
 	assert_int(GameDB.get_buff("shock_enchant")["effects"]["element_enchant"]).is_equal(Elements.Id.SHOCK)
+	assert_float(GameDB.get_buff("fire_enchant")["effects"]["element_proc_chance"]).is_equal(0.2)
+	assert_float(GameDB.get_buff("ice_enchant")["effects"]["element_proc_chance"]).is_equal(0.2)
+	assert_float(GameDB.get_buff("poison_enchant")["effects"]["element_proc_chance"]).is_equal(0.2)
+	assert_float(GameDB.get_buff("shock_enchant")["effects"]["element_proc_chance"]).is_equal(0.15)
 
 func test_uniques_are_rare_two() -> void:
 	for id in ["extra_projectiles", "crit_detonate"]:
@@ -98,6 +102,17 @@ func test_validate_buff_row_rejects_empty_effects() -> void:
 	var row := _valid_buff_row("t9x")
 	row["effects"] = {}
 	assert_int(GameDB.validate_buff_row(row).size()).is_greater(0)
+
+func test_validate_buff_row_requires_element_and_chance_pair() -> void:
+	var element_only := _valid_buff_row("element_only")
+	element_only["effects"] = {"element_enchant": Elements.Id.FIRE}
+	assert_int(GameDB.validate_buff_row(element_only).size()).is_greater(0)
+	var chance_only := _valid_buff_row("chance_only")
+	chance_only["effects"] = {"element_proc_chance": 0.2}
+	assert_int(GameDB.validate_buff_row(chance_only).size()).is_greater(0)
+	var bad_chance := _valid_buff_row("bad_chance")
+	bad_chance["effects"] = {"element_enchant": Elements.Id.FIRE, "element_proc_chance": 0.0}
+	assert_int(GameDB.validate_buff_row(bad_chance).size()).is_greater(0)
 
 func test_get_buff_unknown_returns_empty() -> void:
 	assert_dict(GameDB.get_buff("no_such_buff")).is_empty()
@@ -206,6 +221,32 @@ func test_apply_to_player_idempotent() -> void:
 	bm.apply_to_player(p)                 # 重复 apply 按已取列表重算，不叠加
 	assert_int(p.hp_max).is_equal(10)
 
+func test_apply_to_player_writes_all_runtime_consumers() -> void:
+	var p: Player = auto_free(Player.new())
+	var bm := _mgr()
+	for id in ["precision", "deadly", "status_erode", "quick_charge", "roll_master"]:
+		bm.pick(id)
+	bm.apply_to_player(p)
+	assert_float(p.crit_bonus).is_equal_approx(0.06, 0.0001)
+	assert_float(p.crit_damage_bonus).is_equal_approx(0.5, 0.0001)
+	assert_float(p.status_rate_bonus).is_equal_approx(0.25, 0.0001)
+	assert_int(p.shield_delay_reduction_ticks).is_equal(60)
+	assert_float(p.roll_cd_pct).is_equal_approx(-0.15, 0.0001)
+
+func test_drink_then_buff_and_buff_then_drink_have_same_result() -> void:
+	var a: Player = auto_free(Player.new())
+	DrinkMachine._apply_drink("crit_pct", 3, a)
+	DrinkMachine._apply_drink("move_speed_pct", 5, a)
+	var ba := _mgr(); ba.pick("precision"); ba.apply_to_player(a)
+	var b: Player = auto_free(Player.new())
+	var bb := _mgr(); bb.pick("precision"); bb.apply_to_player(b)
+	DrinkMachine._apply_drink("crit_pct", 3, b)
+	DrinkMachine._apply_drink("move_speed_pct", 5, b)
+	assert_float(a.crit_bonus).is_equal_approx(b.crit_bonus, 0.0001)
+	assert_float(a.move_speed).is_equal_approx(b.move_speed, 0.0001)
+	assert_float(a.crit_bonus).is_equal_approx(0.09, 0.0001)
+	assert_float(a.move_speed).is_equal_approx(84.0, 0.0001)
+
 func test_apply_to_rig_writes_five_fields() -> void:
 	var rig: WeaponRig = auto_free(WeaponRig.new())
 	var bm := _mgr()
@@ -218,6 +259,7 @@ func test_apply_to_rig_writes_five_fields() -> void:
 	assert_float(rig.rate_mult).is_equal_approx(1.12, 0.0001)
 	assert_float(rig.bullet_speed_mult).is_equal_approx(1.15, 0.0001)
 	assert_int(rig.enchant_element).is_equal(Elements.Id.FIRE)
+	assert_float(rig.enchant_proc_chance).is_equal_approx(0.2, 0.0001)
 	assert_int(rig.bonus_projectiles).is_equal(1)
 	assert_float(rig.crit_detonate_pct).is_equal_approx(0.2, 0.0001)
 
@@ -240,10 +282,12 @@ func test_element_enchant_last_picked_wins() -> void:
 	bm.pick("ice_enchant")
 	bm.apply_to_rig(rig)                  # 同类附魔后取覆盖前取
 	assert_int(rig.enchant_element).is_equal(Elements.Id.ICE)
+	assert_float(rig.enchant_proc_chance).is_equal_approx(0.2, 0.0001)
 
 func test_rig_fields_default_neutral() -> void:
 	var rig: WeaponRig = auto_free(WeaponRig.new())
 	assert_int(rig.enchant_element).is_equal(Elements.Id.NONE)
+	assert_float(rig.enchant_proc_chance).is_equal(0.0)
 	assert_int(rig.bonus_projectiles).is_equal(0)
 	assert_float(rig.crit_detonate_pct).is_equal(0.0)
 	assert_float(rig.rate_mult).is_equal(1.0)

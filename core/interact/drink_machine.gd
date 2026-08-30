@@ -21,7 +21,7 @@ const ACCENT := Color("5ab0ff")
 const SOLD_OUT_COLOR := Color(0.55, 0.55, 0.55)
 
 var uses_left := USES_PER_FLOOR
-var rng: RandomNumberGenerator = null    # 神秘混合现抽用；注入优先（未注入懒建）
+var rng: RandomNumberGenerator = null    # 神秘混合现抽用；注入优先，兜底也只经 RunState 分盐流
 var wallet = null                        # duck-typed：spend_coins(n) -> bool
 var _state: Dictionary = {"uses_left": USES_PER_FLOOR}
 var _player: Node2D = null
@@ -33,11 +33,21 @@ func _ready() -> void:
 	super()
 	action_label = "饮料机"
 
+## 绑定楼层级持久状态而不自动打开面板。FloorScene 在创建生产实例时调用，
+## 从而保证同一层重建/重进不会把 3 次购买机会悄悄补满；新楼层传入新字典。
+func configure(machine_state: Dictionary, wallet_, rng_: RandomNumberGenerator = null) -> DrinkMachine:
+	_state = machine_state
+	if not _state.has("uses_left"):
+		_state["uses_left"] = USES_PER_FLOOR
+	uses_left = int(_state["uses_left"])
+	wallet = wallet_
+	if rng_ != null:
+		rng = rng_
+	return self
+
 ## 开机（每层由房间流传入持久状态字典 + 钱包 + 玩家）：同步剩余次数并弹出卡片面板。
 func open(machine_state: Dictionary, wallet_, player: Node2D) -> void:
-	_state = machine_state
-	uses_left = int(_state.get("uses_left", USES_PER_FLOOR))
-	self.wallet = wallet_
+	configure(machine_state, wallet_)
 	_player = player
 	_ensure_panel()
 	_refresh_panel()
@@ -86,10 +96,11 @@ func buy(idx: int) -> bool:
 	_refresh_panel()
 	return true
 
-## 神秘混合现抽：注入 rng 均匀取一（未注入懒建，保运行可用）。
+## 神秘混合现抽：注入 rng 均匀取一。独立场景/测试未注入时仍必须经当前局
+## RunState 分盐流派生，禁止裸 RandomNumberGenerator.new() 绕过可回放种子链。
 func _roll_concrete() -> String:
 	if rng == null:
-		rng = RandomNumberGenerator.new()
+		rng = RunState.stream(RunState.SALT_LOOT)
 	var pool := concrete_ids()
 	return pool[rng.randi_range(0, pool.size() - 1)]
 
@@ -105,10 +116,18 @@ static func _apply_drink(effect: String, value: float, p: Player) -> void:
 			p.energy_max = int(p.energy_max) + int(value)
 		"move_speed_pct":
 			p.move_speed = float(p.move_speed) * (1.0 + value / 100.0)
-		"crit_pct", "status_rate_pct":
-			p.set_meta(effect, float(p.get_meta(effect, 0.0)) + value / 100.0)
-		"shield_delay_reduction_ticks", "roll_cd_ticks":
-			p.set_meta(effect, int(p.get_meta(effect, 0)) + int(value))
+		"crit_pct":
+			p.set_meta("drink_crit_bonus", float(p.get_meta("drink_crit_bonus", 0.0)) + value / 100.0)
+			p.crit_bonus += value / 100.0
+		"status_rate_pct":
+			p.set_meta("drink_status_rate_bonus", float(p.get_meta("drink_status_rate_bonus", 0.0)) + value / 100.0)
+			p.status_rate_bonus += value / 100.0
+		"shield_delay_reduction_ticks":
+			p.set_meta("drink_shield_delay_reduction_ticks", int(p.get_meta("drink_shield_delay_reduction_ticks", 0)) + int(value))
+			p.shield_delay_reduction_ticks += int(value)
+		"roll_cd_ticks":
+			p.set_meta("drink_roll_cd_reduction_ticks", int(p.get_meta("drink_roll_cd_reduction_ticks", 0)) + int(value))
+			p.roll_cd_reduction_ticks += int(value)
 		_:
 			push_error("DrinkMachine: unknown drink effect %s" % effect)
 

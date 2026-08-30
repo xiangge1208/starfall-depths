@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS := {
 	"damage_numbers": true,
 	"colorblind_shapes": false,
 	"auto_aim": true,
+	"touch_controls": false,
 }
 
 # save_path 可被测试覆写（临时 user:// 路径注入）；生产代码勿改

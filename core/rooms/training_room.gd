@@ -56,10 +56,10 @@ func _wire_player() -> void:
 
 func _spawn_dummies() -> void:
 	for pos in DUMMY_POINTS:
-		var e := EnemyBase.new()
-		e.position = pos
-		add_child(e)
-		e.setup(DUMMY_ROW.duplicate())        # 原型换装 + status 惰性挂载
+		var e := EnemyFactory.spawn(DUMMY_ROW.duplicate(), self, pos)
+		if e == null:
+			push_error("TrainingRoom: cannot construct dummy")
+			continue
 		e.combat = combat_room.combat
 		e.add_to_group("enemies")
 		_dress_enemy(e)

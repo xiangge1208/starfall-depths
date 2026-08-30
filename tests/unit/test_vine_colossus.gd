@@ -9,6 +9,7 @@ const ROW := {
 	"boss_script": "res://core/enemies/bosses/vine_colossus.gd",
 	"hp": 800, "contact_dmg": 5, "speed": 30, "walk_speed": 30,
 	"radius": 16.0, "bullet_dmg": 3, "bullet_speed": 110,
+	"bullet_life_seconds": 2.5, "bullet_radius": 4.0,
 	"phases": [1.0, 0.6, 0.3],
 }
 const FRAME := 20000   # 注入帧基准（远离 0，同 test_boss_base）
@@ -111,6 +112,8 @@ func test_slap_hits_player_in_arc_for5_knockback8() -> void:
 		b.brain_tick(f + i)
 	assert_int(spy.hits.size()).is_equal(1)
 	assert_int(spy.hits[0]["amount"]).is_equal(5)
+	assert_str(String(spy.hits[0]["source_name"])).is_equal("藤蔓巨像")
+	assert_str(String(spy.hits[0]["attack_name"])).is_equal("巨掌拍击")
 	assert_float(float(spy.hits[0]["knockback"])).is_equal_approx(8.0, 0.001)
 	assert_float(spy.brain_pos.x).is_equal_approx(68.0, 0.01)   # 击退 8px 远离 Boss
 	assert_float(spy.brain_pos.y).is_equal_approx(0.0, 0.01)
@@ -166,6 +169,10 @@ func test_seed_ring_24_projectiles_in_two_waves() -> void:
 	for p in cs.pool.active:
 		assert_int(p.damage).is_equal(3)
 		assert_float(p.vel.length()).is_equal_approx(110.0, 0.01)
+		assert_float(p.radius).is_equal(4.0)
+		assert_str(p.source_id).is_equal("vine_colossus")
+		assert_str(p.source_name).is_equal("藤蔓巨像")
+		assert_str(p.attack_name).is_equal("种子弹环")
 		angles[int(round(rad_to_deg(p.vel.angle())))] = true
 	assert_int(angles.size()).is_equal(24)                # 24 个均布方向（两轮各 30° 步进错 15°）
 
@@ -181,6 +188,7 @@ func test_sweep_strip_hits_once_for5_then_alternates() -> void:
 	_drive_sweep(b, f)
 	assert_int(spy.hits.size()).is_equal(1)               # 条带经过恰好一跳
 	assert_int(spy.hits[0]["amount"]).is_equal(5)
+	assert_str(String(spy.hits[0]["attack_name"])).is_equal("藤蔓横扫")
 	assert_int(b._sweep_dir).is_equal(-1)                 # 下次右→左（交替）
 
 func test_sweep_ignores_player_outside_strip_span() -> void:
@@ -199,7 +207,7 @@ func test_sweep_ignores_player_outside_strip_span() -> void:
 	_drive_sweep(b2, _engage_ready(b2))
 	assert_int(spy2.hits.size()).is_equal(0)
 
-# ---- 毒雨：前摇 60t，360t 内每 30t 1 伤，3 个 r48 安全区（锚 ± 固定偏移）----
+# ---- 毒雨：前摇 60t，360t 内每 30t 4 伤，3 个 r48 每轮随机且持续移动的安全区 ----
 
 func _rain_activate(b: VineColossus) -> int:
 	var f := _engage_ready(b)
@@ -219,16 +227,82 @@ func _rain_activate(b: VineColossus) -> int:
 	assert_int(act).is_equal(ms + 60)
 	return act
 
-func test_poison_rain_circles_are_room_anchored_offsets() -> void:
+func test_poison_rain_safe_zones_are_seeded_legal_and_non_overlapping() -> void:
+	const SEED := 20260829
+	var bounds := Rect2(Vector2(-228, -119), Vector2(456, 238))
+	RngSvc.setup_run(SEED)
 	var b := _boss()
-	_take_to_phase(b, 561, FRAME - 100)   # 800-561=239 ≤ 240 → P2
-	var act := _rain_activate(b)
-	assert_int(act).is_greater(0)
-	assert_int(b._rain_circles.size()).is_equal(3)
-	for c in b._rain_circles:
-		assert_bool(c == Vector2(-160, 0) or c == Vector2.ZERO or c == Vector2(160, 0)).is_true()
+	b.combat_bounds = bounds
+	b._generate_safe_zones()
+	var first: Array[Vector2] = b._rain_circles.duplicate()
+	assert_int(first.size()).is_equal(3)
+	for i in first.size():
+		var c := first[i]
+		# Rect2.has_point 对 end 边界是开区间；安全圆允许与房间右/下边界相切。
+		assert_float(c.x - VineColossus.SAFE_RADIUS_PX).is_greater_equal(bounds.position.x)
+		assert_float(c.y - VineColossus.SAFE_RADIUS_PX).is_greater_equal(bounds.position.y)
+		assert_float(c.x + VineColossus.SAFE_RADIUS_PX).is_less_equal(bounds.end.x)
+		assert_float(c.y + VineColossus.SAFE_RADIUS_PX).is_less_equal(bounds.end.y)
+		for j in range(i + 1, first.size()):
+			assert_float(c.distance_to(first[j])).is_greater_equal(
+				VineColossus.SAFE_MIN_SEPARATION_PX)
+	RngSvc.setup_run(SEED)
+	var b2 := _boss()
+	b2.combat_bounds = bounds
+	b2._generate_safe_zones()
+	assert_str(var_to_str(b2._rain_circles)).is_equal(var_to_str(first))
 
-func test_poison_rain_ticks_1dmg_every_30t_outside_safety() -> void:
+func test_poison_rain_safe_zones_change_across_rounds() -> void:
+	RngSvc.setup_run(20260830)
+	var b := _boss()
+	b.combat_bounds = Rect2(Vector2(-228, -119), Vector2(456, 238))
+	var layouts := {}
+	for _round in 6:
+		b._generate_safe_zones()
+		layouts[var_to_str(b._rain_circles)] = true
+	assert_int(layouts.size()).is_greater(1)
+
+func test_poison_rain_safe_zones_move_continuously_and_deterministically() -> void:
+	const SEED := 20260831
+	var bounds := Rect2(Vector2(-228, -119), Vector2(456, 238))
+	RngSvc.setup_run(SEED)
+	var b := _boss()
+	b.combat_bounds = bounds
+	_take_to_phase(b, 561, FRAME - 100)
+	var act := _rain_activate(b)
+	var start: Array[Vector2] = b._rain_circles.duplicate()
+	var samples: Array = []
+	for offset in range(1, 61):
+		b.brain_tick(act + offset)
+		if offset == 1 or offset == 2 or offset == 30 or offset == 60:
+			var circles: Array[Vector2] = b._rain_circles.duplicate()
+			samples.append(circles)
+			assert_str(var_to_str(circles)).is_not_equal(var_to_str(start))
+			for i in circles.size():
+				var c := circles[i]
+				assert_float(c.x - VineColossus.SAFE_RADIUS_PX).is_greater_equal(bounds.position.x)
+				assert_float(c.y - VineColossus.SAFE_RADIUS_PX).is_greater_equal(bounds.position.y)
+				assert_float(c.x + VineColossus.SAFE_RADIUS_PX).is_less_equal(bounds.end.x)
+				assert_float(c.y + VineColossus.SAFE_RADIUS_PX).is_less_equal(bounds.end.y)
+				assert_vector((b._rain_fx[i] as Node2D).position).is_equal_approx(c - b.brain_pos, Vector2(0.001, 0.001))
+				for j in range(i + 1, circles.size()):
+					assert_float(c.distance_to(circles[j])).is_greater_equal(
+						VineColossus.SAFE_MIN_SEPARATION_PX - 0.001)
+	assert_str(var_to_str(samples[0])).is_not_equal(var_to_str(samples[1]))   # 逐帧移动，非每 30t 跳变
+
+	RngSvc.setup_run(SEED)
+	var b2 := _boss()
+	b2.combat_bounds = bounds
+	_take_to_phase(b2, 561, FRAME - 100)
+	var act2 := _rain_activate(b2)
+	var samples2: Array = []
+	for offset in range(1, 61):
+		b2.brain_tick(act2 + offset)
+		if offset == 1 or offset == 2 or offset == 30 or offset == 60:
+			samples2.append(b2._rain_circles.duplicate())
+	assert_str(var_to_str(samples2)).is_equal(var_to_str(samples))
+
+func test_poison_rain_ticks_4dmg_every_30t_outside_safety() -> void:
 	var b := _boss()
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2(0, 300)                       # 距最近圈心 300 > 48；y 免横扫
@@ -243,7 +317,8 @@ func test_poison_rain_ticks_1dmg_every_30t_outside_safety() -> void:
 			hit_frames.append(fr)
 	assert_int(hit_frames.size()).is_equal(12)            # 30..360 每 30t 一跳 ×12
 	for i in range(12):
-		assert_int(spy.hits[i]["amount"]).is_equal(1)
+		assert_int(spy.hits[i]["amount"]).is_equal(4)
+		assert_str(String(spy.hits[i]["attack_name"])).is_equal("毒雨")
 		assert_int(hit_frames[i]).is_equal(act + 30 * (i + 1))
 
 func test_poison_rain_no_damage_inside_safety_circle() -> void:
@@ -255,45 +330,53 @@ func test_poison_rain_no_damage_inside_safety_circle() -> void:
 			if int(h["element"]) == Elements.Id.POISON:
 				n += 1
 		return n
-	var b := _boss()                                      # 圈心（160,0）
+	var b := _boss()
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
-	spy.brain_pos = Vector2(160, 0)
 	b.set("player_ref", spy)
 	_take_to_phase(b, 561, FRAME - 100)   # 800-561=239 ≤ 240 → P2
 	var act := _rain_activate(b)
 	for i in range(361):
+		b._update_safe_zone_motion(i + 1)
+		spy.brain_pos = b._rain_circles[0]
 		b.brain_tick(act + 1 + i)
 	assert_int(poison_hits.call(spy)).is_equal(0)
-	assert_int(spy.hits.size()).is_greater_equal(1)       # 横扫照常可命中（分层不受安全区豁免）
 	var b2 := _boss()                                     # 恰在圈界（dist=48 ≤ r48，圈内）
 	var spy2: SpyPlayer = auto_free(SpyPlayer.new())
-	spy2.brain_pos = Vector2(112, 0)
 	b2.set("player_ref", spy2)
 	_take_to_phase(b2, 561, FRAME - 100)
 	var act2 := _rain_activate(b2)
 	for i in range(361):
+		b2._update_safe_zone_motion(i + 1)
+		spy2.brain_pos = b2._rain_circles[0] + Vector2(VineColossus.SAFE_RADIUS_PX, 0)
 		b2.brain_tick(act2 + 1 + i)
 	assert_int(poison_hits.call(spy2)).is_equal(0)
 	var b3 := _boss()                                     # 圈外 1px（dist=49）必吃毒雨
 	var spy3: SpyPlayer = auto_free(SpyPlayer.new())
-	spy3.brain_pos = Vector2(111, 0)
 	b3.set("player_ref", spy3)
 	_take_to_phase(b3, 561, FRAME - 100)
 	var act3 := _rain_activate(b3)
+	var outside := b3._rain_circles[0] + Vector2(VineColossus.SAFE_RADIUS_PX + 1.0, 0)
+	# 若恰落入另一圈，取房间边界外的明确非安全点。
+	for c in b3._rain_circles:
+		if outside.distance_to(c) <= VineColossus.SAFE_RADIUS_PX:
+			outside = Vector2(0, 300)
+			break
+	spy3.brain_pos = outside
 	for i in range(361):
 		b3.brain_tick(act3 + 1 + i)
 	assert_int(poison_hits.call(spy3)).is_greater_equal(1)
 
-# ---- 召唤蘑菇（shooter 替身）：上限 2，周期补 ----
+# ---- 召唤真实蘑菇孢子手：上限 2，周期补 ----
 
-func test_summon_shooter_stand_in_cap_two_replenish() -> void:
+func test_summon_mushroom_spore_cap_two_replenish() -> void:
 	var b := _boss()
 	var spawned: Array = []
 	var pos_log: Array = []
 	var minions: Array = []
-	b.spawn_callback = func(arch: String, pos: Vector2) -> Variant:
+	b.spawn_callback = func(arch: String, pos: Vector2, row_override: Dictionary) -> Variant:
 		spawned.append(arch)
 		pos_log.append(pos)
+		assert_dict(row_override).is_empty()
 		var m := Node.new()
 		minions.append(m)
 		return m
@@ -301,7 +384,7 @@ func test_summon_shooter_stand_in_cap_two_replenish() -> void:
 	var f := _engage_ready(b)
 	for i in range(800):                                  # ≥2 个 240t 周期
 		b.brain_tick(f + i)
-	assert_array(spawned).is_equal(["shooter", "shooter"])   # 一轮补满至上限 2
+	assert_array(spawned).is_equal(["mushroom_spore", "mushroom_spore"])   # 一轮补满至上限 2
 	assert_array(pos_log).is_equal([Vector2(48, 0), Vector2(-48, 0)])   # 左右交替落点
 	assert_int(b._minions.size()).is_equal(2)
 	minions[0].free()                                     # 一只死亡 → 下周期补 1
@@ -311,6 +394,41 @@ func test_summon_shooter_stand_in_cap_two_replenish() -> void:
 	for m in minions:                                     # 清理替身活体（防 gdUnit orphan 计数）
 		if is_instance_valid(m):
 			m.free()
+
+func test_mushroom_spore_real_archetype_fires_three_slow_projectiles() -> void:
+	var row := GameDB.get_enemy("mushroom_spore")
+	assert_int(row.get("hp", 0)).is_equal(20)
+	assert_int(row.get("contact_dmg", 0)).is_equal(3)
+	assert_int(row.get("bullet_dmg", 0)).is_equal(3)
+	var root: Node2D = auto_free(Node2D.new())
+	add_child(root)
+	var combat := CombatSystem.new(root, RngSvc.stream(0, "mushroom_spore_test"))
+	root.add_child(combat)
+	var e: EnemyBase = auto_free(EnemyFactory.spawn(row, root, Vector2.ZERO))
+	assert_object(e).is_not_null()
+	assert_str((e.get_script() as Script).resource_path).ends_with("mushroom_spore.gd")
+	e.combat = combat
+	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	spy.brain_pos = Vector2(100, 0)
+	e.player_ref = spy
+	e.on_player_seen(0)
+	for frame in range(1, 70):
+		e.brain_tick(frame)
+		if e.fired_this_tick:
+			break
+	assert_vector(e.brain_pos).is_equal(Vector2.ZERO)       # 原地弹幕手，不风筝移动
+	assert_int(combat.active_count()).is_equal(3)
+	var angles: Array[float] = []
+	for projectile in combat.pool.active:
+		assert_int(projectile.damage).is_equal(3)
+		assert_float(projectile.slow_pct).is_equal_approx(0.3, 0.001)
+		assert_int(projectile.slow_ticks).is_equal(60)
+		assert_str(projectile.source_name).is_equal("蘑菇孢子手")
+		angles.append(rad_to_deg(projectile.vel.angle()))
+	angles.sort()
+	assert_float(angles[0]).is_equal_approx(-12.0, 0.01)
+	assert_float(angles[1]).is_equal_approx(0.0, 0.01)
+	assert_float(angles[2]).is_equal_approx(12.0, 0.01)
 
 func test_summon_without_callback_never_starts() -> void:
 	# 未接线（spawn_callback 空调用）→ 召唤招不入序列（生产接线归房间层，披露）
@@ -326,13 +444,13 @@ func test_gamedb_row_wires_boss_script_and_phases() -> void:
 	assert_int(row.get("hp", 0)).is_equal(800)
 	assert_bool(row.has("phases")).is_true()
 	assert_bool(row.has("boss_script")).is_true()
-	var e: EnemyBase = auto_free(EnemyBase.new())
-	e._test_init(row)                                     # 生产同路径：_test_init 内 boss_script 换装
+	var e: EnemyBase = auto_free(EnemyFactory.create(row))
+	assert_object(e).is_not_null()
 	assert_bool(e is VineColossus).is_true()
 	assert_bool(e is BossBase).is_true()
 	e.on_player_seen(0)
 	for f in range(1, 26):
-		e.brain_tick(f)                                   # 首拍 _engage 自愈补析血线（换装丢成员修复）
+		e.brain_tick(f)
 	e._take_hit_at(_ctx(321), 9999)                       # 800-321=479 ≤ 480 → P1
 	assert_int(e.hp).is_equal(479)
 	assert_int(e.phase()).is_equal(1)

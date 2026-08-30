@@ -2,7 +2,7 @@ extends Node
 ## m1-t27 主循环无头冒烟（机检部分；视觉手感以 m1_evidence 截图驱动为辅）：
 ## run_root 装配（选角承接→HeroApplier→首层）→ 全层真实走图（战斗房两波清房、
 ## 精英/垒主/巨像真嘉宾、商店/宝箱/事件设施）→ boss 死亡开层间（三选一+喷泉+门）→
-## 推层第 2 层 → M1 完结浮层。逐项 print，失败置 exit 1。
+## 推层第 2 层 → A2 真实入口里程碑。逐项 print，失败置 exit 1。
 ## 运行：godot --headless --path . res://tests/scenes/m1_loop_smoke.tscn
 
 var run_root: Node2D
@@ -49,11 +49,38 @@ func _run() -> void:
 	# ---- 设施抽查（首进即设）：商店货单 / 事件面板 / 宝箱
 	print("SMOKE 2: facilities")
 	var shop_room := _find_room(fs, func(t: String) -> bool: return t == "shop")
-	_check(shop_room >= 0 and _shop_in(fs.room_node(shop_room)) != null, "shop facility placed")
+	var shop := _shop_in(fs.room_node(shop_room)) if shop_room >= 0 else null
+	_check(shop != null, "shop facility placed")
+	if shop != null:
+		# T26 requires a real buy and sell.  Give only test currency, then exercise the
+		# exact production Shop callbacks against RunState and the live player rig.
+		RunState.add_coins(1000)
+		shop.interact(player)
+		var coins_before_buy := RunState.coins
+		shop._buy_weapon(0)
+		_check(shop.is_sold(0) and RunState.coins < coins_before_buy,
+			"shop purchase spends coins and equips stock")
+		var slots_before_recycle := player.weapon_rig.slots.duplicate(true)
+		var coins_before_recycle := RunState.coins
+		shop._recycle()
+		_check(RunState.coins > coins_before_recycle \
+			and player.weapon_rig.slots != slots_before_recycle,
+			"shop recycle removes offhand and pays coins")
+		shop.close()
 	var event_room := _find_room(fs, func(t: String) -> bool: return t == "event")
-	_check(event_room >= 0 and _event_in(fs.room_node(event_room)) != null, "event panel opened")
+	var event := _event_in(fs.room_node(event_room)) if event_room >= 0 else null
+	_check(event != null and event.ui_visible(), "event panel opened")
+	if event != null:
+		var event_id := event.current_event()
+		var resolved: Array[Dictionary] = []
+		event.event_resolved.connect(func(id: String, accepted: bool) -> void:
+			resolved.append({"id": id, "accepted": accepted}))
+		event.accept()
+		_check(resolved.size() == 1 and String(resolved[0]["id"]) == event_id \
+			and bool(resolved[0]["accepted"]) and not event.ui_visible(),
+			"event accepted through production panel")
 
-	# ---- 巨像（真 3 阶段 Boss）→ 层间 → 门 → M1 完结浮层
+	# ---- 巨像（真 3 阶段 Boss）→ 层间 → 门 → A2 入口里程碑
 	print("SMOKE 3: boss colossus -> inter floor")
 	_check(fs.enter_room(boss), "enter boss room")
 	var colossus := _find_enemy(fs.room_node(boss), "vine_colossus")
@@ -61,15 +88,55 @@ func _run() -> void:
 	_check(colossus != null and colossus.get_script() != null \
 		and (colossus.get_script() as Script).resource_path.ends_with("vine_colossus.gd"),
 		"boss_script mounted (BossBase subclass)")
+	if colossus != null:
+		# Observe the production three-phase move tables after real factory spawning.
+		_check(colossus._move_list() == ["slap", "ring"], "colossus phase 1 move set")
+		colossus._take_hit_at({"amount": 320, "is_crit": false, "element": 0,
+			"from": colossus.global_position}, 100)
+		_check(colossus.phase() == 1 and colossus._move_list().has("sweep"),
+			"colossus phase 2 adds vine sweep")
+		colossus._take_hit_at({"amount": 240, "is_crit": false, "element": 0,
+			"from": colossus.global_position}, 200)
+		_check(colossus.phase() == 2 and colossus._move_list().has("rain"),
+			"colossus phase 3 adds poison rain")
+		# The phase probes deliberately leave the boss at low HP with a transition
+		# invulnerability window.  Expire that window before the generic clear helper.
+		colossus._phase_invuln_until = -1
 	await _clear_room_waves(fs, boss)
 	await _until(func() -> bool: return run_root.inter_floor != null,
 		"inter floor opened on boss defeat")
 	var inter: Node2D = run_root.inter_floor
 	if inter != null:
 		# 选增益走场景回调（等价玩家按 1）；phase BUFF(0)→FOUNTAIN(1) 即落地
-		inter._on_buff_chosen(inter.flow.offered[0])
+		var picked_id: String = inter.flow.offered[0]
+		var before_agg: Dictionary = inter.buffs_manager.aggregate()
+		var hp_max_before := player.hp_max
+		var shield_max_before := player.shield_max
+		var energy_max_before := player.energy_max
+		var move_speed_before := player.move_speed
+		var rig_before := {
+			"rate_mult": player.weapon_rig.rate_mult,
+			"bullet_speed_mult": player.weapon_rig.bullet_speed_mult,
+			"enchant_element": player.weapon_rig.enchant_element,
+			"bonus_projectiles": player.weapon_rig.bonus_projectiles,
+			"crit_detonate_pct": player.weapon_rig.crit_detonate_pct,
+		}
+		inter._on_buff_chosen(picked_id)
 		await _until(func() -> bool: return inter.flow.phase >= InterFloorFlow.Phase.FOUNTAIN,
 			"buff chosen via inter floor")
+		var after_agg: Dictionary = inter.buffs_manager.aggregate()
+		var buff_changed: bool = after_agg != before_agg and (
+			player.hp_max != hp_max_before or player.shield_max != shield_max_before \
+			or player.energy_max != energy_max_before or player.move_speed != move_speed_before \
+			or player.weapon_rig.rate_mult != float(rig_before["rate_mult"]) \
+			or player.weapon_rig.bullet_speed_mult != float(rig_before["bullet_speed_mult"]) \
+			or player.weapon_rig.enchant_element != int(rig_before["enchant_element"]) \
+			or player.weapon_rig.bonus_projectiles != int(rig_before["bonus_projectiles"]) \
+			or player.weapon_rig.crit_detonate_pct != float(rig_before["crit_detonate_pct"]) \
+			or player.crit_bonus != 0.0 or player.crit_damage_bonus != 0.0 \
+			or player.status_rate_bonus != 0.0 or player.roll_cd_pct != 0.0 \
+			or player.shield_delay_reduction_ticks != 0)
+		_check(buff_changed, "chosen buff changes live player or weapon stats (%s)" % picked_id)
 		inter.flow.use_fountain(player)
 		await _until(func() -> bool: return inter.flow.phase == InterFloorFlow.Phase.DOOR,
 			"fountain -> door phase")
@@ -77,9 +144,11 @@ func _run() -> void:
 		inter._on_door_interact(player)
 		_check(RunState.floor_idx == 2, "RunState advanced to floor 2")
 		_check(RunState.gems == gems0 + 60, "floor clear gems +60 (GDD 14.1)")
-		await _until(func() -> bool: return run_root.m1_overlay_visible(),
-			"M1 end overlay shown (floor 2 data lands in M2)")
-		_check(String(run_root.overlay_text()).contains("M1 完结"), "overlay text present")
+		await _until(func() -> bool: return run_root.a2_entry_active(),
+			"player entered the real floor 2 milestone scene")
+		_check(run_root.floor_scene == null, "floor 1 scene released on floor transition")
+		_check(String(run_root.overlay_text()).contains("已进入第 2 层"),
+			"floor 2 entry text is unambiguous")
 
 	Telemetry.flush()
 	print("SMOKE DONE: %s (%d checks failed)" % ["OK" if failures.is_empty() else "FAILED",

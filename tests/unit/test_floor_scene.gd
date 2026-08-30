@@ -335,6 +335,18 @@ func test_scene_builds_rooms_and_places_player_at_start() -> void:
 		assert_vector(fs.room_node(int(id)).position).is_equal(wp)
 
 
+func test_scene_mounts_one_full_hud_without_task_debug_labels() -> void:
+	var fs := _make_scene(_typed_chain(["combat"]))
+	# 旧任务卡 Label 在首个 _process 前 text 为空；至少过一帧再扫描，防假绿。
+	await get_tree().process_frame
+	assert_int(_full_hud_count(fs)).is_equal(1)
+	var hud := _find_full_hud(fs)
+	assert_object(hud).is_not_null()
+	if hud != null:
+		assert_object(hud.player).is_same(fs.player_node())
+	assert_bool(_contains_task_debug_label(fs)).is_false()
+
+
 func test_scene_gates_mirror_flow() -> void:
 	var build := DungeonBuilder.build(SEED, 1)
 	var fs := _make_scene(build)
@@ -383,6 +395,40 @@ func test_scene_combat_lock_two_waves_clear() -> void:
 	assert_bool(text.contains("floor_clear")).is_true()
 
 
+func test_scene_runstate_counts_actual_kills_and_non_start_clear_once() -> void:
+	# 生产聚合口径：实际死亡就计 kills；counts_for_wave 只决定是否消费波次。
+	# 因此召唤体（counts_for_wave=false）仍是一次真实击杀，但不得推进当前波。
+	RunState.start_run("vanguard")
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var room: FloorScene.FloorRoom = fs.room_node(1)
+	assert_int(RunState.kills).is_equal(0)
+	assert_int(RunState.rooms_cleared).is_equal(0) # setup 时已清的 start 房不计
+	assert_bool(fs.enter_room(1)).is_true()
+	assert_int(_alive_enemies(room)).is_equal(3)
+	var wave_before := room.room_flow.wave_index()
+	var summon := fs._spawn_enemy(room, "kuli_bug", room.outer.get_center(), {}, false)
+	assert_object(summon).is_not_null()
+	assert_bool(summon.counts_for_wave).is_false()
+	summon.take_hit({"amount": 9999, "is_crit": false, "element": 0,
+		"from": summon.global_position})
+	assert_int(RunState.kills).is_equal(1)
+	assert_int(room.room_flow.wave_index()).is_equal(wave_before)
+	assert_int(_alive_enemies(room)).is_equal(3)
+	assert_bool(fs.flow.is_locked()).is_true()
+
+	# 两个正式波次各 3 只；连同召唤体，本房共 7 次真实死亡。
+	_kill_all(room)
+	await _await_until(func() -> bool: return _alive_enemies(room) == 3)
+	_kill_all(room)
+	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
+	assert_int(RunState.kills).is_equal(7)
+	assert_int(RunState.rooms_cleared).is_equal(1)
+	fs._emit_room_clear(room) # 同一房重复回调必须受 cleared_emitted 幂等门保护
+	assert_int(RunState.rooms_cleared).is_equal(1)
+	assert_bool(fs.enter_room(0)).is_true()
+	assert_int(RunState.rooms_cleared).is_equal(1) # 回到起始房仍不得计入清房数
+
+
 func test_scene_player_retreat_and_reentry_no_relock() -> void:
 	var fs := _make_scene(_typed_chain(["combat"]))
 	assert_bool(fs.enter_room(1)).is_true()
@@ -419,21 +465,59 @@ func test_scene_instant_rooms_place_guest_stubs() -> void:
 	assert_array(EventRoom.EVENT_IDS).contains(ev.current_event())
 
 
-func test_scene_treasure_chest_drops_weapon() -> void:
+func test_scene_treasure_chest_preserves_single_weapon_until_station_pickup() -> void:
 	var fs := _make_scene(_typed_chain(["treasure"]))
 	assert_bool(fs.enter_room(1)).is_true()
 	var chest := _interactable_in_room(fs, 1)
 	var player: Player = fs.player_node()
 	var rig: WeaponRig = player.get_node("WeaponRig")
-	assert_bool(rig.slots[1].is_empty()).is_true()   # 初始仅 laohuoji 占槽 0
+	var before := _weapon_slot_ids(rig)
+	assert_str(before[0]).is_equal("laohuoji")
+	assert_str(before[1]).is_empty()
 	chest.interact(player)
-	# 宝箱一次性：can_interact 翻 false；掉落武器台出现在房间（第二交互物）；loot 遥测留痕
+	# 开箱只揭示掉落并生成武器台，绝不能越过 E 拾取直接改写玩家武器槽。
 	assert_bool(chest.can_interact(player)).is_false()
-	assert_bool(rig.slots[1].is_empty()).is_false()
+	assert_array(_weapon_slot_ids(rig)).is_equal(before)
 	assert_int(_interactable_count(fs, 1)).is_equal(2)
+	var station := _node_in_room(fs, 1, "LootStation") as Interactable
+	assert_object(station).is_not_null()
+	var dropped_id := String(station.get_meta("weapon_id", ""))
+	assert_bool(not GameDB.get_weapon(dropped_id).is_empty()).is_true()
+	station.interact(player)
+	assert_str(String(rig.slots[0].get("id", ""))).is_equal("laohuoji")
+	assert_str(String(rig.slots[1].get("id", ""))).is_equal(dropped_id)
+	assert_bool(station.can_interact(player)).is_false()
+	var after_first_pickup := _weapon_slot_ids(rig)
+	station.interact(player)                         # 一次性：重复 E 不得再次装备
+	assert_array(_weapon_slot_ids(rig)).is_equal(after_first_pickup)
 	Telemetry.flush()   # m1-t18：遥测改缓冲落盘，读盘前先清缓冲（原逐行即写）
 	var text := FileAccess.get_file_as_string("user://telemetry.csv")
 	assert_bool(text.contains("loot")).is_true()
+
+
+func test_scene_treasure_chest_preserves_full_loadout_before_explicit_swap() -> void:
+	var fs := _make_scene(_typed_chain(["treasure"]))
+	assert_bool(fs.enter_room(1)).is_true()
+	var player: Player = fs.player_node()
+	var rig: WeaponRig = player.get_node("WeaponRig")
+	rig.equip("maodingqiang")
+	var before := _weapon_slot_ids(rig)
+	assert_str(before[0]).is_equal("laohuoji")
+	assert_str(before[1]).is_equal("maodingqiang")
+	var chest := _interactable_in_room(fs, 1)
+	chest.interact(player)
+	assert_array(_weapon_slot_ids(rig)).is_equal(before)
+	var station := _node_in_room(fs, 1, "LootStation") as Interactable
+	assert_object(station).is_not_null()
+	var dropped_id := String(station.get_meta("weapon_id", ""))
+	assert_bool(not GameDB.get_weapon(dropped_id).is_empty()).is_true()
+	station.interact(player)
+	# 两槽已满时显式拾取只替换当前槽；副槽保持，掉落台自己的 id 不受后续 roll 污染。
+	assert_str(String(rig.slots[0].get("id", ""))).is_equal(dropped_id)
+	assert_str(String(rig.slots[1].get("id", ""))).is_equal("maodingqiang")
+	var after_first_pickup := _weapon_slot_ids(rig)
+	station.interact(player)
+	assert_array(_weapon_slot_ids(rig)).is_equal(after_first_pickup)
 
 
 func test_scene_guest_placeholders() -> void:
@@ -559,6 +643,32 @@ func _find_by_type(build: Dictionary, type: String) -> int:
 	return -1
 
 
+func _contains_task_debug_label(node: Node) -> bool:
+	if node is Label and String((node as Label).text).begins_with("M1-T"):
+		return true
+	for child in node.get_children():
+		if _contains_task_debug_label(child):
+			return true
+	return false
+
+
+func _full_hud_count(node: Node) -> int:
+	var count := 1 if node is HUD else 0
+	for child in node.get_children():
+		count += _full_hud_count(child)
+	return count
+
+
+func _find_full_hud(node: Node) -> HUD:
+	if node is HUD:
+		return node as HUD
+	for child in node.get_children():
+		var found := _find_full_hud(child)
+		if found != null:
+			return found
+	return null
+
+
 func _alive_enemies(room: FloorScene.FloorRoom) -> int:
 	var n := 0
 	for e in room.enemies:
@@ -627,3 +737,10 @@ func _interactable_count(fs: FloorScene, room_id: int) -> int:
 		if c is Interactable:
 			n += 1
 	return n
+
+
+func _weapon_slot_ids(rig: WeaponRig) -> Array[String]:
+	var ids: Array[String] = []
+	for slot_row: Dictionary in rig.slots:
+		ids.append(String(slot_row.get("id", "")))
+	return ids

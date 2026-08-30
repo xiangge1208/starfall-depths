@@ -6,16 +6,13 @@ extends Node
 ## 每房每局一次（_used 简单守卫）；局级守卫走 RunState 旗（star_spring_used）。
 ##
 ## 披露（规格明示/整合期对齐）：
-## - 神秘商人的 2 HP 为 hp 字段直写（min 0），绕盾不经 take_hit——设计如此；
-## - 随机饮料效果池 = GDD §13.2 八饮料去「随机」共 7 条；apply_effect Callable 为落地
-##   接缝（测试 spy 注入；T16 drink_machine 若暴露同语义接缝，整合期换绑即可），
-##   缺省走本地 _apply_effect：仅落地 Player 有公开写字段的 3 条（hp_max/energy_max/
-##   move_speed_pct），crit/盾延时/翻滚 CD/状态积累无公开写字段（同 BuffManager 披露），
-##   默认路径记为 no-op；
+## - 神秘商人的 2 HP 为 hp 字段直写，绕盾不经 take_hit；为避免 0 HP 活人，
+##   仅当前 hp > 2 时成交，生命不足时面板保持打开供玩家拒绝；
+## - 随机饮料效果池 = GDD §13.2 八饮料去「随机」共 7 条；apply_effect Callable 为测试/
+##   房间接缝，缺省路径同样复用 DrinkMachine._apply_drink，七种效果均走生产消费者；
 ## - 乞丐只记账（pending_investment=120 + beggar_paid_floor），70% 返还掷签与
 ##   跨层消费归 T20 inter-floor；
-## - RunState.beggar_paid_floor / star_spring_used 为 declare-only 新增字段，
-##   start_run 不重置（T19 文件所有权 0 逻辑约束）——多局重开的重置在整合任务接线。
+## - RunState.start_run 会重置 beggar_paid_floor / star_spring_used，防跨局状态泄漏。
 
 signal event_resolved(id: String, accepted: bool)
 
@@ -111,7 +108,8 @@ func accept() -> void:
 	var id := _event_id
 	match id:
 		"mystery_merchant":
-			_merchant_accept()
+			if not _merchant_accept():
+				return
 		"beggar":
 			_beggar_accept()
 		"star_spring":
@@ -141,16 +139,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ---------------------------------------------------------------- 事件路径
 
-## 神秘商人：2 HP 直扣（绕盾，规格明示）→ 预掷效果经接缝/默认路径落地。
-func _merchant_accept() -> void:
+## 神秘商人：仅 hp > 2 时支付 2 HP（绕盾）→ 预掷效果落地。
+## 生命不足 fail-closed：不扣血、不发奖励、不结束事件，玩家仍可主动拒绝。
+func _merchant_accept() -> bool:
 	var p := _player as Player
-	if p != null:
-		p.hp = maxi(0, p.hp - MERCHANT_HP_COST)        # 直写字段，不经 take_hit
+	if p == null or p.hp <= MERCHANT_HP_COST:
+		return false
+	p.hp -= MERCHANT_HP_COST                           # 直写字段，不经 take_hit
 	var value := float(DRINK_EFFECTS.get(_effect_id, 0.0))
 	if apply_effect.is_valid():
 		apply_effect.call(_effect_id, value, _player)
 	else:
 		_apply_effect(_effect_id, value, _player)
+	return true
 
 
 ## 乞丐：扣 40 金成功才记账（返还额 + 付款层）；余额不足走拒绝路径零副作用。
@@ -172,20 +173,16 @@ func _spring_accept() -> void:
 		p.shield += 1
 
 
-## 默认效果落地：仅 Player 公开可写的 3 条真实生效，其余 no-op（披露见头注释）。
+## 默认效果落地：与 FloorScene 注入路径一样复用真实饮料消费者，避免 standalone 退化。
 func _apply_effect(effect: String, value: float, p: Node2D) -> void:
 	var player := p as Player
 	if player == null:
 		return
-	match effect:
-		"hp_max":
-			player.hp_max += int(value)
-		"energy_max":
-			player.energy_max += int(value)
-		"move_speed_pct":
-			player.move_speed *= 1.0 + value
-		_:
-			pass                                       # 无公开写字段（整合期接线）
+	var drink_value := value * 100.0 if effect in ["move_speed_pct", "status_rate_pct"] else value
+	if effect == "roll_cd_pct":
+		effect = "roll_cd_ticks"
+		drink_value = TimeConst.ticks(value)
+	DrinkMachine._apply_drink(effect, drink_value, player)
 
 
 ## 开面板时的每事件预掷（消费 rng 的顺序固定 → 同 seed 全程确定）。

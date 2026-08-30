@@ -2,7 +2,7 @@ class_name BuffManager
 extends RefCounted
 ## 局内增益管理（m1-t9，每局实例）：持有已取列表，按稀有度权重三选一抽取，
 ## 并把已取效果聚合落地到 Player / WeaponRig 的公开字段。
-## 数据源：GameDB.buffs（buffs.json，t9 共 16 条 = 白8 + 绿6 + 蓝2）。
+## 数据源：GameDB.buffs（buffs.json，t9 具名清单共 16 条 = 白9 + 绿5 + 蓝2）。
 
 const RARITY_ORDER: Array[String] = ["common", "uncommon", "rare"]
 const RARITY_WEIGHTS := {"common": 55, "uncommon": 30, "rare": 15}
@@ -13,12 +13,14 @@ const EFFECT_DEFAULTS := {
 	"move_speed_pct": 0.0, "crit_pct": 0.0, "crit_dmg_pct": 0.0,
 	"atk_speed_pct": 0.0, "bullet_speed_pct": 0.0, "status_rate_pct": 0.0,
 	"roll_cd_pct": 0.0, "crit_detonate_pct": 0.0,
+	"element_proc_chance": 0.0,
 	"hp_max": 0, "shield_max": 0, "energy_max": 0,
 	"shield_delay_reduction_ticks": 0, "element_enchant": 0, "extra_projectiles": 0,
 }
 
 var picked: Array[String] = []
-var _p_base := {}    # 首次 apply_to_player 时记录的玩家基线（幂等重算用）
+var _p_base := {}    # 首次 apply_to_player 时记录数值上限/移速基线（幂等重算用）
+var _p_last := {}    # 上次由本 manager 写入的增量；饮料等外部变化在重算时保留
 var _rig_base := {}  # 首次 apply_to_rig 时记录的 rig 基线（幂等重算用）
 
 ## 可抽池：全部 buff id 减去「已被 pick 的唯一项」；普通增益可重复出现（叠加）。
@@ -96,6 +98,8 @@ func aggregate() -> Dictionary:
 				continue                     # 白名单外键忽略（fail-closed）
 			if k == "element_enchant":
 				agg[k] = int(eff[k])         # 后取覆盖前取
+			elif k == "element_proc_chance":
+				agg[k] = float(eff[k])       # 与最后一条附魔成对覆盖
 			elif typeof(EFFECT_DEFAULTS[k]) == TYPE_FLOAT:
 				agg[k] = float(agg[k]) + float(eff[k])
 			else:
@@ -109,11 +113,24 @@ func apply_to_player(p: Player) -> void:
 	if _p_base.is_empty():
 		_p_base = {"hp_max": p.hp_max, "shield_max": p.shield_max,
 			"energy_max": p.energy_max, "move_speed": p.move_speed}
+		_p_last = {"hp_max": 0, "shield_max": 0, "energy_max": 0, "move_speed_pct": 0.0}
 	var agg := aggregate()
-	p.hp_max = int(_p_base["hp_max"]) + int(agg["hp_max"])
-	p.shield_max = int(_p_base["shield_max"]) + int(agg["shield_max"])
-	p.energy_max = int(_p_base["energy_max"]) + int(agg["energy_max"])
-	p.move_speed = float(_p_base["move_speed"]) * (1.0 + float(agg["move_speed_pct"]))
+	# 移除上次本 manager 的贡献，保留期间饮料/事件写入，再按当前 picked 重加。
+	p.hp_max = p.hp_max - int(_p_last["hp_max"]) + int(agg["hp_max"])
+	p.shield_max = p.shield_max - int(_p_last["shield_max"]) + int(agg["shield_max"])
+	p.energy_max = p.energy_max - int(_p_last["energy_max"]) + int(agg["energy_max"])
+	var old_mult := 1.0 + float(_p_last["move_speed_pct"])
+	p.move_speed = (p.move_speed / old_mult) * (1.0 + float(agg["move_speed_pct"]))
+	_p_last = {"hp_max": int(agg["hp_max"]), "shield_max": int(agg["shield_max"]),
+		"energy_max": int(agg["energy_max"]), "move_speed_pct": float(agg["move_speed_pct"])}
+	p.crit_bonus = float(agg["crit_pct"]) + float(p.get_meta("drink_crit_bonus", 0.0))
+	p.crit_damage_bonus = float(agg["crit_dmg_pct"])
+	p.status_rate_bonus = float(agg["status_rate_pct"]) \
+		+ float(p.get_meta("drink_status_rate_bonus", 0.0))
+	p.shield_delay_reduction_ticks = int(agg["shield_delay_reduction_ticks"]) \
+		+ int(p.get_meta("drink_shield_delay_reduction_ticks", 0))
+	p.roll_cd_pct = float(agg["roll_cd_pct"])
+	p.roll_cd_reduction_ticks = int(p.get_meta("drink_roll_cd_reduction_ticks", 0))
 
 ## 落地到武器架（幂等，同 apply_to_player 基线策略）。
 ## 写 5 个共享字段：rate_mult / bullet_speed_mult / enchant_element /
@@ -121,6 +138,7 @@ func apply_to_player(p: Player) -> void:
 func apply_to_rig(rig: WeaponRig) -> void:
 	if _rig_base.is_empty():
 		_rig_base = {"enchant_element": rig.enchant_element,
+			"enchant_proc_chance": rig.enchant_proc_chance,
 			"bonus_projectiles": rig.bonus_projectiles,
 			"crit_detonate_pct": rig.crit_detonate_pct,
 			"rate_mult": rig.rate_mult, "bullet_speed_mult": rig.bullet_speed_mult}
@@ -132,3 +150,7 @@ func apply_to_rig(rig: WeaponRig) -> void:
 	rig.crit_detonate_pct = float(_rig_base["crit_detonate_pct"]) + float(agg["crit_detonate_pct"])
 	if int(agg["element_enchant"]) != Elements.Id.NONE:
 		rig.enchant_element = int(agg["element_enchant"])
+		rig.enchant_proc_chance = float(agg["element_proc_chance"])
+	else:
+		rig.enchant_element = int(_rig_base["enchant_element"])
+		rig.enchant_proc_chance = float(_rig_base["enchant_proc_chance"])

@@ -43,8 +43,20 @@ func _run() -> void:
 		if id == boss:
 			continue
 		var t := fs.flow.room_type(id)
+		# `_walk_order()` contains DFS backtracking.  A room can be revisited while a
+		# previous combat room is still resolving (the current seed exposed this in
+		# the rendered evidence run), so wait for every entered combat room to clear
+		# before taking the next graph edge.  This mirrors the playable door lock
+		# contract instead of recording transient, seed-dependent enter failures.
 		if not _check_store(fs.enter_room(id), "enter room %d (%s)" % [id, t]):
 			continue
+		# Direct evidence driving must also move the real player into the entered
+		# room.  Otherwise FloorScene's production position detector observes the
+		# player still standing in the previous room during screenshot waits and
+		# legitimately moves the flow back, making the next DFS edge non-adjacent.
+		player.position = fs.room_rect(id).get_center()
+		if t in ["combat", "elite", "miniboss"] and not fs.flow.cleared.has(id):
+			await _clear_room_waves(fs, id)
 		if shot_kind.has(t) and not shot_kind[t]:
 			shot_kind[t] = true
 			await _frames(30)
@@ -59,17 +71,21 @@ func _run() -> void:
 				if ev != null:
 					ev.refuse()
 			shot += 1
-		if t in ["combat", "elite", "miniboss"] and not fs.flow.cleared.has(id):
-			await _clear_room_waves(fs, id)
 	_check(fs.flow.boss_door_unlocked(), "boss door unlocked after miniboss")
 
-	print("EVIDENCE 3: boss colossus -> inter floor -> M1 overlay")
+	print("EVIDENCE 3: boss colossus -> inter floor -> A2 entry milestone")
 	_check_store(fs.enter_room(boss), "enter boss room")
-	await _frames(40)
+	player.position = fs.room_rect(boss).get_center()
+	await _until(func() -> bool: return _find_enemy(fs.room_node(boss), "vine_colossus") != null,
+		"real vine_colossus spawned", "real vine_colossus spawned", 120)
+	var colossus := _find_enemy(fs.room_node(boss), "vine_colossus")
 	await _shot("%02d-boss-colossus" % shot)
 	shot += 1
-	var colossus := _find_enemy(fs.room_node(boss), "vine_colossus")
-	_check(colossus != null and colossus.hp == 800, "real vine_colossus (hp 800)")
+	# 截图等待期间生产 PlayerDriver 仍可能真实开火，因此当前 HP 不是稳定的
+	# 配置证据；最大生命才是数据表的 800HP 契约，同时确认实例仍存活且未越界。
+	_check(colossus != null and colossus.hp_max == 800 and colossus.hp > 0 \
+			and colossus.hp <= colossus.hp_max,
+		"real vine_colossus (hp_max 800, alive)")
 	await _clear_room_waves(fs, boss)
 	await _until(func() -> bool: return run_root.inter_floor != null,
 		"inter floor opened", "inter floor opened")
@@ -78,18 +94,29 @@ func _run() -> void:
 	var inter: Node2D = run_root.inter_floor
 	shot += 1
 	if inter != null:
-		inter._on_buff_chosen(inter.flow.offered[0])
+		# 通过 Godot 的公开输入入口按下数字键 1，让 BuffPick 自己走
+		# _unhandled_input -> _choose -> hide -> buff_chosen。不能直接调用业务
+		# 回调，否则截图会把仍可见的三选一卡片误当成“喷泉/门阶段”。
+		var choose_event := InputEventKey.new()
+		choose_event.keycode = KEY_1
+		choose_event.physical_keycode = KEY_1
+		choose_event.pressed = true
+		Input.parse_input_event(choose_event)
+		await _frames(2)
+		_check(not inter._buff_pick.visible, "buff pick closes after selection")
 		inter.flow.use_fountain(player)
 		await _frames(20)
 		await _shot("%02d-inter-floor-fountain-door" % shot)
 		await _until(func() -> bool: return inter.flow.phase == InterFloorFlow.Phase.DOOR,
 			"fountain -> door", "door phase")
 		inter._on_door_interact(player)
-		await _until(func() -> bool: return run_root.m1_overlay_visible(),
-			"M1 overlay", "M1 overlay shown")
+		await _until(func() -> bool: return run_root.a2_entry_active(),
+			"A2 entry", "A2 entry milestone shown")
 		await _frames(20)
-		await _shot("%02d-m1-end-overlay" % (shot + 1))
+		await _shot("%02d-a2-entry-milestone" % (shot + 1))
 		_check(RunState.floor_idx == 2, "RunState advanced to floor 2")
+		_check(String(run_root.overlay_text()).contains("已进入第 2 层"),
+			"floor 2 entry text is unambiguous")
 
 	Telemetry.flush()
 	print("EVIDENCE DONE: %s (%d failed)" % ["OK" if failures.is_empty() else "FAILED",

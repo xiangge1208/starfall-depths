@@ -15,6 +15,18 @@ func test_shield_absorbs_first() -> void:
 	assert_int(p.shield).is_equal(1)
 	assert_int(p.hp).is_equal(8)
 
+func test_negative_damage_is_noop_before_rampage_shield_and_status() -> void:
+	var p := _player()
+	p.hp = 5
+	p.shield = 2
+	p.move_speed = 80.0
+	p.rampage_active_until = 1000
+	p.take_hit_ctx({"amount": -99, "slow_pct": 0.5, "slow_ticks": 60}, 100)
+	assert_int(p.hp).is_equal(5)
+	assert_int(p.shield).is_equal(2)
+	assert_bool(p.is_invincible_at(100)).is_false()
+	assert_float(p.effective_move_speed(100)).is_equal_approx(80.0, 0.001)
+
 func test_iframes_block_and_expire() -> void:
 	var p := _player()
 	p.take_hit_ctx({"amount": 1}, 100)
@@ -37,3 +49,49 @@ func test_roll_iframes_and_cooldown() -> void:
 		assert_bool(p.is_invincible_at(f)).is_true()      # 13 ticks 全程无敌
 	assert_bool(p.roll_ready_at(100 + 13 + 42 - 1)).is_false()
 	assert_bool(p.roll_ready_at(100 + 13 + 42)).is_true() # 0.7s CD 从结束起算
+
+func test_runtime_modifiers_drive_shield_delay_and_roll_cooldown() -> void:
+	var p := _player()
+	p.shield = 0
+	p.shield_delay_reduction_ticks = 60
+	p.take_hit_ctx({"amount": 1}, 100)
+	assert_int(p.shield_at(219)).is_equal(0)
+	assert_int(p.shield_at(220)).is_equal(1)              # 3.0s - 1.0s = 2.0s
+	p.roll_cd_pct = -0.15
+	p.roll_cd_reduction_ticks = 3
+	p.start_roll(Vector2.RIGHT, 300)
+	assert_bool(p.roll_ready_at(300 + 13 + 33 - 1)).is_false()
+	assert_bool(p.roll_ready_at(300 + 13 + 33)).is_true() # round(42*0.85)-3 = 33t
+
+func test_temporary_move_speed_uses_exact_frame_boundary() -> void:
+	var p := _player()
+	p.move_speed = 80.0
+	p.move_speed_boost_pct = 0.30
+	p.move_speed_boost_until = 400
+	assert_float(p.effective_move_speed(399)).is_equal_approx(104.0, 0.001)
+	assert_float(p.effective_move_speed(400)).is_equal_approx(80.0, 0.001)
+
+func test_incoming_spore_slow_reduces_speed_for_exact_duration() -> void:
+	var p := _player()
+	p.move_speed = 80.0
+	p.take_hit_ctx({"amount": 1, "slow_pct": 0.3, "slow_ticks": 60}, 100)
+	assert_float(p.effective_move_speed(159)).is_equal_approx(56.0, 0.001)
+	assert_float(p.effective_move_speed(160)).is_equal_approx(80.0, 0.001)
+
+func test_incoming_slow_merges_stronger_percent_and_longer_duration() -> void:
+	var p := _player()
+	p.move_speed = 100.0
+	p.take_hit_ctx({"amount": 1, "slow_pct": 0.2, "slow_ticks": 90}, 100)
+	# 跳过受击无敌窗后叠更强但更短的减速：强度取 max，期限也取 max。
+	p.take_hit_ctx({"amount": 1, "slow_pct": 0.4, "slow_ticks": 20}, 149)
+	assert_float(p.effective_move_speed(168)).is_equal_approx(60.0, 0.001)
+	assert_float(p.effective_move_speed(189)).is_equal_approx(60.0, 0.001)
+	assert_float(p.effective_move_speed(190)).is_equal_approx(100.0, 0.001)
+
+func test_iframes_block_incoming_slow_application() -> void:
+	var p := _player()
+	p.move_speed = 80.0
+	p.take_hit_ctx({"amount": 1}, 100)
+	p.take_hit_ctx({"amount": 1, "slow_pct": 0.5, "slow_ticks": 60}, 110)
+	assert_float(p.effective_move_speed(110)).is_equal_approx(80.0, 0.001)
+	assert_float(p.incoming_slow_pct).is_equal(0.0)

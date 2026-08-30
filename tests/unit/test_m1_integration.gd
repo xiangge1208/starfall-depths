@@ -6,8 +6,8 @@ extends GdUnitTestSuite
 ## 2) 真实嘉宾：elite/miniboss/boss 房生成数据行真实嘉宾（词缀/boss_script 数据驱动），
 ##    波次推进经 wave_id 回译不断链；drops 死亡即落；开关关断回占位。
 ## 3) 设施：shop 真商店（RunState 钱包买卖/回收）、event 进房开面板、金币入账 RunState。
-## 4) 层间：boss 死亡 → inter_floor 嵌入开层；门 → RunState.next_floor() → 无 A2 数据
-##    → M1 完结浮层（第 2 层及胜利结算 M2 到来）；第 3 层胜利桩流程级验证。
+## 4) 层间：boss 死亡 → inter_floor 嵌入开层；门 → RunState.next_floor() → A2 入口
+##    里程碑（真实离开 A1、层号/玩家/HUD 切换）；第 3 层胜利桩流程级验证。
 ##
 ## RunState 污染守卫：每用例前 start_run 复位（test_inter_floor 同款），after_test 再复位
 ## 并 free RunRoot/FloorScene（整棵含 inter_floor/浮层）。
@@ -16,6 +16,7 @@ const RUN_ROOT_SCENE := "res://core/rooms/run_root.tscn"
 const PLAYER_SCENE := "res://core/player/player.tscn"
 const HERO_HP_VANGUARD := 8      # data/heroes.json vanguard hp
 const HERO_WEAPON := "laohuoji"  # vanguard start_weapons[0]
+const BEGGAR_WIN_SEED := 1        # RandomNumberGenerator 首个 randf()=0.329559 < 0.7
 
 var _root: Node2D = null
 var _fs: FloorScene = null
@@ -86,6 +87,83 @@ func test_floor_rebuild_keeps_player_and_rebuilds_rooms() -> void:
 	assert_int(fs.room_count()).is_equal(13)
 	assert_bool(_root.player == player).is_true()        # 玩家同实例
 	assert_bool(fs.room_rect(fs.flow.start_room()).has_point(player.position)).is_true()
+
+
+func test_run_root_persists_facilities_across_same_floor_rebuild_and_resets_new_run() -> void:
+	_root = _make_root()
+	_root._begin()
+	var first_state: Dictionary = _root._drink_states[1]
+	first_state["uses_left"] = 1
+	_root._used_shrine_kinds["zhanshen"] = true
+	_root._on_next_floor_requested(1)
+	assert_int(_root.floor_scene._drink_state["uses_left"]).is_equal(1)
+	_root.floor_scene._drink_state["uses_left"] = 0
+	assert_int(first_state["uses_left"]).is_equal(0) # 同一持久字典，不是重建副本
+	assert_bool(_root.floor_scene._used_shrine_kinds.has("zhanshen")).is_true()
+	# 新局 run_seed 变化后，整局雕像门控和各层饮料状态都必须清空。
+	RunState.start_run("ranger")
+	_root._begin()
+	assert_int(_root._drink_states[1]["uses_left"]).is_equal(DrinkMachine.USES_PER_FLOOR)
+	assert_dict(_root._used_shrine_kinds).is_empty()
+
+
+func test_run_root_reuse_resets_every_runtime_state_for_new_run() -> void:
+	_root = _make_root()
+	_root._begin()
+	var old_player: Player = _root.player
+	var old_buffs: BuffManager = _root.buffs
+	# 污染跨层应保留、但跨局绝不能保留的全部主要运行时入口。
+	old_buffs.pick("vigor")
+	old_buffs.pick("swift_trigger")
+	old_buffs.apply_to_player(old_player)
+	old_buffs.apply_to_rig(old_player.weapon_rig)
+	RunState.add_buff("vigor")
+	RunState.add_buff("swift_trigger")
+	DrinkMachine._apply_drink("crit_pct", 6.0, old_player)
+	DrinkMachine._apply_drink("status_rate_pct", 25.0, old_player)
+	old_player.atk_speed_boost_pct = Shrine.ATK_BOOST_PCT
+	old_player.atk_speed_boost_until = 999999
+	old_player.move_speed_boost_pct = Shrine.WIND_BOOST_PCT
+	old_player.move_speed_boost_until = 999999
+	old_player.energy_free_until = 999999
+	old_player.weapon_rig.temporary_enchant_element = Elements.Id.FIRE
+	old_player.weapon_rig.temporary_enchant_until = 999999
+	old_player.set_meta("enchant_element_until", 999999)
+	_root._drink_states[1]["uses_left"] = 0
+	_root._used_shrine_kinds["xingsui"] = true
+
+	RunState.start_run("ranger")
+	_root._begin()
+	var fresh: Player = _root.player
+	assert_bool(fresh != old_player).is_true()
+	assert_bool(_root.buffs != old_buffs).is_true()
+	assert_array(_root.buffs.picked).is_empty()
+	assert_array(RunState.buffs).is_empty()
+	assert_int(fresh.hp_max).is_equal(6)
+	assert_int(fresh.shield_max).is_equal(4)
+	assert_int(fresh.energy_max).is_equal(110)
+	assert_float(fresh.move_speed).is_equal(88.0)
+	assert_float(fresh.crit_bonus).is_equal(0.0)
+	assert_float(fresh.crit_damage_bonus).is_equal(0.0)
+	assert_float(fresh.status_rate_bonus).is_equal(0.0)
+	assert_float(fresh.roll_cd_pct).is_equal(0.0)
+	assert_int(fresh.shield_delay_reduction_ticks).is_equal(0)
+	assert_float(fresh.atk_speed_boost_pct).is_equal(0.0)
+	assert_int(fresh.atk_speed_boost_until).is_equal(-1)
+	assert_float(fresh.move_speed_boost_pct).is_equal(0.0)
+	assert_int(fresh.move_speed_boost_until).is_equal(-1)
+	assert_int(fresh.energy_free_until).is_equal(-1)
+	assert_bool(fresh.has_meta("drink_crit_bonus")).is_false()
+	assert_bool(fresh.has_meta("drink_status_rate_bonus")).is_false()
+	assert_bool(fresh.has_meta("enchant_element_until")).is_false()
+	assert_float(fresh.weapon_rig.rate_mult).is_equal(1.0)
+	assert_float(fresh.weapon_rig.bullet_speed_mult).is_equal(1.0)
+	assert_int(fresh.weapon_rig.enchant_element).is_equal(Elements.Id.NONE)
+	assert_int(fresh.weapon_rig.temporary_enchant_element).is_equal(Elements.Id.NONE)
+	assert_int(fresh.weapon_rig.temporary_enchant_until).is_equal(-1)
+	assert_str(String(fresh.weapon_rig.current().get("id", ""))).is_equal("duangong")
+	assert_int(_root._drink_states[1]["uses_left"]).is_equal(DrinkMachine.USES_PER_FLOOR)
+	assert_dict(_root._used_shrine_kinds).is_empty()
 
 
 func test_physical_walk_into_adjacent_room_triggers_enter() -> void:
@@ -171,13 +249,16 @@ func test_placeholder_fallback_when_use_real_guests_off() -> void:
 
 func test_shop_facility_buys_with_runstate_wallet_and_recycles() -> void:
 	_fs = _make_floor(["shop"])
-	RunState.coins = 100
+	RunState.coins = 1000
 	assert_bool(_fs.enter_room(1)).is_true()
 	var shop := _shop_in(_fs.room_node(1))
 	assert_object(shop).is_not_null()
 	# 货单：3 武器位 roll（层权重逐位 roll，池 40 把）+ 道具 + 层号元数据
 	assert_int((shop.stock["weapons"] as Array).size()).is_equal(3)
 	assert_int(int(shop.stock["floor_idx"])).is_equal(1)
+	assert_object(_fs.room_node(1).get_node_or_null("DrinkMachine")).is_instanceof(DrinkMachine)
+	for kind in Shrine.KINDS:
+		assert_object(_fs.room_node(1).get_node_or_null("Shrine_%s" % kind)).is_instanceof(Shrine)
 	# 买：RunState 钱包扣款 → 入空槽（玩家初始 laohuoji 占槽 0）。
 	# open() 由玩家交互触发（E），测试走同一入口；价格按货品实际稀有度计。
 	var wid := String((shop.stock["weapons"] as Array)[0])
@@ -186,13 +267,52 @@ func test_shop_facility_buys_with_runstate_wallet_and_recycles() -> void:
 	shop._buy_weapon(0)
 	assert_bool(shop.is_sold(0)).is_true()
 	assert_str(String(_fs.player_node().weapon_rig.slots[1].get("id", ""))).is_equal(wid)
-	assert_int(RunState.coins).is_equal(100 - ShopLogic.price(rarity, 1, false))
+	assert_int(RunState.coins).is_equal(1000 - ShopLogic.price(rarity, 1, shop.black))
 	# 回收：副手（槽 1 = 刚买的 wid）→ recycle_price 入账 RunState，槽清空
 	_fs.player_node().weapon_rig.equip("tiejian")     # 双槽满 → 替换当前槽 0
 	RunState.coins = 0
 	shop._recycle()
 	assert_int(RunState.coins).is_equal(ShopLogic.recycle_price(rarity, 1))
 	assert_bool(_fs.player_node().weapon_rig.slots[1].is_empty()).is_true()
+
+
+func test_shop_drink_machine_consumes_bound_floor_state() -> void:
+	_fs = _make_floor(["shop"])
+	RunState.coins = 1000
+	assert_bool(_fs.enter_room(1)).is_true()
+	var drink := _fs.room_node(1).get_node("DrinkMachine") as DrinkMachine
+	drink.open(_fs._drink_state, RunState, _fs.player_node())
+	var idx := drink.drink_ids().find("jifeng_bohe")
+	assert_bool(drink.buy(idx)).is_true()
+	assert_int(_fs._drink_state["uses_left"]).is_equal(2)
+
+
+func test_shield_spirit_rebinds_to_current_combat_room() -> void:
+	_fs = _make_floor(["shop", "combat"])
+	RunState.coins = 1000
+	assert_bool(_fs.enter_room(1)).is_true()
+	var shrine := _fs.room_node(1).get_node("Shrine_jingling") as Shrine
+	assert_bool(shrine.activate(_fs.player_node(), 100)).is_true()
+	var spirit: ShieldSpirit = null
+	for child in _fs.player_node().get_children():
+		if child is ShieldSpirit:
+			spirit = child as ShieldSpirit
+	assert_object(spirit).is_not_null()
+	assert_object(spirit.combat).is_null()
+	assert_bool(_fs.enter_room(2)).is_true()
+	assert_object(spirit.combat).is_same(_fs.room_node(2).combat)
+
+
+func test_mystery_merchant_roll_cooldown_uses_fixed_tick_conversion() -> void:
+	var p := _player_instance()
+	add_child(p)
+	assert_int(p.roll_cd_reduction_ticks).is_equal(0)
+	var fs := FloorScene.new()
+	fs._apply_event_drink_effect("roll_cd_pct", 0.05, p)
+	assert_int(p.roll_cd_reduction_ticks).is_equal(TimeConst.ticks(0.05))
+	assert_int(p.roll_cd_reduction_ticks).is_equal(3)
+	fs.free()
+	p.free()
 
 
 func test_event_facility_opens_panel_on_entry() -> void:
@@ -220,9 +340,9 @@ func test_coin_pickup_credits_runstate() -> void:
 
 # ================================================================ 缝 4：层间
 
-func test_boss_death_opens_inter_floor_and_door_ends_m1() -> void:
+func test_boss_death_opens_inter_floor_and_door_enters_floor_two() -> void:
 	# boss 死亡 → inter_floor 嵌入开层（BUFF 三选一）→ 选增益 → 喷泉 → 门 →
-	# InterFloorFlow.enter_next_floor 推层+蓝晶 → 无 A2 数据 → M1 完结浮层。
+	# InterFloorFlow.enter_next_floor 推层+蓝晶 → 真正切到 A2 入口里程碑。
 	_root = _make_root()
 	add_child(_root)                        # 入树（kill→EventBus→Fx/层间链需树上下文）
 	_root._begin()
@@ -237,13 +357,39 @@ func test_boss_death_opens_inter_floor_and_door_ends_m1() -> void:
 			fs.flow.notify_room_cleared(id)
 	assert_bool(fs.enter_room(boss)).is_true()          # boss 房：真巨像开战
 	assert_object(_find_enemy(fs.room_node(boss), "vine_colossus")).is_not_null()
+	var old_combat: CombatSystem = fs.room_node(boss).combat
+	var rig: WeaponRig = _root.player.weapon_rig
+	var melee: Melee = _root.player.get_node("Melee") as Melee
+	var spirit := ShieldSpirit.new()
+	_root.player.add_child(spirit)
+	spirit.setup(_root.player, old_combat, 3)
 	_kill_all(fs.room_node(boss))
 	await _await_until(func() -> bool: return _root.inter_floor != null)
 	var inter: Node2D = _root.inter_floor
 	assert_bool(is_instance_valid(inter)).is_true()
 	assert_bool(fs._flow_suspended).is_true()           # 楼层流程挂起（防进房检测抢人）
+	# Boss 清房同拍必须把旧楼层整棵停机并解除所有玩家侧战斗引用；否则残弹、
+	# 环境伤害或仍在运行的旧 CombatSystem 会在三选一/喷泉期间继续伤害玩家。
+	assert_int(fs.process_mode).is_equal(Node.PROCESS_MODE_DISABLED)
+	assert_object(fs._registered_combat).is_null()
+	assert_object(_root.player.combat).is_null()
+	assert_object(rig.combat).is_null()
+	assert_object(rig.combat_rng).is_null()
+	assert_object(melee.combat).is_null()
+	assert_object(melee.combat_rng).is_null()
+	assert_object(spirit.combat).is_null()
+	var survivability_before: int = int(_root.player.hp) + int(_root.player.shield)
+	old_combat.spawn_projectile({
+		"pos": _root.player.global_position, "vel": Vector2.ZERO, "damage": 1,
+		"faction": Projectile.Faction.ENEMY, "life_seconds": 5.0, "radius": 8.0,
+	})
+	for _i in 3:
+		await get_tree().physics_frame
+	assert_int(_root.player.hp + _root.player.shield).is_equal(survivability_before)
 	assert_int(inter.flow.phase).is_equal(InterFloorFlow.Phase.BUFF)
 	assert_bool(inter.flow.offered.is_empty()).is_false()
+	assert_int(_full_hud_count(_root)).is_equal(1)
+	assert_bool(_contains_task_debug_label(_root)).is_false()
 	# 三选一 → 喷泉 → 门（走场景层回调，等价玩家操作）
 	inter._on_buff_chosen(inter.flow.offered[0])
 	assert_array(RunState.buffs).contains(inter.flow.offered[0])
@@ -255,10 +401,49 @@ func test_boss_death_opens_inter_floor_and_door_ends_m1() -> void:
 	# 门侧效：InterFloorFlow.enter_next_floor 已推层 + §14.1 蓝晶结算（1→2 给 60）
 	assert_int(RunState.floor_idx).is_equal(2)
 	assert_int(RunState.gems).is_equal(gems0 + 60)
-	assert_bool(_root.m1_overlay_visible()).is_true()   # 无 A2 数据 → 浮层（同拍落地）
-	assert_str(_root.overlay_text()).contains("M1 完结")
+	assert_bool(_root.a2_entry_active()).is_true()
+	assert_bool(_root.m1_overlay_visible()).is_true()
+	assert_str(_root.overlay_text()).contains("已进入第 2 层")
 	assert_bool(inter.is_queued_for_deletion()).is_true()
-	assert_object(_root.floor_scene).is_not_null()      # 第 1 层保留（无 A2 数据不重建）
+	assert_object(_root.floor_scene).is_null()          # 已离开 A1，不以覆盖层冒充跨层
+	assert_object(_root.player.get_parent()).is_same(_root)
+	assert_int(int(_root._a2_entry.get_meta("floor_idx"))).is_equal(2)
+
+
+func test_beggar_accept_settles_on_a1_inter_floor_before_a2_entry() -> void:
+	# 生产组件链：EventRoom.accept 真扣 40/记账 A1 → FloorScene.boss_defeated 信号
+	# → RunRoot 嵌入真 InterFloor → DOOR 掷签结清 → 进入 A2 里程碑。
+	_root = _make_root()
+	add_child(_root)
+	_root._begin()
+	RunState.coins = EventRoom.BEGGAR_COST
+	var ev := EventRoom.new()
+	_root.floor_scene.add_child(ev)
+	ev.setup(_root.player, _rng(20260828))
+	assert_bool(ev.open_event("beggar")).is_true()
+	ev.accept()
+	assert_int(RunState.coins).is_equal(0)
+	assert_int(RunState.pending_investment).is_equal(EventRoom.BEGGAR_PAYOUT)
+	assert_int(RunState.beggar_paid_floor).is_equal(1)
+
+	_root.floor_scene.boss_defeated.emit(_root.floor_scene.flow.boss_room())
+	var inter: InterFloor = _root.inter_floor as InterFloor
+	assert_object(inter).is_not_null()
+	inter.flow.payout_rng = _rng(BEGGAR_WIN_SEED)
+	inter._on_buff_chosen(inter.flow.offered[0])
+	assert_bool(inter.flow.use_fountain(_root.player)).is_true()
+	# 进入 DOOR 当拍就是「下层」结算点；不得把 A1 投资留到 A2 Boss 后。
+	assert_int(RunState.coins).is_equal(EventRoom.BEGGAR_PAYOUT)
+	assert_int(RunState.pending_investment).is_equal(0)
+	assert_int(RunState.beggar_paid_floor).is_equal(0)
+
+	inter._on_door_interact(_root.player)
+	assert_int(RunState.floor_idx).is_equal(2)
+	assert_bool(_root.a2_entry_active()).is_true()
+	var settled_coins := RunState.coins
+	inter.flow.advance()
+	inter._on_door_interact(_root.player)
+	assert_int(RunState.coins).is_equal(settled_coins) # 重复泵/门不二次返还
 
 
 func test_boss_death_flow_victory_stub_at_floor_three() -> void:
@@ -288,6 +473,12 @@ func _make_root() -> Node2D:
 
 func _player_instance() -> Player:
 	return (load(PLAYER_SCENE) as PackedScene).instantiate() as Player
+
+
+func _rng(seed_value: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	return rng
 
 
 func _make_floor(types: Array) -> FloorScene:
@@ -363,6 +554,22 @@ func _alive_count(room: FloorScene.FloorRoom) -> int:
 		if is_instance_valid(e) and e.state != EnemyBase.State.DEAD:
 			n += 1
 	return n
+
+
+func _full_hud_count(node: Node) -> int:
+	var count := 1 if node is HUD else 0
+	for child in node.get_children():
+		count += _full_hud_count(child)
+	return count
+
+
+func _contains_task_debug_label(node: Node) -> bool:
+	if node is Label and String((node as Label).text).begins_with("M1-T"):
+		return true
+	for child in node.get_children():
+		if _contains_task_debug_label(child):
+			return true
+	return false
 
 
 func _find_enemy(room: FloorScene.FloorRoom, id: String) -> EnemyBase:

@@ -31,6 +31,7 @@ const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
 const GAME_CAMERA := preload("res://fx/game_camera.gd")
 const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店设施
 const BULLET_VISUAL_CAP := 500
+const BLACK_SHOP_CHANCE := 0.25
 
 ## A1 名录（data/enemies.json）：楼层垃圾怪池，波次按房号确定性轮转组合。
 const A1_TRASH := ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"]
@@ -55,7 +56,7 @@ const GUEST_COLORS := {
 const ARCHETYPE_COLORS := {
 	"shooter": Color(0.5, 0.6, 0.85), "suicide": Color(0.4, 0.8, 0.35),
 	"charger": Color(0.7, 0.4, 0.8), "orbiter": Color(0.45, 0.42, 0.55),
-	"dummy": Color(0.65, 0.5, 0.35),
+	"dummy": Color(0.65, 0.5, 0.35), "mushroom_spore": Color(0.58, 0.82, 0.46),
 }
 const PLAYER_BULLET_COLOR := Color(1.0, 0.9, 0.35)
 const ENEMY_BULLET_COLOR := Color(1.0, 0.35, 0.3)
@@ -74,22 +75,25 @@ var use_real_guests := true
 ## T12/T13 嘉宾集成缝：func(room_type: String, room_id: int, row: Dictionary,
 ## pos: Vector2) -> Variant（返回 EnemyBase 即接管该嘉宾的生成）。
 var guest_spawner := Callable()
+var buffs_manager: BuffManager = null
 
 var _rooms: Dictionary = {}           # int id -> FloorRoom
 var _gates: Dictionary = {}           # "min|max" -> {shape, panel, a, b, open}
 var _used_dirs: Dictionary = {}       # int id -> {dir: true}（走廊实接门方向）
 var _combat_rng: RandomNumberGenerator
+var _rig_rng: RandomNumberGenerator
 var _loot_rng: RandomNumberGenerator
-var _last_loot := "laohuoji"
 var _registered_combat: CombatSystem = null
 var _bullet_layer: Node2D = null
 var _bullet_sprites: Array[Polygon2D] = []
-var _hud_label: Label = null
 var _built := false
 var _spawn_frames: Dictionary = {}    # enemy instance_id -> 刷出帧（ttk）
 ## m1-t27：楼层流程挂起（boss 房清 → 层间中转接管玩家期间停用按图进房检测，
 ## 防把玩家从层间中转房抢回楼层；层重建 = 新实例，标志自然复位）。
 var _flow_suspended := false
+var _facility_rng: RandomNumberGenerator
+var _drink_state := {"uses_left": DrinkMachine.USES_PER_FLOOR}
+var _used_shrine_kinds: Dictionary = {}
 
 
 # ================================================================ 生命周期
@@ -107,6 +111,15 @@ func _bootstrap_standalone() -> void:
 	var build := DungeonBuilder.build(20260828, floor_idx)
 	var p: Player = PLAYER_SCENE.instantiate() as Player
 	setup(build, p)
+
+
+## RunRoot 注入整局设施状态：饮料按楼层持久、四类雕像按整局持久。
+## 直接运行/单测不调用本方法时仍使用本 FloorScene 实例自己的新鲜状态。
+func bind_facility_state(drink_state: Dictionary, used_shrine_kinds: Dictionary) -> void:
+	_drink_state = drink_state
+	if not _drink_state.has("uses_left"):
+		_drink_state["uses_left"] = DrinkMachine.USES_PER_FLOOR
+	_used_shrine_kinds = used_shrine_kinds
 
 
 func _physics_process(_delta: float) -> void:
@@ -129,22 +142,24 @@ func _process(_delta: float) -> void:
 	if not _built:
 		return
 	_sync_bullet_visuals()
-	_update_hud()
 
 
 # ================================================================ 装配
 
 ## 接管构建体 + 玩家：房间实体/走廊闸/玩家落位 start/交互/相机/HUD。
 ## 玩家无父节点时收养为子节点（宿主也可自行挂树后传入）。
-func setup(build: Dictionary, p_player: Player) -> void:
+func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> void:
 	if _built:
 		push_error("FloorScene.setup: already built")
 		return
 	_built = true
 	player = p_player
+	buffs_manager = p_buffs
 	flow.setup(build)
-	_combat_rng = RngSvc.stream(floor_idx, "combat")
-	_loot_rng = RngSvc.stream(floor_idx, "loot")
+	_combat_rng = RunState.stream(RunState.SALT_PROJECTILE)
+	_rig_rng = RunState.stream(RunState.SALT_RIG)
+	_loot_rng = RunState.stream(RunState.SALT_LOOT)
+	_facility_rng = RngSvc.stream(floor_idx, "facility")
 	if player.get_parent() == null:
 		add_child(player)
 	if not player.is_in_group("player"):
@@ -163,13 +178,11 @@ func setup(build: Dictionary, p_player: Player) -> void:
 	_wire_player_common()
 	_attach_interaction()
 	_attach_camera()
-	_attach_hud()
 	_bullet_layer = Node2D.new()
 	_bullet_layer.name = "BulletVisuals"
 	_bullet_layer.z_index = 20
 	add_child(_bullet_layer)
 	flow.room_event.connect(_on_flow_room_event)
-	EventBus.enemy_killed.connect(_on_enemy_killed)
 	Telemetry.log_row(["floor_build", Engine.get_physics_frames(), str(_rooms.size())])
 
 
@@ -387,14 +400,18 @@ func _place_player_at_start() -> void:
 ## 玩家侧公共接线（一次性）：初始枪 / 输入驱动。combat 注入随进房切到当前房。
 func _wire_player_common() -> void:
 	var rig := player.get_node("WeaponRig") as WeaponRig
+	rig.bind_run_state(RunState)
 	if rig.current().is_empty():
 		rig.equip("laohuoji")
+	if buffs_manager != null:
+		buffs_manager.apply_to_player(player)
+		buffs_manager.apply_to_rig(rig)
 	if not player.has_node("Driver"):
 		var driver := Node.new()
 		driver.name = "Driver"
 		driver.set_script(DRIVER_SCRIPT)
 		player.add_child(driver)
-	# m1-hygiene：T24 完整战斗 HUD 上树（layer 10，楼层调试条 CanvasLayer layer 20 并存）
+	# m1-hygiene：T24 完整战斗 HUD 是楼层/层间共用的唯一常驻 HUD。
 	var hud := HUD.new()
 	hud.player = player
 	add_child(hud)
@@ -409,15 +426,22 @@ func _wire_room_combat(room: FloorRoom) -> void:
 	var rig := player.get_node("WeaponRig") as WeaponRig
 	var melee := player.get_node("Melee") as Melee
 	rig.combat = room.combat
-	rig.combat_rng = _combat_rng
+	rig.combat_rng = _rig_rng
 	melee.combat = room.combat
-	melee.combat_rng = _combat_rng
+	melee.combat_rng = _rig_rng
 	melee.rig = rig
 	player.combat = room.combat
+	# 精灵像可能在商店房（无 CombatSystem）生成；进入后续战斗房时必须切到
+	# 当前房间的弹池，否则它会一直查看 null/旧房间，生产路径无法挡弹。
+	for child in player.get_children():
+		if child is ShieldSpirit:
+			(child as ShieldSpirit).combat = room.combat
 	# m1-t27：英雄暴击基础值注入（HeroApplier meta 接缝 "crit_base" 的房间层读出，
 	# T11 披露的接线位；无 meta（裸玩家测试路径）保持 CombatSystem 默认值）。
 	if player.has_meta("crit_base"):
-		room.combat.crit_chance = float(player.get_meta("crit_base"))
+		room.combat.crit_chance = player.effective_crit_chance(float(player.get_meta("crit_base")))
+	room.combat.crit_multiplier = player.effective_crit_multiplier()
+	room.combat.status_rate_mult = player.effective_status_rate_multiplier()
 	room.combat.register_body(player, player.combat_faction())
 	_registered_combat = room.combat
 	_ensure_proxy(room)
@@ -485,45 +509,74 @@ func _spawn_wave(room: FloorRoom) -> void:
 		i += 1
 
 
-func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2) -> void:
+func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2,
+		row_override: Dictionary = {}, counts_for_wave := true) -> EnemyBase:
 	var is_guest := GUEST_SPECS.has(id)
-	var row: Dictionary = guest_row(id) if is_guest else GameDB.get_enemy(id)
+	var row: Dictionary = row_override.duplicate(true) if not row_override.is_empty() \
+		else (guest_row(id) if is_guest else GameDB.get_enemy(id))
 	if row.is_empty():
 		push_error("FloorScene: unknown enemy '%s'" % id)
-		room.room_flow.notify_killed(id, Engine.get_physics_frames())
-		return
+		if counts_for_wave:
+			room.room_flow.notify_killed(id, Engine.get_physics_frames())
+		return null
 	# T12/T13 缝：guest_spawner 注入时嘉宾生成让位宿主（返回 EnemyBase 即接管）。
-	if is_guest and guest_spawner.is_valid():
+	if row_override.is_empty() and is_guest and guest_spawner.is_valid():
 		var spawned: Variant = guest_spawner.call(room.type, room.room_id, row.duplicate(), world_pos)
 		if spawned is EnemyBase:
 			var g := spawned as EnemyBase
 			g.position = world_pos - room.position   # 房间子节点：世界刷点 → 房间局部
 			room.add_child(g)
 			g.setup(row)
-			g.combat = room.combat
-			g.player_ref = room.player_proxy
-			g.add_to_group("enemies")
-			room.combat.register_body(g, g.combat_faction())
-			room.enemies.append(g)
-			_spawn_frames[g.get_instance_id()] = Engine.get_physics_frames()
-			return
+			_register_enemy(room, g, row, counts_for_wave)
+			return g
 		# 缝返回非 EnemyBase：落回占位路径（响亮告警，集成卡自行排查）
 		push_warning("FloorScene: guest_spawner returned type %d for '%s' — placeholder fallback"
 			% [typeof(spawned), id])
 	# m1-t27：默认真实嘉宾（数据行替换占位；真实行缺失时落回占位路径）
-	if is_guest and use_real_guests and _spawn_real_guest(room, id, world_pos):
-		return
-	var e := EnemyBase.new()
-	e.position = world_pos - room.position   # 房间子节点：世界刷点 → 房间局部
-	room.add_child(e)
-	e.setup(row)
+	if row_override.is_empty() and is_guest and use_real_guests:
+		var real_guest := _spawn_real_guest(room, id, world_pos, counts_for_wave)
+		if real_guest != null:
+			return real_guest
+	var e := EnemyFactory.spawn(row, room, world_pos - room.position)
+	if e == null:
+		push_error("FloorScene: cannot construct enemy '%s'" % id)
+		if counts_for_wave:
+			room.room_flow.notify_killed(id, Engine.get_physics_frames())
+		return null
+	_dress_enemy(e, row)
+	_register_enemy(room, e, row, counts_for_wave)
+	return e
+
+
+## 敌人递归生产接线：所有波次体、Boss/王虫召唤体、分裂子体都走同一注册路径。
+## callback 统一 3 参（row_id/world_pos/row_override），room 作为 bind 尾参注入；
+## 召唤体明确 counts_for_wave=false，死亡只做战斗/遥测清理，绝不消费原始波次数。
+func _register_enemy(room: FloorRoom, e: EnemyBase, row: Dictionary, counts_for_wave: bool) -> void:
 	e.combat = room.combat
 	e.player_ref = room.player_proxy
-	e.add_to_group("enemies")
-	_dress_enemy(e, row)
+	e.combat_bounds = Rect2(room.outer.position + Vector2(WALL_T, WALL_T),
+		room.outer.size - Vector2(WALL_T * 2.0, WALL_T * 2.0))
+	e.counts_for_wave = counts_for_wave
+	e.spawn_callback = Callable(self, "_spawn_summoned_enemy").bind(room)
+	if not e.is_in_group("enemies"):
+		e.add_to_group("enemies")
 	room.combat.register_body(e, e.combat_faction())
 	room.enemies.append(e)
 	_spawn_frames[e.get_instance_id()] = Engine.get_physics_frames()
+	e.died.connect(_on_enemy_died.bind(room))
+
+
+func _spawn_summoned_enemy(row_id: String, world_pos: Vector2, row_override: Dictionary,
+		room: FloorRoom) -> Node:
+	if room == null or not is_instance_valid(room) or room.combat == null:
+		return null
+	var radius := float(row_override.get("radius", GameDB.get_enemy(row_id).get("radius", 6.0)))
+	var interior := Rect2(room.outer.position + Vector2(WALL_T + radius, WALL_T + radius),
+		room.outer.size - Vector2((WALL_T + radius) * 2.0, (WALL_T + radius) * 2.0))
+	var legal_pos := Vector2(
+		clampf(world_pos.x, interior.position.x, interior.end.x),
+		clampf(world_pos.y, interior.position.y, interior.end.y))
+	return _spawn_enemy(room, row_id, legal_pos, row_override, false)
 
 
 ## m1-t27 真实嘉宾生成：波次标记 id（GUEST_SPECS 键）→ REAL_GUEST_ROWS 数据行。
@@ -531,28 +584,24 @@ func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2) -> void:
 ## guest_kind 沿用占位标记（染成嘉宾色），行内记 wave_id 供 kill 路由回译波次
 ## （RoomFlow._alive 以波次标记 id 计数，见 _on_enemy_killed）。
 ## 返回 false = 真实行缺失（调用方落回占位路径）。
-func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2) -> bool:
+func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2,
+		counts_for_wave: bool) -> EnemyBase:
 	var real_id := String(REAL_GUEST_ROWS.get(wave_id, ""))
 	if real_id.is_empty():
-		return false
+		return null
 	var real_row: Dictionary = GameDB.get_enemy(real_id).duplicate()
 	if real_row.is_empty():
 		push_warning("FloorScene: real guest row '%s' missing — placeholder fallback" % real_id)
-		return false
+		return null
 	real_row["guest_kind"] = String((GUEST_SPECS[wave_id] as Dictionary)["kind"])
 	real_row["wave_id"] = wave_id
-	var e := EnemyBase.new()
-	e.position = world_pos - room.position   # 房间子节点：世界刷点 → 房间局部
-	room.add_child(e)
-	e.setup(real_row)
-	e.combat = room.combat
-	e.player_ref = room.player_proxy
-	e.add_to_group("enemies")
+	var e := EnemyFactory.spawn(real_row, room, world_pos - room.position)
+	if e == null:
+		push_error("FloorScene: cannot construct real guest '%s'" % real_id)
+		return null
 	_dress_enemy(e, real_row)
-	room.combat.register_body(e, e.combat_faction())
-	room.enemies.append(e)
-	_spawn_frames[e.get_instance_id()] = Engine.get_physics_frames()
-	return true
+	_register_enemy(room, e, real_row, counts_for_wave)
+	return e
 
 
 ## 敌人外观（M0 习语）：碰撞圆 + 方块色块；嘉宾按 kind 染色标记。
@@ -577,33 +626,33 @@ func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 	e.add_child(vis)
 
 
-## kill 路由（M0 习语）：EventBus.enemy_killed → 当前房匹配 → 波次推进 → 清房。
-## m1-t27：真实嘉宾以数据行 id 死亡（enemy_killed 载荷），经行内 wave_id 回译
-## RoomFlow 波次标记；行内 drops（精英/垒主）死亡即落；boss 房清发 boss_defeated。
-func _on_enemy_killed(enemy_id: String) -> void:
+## 精确实例死亡路由：EnemyBase.died 直接携带死亡体，消除相同 id 多实例时全局 id
+## 匹配错体的歧义。召唤体照常移出 CombatSystem/房间跟踪并记遥测，但 counts_for_wave=false
+## 时不通知 RoomFlow，也不触发嘉宾掉落；原始波次计数与召唤生态严格隔离。
+func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	if not _built:
 		return
-	var room: FloorRoom = _rooms.get(flow.current_room)
-	if room == null or room.combat == null:
+	if room == null or not is_instance_valid(room) or not room.enemies.has(e):
 		return
+	# 局聚合按“真实敌人死亡”记账，而不是按波次消费记账。召唤/分裂体虽以
+	# counts_for_wave=false 与原始波次生态隔离，仍是玩家本局的一次真实击杀；
+	# room.enemies.has(e) 是重复 died 回调的幂等门，确保每个实例只计一次。
+	RunState.add_kill()
 	var frame := Engine.get_physics_frames()
-	var notify_id := enemy_id
-	var killed_row := {}
-	var death_pos := Vector2.ZERO
-	for e in room.enemies:
-		if is_instance_valid(e) and String(e.row.get("id", "")) == enemy_id:
-			notify_id = String(e.row.get("wave_id", enemy_id))   # 嘉宾波次回译
-			killed_row = (e.row as Dictionary).duplicate()
-			death_pos = e.global_position
-			var ttk := frame - int(_spawn_frames.get(e.get_instance_id(), frame))
-			Fx.on_enemy_killed(e.global_position)
-			Telemetry.log_row(["kill", frame, enemy_id, ttk],
-				RoomCombat.kill_source(e.row, _current_weapon_id()))
-			room.enemies.erase(e)
-			break
+	var enemy_id := String(e.row.get("id", ""))
+	var notify_id := String(e.row.get("wave_id", enemy_id))
+	var killed_row: Dictionary = (e.row as Dictionary).duplicate(true)
+	var death_pos := e.global_position
+	var ttk := frame - int(_spawn_frames.get(e.get_instance_id(), frame))
+	Fx.on_enemy_killed(death_pos)
+	Telemetry.log_row(["kill", frame, enemy_id, ttk],
+		RoomCombat.kill_source(e.row, _current_weapon_id()))
+	room.enemies.erase(e)
+	_spawn_frames.erase(e.get_instance_id())
+	if not e.counts_for_wave:
+		return
 	room.room_flow.notify_killed(notify_id, frame)
-	if not killed_row.is_empty():
-		_spawn_guest_drops(room, killed_row, death_pos)
+	_spawn_guest_drops(room, killed_row, death_pos)
 	if room.room_flow.cleared and not room.cleared_emitted:
 		flow.notify_room_cleared(room.room_id)
 		_emit_room_clear(room)
@@ -624,9 +673,8 @@ func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) ->
 		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, exclude)
 		if wid.is_empty():
 			wid = _roll_weapon(_roll_rarity())   # 池枯哨兵兜底（全名录 roll）
-		_last_loot = wid
 		Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, "guest_drop"])
-		room.add_child(_build_loot_station(room, world_pos - room.position))
+		room.add_child(_build_loot_station(room, world_pos - room.position, wid))
 	if drops.contains("hearts2"):
 		for i in 2:
 			_spawn_pickup(room, "heart", world_pos + _scatter(71 + i))
@@ -643,7 +691,14 @@ func _current_weapon_id() -> String:
 
 ## 清房：遥测（每房清房用时）+ room_cleared 广播 + 奖励爆发（战斗房）。
 func _emit_room_clear(room: FloorRoom) -> void:
+	# 所有清房副作用共用同一幂等门；回溯重进或重复死亡通知不得重复统计、
+	# 遥测、广播或奖励。start 在 FloorFlow.setup 时已清，仅作为出生/回程房，
+	# 不属于玩家实际完成的房间数。
+	if room == null or room.cleared_emitted:
+		return
 	room.cleared_emitted = true
+	if room.type != "start":
+		RunState.add_room_cleared()
 	var frame := Engine.get_physics_frames()
 	Telemetry.log_row(["floor_clear", frame, room.template_id, frame - room.entry_frame])
 	EventBus.room_cleared.emit(room.template_id)
@@ -711,13 +766,29 @@ func _open_facility(room_type: String, room: FloorRoom) -> void:
 ## 钱包 = RunState（coins/spend_coins/add_coins 鸭子接缝），回收回调 = 副手丢弃。
 func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
 	var shop := SHOP_SCENE.instantiate() as Shop
-	shop.position = local_pos
+	shop.name = "Shop"
+	shop.position = local_pos + Vector2(-72, 0)
 	var exclude: Array[String] = []
-	shop.stock = ShopLogic.roll_stock(RunState.stream(RunState.SALT_LOOT), floor_idx, exclude)
+	shop.black = _facility_rng.randf() < BLACK_SHOP_CHANCE
+	shop.stock = ShopLogic.roll_stock(_loot_rng, floor_idx, exclude, shop.black)
 	shop.wallet = RunState
-	shop.black = false
 	shop.drop_weapon = _drop_offhand
 	room.add_child(shop)
+	var drink := DrinkMachine.new()
+	drink.name = "DrinkMachine"
+	drink.position = local_pos + Vector2(72, 0)
+	drink.configure(_drink_state, RunState, _facility_rng)
+	room.add_child(drink)
+	# 四种雕像全部位于正常 A1 商店房，可步行到达；同类状态由局根共享字典门控。
+	var offsets := [Vector2(-72, -56), Vector2(-24, -56), Vector2(24, -56), Vector2(72, -56)]
+	for i in Shrine.KINDS.size():
+		var shrine := Shrine.new().setup(Shrine.KINDS[i], _used_shrine_kinds)
+		shrine.name = "Shrine_%s" % Shrine.KINDS[i]
+		shrine.position = local_pos + offsets[i]
+		shrine.wallet = RunState
+		shrine.rng = _facility_rng
+		shrine.combat = player.combat
+		room.add_child(shrine)
 
 
 ## 商店回收回调（Shop.drop_weapon 契约）：丢弃副手（非当前槽）→ 返回武器信息
@@ -731,7 +802,7 @@ func _drop_offhand(p: Node2D) -> Dictionary:
 	var w: Dictionary = rig.slots[alt]
 	if w.is_empty():
 		return {}
-	rig.slots[alt] = {}
+	rig.clear_slot(alt)
 	return {"id": String(w.get("id", "")), "name": String(w.get("name", "")),
 		"rarity": String(w.get("rarity", "common"))}
 
@@ -740,9 +811,20 @@ func _drop_offhand(p: Node2D) -> Dictionary:
 ## EventRoom._used 双守卫）；抽取确定性 = RunState loot 盐流。
 func _build_event(room: FloorRoom) -> void:
 	var ev := EventRoom.new()
-	ev.setup(player, RunState.stream(RunState.SALT_LOOT))
+	ev.setup(player, _facility_rng)
+	ev.apply_effect = _apply_event_drink_effect
 	room.add_child(ev)                        # _ready 建面板 UI
 	ev.open_random_event()
+
+
+## 神秘商人复用真实饮料消费者。事件表的百分比用分数表示；翻滚项的 value
+## 是秒数（0.05s），必须经固定 60Hz TimeConst 换算为 3 tick，不能按总 CD 百分比取整。
+func _apply_event_drink_effect(effect: String, value: float, p: Node2D) -> void:
+	var drink_value := value * 100.0 if effect in ["move_speed_pct", "status_rate_pct"] else value
+	if effect == "roll_cd_pct":
+		effect = "roll_cd_ticks"
+		drink_value = TimeConst.ticks(value)
+	DrinkMachine._apply_drink(effect, drink_value, p as Player)
 
 
 ## 首次进入时放置：treasure 宝箱 / shop·event 桩（设施已接时让位，防双交互物）
@@ -820,34 +902,34 @@ func _build_chest(room: FloorRoom, local_pos: Vector2) -> void:
 	chest.on_interact_cb = func(p: Node2D) -> void:
 		chest.enabled = false                       # 一次性
 		vis.color = Color(0.4, 0.34, 0.16)
-		var pl := p as Player
-		if pl != null:
-			var rig := pl.get_node("WeaponRig") as WeaponRig
-			var rarity := _roll_rarity()
-			var wid := _roll_weapon(rarity)
-			rig.equip(wid)
-			Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, rarity])
-		room.add_child(_build_loot_station(room, local_pos + Vector2(0, 22)))
+		var rarity := _roll_rarity()
+		var wid := _roll_weapon(rarity)
+		Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, rarity])
+		# 开箱只揭示掉落；玩家必须再按 E 与武器台交互才会换枪。
+		# 这既保留开箱前双槽，也防同一武器被开箱与武器台各装备一次。
+		room.add_child(_build_loot_station(room, local_pos + Vector2(0, 22), wid))
 	room.add_child(chest)
 
 
 ## 武器掉落台：宝箱→掉落的落地形态，再按 E 换手（一次性）。
-func _build_loot_station(room: FloorRoom, local_pos: Vector2) -> FixtureInteractable:
+func _build_loot_station(room: FloorRoom, local_pos: Vector2,
+		weapon_id: String) -> FixtureInteractable:
 	var station := FixtureInteractable.new()
 	station.name = "LootStation"
 	station.position = local_pos
-	station.action_label = "拾取武器"
+	station.set_meta("weapon_id", weapon_id)          # 测试/UI 可读，且每个台子自持掉落 id
+	var weapon_row := GameDB.get_weapon(weapon_id)
+	station.action_label = "拾取武器：%s" % String(weapon_row.get("name", weapon_id))
 	station.add_child(_fixture_body())
 	var sv := Polygon2D.new()
 	sv.polygon = _rect_poly(Rect2(-6, -6, 12, 12))
 	sv.color = Color(0.3, 0.6, 0.75)
 	station.add_child(sv)
-	var wid := _last_loot
 	station.on_interact_cb = func(p: Node2D) -> void:
 		station.enabled = false
 		var pl := p as Player
 		if pl != null:
-			(pl.get_node("WeaponRig") as WeaponRig).equip(wid)
+			(pl.get_node("WeaponRig") as WeaponRig).equip(weapon_id)
 	return station
 
 
@@ -891,8 +973,7 @@ func _roll_weapon(rarity: String) -> String:
 		for wid: String in GameDB.weapons:
 			ids.append(wid)
 	ids.sort()
-	_last_loot = ids[_loot_rng.randi_range(0, ids.size() - 1)]
-	return _last_loot
+	return ids[_loot_rng.randi_range(0, ids.size() - 1)]
 
 
 # ================================================================ 波次/嘉宾数据（静态可测）
@@ -960,32 +1041,6 @@ func _attach_camera() -> void:
 	cam.limit_right = int(bounds.end.x) + TILE
 	cam.limit_bottom = int(bounds.end.y) + TILE
 	add_child(cam)
-
-
-func _attach_hud() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 20
-	_hud_label = Label.new()
-	_hud_label.position = Vector2(4, 2)
-	_hud_label.add_theme_font_size_override("font_size", 8)
-	layer.add_child(_hud_label)
-	add_child(layer)
-
-
-func _update_hud() -> void:
-	if _hud_label == null:
-		return
-	var room: FloorRoom = _rooms.get(flow.current_room)
-	if room == null:
-		return
-	var t := 0.0
-	if room.entry_frame >= 0:
-		t = float(Engine.get_physics_frames() - room.entry_frame) / 60.0
-	var boss_state := "解锁" if flow.boss_door_unlocked() else "锁定"
-	_hud_label.text = "M1-T10 floor%d | %s(%s) %s | 用时%.1fs | boss门:%s" % [
-		floor_idx, room.template_id, room.type,
-		"已清" if flow.is_cleared(room.room_id) else "未清", t, boss_state,
-	]
 
 
 ## 表现层弹幕镜像（M0 习语）：当前房 combat 池 → 共享多边形逐帧同步。

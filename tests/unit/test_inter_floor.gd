@@ -2,7 +2,8 @@ class_name TestInterFloor
 extends GdUnitTestSuite
 ## m1-t20 层间流程：InterFloorFlow 状态机（BUFF→FOUNTAIN→DOOR→DONE）纯逻辑无头测试。
 ## 覆盖：阶段推进顺序 / 非法 buff 拒绝 / 喷泉一次 / 第 3 层胜利桩 /
-## 乞丐 payout 70% 掷签（注入 rng 赢输两路）+ 楼层匹配条件 / next_floor 走 RunState。
+## 乞丐 payout 70% 掷签（注入 rng 赢输两路）+ 付款层在本层层间门结算 /
+## pending 与 paid_floor 同步清账 / next_floor 走 RunState。
 ##
 ## 掷签种子钉死（RandomNumberGenerator 首个 randf()）：
 ##   WIN_SEED=1  → 0.329559 < 0.7（返还）
@@ -213,32 +214,35 @@ func test_enter_next_floor_requires_door_phase() -> void:
 func test_beggar_payout_win_path() -> void:
 	RunState.start_run("vanguard")
 	RunState.coins = 0
-	RunState.pending_investment = 5
-	RunState.beggar_paid_floor = 0          # 在第 0 层（即进 1 层前）打的赏
+	RunState.pending_investment = 120
+	RunState.beggar_paid_floor = 1          # A1 付款，应在离开 A1 的层间门结算
 	var f := _to_door(1, WIN_SEED, WIN_SEED)  # use_fountain → DOOR → advance 掷签
-	assert_int(RunState.coins).is_equal(5)  # 70% 命中：投资返还
+	assert_int(RunState.coins).is_equal(120) # 70% 命中：投资返还
 	assert_int(RunState.pending_investment).is_equal(0)
+	assert_int(RunState.beggar_paid_floor).is_equal(0)
 	assert_int(f.phase).is_equal(InterFloorFlow.Phase.DOOR)
 
 func test_beggar_payout_lose_path() -> void:
 	RunState.start_run("vanguard")
 	RunState.coins = 0
-	RunState.pending_investment = 5
-	RunState.beggar_paid_floor = 0
+	RunState.pending_investment = 120
+	RunState.beggar_paid_floor = 1
 	var f := _to_door(1, WIN_SEED, LOSE_SEED)  # 首 randf 0.7029 >= 0.7：不返还
 	assert_int(RunState.coins).is_equal(0)
 	assert_int(RunState.pending_investment).is_equal(0)   # 但 pending 仍结清（投资打水漂）
+	assert_int(RunState.beggar_paid_floor).is_equal(0)
 
 func test_beggar_payout_floor_mismatch_no_roll() -> void:
 	RunState.start_run("vanguard")
 	RunState.coins = 0
 	RunState.pending_investment = 5
-	RunState.beggar_paid_floor = 2          # ≠ floor_idx-1(=0)：本层结不了
+	RunState.beggar_paid_floor = 2          # ≠ 当前待离开的 floor_idx(=1)：本层结不了
 	var f := _to_door(1, WIN_SEED, WIN_SEED)
 	f.advance()                             # 多拍重试也无效
 	f.advance()
 	assert_int(RunState.coins).is_equal(0)
 	assert_int(RunState.pending_investment).is_equal(5)   # 投资保留，顺延到后续层门
+	assert_int(RunState.beggar_paid_floor).is_equal(2)
 
 func test_beggar_payout_no_pending_noop() -> void:
 	RunState.start_run("vanguard")
@@ -249,11 +253,16 @@ func test_beggar_payout_no_pending_noop() -> void:
 	assert_int(RunState.coins).is_equal(7)  # 无 pending：金币不动
 
 func test_beggar_payout_resolves_once_per_door() -> void:
-	# 赢路后 pending 清零：重复 advance 不会二次入账
+	# 赢路后 pending/paid_floor 清零：重复 advance/进门不会二次入账
 	RunState.start_run("vanguard")
 	RunState.coins = 0
-	RunState.pending_investment = 5
-	RunState.beggar_paid_floor = 0
+	RunState.pending_investment = 120
+	RunState.beggar_paid_floor = 1
 	var f := _to_door(1, WIN_SEED, WIN_SEED)
 	f.advance()
-	assert_int(RunState.coins).is_equal(5)
+	assert_int(f.enter_next_floor()).is_equal(2)
+	f.advance()
+	assert_int(f.enter_next_floor()).is_equal(-1)
+	assert_int(RunState.coins).is_equal(120)
+	assert_int(RunState.pending_investment).is_equal(0)
+	assert_int(RunState.beggar_paid_floor).is_equal(0)

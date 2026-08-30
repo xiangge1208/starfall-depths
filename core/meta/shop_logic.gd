@@ -24,7 +24,7 @@ const RARITY_WEIGHTS := {
 # 高→低（桶空向下回退序）
 const RARITY_FALLBACK: Array[String] = ["legend", "epic", "rare", "uncommon", "common"]
 const ITEM_KINDS: Array[String] = ["heart", "energy"]
-const DRINK_PLACEHOLDER := "mystery_drink"          # T16 接真实饮料前的数据占位
+const DEFAULT_DRINK := "shenmi_hunhe"
 
 static var _fallback_weapons: Dictionary = {}
 
@@ -57,15 +57,24 @@ static func roll_weapon_id(rng: RandomNumberGenerator, floor_idx: int,
 			return pool[rng.randi_range(0, pool.size() - 1)]
 	return ""
 
+## 黑商整架优先紫/橙；桶空按紫→蓝→绿→白回退。M1 无橙时自然得到紫/蓝。
+static func roll_black_weapon_id(rng: RandomNumberGenerator, exclude: Array[String]) -> String:
+	var weapons := _weapons()
+	for rarity in ["legend", "epic", "rare", "uncommon", "common"]:
+		var pool := _bucket(weapons, rarity, exclude)
+		if not pool.is_empty():
+			return pool[rng.randi_range(0, pool.size() - 1)]
+	return ""
+
 
 ## 货架：3 武器（层内不重复，exclude 累积排除；池枯提前截断）+ 2 道具 + 1 饮料占位。
 ## 附带 "floor_idx" 元数据键供 UI 定价（ShopLogic 生成时已知层号，UI 免再传）。
 static func roll_stock(rng: RandomNumberGenerator, floor_idx: int,
-		exclude: Array[String]) -> Dictionary:
+		exclude: Array[String], black: bool = false) -> Dictionary:
 	var seen: Array[String] = exclude.duplicate()
 	var ids: Array[String] = []
 	for i in 3:
-		var id := roll_weapon_id(rng, floor_idx, seen)
+		var id := roll_black_weapon_id(rng, seen) if black else roll_weapon_id(rng, floor_idx, seen)
 		if id.is_empty():
 			break
 		ids.append(id)
@@ -75,7 +84,7 @@ static func roll_stock(rng: RandomNumberGenerator, floor_idx: int,
 		"floor_idx": clampi(floor_idx, 1, 3),
 		"weapons": ids,
 		"items": items,
-		"drink": DRINK_PLACEHOLDER,
+		"drink": DEFAULT_DRINK,
 	}
 
 

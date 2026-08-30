@@ -9,7 +9,7 @@ extends SkillBase
 ## 弹速侧写 weapon_rig.speed_boost_until（rig try_fire 时 ×1.2）；rig.crit_boost_until
 ## 为同窗状态镜像（HUD/查询用）。升级版（data["upgraded"]）：无敌 36t（否则 15t）。
 ## 鹰眼被动：监听 EventBus.player_crit_landed，掷签 <50% → player.add_energy(1)。
-## 掷签流经 hawk_rng 注入（T11 角色数据装配时传 combat 流派生流；未注入则惰性派生）。
+## 掷签流可经 hawk_rng 注入；未注入时从当前 RunState 楼层的独立 "hawk" 盐流惰性派生。
 ## 技能脚本按角色注入（T11），游侠才挂本节点 → 被动天然随角色门控（同坚守挂玩家的先例）。
 
 const DASH_DIST_PX := 140.0         # 瞬步距离（GDD §6）
@@ -19,7 +19,9 @@ const IFRAME_TICKS_UPGRADED := 36   # 0.6s（升级版）
 const HAWK_PROC_CHANCE := 0.5       # 鹰眼 50% 返 1 蓝
 
 var upgraded := false
-var hawk_rng: RandomNumberGenerator = null   # 鹰眼掷签流（setup 未注入则惰性派生，可测前替换）
+var hawk_rng: RandomNumberGenerator = null   # 显式注入流（测试/宿主可替换；非 null 时始终优先）
+var _derived_hawk_rng: RandomNumberGenerator = null
+var _derived_hawk_floor := -1
 
 func _init() -> void:
 	cooldown_ticks = 540               # 9s（GDD §6；数据行可覆写）
@@ -60,8 +62,12 @@ func _hawk_proc() -> bool:
 func _hawk_should_return_energy(roll: float) -> bool:
 	return roll < HAWK_PROC_CHANCE
 
-## 取下一掷签值：优先注入流，未注入则按楼层 0 + "hawk" 盐惰性派生（RngSvc 全局种子）。
+## 取下一掷签值：优先使用显式注入流；否则按当前楼层 + "hawk" 盐惰性派生。
+## 技能节点跨层保留，因此楼层变化时必须换流，不能继续消费上一层序列。
 func _next_hawk_roll() -> float:
-	if hawk_rng == null:
-		hawk_rng = RngSvc.stream(0, "hawk")
-	return hawk_rng.randf()
+	if hawk_rng != null:
+		return hawk_rng.randf()
+	if _derived_hawk_rng == null or _derived_hawk_floor != RunState.floor_idx:
+		_derived_hawk_floor = RunState.floor_idx
+		_derived_hawk_rng = RunState.stream("hawk")
+	return _derived_hawk_rng.randf()

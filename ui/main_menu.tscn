@@ -148,3 +148,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 8
 button_pressed = true
 text = "自动瞄准"
+
+[node name="TouchControlsToggle" type="CheckButton" parent="SettingsPanel/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "触屏控件"

@@ -32,7 +32,7 @@ const MARKERS: Array[Vector2] = [
 const ARCHETYPE_COLORS := {
 	"shooter": Color(0.5, 0.6, 0.85), "suicide": Color(0.4, 0.8, 0.35),
 	"charger": Color(0.7, 0.4, 0.8), "orbiter": Color(0.45, 0.42, 0.55),
-	"dummy": Color(0.65, 0.5, 0.35),
+	"dummy": Color(0.65, 0.5, 0.35), "mushroom_spore": Color(0.58, 0.82, 0.46),
 }
 const PLAYER_BULLET_COLOR := Color(1.0, 0.9, 0.35)
 const ENEMY_BULLET_COLOR := Color(1.0, 0.35, 0.3)
@@ -68,7 +68,6 @@ func _ready() -> void:
 	_build_doors()
 	_build_entry_zone()
 	_adopt_or_spawn_player()
-	EventBus.enemy_killed.connect(_on_enemy_killed)
 
 ## brief 接口：外部覆盖房间配置（默认读 data/rooms/m0_combat.json）。
 func load_config(cfg: Dictionary) -> void:
@@ -140,23 +139,47 @@ func _spawn_wave() -> void:
 		_spawn_enemy(String(id), points[i % points.size()])
 		i += 1
 
-func _spawn_enemy(id: String, pos: Vector2) -> void:
-	var row := GameDB.get_enemy(id)
+func _spawn_enemy(id: String, pos: Vector2, row_override: Dictionary = {},
+		counts_for_wave := true) -> EnemyBase:
+	var row := row_override.duplicate(true) if not row_override.is_empty() else GameDB.get_enemy(id)
 	if row.is_empty():
 		push_error("RoomCombat: unknown enemy '%s'" % id)
-		flow.notify_killed(id, Engine.get_physics_frames())   # 坏行不计波次
-		return
-	var e := EnemyBase.new()
-	e.position = pos
-	add_child(e)
-	e.setup(row)                               # 原型换装 + status 惰性挂载（t12 接线）
+		if counts_for_wave:
+			flow.notify_killed(id, Engine.get_physics_frames())   # 坏行不计波次
+		return null
+	var e := EnemyFactory.spawn(row, self, pos)
+	if e == null:
+		push_error("RoomCombat: cannot construct enemy '%s'" % id)
+		if counts_for_wave:
+			flow.notify_killed(id, Engine.get_physics_frames())
+		return null
+	_dress_enemy(e, row)
+	_register_enemy(e, counts_for_wave)
+	return e
+
+
+func _register_enemy(e: EnemyBase, counts_for_wave: bool) -> void:
 	e.combat = combat
 	e.player_ref = player_proxy                # 替身：EnemyBase 契约需 brain_pos/take_hit
-	e.add_to_group("enemies")
-	_dress_enemy(e, row)
+	e.combat_bounds = INTERIOR
+	e.counts_for_wave = counts_for_wave
+	e.spawn_callback = Callable(self, "_spawn_summoned_enemy")
+	if not e.is_in_group("enemies"):
+		e.add_to_group("enemies")
 	combat.register_body(e, e.combat_faction())
 	_enemies.append(e)
 	_spawn_frames[e.get_instance_id()] = Engine.get_physics_frames()
+	e.died.connect(_on_enemy_died)
+
+
+func _spawn_summoned_enemy(row_id: String, world_pos: Vector2,
+		row_override: Dictionary) -> Node:
+	var radius := float(row_override.get("radius", GameDB.get_enemy(row_id).get("radius", 6.0)))
+	var legal := Rect2(INTERIOR.position + Vector2.ONE * radius,
+		INTERIOR.size - Vector2.ONE * radius * 2.0)
+	var clamped := Vector2(clampf(world_pos.x, legal.position.x, legal.end.x),
+		clampf(world_pos.y, legal.position.y, legal.end.y))
+	return _spawn_enemy(row_id, clamped, row_override, false)
 
 func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 	var radius := float(row.get("radius", 6.0))
@@ -174,16 +197,19 @@ func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 	vis.color = ARCHETYPE_COLORS.get(String(row.get("archetype", "")), Color.WHITE)
 	e.add_child(vis)
 
-func _on_enemy_killed(enemy_id: String) -> void:
+func _on_enemy_died(e: EnemyBase) -> void:
+	if not _enemies.has(e):
+		return
 	var frame := Engine.get_physics_frames()
-	for e in _enemies:
-		if is_instance_valid(e) and String(e.row.get("id", "")) == enemy_id:
-			var ttk := frame - int(_spawn_frames.get(e.get_instance_id(), frame))
-			Fx.on_enemy_killed(e.global_position)
-			Telemetry.log_row(["kill", frame, enemy_id, ttk], kill_source(e.row, _current_weapon_id()))
-			_enemies.erase(e)
-			break
-	flow.notify_killed(enemy_id, frame)
+	var enemy_id := String(e.row.get("id", ""))
+	var ttk := frame - int(_spawn_frames.get(e.get_instance_id(), frame))
+	Fx.on_enemy_killed(e.global_position)
+	Telemetry.log_row(["kill", frame, enemy_id, ttk], kill_source(e.row, _current_weapon_id()))
+	_enemies.erase(e)
+	_spawn_frames.erase(e.get_instance_id())
+	if not e.counts_for_wave:
+		return
+	flow.notify_killed(String(e.row.get("wave_id", enemy_id)), frame)
 	if flow.cleared:
 		_on_cleared(frame)
 

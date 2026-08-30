@@ -115,7 +115,44 @@ func test_dead_guard_after_death() -> void:
 	e._take_hit_at(_ctx(1000), FRAME)
 	assert_int(e.state).is_equal(EnemyBase.State.DEAD)
 	e._take_hit_at(_ctx(10), FRAME + 500)     # 尸体不再受击
-	assert_int(e.hp).is_equal(-200)
+	assert_int(e.hp).is_equal(0)               # actual damage 夹到剩余 HP，overkill 不留负血
+
+func test_damage_events_use_actual_damage_and_ignore_negative_amounts() -> void:
+	var e: BossBase = auto_free(BossBase.new())
+	e._test_init(BOSS_ROW)
+	var damaged: Array = []
+	var resolved: Array = []
+	var on_damaged := func(amount: int, _crit: bool) -> void: damaged.append(amount)
+	var on_resolved := func(amount: int, _frame: int) -> void: resolved.append(amount)
+	EventBus.enemy_damaged.connect(on_damaged)
+	EventBus.player_damage_resolved.connect(on_resolved)
+	e._take_hit_at(_ctx(-5), FRAME)
+	assert_int(e.hp).is_equal(800)
+	e._take_hit_at({
+		"amount": 1000, "is_crit": false, "element": Elements.Id.NONE,
+		"from": Vector2.ZERO, "source_type": "weapon",
+	}, FRAME + 1)
+	assert_array(damaged).is_equal([0, 800])
+	assert_array(resolved).is_equal([800])
+	EventBus.enemy_damaged.disconnect(on_damaged)
+	EventBus.player_damage_resolved.disconnect(on_resolved)
+
+func test_phase_transition_fx_only_for_in_tree_boss() -> void:
+	var e: BossBase = BossBase.new()
+	e._test_init(BOSS_ROW)
+	add_child(e)
+	Fx.trauma = 0.0
+	e._take_hit_at(_ctx(320), FRAME)
+	assert_int(e.phase()).is_equal(1)
+	assert_bool(get_tree().paused).is_true()
+	assert_float(Fx.trauma).is_equal_approx(BossBase.PHASE_SHAKE_PX, 0.001)
+	assert_object(get_tree().root.get_node_or_null("BossPhaseFlash")).is_not_null()
+	# hitstop 按真实毫秒解冻，闪光存活 0.25s 后自回收。
+	await get_tree().create_timer(0.16, true, false, true).timeout
+	assert_bool(get_tree().paused).is_false()
+	await get_tree().create_timer(0.15, true, false, true).timeout
+	assert_object(get_tree().root.get_node_or_null("BossPhaseFlash")).is_null()
+	e.free()
 
 func test_public_take_hit_delegates_to_seam() -> void:
 	# 公共 take_hit（真实物理帧源）走同一接缝：初始无窗 → 正常扣血致死

@@ -23,7 +23,9 @@ func try_attack(frame: int) -> bool:
 		return false
 	if _swing_left > 0 or frame < _next_frame:
 		return false
-	_next_frame = frame + maxi(1, int(round(TimeConst.FPS / float(w["rate"]))))
+	var player := get_parent() as Player
+	_next_frame = frame + maxi(1, int(round(TimeConst.FPS \
+		/ rig.effective_attack_rate(w, player, frame))))
 	_swing_left = SWING_TICKS
 	_swing_tick = 0
 	_hit_done = false
@@ -49,9 +51,27 @@ func _physics_process(_delta: float) -> void:
 			combat.block(p)
 	if not _hit_done:
 		_hit_done = true
-		# 控制器决议：暴击本地 roll；combat_rng 未注入（纯逻辑测试）时跳过 roll 用平伤。
+		# 暴击本地 roll；combat_rng 未注入（纯逻辑测试）时跳过 roll 用平伤。
 		var roll: Dictionary = {"amount": int(w["damage"]), "is_crit": false}
 		if combat_rng != null:
-			roll = DamageCalc.compute(int(w["damage"]), combat_rng, 0.05)
+			var base_crit := float(player.get_meta("crit_base", 0.05))
+			roll = DamageCalc.compute(int(w["damage"]), combat_rng,
+				player.effective_crit_chance(base_crit), player.effective_crit_multiplier())
+		var element_profile := rig.element_hit_profile(w, Engine.get_physics_frames())
 		for body in combat.bodies_in_arc(player.global_position, player.facing.angle(), range_px, arc, Projectile.Faction.ENEMY):
-			body.take_hit({"amount": roll["amount"], "is_crit": roll["is_crit"], "element": Elements.from_name(w["element"]), "from": player.global_position})
+			var proc_element := ElementProc.roll_element(int(element_profile["proc_element"]),
+				float(element_profile["proc_chance"]), combat_rng)
+			var force_resonance := bool(roll["is_crit"]) \
+				and ElementProc.roll_chance(rig.crit_detonate_pct, combat_rng)
+			if bool(roll["is_crit"]):
+				EventBus.player_crit_landed.emit(roll["amount"], body.global_position)
+			body.take_hit({
+				"amount": roll["amount"], "is_crit": roll["is_crit"],
+				"element": int(element_profile["element"]), "proc_element": proc_element,
+				"force_resonance": force_resonance,
+				"status_rate_mult": player.effective_status_rate_multiplier(),
+				"from": player.global_position,
+				"frame": Engine.get_physics_frames(), "source_type": "melee",
+				"source_id": String(w.get("id", "")), "source_name": String(w.get("name", "")),
+				"attack_name": "近战挥击", "player_damage": true,
+			})

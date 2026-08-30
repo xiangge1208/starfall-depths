@@ -10,6 +10,18 @@ extends GdUnitTestSuite
 
 const ENEMY_FACTION := 1  # Projectile.Faction.ENEMY（替身避免依赖真实弹构造）
 
+var _run_seed_before := 0
+var _floor_idx_before := 0
+
+func before_test() -> void:
+	_run_seed_before = RngSvc.run_seed
+	_floor_idx_before = RunState.floor_idx
+
+func after_test() -> void:
+	# 兜底流回归会显式切 run/floor；逐例还原，避免污染同套件后续项或其它套件。
+	RngSvc.setup_run(_run_seed_before)
+	RunState.floor_idx = _floor_idx_before
+
 # ---- duck-typed 替身 ----
 
 class StubWallet extends RefCounted:
@@ -196,6 +208,25 @@ func test_open_uses_machine_state_and_writes_back() -> void:
 	assert_int(state["uses_left"]).is_equal(0)           # 状态字典回写（跨楼层持久归调用方）
 	assert_bool(m.buy(idx)).is_false()
 
+func test_configure_binds_persistent_floor_state_before_open() -> void:
+	var wallet := StubWallet.new()
+	wallet.coins = 100
+	var state := {"uses_left": 1}
+	var m := _machine(wallet)
+	m.configure(state, wallet)
+	assert_int(m.uses_left).is_equal(1)
+	m.open(state, wallet, _player())
+	var idx: int = m.drink_ids().find("jifeng_bohe")
+	assert_bool(m.buy(idx)).is_true()
+	assert_int(state["uses_left"]).is_equal(0)
+
+func test_configure_initializes_missing_floor_state() -> void:
+	var state := {}
+	var m := _machine(StubWallet.new())
+	m.configure(state, m.wallet)
+	assert_int(state["uses_left"]).is_equal(DrinkMachine.USES_PER_FLOOR)
+	assert_int(m.uses_left).is_equal(DrinkMachine.USES_PER_FLOOR)
+
 func test_buy_invalid_index_rejected() -> void:
 	var wallet := StubWallet.new()
 	wallet.coins = 100
@@ -224,6 +255,18 @@ func test_random_drink_rolls_one_of_seven_concrete() -> void:
 	assert_str(expected).is_not_equal("shenmi_hunhe")    # 只从 7 条具体饮料中选
 	assert_int(wallet.coins).is_equal(80)                # 神秘混合本身 20 金（非抽中者价格）
 
+func test_random_drink_uninjected_fallback_uses_current_run_loot_stream() -> void:
+	# 未注入不是非确定随机的许可：兜底结果须与当前 RunState loot 分盐流首掷完全一致。
+	RngSvc.setup_run(160016)
+	RunState.floor_idx = 2
+	var wallet := StubWallet.new()
+	var m := _machine(wallet)
+	var expected_rng := RunState.stream(RunState.SALT_LOOT)
+	var pool := m.concrete_ids()
+	var expected: String = pool[expected_rng.randi_range(0, pool.size() - 1)]
+	assert_str(m._roll_concrete()).is_equal(expected)
+	assert_object(m.rng).is_not_null()
+
 func test_apply_drink_effects_one_by_one() -> void:
 	# 效果应用器纯逻辑逐条断言（附录 F.1 全部 7 条具体效果；pct 落 meta 为分数，tick 为整数）
 	var p_hp := _player()
@@ -237,22 +280,22 @@ func test_apply_drink_effects_one_by_one() -> void:
 	assert_float(p_ms.move_speed).is_equal(84.0)               # 80 × 1.05
 	var p_cr := _player()
 	DrinkMachine._apply_drink("crit_pct", 3, p_cr)
-	assert_float(float(p_cr.get_meta("crit_pct", 0.0))).is_equal(0.03)
+	assert_float(p_cr.crit_bonus).is_equal(0.03)
 	var p_sd := _player()
 	DrinkMachine._apply_drink("shield_delay_reduction_ticks", 30, p_sd)
-	assert_float(float(p_sd.get_meta("shield_delay_reduction_ticks", 0.0))).is_equal(30.0)
+	assert_int(p_sd.shield_delay_reduction_ticks).is_equal(30)
 	var p_rc := _player()
 	DrinkMachine._apply_drink("roll_cd_ticks", 3, p_rc)
-	assert_float(float(p_rc.get_meta("roll_cd_ticks", 0.0))).is_equal(3.0)
+	assert_int(p_rc.roll_cd_reduction_ticks).is_equal(3)
 	var p_sr := _player()
 	DrinkMachine._apply_drink("status_rate_pct", 20, p_sr)
-	assert_float(float(p_sr.get_meta("status_rate_pct", 0.0))).is_equal(0.20)
+	assert_float(p_sr.status_rate_bonus).is_equal(0.20)
 
 func test_apply_drink_meta_effects_accumulate() -> void:
 	var p := _player()
 	DrinkMachine._apply_drink("crit_pct", 3, p)
 	DrinkMachine._apply_drink("crit_pct", 3, p)
-	assert_float(float(p.get_meta("crit_pct", 0.0))).is_equal(0.06)
+	assert_float(p.crit_bonus).is_equal(0.06)
 
 func test_apply_drink_unknown_effect_fail_closed() -> void:
 	var p := _player()
@@ -344,11 +387,27 @@ func test_shrine_xingsui_applies_random_enchant() -> void:
 	rig.enchant_element = Elements.Id.FIRE
 	p.weapon_rig = rig
 	assert_bool(s.activate(p, 1000)).is_true()
-	assert_int(rig.enchant_element).is_not_equal(Elements.Id.NONE)
+	assert_int(rig.temporary_enchant_element).is_not_equal(Elements.Id.NONE)
 	assert_bool([Elements.Id.FIRE, Elements.Id.ICE, Elements.Id.POISON, Elements.Id.SHOCK]
-		.has(rig.enchant_element)).is_true()
+		.has(rig.temporary_enchant_element)).is_true()
 	assert_int(int(p.get_meta("enchant_element_until", -1))).is_equal(4600)    # 1000 + 3600t
 	assert_int(int(p.get_meta("enchant_element_prev", -1))).is_equal(Elements.Id.FIRE)  # 恢复接缝
+
+func test_shrine_xingsui_uninjected_fallback_uses_current_run_loot_stream() -> void:
+	RngSvc.setup_run(160016)
+	RunState.floor_idx = 3
+	var expected_rng := RunState.stream(RunState.SALT_LOOT)
+	var expected: int = Shrine.ENCHANTABLE[
+		expected_rng.randi_range(0, Shrine.ENCHANTABLE.size() - 1)]
+	var wallet := StubWallet.new()
+	wallet.coins = 100
+	var s := _shrine("xingsui", wallet)
+	var p := _player()
+	var rig: WeaponRig = auto_free(WeaponRig.new())
+	p.weapon_rig = rig
+	assert_bool(s.activate(p, 10)).is_true()
+	assert_int(rig.temporary_enchant_element).is_equal(expected)
+	assert_object(s.rng).is_not_null()
 
 func test_shrine_xingsui_requires_rig() -> void:
 	var wallet := StubWallet.new()

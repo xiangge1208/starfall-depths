@@ -144,3 +144,42 @@ func test_swing_routing_block_reflect_damage_once() -> void:
 	assert_int(body.hits[0]["amount"]).is_equal(6)               # combat_rng 未注入 → 平伤
 	assert_bool(body.hits[0]["is_crit"]).is_false()
 	assert_int(body.hits[0]["element"]).is_equal(Elements.Id.NONE)
+
+func test_melee_consumes_attack_speed_crit_damage_status_and_element_proc() -> void:
+	var p: Player = auto_free(Player.new())
+	p._test_init()
+	p.set_meta("crit_base", 0.05)
+	p.crit_bonus = 0.95
+	p.crit_damage_bonus = 0.5
+	p.status_rate_bonus = 0.25
+	p.atk_speed_boost_pct = 0.25
+	p.atk_speed_boost_until = 100
+	var m: Melee = auto_free(Melee.new())
+	p.add_child(m)
+	var rig: WeaponRig = auto_free(WeaponRig.new())
+	var native_ice_blade := GameDB.get_weapon("tiejian").duplicate(true)
+	native_ice_blade["element"] = "ice"
+	rig.slots = [native_ice_blade, {}]
+	rig.rate_mult = 1.12
+	rig.enchant_element = Elements.Id.FIRE
+	rig.enchant_proc_chance = 1.0
+	rig.crit_detonate_pct = 1.0
+	m.rig = rig
+	m.combat_rng = RandomNumberGenerator.new()
+	m.combat_rng.seed = 12345
+	var probe: CsProbe = auto_free(CsProbe.new())
+	probe.scripted_body = auto_free(DummyBody.new())
+	m.combat = probe
+	assert_bool(m.try_attack(0)).is_true()
+	# 2.2 * 1.12 * 1.25 = 3.08/s -> round(60/3.08)=19t
+	m._swing_left = 0
+	assert_bool(m.try_attack(18)).is_false()
+	assert_bool(m.try_attack(19)).is_true()
+	m._physics_process(1.0 / TimeConst.FPS)
+	var hit: Dictionary = (probe.scripted_body as DummyBody).hits[0]
+	assert_int(hit["amount"]).is_equal(15) # 铁剑 6 * (2.0 + 0.5)
+	assert_bool(hit["is_crit"]).is_true()
+	assert_int(hit["element"]).is_equal(Elements.Id.ICE)
+	assert_int(hit["proc_element"]).is_equal(Elements.Id.FIRE)
+	assert_float(hit["status_rate_mult"]).is_equal(1.25)
+	assert_bool(hit["force_resonance"]).is_true()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://core/player/player.gd" id="1_t7player"]
 
@@ -7,6 +7,12 @@
 [ext_resource type="Script" path="res://core/player/melee.gd" id="3_t9melee"]
 
 [ext_resource type="Script" path="res://core/player/skills/skill_base.gd" id="4_t2skill"]
+
+[ext_resource type="Script" path="res://core/rooms/player_driver.gd" id="5_driver"]
+
+[ext_resource type="Script" path="res://core/player/gamepad_aim.gd" id="6_gamepad"]
+
+[ext_resource type="PackedScene" path="res://ui/touch_controls.tscn" id="7_touch"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_t7a"]
 radius = 6.0
@@ -30,3 +36,11 @@ script = ExtResource("3_t9melee")
 
 [node name="Skill" type="Node" parent="."]
 script = ExtResource("4_t2skill")
+
+[node name="GamepadAim" type="Node" parent="."]
+script = ExtResource("6_gamepad")
+
+[node name="Driver" type="Node" parent="."]
+script = ExtResource("5_driver")
+
+[node name="TouchControls" parent="." instance=ExtResource("7_touch")]

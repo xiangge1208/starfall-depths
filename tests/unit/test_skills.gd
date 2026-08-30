@@ -407,9 +407,35 @@ func test_hawk_eye_proc_threshold_uses_half() -> void:
 	var sk := _shadowstep(p)
 	assert_bool(sk._hawk_should_return_energy(0.49)).is_true()
 	assert_bool(sk._hawk_should_return_energy(0.5)).is_false() # < 0.5 才返蓝
-	sk.hawk_rng = RngSvc.stream(0, "hawk")                     # 实装流注入（T11 装配同款派生）
+	sk.hawk_rng = RngSvc.stream(0, "hawk")                     # 显式注入仍优先，便于宿主/测试隔离
 	var expected: float = RngSvc.stream(0, "hawk").randf()     # 同派生流首掷（确定性 twin）
 	assert_float(sk._next_hawk_roll()).is_equal(expected)      # 掷签经注入流
+
+func test_hawk_eye_fallback_uses_current_floor_stream_and_advances() -> void:
+	var seed_before := RngSvc.run_seed
+	var floor_before := RunState.floor_idx
+	RngSvc.setup_run(50505)
+	RunState.floor_idx = 2
+	var sk := _shadowstep(_player())                            # 不注入 hawk_rng，走生产兜底
+	var expected := RunState.stream("hawk")
+	assert_float(sk._next_hawk_roll()).is_equal(expected.randf())
+	assert_float(sk._next_hawk_roll()).is_equal(expected.randf()) # 同层继续消费，不重复首掷
+	RngSvc.setup_run(seed_before)
+	RunState.floor_idx = floor_before
+
+func test_hawk_eye_fallback_switches_stream_when_floor_changes() -> void:
+	var seed_before := RngSvc.run_seed
+	var floor_before := RunState.floor_idx
+	RngSvc.setup_run(50505)
+	RunState.floor_idx = 1
+	var sk := _shadowstep(_player())
+	var floor1_expected := RunState.stream("hawk")
+	assert_float(sk._next_hawk_roll()).is_equal(floor1_expected.randf())
+	RunState.floor_idx = 2
+	var floor2_expected := RunState.stream("hawk")
+	assert_float(sk._next_hawk_roll()).is_equal(floor2_expected.randf())
+	RngSvc.setup_run(seed_before)
+	RunState.floor_idx = floor_before
 
 # ---- 场景挂载契约 ----
 

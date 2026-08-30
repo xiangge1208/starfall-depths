@@ -9,6 +9,10 @@ var _remaining := 0
 var _radius := 0.0
 var _dmg := 0
 var _player = null               # 玩家替身/实例（契约：brain_pos + take_hit）
+var _source_type := "explosion"
+var _source_id := ""
+var _source_name := ""
+var _attack_name := "延迟大爆"
 
 func setup(cfg: Dictionary) -> void:
 	position = cfg.get("pos", Vector2.ZERO)
@@ -16,6 +20,11 @@ func setup(cfg: Dictionary) -> void:
 	_dmg = int(cfg.get("dmg", 0))
 	_remaining = int(cfg.get("ticks", 0))
 	_player = cfg.get("player", null)
+	# 节点若被复用/重复 setup，来源必须完整重置，不能串到上一场爆炸。
+	_source_type = String(cfg.get("source_type", "explosion"))
+	_source_id = String(cfg.get("source_id", ""))
+	_source_name = String(cfg.get("source_name", ""))
+	_attack_name = String(cfg.get("attack_name", "延迟大爆"))
 
 ## 帧注入接缝：每调一次计 1 拍（脑层测试直呼驱动）；树内由 _physics_process 每物理拍喂 1 次。
 func tick() -> void:
@@ -36,5 +45,7 @@ func _detonate() -> void:
 		_player.take_hit({
 			"amount": _dmg, "is_crit": false,
 			"element": Elements.Id.NONE, "from": global_position,
+			"source_type": _source_type, "source_id": _source_id,
+			"source_name": _source_name, "attack_name": _attack_name,
 		})
 	queue_free()

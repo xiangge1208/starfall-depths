@@ -9,6 +9,12 @@ func _clean() -> void:
 	Telemetry.flush()
 	DirAccess.remove_absolute("user://telemetry.csv")   # 不存在时报错可忽略
 
+func after_test() -> void:
+	# 打开失败注入不得泄漏到后续用例；恢复生产接缝后把保留批次安全落盘。
+	Telemetry._file_exists_override = Callable()
+	Telemetry._file_open_override = Callable()
+	Telemetry.flush()
+
 func test_log_row_appends() -> void:
 	_clean()
 	Telemetry.log_row(["m0", 1, 2])
@@ -16,6 +22,40 @@ func test_log_row_appends() -> void:
 	assert_bool(FileAccess.file_exists("user://telemetry.csv")).is_true()
 	var text := FileAccess.get_file_as_string("user://telemetry.csv")
 	assert_str(text).contains("m0,1,2")
+
+func test_two_flushes_append_to_existing_file_and_keep_one_header() -> void:
+	_clean()
+	Telemetry.log_row(["batch_one", 1])
+	Telemetry.flush()
+	Telemetry.log_row(["batch_two", 2])
+	Telemetry.flush()
+	var text := FileAccess.get_file_as_string("user://telemetry.csv")
+	assert_str(text).contains("batch_one,1")
+	assert_str(text).contains("batch_two,2")
+	assert_int(text.count(Telemetry.HEADER)).is_equal(1)
+
+func test_existing_file_open_failure_preserves_history_and_retries_buffer() -> void:
+	_clean()
+	Telemetry.log_row(["old_batch", 1])
+	Telemetry.flush()
+	var before := FileAccess.get_file_as_string("user://telemetry.csv")
+	Telemetry.log_row(["retry_batch", 2])
+	var attempted_modes: Array[int] = []
+	Telemetry._file_open_override = func(_path: String, mode: FileAccess.ModeFlags) -> FileAccess:
+		attempted_modes.append(mode)
+		return null
+	Telemetry.flush()
+	# 已有文件只尝试 READ_WRITE；不得回退到会截断的 WRITE。
+	assert_array(attempted_modes).contains_exactly([FileAccess.READ_WRITE])
+	assert_str(FileAccess.get_file_as_string("user://telemetry.csv")).is_equal(before)
+	assert_int(Telemetry._buf.size()).is_equal(1)
+	# 瞬时失败解除后，同一内存批次必须在下一次 flush 补写，而非丢失。
+	Telemetry._file_open_override = Callable()
+	Telemetry.flush()
+	var after := FileAccess.get_file_as_string("user://telemetry.csv")
+	assert_str(after).contains("old_batch,1")
+	assert_str(after).contains("retry_batch,2")
+	assert_int(Telemetry._buf.size()).is_equal(0)
 
 # ---- m1-t18：缓冲落盘 ----
 
@@ -72,6 +112,21 @@ func test_session_summary_counts() -> void:
 	assert_int(summary["hurt_count"]).is_equal(1)
 	assert_int(summary["rooms"]).is_equal(2)        # room_clear + floor_clear
 	assert_float(summary["run_time"]).is_greater_equal(0.0)
+
+func test_peak_dps_uses_a_sixty_tick_rolling_window() -> void:
+	Telemetry.reset_session()
+	Telemetry.record_player_damage(4, 100)
+	Telemetry.record_player_damage(6, 159)   # 59t apart: same one-second window
+	assert_int(Telemetry.session_summary()["peak_dps"]).is_equal(10)
+	Telemetry.record_player_damage(3, 160)   # frame 100 is now exactly 60t old and expires
+	assert_int(Telemetry.session_summary()["peak_dps"]).is_equal(10)
+
+func test_peak_dps_resets_between_runs() -> void:
+	Telemetry.reset_session()
+	Telemetry.record_player_damage(17, 200)
+	assert_int(Telemetry.session_summary()["peak_dps"]).is_equal(17)
+	Telemetry.reset_session()
+	assert_int(Telemetry.session_summary()["peak_dps"]).is_equal(0)
 
 # ---- m1-t18：hurt 行收口至玩家受击路径（原 training_room 本地行删除） ----
 

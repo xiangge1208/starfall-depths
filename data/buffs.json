@@ -1,19 +1,19 @@
 {
 	"fire_enchant": {
 		"id": "fire_enchant", "name": "火焰附魔", "rarity": "common",
-		"desc": "命中 20% 概率点燃", "effects": {"element_enchant": 1}
+		"desc": "命中 20% 概率点燃", "effects": {"element_enchant": 1, "element_proc_chance": 0.2}
 	},
 	"ice_enchant": {
 		"id": "ice_enchant", "name": "冰霜附魔", "rarity": "common",
-		"desc": "命中 20% 概率冰缓", "effects": {"element_enchant": 2}
+		"desc": "命中 20% 概率冰缓", "effects": {"element_enchant": 2, "element_proc_chance": 0.2}
 	},
 	"poison_enchant": {
 		"id": "poison_enchant", "name": "毒素附魔", "rarity": "common",
-		"desc": "命中 20% 概率中毒", "effects": {"element_enchant": 3}
+		"desc": "命中 20% 概率中毒", "effects": {"element_enchant": 3, "element_proc_chance": 0.2}
 	},
 	"shock_enchant": {
 		"id": "shock_enchant", "name": "电弧附魔", "rarity": "common",
-		"desc": "命中 15% 概率麻痹", "effects": {"element_enchant": 4}
+		"desc": "命中 15% 概率麻痹", "effects": {"element_enchant": 4, "element_proc_chance": 0.15}
 	},
 	"bullet_speed": {
 		"id": "bullet_speed", "name": "弹速强化", "rarity": "common",
@@ -48,7 +48,7 @@
 		"desc": "盾回复延时 3.0s→2.0s", "effects": {"shield_delay_reduction_ticks": 60}
 	},
 	"energy_max": {
-		"id": "energy_max", "name": "蓝能上限", "rarity": "uncommon",
+		"id": "energy_max", "name": "蓝能上限", "rarity": "common",
 		"desc": "蓝上限 +25", "effects": {"energy_max": 25}
 	},
 	"roll_master": {
