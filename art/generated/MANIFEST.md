@@ -12,6 +12,12 @@
 |---|---|---|---|---|
 | `characters/hero_vanguard.png` | 16x16 | 英雄「骑士·凛」站立像（正面） | core/player/player.tscn:27-29 Sprite=12x14 米色色块; autoload/fx.gd:197 受击白闪按节点名 Sprite 查找 | 替换为四向行走 SpriteSheet（每向 idle+walk 2-4 帧），节点保留名 Sprite 以复用白闪 |
 | `characters/hero_ranger.png` | 16x16 | 英雄「游侠·苇」站立像（正面） | core/player/player.tscn:27-29 同上（两位英雄共用同一 Sprite 节点） | 同骑士·凛；另需影袭残影帧（半透明复制帧即可） |
+| `characters/hero_vanguard_sheet.png` | 64x64 | 英雄「骑士·凛」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_ranger_sheet.png` | 64x64 | 英雄「游侠·苇」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_engineer_sheet.png` | 64x64 | 英雄「工程师·铆」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_mage_sheet.png` | 64x64 | 英雄「法师·烬」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_assassin_sheet.png` | 64x64 | 英雄「刺客·蝉」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_guardian_sheet.png` | 64x64 | 英雄「守护者·萄」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
 | `enemies/kuli_bug.png` | 16x16 | 敌人「苦力虫（自爆虫）」 | data/enemies.json id=kuli_bug; 现为 room_combat.gd:191-197 按 ARCHETYPE_COLORS.suicide 0.4,0.8,0.35 纯色块 | 原型:绿色圆虫+引信触角+大眼；死亡闪烁接 fuse_ticks |
 | `enemies/cave_bat.png` | 16x16 | 敌人「穴蝠」 | 同上, archetype=orbiter 0.45,0.42,0.55 | 原型:灰紫蝙蝠,展开双翼,红眼獠牙；飞行做 2 帧扑翼 |
 | `enemies/crossbowman.png` | 16x16 | 敌人「弩兵」 | 同上, archetype=shooter 0.5,0.6,0.85 | 原型:蓝衣弩手+弩；蓄力(windup 30t)需抬弩帧 |
@@ -576,7 +582,7 @@
 | 项 | 说明 | 建议 |
 |---|---|---|
 | 像素中文字体 | 全 UI 伤害数字/菜单/对话用默认字体，无像素风格 | 开源可选：缝合怪像素字体 Fusion Pixel Font（OFL）、Zpix（个人免费）；落位 `art/fonts/` |
-| 四向行走动画 | 占位图只有 1 帧站立 | 每英雄 4 向 x (idle+walk2) 帧，16x16/帧；可由本占位图做连锁重绘基底 |
+| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画见 T21 |
 | 敌人受击/死亡动画 | 目前仅白闪+爆粒子 | 每敌 2-4 帧即可显著提升手感 |
 | 雕像四 kinds 精绘 | 通用底 + 4 属性变体已备（shrine_*.png），披肩/徽记方案区分 | 正式素材按变体配色委托精绘即可 |
 | 地图整块背景装饰 | 墙沿/悬挂物/裂纹大图 | 可后置，优先级低 |
