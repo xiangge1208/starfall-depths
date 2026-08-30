@@ -34,5 +34,24 @@
     "skill_name": "影袭",
     "skill_desc": "CD 9s：向瞄准方向瞬步 140px（无敌），4s 内射击必暴击、弹速 +20%",
     "upgraded": false
+  },
+  "engineer": {
+    "id": "engineer",
+    "name": "工程师·铆",
+    "hp": 7,
+    "shield": 5,
+    "energy": 120,
+    "speed": 78.0,
+    "crit_chance": 0.05,
+    "start_weapons": ["maodingqiang"],
+    "skill_script": "res://core/player/skills/turret.gd",
+    "skill_cd": 720,
+    "skill_energy": 0,
+    "passive_id": "spare_parts",
+    "has_defiance": false,
+    "skill_name": "自动炮台",
+    "skill_desc": "CD 12s：部署炮台（存活 12s，2/s 攻击 240px 内最近敌人；与被动共用库存上限 2）",
+    "upgraded": false,
+    "summon_cap": 2
   }
 }
