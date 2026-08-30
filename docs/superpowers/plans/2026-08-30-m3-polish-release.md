@@ -30,6 +30,10 @@
 | P0-2 | Juice v2 量化规格（hitstop v2/trauma 屏震/粒子 v2/伤害数字 v2/连击音高/Boss 定格） | `docs/superpowers/specs/2026-08-30-m3-juice-v2-spec.md` | ✅ |
 | P0-3 | 试炼数据表 + 独立 schema 校验测试 | `data/trials.json` + `tests/unit/test_trials_data.gd` | ✅ |
 | P0-4 | Juice v2 特效素材包（确定性生成器 + 三重 QA） | `tools/spritegen_m3.py` + `art/generated/fx/*_strip*.png` + `art/generated/fx/MANIFEST_M3.md` | ✅ |
+| P0-5 | 像素中文字体资产捆绑（遗漏补查 2026-08-30：M1 遗留「尚缺字体」，M2/M3 均未认领） | `art/fonts/fusion-pixel-12px-monospaced-zh_hans.ttf` + OFL 许可 + README | ✅（接线随 S-C） |
+| P0-6 | 试炼因子图标 ×8（R-B 的 HUD 角标/面板因子卡素材） | `art/generated/trials/factor_*.png` ×8（MANIFEST_M3.md 追加节） | ✅（接线随 R-B） |
+
+> 遗漏补查（2026-08-30 二次审计）结论：对照 GDD §20/§22/§19/§5.3、附录 G.2 与 M1 遗留清单，补入 P0-5 字体、S-C 字体接线、X-C 的 LOGO 生成、R-B 因子图标注记四处；其余 M3 交付物（Juice v2/平衡周 ×2/试炼/设置含重映射/双平台导出 60fps/无障碍）均已由 J/R/S/B/X/G 束覆盖。
 
 **先行批次隔离声明**：P0 全部为**新增文件**，与 M2 全部 34 卡（W0~W11）的文件所有权清单**零交集**（M2 拥有 `data/weapons|enemies|buffs|heroes.json`、`core/**` 大部、`art/generated/{characters,enemies,tiles,projectiles}`、`tools/gen_placeholder_art*.py`、数据表附录文档等，P0 一概未触碰）；`git diff main..m3-prelude` 全部为新增文件，M2 门禁合入 main 后本分支 rebase 即可并入，预计零冲突。**约束**：M2 执行期间本分支只做 P0，不开任何执行期卡（执行期卡全部依赖 M2 交付物）。
 
@@ -56,6 +60,7 @@
 | W2 | J-C | 粒子表现 v2：火花/枪口焰/碎片环接线 + 预算降级（J3/J4） | J-A,P0-4 | `core/art/art_lookup.gd`(注册段), `fx/particles_*.gd`, `tests/unit/test_art_lookup.gd`(追加) |
 | W2 | R-B | 试炼流程 UI（面板/角标/结算徽标）+ 本地排行榜（试炼规格 §5/§6） | R-A | `ui/trial_panel.gd(+tscn)`(新), `core/meta/trial_records.gd`(新), `tests/unit/test_trial_records.gd`(新) |
 | W3 | S-B | 按键重映射（动作列表/监听/冲突检测/恢复默认/InputMap 动态重载） | S-A | `ui/rebind_panel.gd(+tscn)`(新), `autoload/save_system.gd`(key_rebinds 键), `tests/unit/test_rebind.gd`(新) |
+| W3 | S-C | 像素中文字体全局接线（主题/字号/nearest 渲染；素材已随 P0-5 捆绑） | S-A,P0-5 | `ui/m3_theme.tres`(新), `project.godot`(gui/theme), `ui/*.gd`(字号覆盖核对), `tests/scenes/font_render_smoke.gd`(新) |
 | W3 | R-C | 试炼结算接线：×1.5 倍率 + `trial_completed` + 成就 2 条激活 | R-B | `core/rooms/inter_floor_flow.gd`(结算行), `core/meta/achievement_system.gd`(2 条接线), `tests/unit/test_trial_settle.gd`(新) |
 | W3 | X-A | Android release 签名 + release preset + aab/apk 产出冒烟 | m2 | `export_presets.cfg`, `tools/export_android.cmd`(新), `docs/superpowers/reports/m3-android-export.md` |
 | W4 | B-1 | 平衡周 1：Balance Bot 100 局回归 → 报告 → 修订窗口 1 | R-A(因子可注入) | `docs/superpowers/reports/m3-balance-w1.md`, `data/balance.json`(±20%), `data/*.json`(±20%) |
@@ -65,7 +70,7 @@
 | W6 | X-C | 导出包收口：版本号/图标/存档 v2 兼容/双包启动冒烟 | X-B,B-2 | `export_presets.cfg`, `docs/superpowers/reports/m3-export-final.md` |
 | W6 | G-1 | **M3 门禁**：集成守卫（全量绿+3000 种子+§18.3+存档往返）+ 试玩员（Windows 全流程 + Android 触屏全流程含试炼局 + v2 手感清单）+ 设置项齐全核对 + 裁定 tag `m3` | 全部 | `docs/superpowers/reports/m3-gate-*.md` |
 
-> 计 19 卡 = P0 先行 4 + 执行期 15（J×4 / R×3 / S×2 / B×2 / X×3 / G×1）。执行期 15 卡与 roadmap §6 预告「约 12~16 张」口径一致（预告不含 P0 设计卡）。每束末卡收口：J-D（Juice 束）/ R-C（试炼束）/ X-C（导出束）。
+> 计 21 卡 = P0 先行 6 + 执行期 16（J×4 / R×3 / S×3 / B×2 / X×3 / G×1）。执行期 16 卡含 roadmap §6 预告口径（12~16）上沿（预告不含 P0 设计卡与遗漏补查的 S-C 字体接线）。每束末卡收口：J-D（Juice 束）/ R-C（试炼束）/ X-C（导出束）。
 
 ---
 
@@ -122,6 +127,13 @@
 - [ ] 手动：改键后立即生效 + 重启保留。
 - [ ] Commit `feat(m3-sb): key remapping`
 
+### Task S-C: 像素中文字体全局接线
+
+**Files:** Create `ui/m3_theme.tres`（Theme 资源：默认字体 = `art/fonts/fusion-pixel-12px-monospaced-zh_hans.ttf`、12px 整数倍字号表、行距）、`tests/scenes/font_render_smoke.gd`；Modify `project.godot`（`gui/theme/custom`）、`ui/*.gd`（逐场景硬编码字号/主题覆盖核对，改动面以走查清单为准）
+**规格:** 素材已随 P0-5 捆绑（来源/版本/SHA-256/许可见 `art/fonts/README.md`）；Godot FontFile 关闭 oversampling 与 subpixel（480×270 nearest 像素锐利）；HUD/结算/面板/图鉴/天赋等全部中文 UI 字号对齐 12px 基准（12/24 两档为主），长文本（图鉴条件/成就描述）行距走查防截断；伤害数字若受字号影响需复测可读性（对照 J4）。
+- [ ] 手动走查清单：主菜单/选角/HUD/三选一/死亡与胜利结算/暂停/设置/重映射/试炼面板/图鉴/天赋/成就 toast——中文显示、无截断、无糊字；导出包（X-C）内同样本复验。
+- [ ] Commit `feat(m3-sc): pixel cjk font global wiring`
+
 ### Task R-C: 试炼结算接线 + 成就激活
 
 **Files:** Modify `core/rooms/inter_floor_flow.gd`（倍率行）、`core/meta/achievement_system.gd`（试炼者/大师 2 条接线）；Create `tests/unit/test_trial_settle.gd`
@@ -159,13 +171,13 @@
 
 ### Task X-C: 导出包收口
 
-**Files:** Modify `export_presets.cfg`（版本号/图标）；Create `docs/superpowers/reports/m3-export-final.md`
-**规格:** 版本 1.0.0/图标核对；存档 v2 在导出包内读写往返（首次启动建档→重启读档）；Windows exe + Android apk 双包启动冒烟（进主菜单+完整一局抽房）；导出产物 `user_export/`（gitignore）。
+**Files:** Modify `export_presets.cfg`（版本号/图标）、`icon.svg`（正式 LOGO 替换 Godot 默认图标——遗漏补查 2026-08-30：LOGO 生成器已就绪 `tools/spritegen_m3.py`，定稿需用户过目，草案可在 M3 执行期先行生成）；Create `docs/superpowers/reports/m3-export-final.md`
+**规格:** 版本 1.0.0；LOGO/图标核对（主菜单标题 LOGO + 各平台图标尺寸：Windows ico/Android adaptive icon）；存档 v2 在导出包内读写往返（首次启动建档→重启读档）；Windows exe + Android apk 双包启动冒烟（进主菜单+完整一局抽房）；导出产物 `user_export/`（gitignore）。
 - [ ] 验收：双包产出 + 截图 + 存档兼容证据。
 - [ ] Commit `feat(m3-xc): export package finalization`
 
 ### Task G-1: M3 门禁
 
 **Files:** Create `docs/superpowers/reports/m3-gate-integration.md`、`m3-gate-playtest.md`、`m3-gate.md`
-**规格:** 集成守卫：全量测试绿 + 3000 种子×3 生态生成校验 + §18.3 压测报告对照 + 存档 v2 往返 + 工作树干净 + P0-3/P0-4 素材接线完整性（ArtLookup 断言覆盖）。试玩员：①Windows 真人完整通关一局（3 层含 Boss）+ 试炼局 1 次（体验两因子）+ Juice v2 手感清单逐项 + 设置面板/重映射实操；②Android 触屏完整一局（虚拟摇杆+自动瞄准+振动）+ 试炼面板实操。编排者裁定：**无 P0/P1 缺陷 + 双平台 60fps + 设置项齐全（GDD §19 列表逐项核对表）** → GREEN 则 tag `m3`。
+**规格:** 集成守卫：全量测试绿 + 3000 种子×3 生态生成校验 + §18.3 压测报告对照 + 存档 v2 往返 + 工作树干净 + P0-3/P0-4/P0-6 素材接线完整性（ArtLookup/图标消费方断言覆盖）。试玩员：①Windows 真人完整通关一局（3 层含 Boss）+ 试炼局 1 次（体验两因子）+ Juice v2 手感清单逐项 + 设置面板/重映射实操 + S-C 字体走查样本（HUD/结算/图鉴抽页）；②Android 触屏完整一局（虚拟摇杆+自动瞄准+振动）+ 试炼面板实操。编排者裁定：**无 P0/P1 缺陷 + 双平台 60fps + 设置项齐全（GDD §19 列表逐项核对表）** → GREEN 则 tag `m3`。
 - [ ] 三份报告 + 裁定 + tag。
