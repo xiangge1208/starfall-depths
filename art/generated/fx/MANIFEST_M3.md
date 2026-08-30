@@ -1,12 +1,14 @@
-# M3 特效素材清单（art/generated/fx · Juice v2 素材包）
+# M3 生成素材清单（art/generated/fx + art/generated/trials）
 
-> 本清单由 `tools/spritegen_m3.py` 自动生成并维护（任务卡 **M3-P0-4**）。
-> **所有权**: 本文件与本包 10 个 PNG 归 M3 所有；`art/generated/MANIFEST.md` 及该目录
+> 本清单由 `tools/spritegen_m3.py` 自动生成并维护（任务卡 **M3-P0-4**；试炼因子图标节为 **M3-P0-6**）。
+> **覆盖**: 本清单覆盖 `art/generated/fx/`（Juice v2 特效素材包）与 `art/generated/trials/`（试炼因子图标包）两目录。
+> **所有权**: 本文件与 fx 包 10 个 PNG、trials 包 8 个 PNG 归 M3 所有；`art/generated/MANIFEST.md` 及该目录
 > 既有 12 个 fx PNG（fx_muzzle/fx_explosion/fx_puff 等）归 M1/M2 所有——互不写入、互不覆盖。
 > **接线**: ArtLookup 注册 + 池化消费在 M3 执行卡 **J-C** 落地；届时向
 > `tests/unit/test_art_lookup.gd` 追加存在性断言（沿用 M2-T28 模式）。
 > **导入**: .import sidecar 由编排者统一生成（本任务禁跑 godot）；像素材质需 nearest 过滤。
-> **确定性**: seed=42，同参数重跑逐字节一致；脚本内置两遍构建 + SHA-256 自证（不一致退出码非 0）。
+> **确定性**: seed=42，同参数重跑逐字节一致；脚本内置两遍构建 + SHA-256 自证（不一致退出码非 0），
+> 并内置 fx 10 件旧产物基线哈希核对（偏离即 FAIL，见脚本 LEGACY_SHA16）。
 > **QA 口径**（三重，程序化判定，全过才交付）:
 > 1. 对比度 = 前景（alpha>0）平均亮度(0~100) − 底色亮度（调色板最暗色 #181420 ≈ 8.9），阈值 ≥30；
 > 2. 剪影 = 亮度压至 30% 后按阈值（底色→前景中位亮度距离的 25%）重建 mask 与可见 mask 的 IoU ≥0.85，
@@ -111,5 +113,23 @@
 
 - 全部条带为 16px 槽位横向帧序列，单帧 ≤6 色、像素数 ≤256，适合池化零分配消费；
 - 超预算降级路径（规格 §2 J3）: 关帧动画退化为单帧贴图——每条带首帧可独立作为降级帧使用。
+
+## 试炼因子图标（art/generated/trials/）
+
+> 任务卡 **M3-P0-6** · 8 张 12x12 单帧静态图标，风格与 `fx/trial_gate` · `fx/trial_medal` 同代
+> （粗块面徽章感、12px 下剪影可辨，规避 1px 碎细节）；色值全部取自脚本内 DB16 衍生调色板（未新增色值），
+> 元素色对齐 `autoload/fx.gd` `ELEMENT_COLORS`（经色阶最近值，与火花包同口径）；
+> 因子效果参数对照 `tests/unit/test_trials_data.gd` TRIAL_PARAMS。
+
+| 文件 | 尺寸 | 意象（因子效果） | 对比度(≥30) | 剪影 IoU(≥0.85) | 主连通域(≥0.85) | 颜色数(≤6) | 消费方 | sha256-16 |
+|---|---|---|---|---|---|---|---|---|
+| `trials/factor_enemy_haste.png` | 12x12 | 双重右向箭头 + 贯穿中线速度线/上下尾迹短划（敌人移速与攻速 +20%） | 47.5 | 1.000 | 1.000 | 3 | R-B: HUD 因子角标 + 试炼面板因子卡 | e3ed0ae5a9284224 |
+| `trials/factor_melee_drops.png` | 12x12 | 交叉双剑：前浅钢/后暗钢、金护手、暗钢柄、白剑尖（本局仅掉落近战武器） | 70.5 | 1.000 | 1.000 | 5 | R-B: HUD 因子角标 + 试炼面板因子卡 | 4983e69a4cefcd84 |
+| `trials/factor_energy_tax.png` | 12x12 | 青蓝能量滴 + 贴右肩红 × 刻痕（技能蓝耗 ×1.5） | 72.3 | 1.000 | 1.000 | 4 | R-B: HUD 因子角标 + 试炼面板因子卡 | 23d2e305618b4386 |
+| `trials/factor_bullet_haste.png` | 12x12 | 右向弹头 + 左侧三段尾迹速度线（弹速 +25%） | 80.7 | 1.000 | 1.000 | 4 | R-B: HUD 因子角标 + 试炼面板因子卡 | 1b38480e0b636c10 |
+| `trials/factor_bargain_ban.png` | 12x12 | 金币 + 对角禁止斜线（商店禁购红心、半价失效） | 53.0 | 1.000 | 1.000 | 4 | R-B: HUD 因子角标 + 试炼面板因子卡 | 3b44af5cfd91c91a |
+| `trials/factor_narrow_vision.png` | 12x12 | 杏仁眼 + 竖缝瞳孔 + 向右收束视野锥（视野 ×0.65） | 76.6 | 1.000 | 1.000 | 3 | R-B: HUD 因子角标 + 试炼面板因子卡 | 4b77ae36864ba875 |
+| `trials/factor_elite_surge.png` | 12x12 | 三尖金冠 + 冠带红宝石（精英出现率 +100%） | 66.0 | 1.000 | 1.000 | 4 | R-B: HUD 因子角标 + 试炼面板因子卡 | 18d18cd6d060fe30 |
+| `trials/factor_single_element.png` | 12x12 | 四元素色环（顺时针 FIRE/ICE/POISON/SHOCK）+ 白轮辐与中心单色核（本局仅单一元素） | 66.9 | 1.000 | 1.000 | 5 | R-B: HUD 因子角标 + 试炼面板因子卡 | f78ee48a69feeb25 |
 
 （本清单由脚本自动写出，重跑 `python tools/spritegen_m3.py` 即再生；生成时间不写入以保持逐字节幂等。）

@@ -19,6 +19,14 @@
 Elements.Id.SHOCK（NAMES id 串 "shock"），故实际文件名为 spark_shock_strip4.png，
 对照说明见 MANIFEST_M3.md。禁止在本脚本之外修改任何文件；不跑 godot（.import
 sidecar 由编排者统一生成）。
+
+M3-P0-6 追加（试炼因子图标包）: art/generated/trials/ 下 8 张 12x12 单帧图标
+（factor_enemy_haste / melee_drops / energy_tax / bullet_haste / bargain_ban /
+narrow_vision / elite_surge / single_element），消费方为 M3 执行卡 R-B（HUD 因子
+角标 + 试炼面板因子卡）。追加段复用同一套机制: seed 42 确定性两遍构建比对、
+三重 QA 阈值、MANIFEST_M3.md 追加；并新增旧产物基线核对——fx 既有 10 件的
+SHA-256 前 16 位硬编码于 LEGACY_SHA16，任何偏离即退出码 3（保证追加段零污染
+旧生成路径）。图标为静态像素画（无随机量），色值全部取自脚本内 DB16 衍生调色板。
 """
 import hashlib
 import io
@@ -32,6 +40,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "art" / "generated" / "fx"
+OUT_TRIALS = ROOT / "art" / "generated" / "trials"   # M3-P0-6 试炼因子图标包
 SEED = 42  # 沿用 tools/gen_placeholder_art.py 的确定性随机种子惯例
 
 # ---------------------------------------------------------------- palette
@@ -68,6 +77,13 @@ M_GOLD_D = C("#c8901c")
 M_GOLD_L = C("#e2c04c")   # 金饰强调色（ICON_ACC 家族）
 M_RIBBON = C("#e83a4a")   # 绶带红（heart/red 家族）
 M_STAR = C("#fff3b8")
+
+# 元素色（M3-P0-6 试炼因子图标用）——对齐 autoload/fx.gd ELEMENT_COLORS，
+# 取 DB16 衍生色阶最近值（与火花包 RAMP_{FIRE,ICE,POISON,SHOCK} 同口径，不新增色值）。
+E_FIRE = RAMP_FIRE[3]     # ff4a1e ≈ FIRE  (1.00, 0.28, 0.12)
+E_ICE = RAMP_ICE[3]       # 8ae8ff ≈ ICE   (0.20, 0.90, 1.00)
+E_POISON = RAMP_POISON[3]  # 6ee86e ≈ POISON(0.35, 1.00, 0.25)
+E_SHOCK = RAMP_SHOCK[3]   # c888ff ≈ SHOCK (0.75, 0.35, 1.00)
 
 
 # ---------------------------------------------------------------- 像素助手（复制自 tools/gen_placeholder_art.py 的公共画法）
@@ -310,6 +326,164 @@ def trial_medal():
     return img
 
 
+# ---------------------------------------------------------------- M3-P0-6 试炼因子图标（12x12 单帧静态）
+def _chevron(img, tx, c):
+    """2px 粗右向箭身: 尖在 (tx,5)，双臂展开 y1..y9（避开 1px 碎细节）。"""
+    px(img, tx, 5, c)                          # 箭尖（中线落点）
+    for k in range(1, 5):
+        for x in (tx - k, tx - k + 1):
+            px(img, x, 5 - k, c)
+            px(img, x, 5 + k, c)
+
+
+def factor_enemy_haste():
+    """敌人提速: 双重右向箭头（前亮后暗拉开纵深）+ 贯穿中线的速度线与上下尾迹短划。"""
+    img = canvas(12, 12)
+    dark, mid, tip = RAMP_FIRE[3], RAMP_FIRE[2], RAMP_FIRE[1]
+    _chevron(img, 5, dark)                     # 后箭（暗红橙 = 退远）
+    _chevron(img, 10, mid)                     # 前箭（亮橙）
+    hline(img, 0, 4, 5, dark)                  # 中线速度线（尾段，接后箭尖）
+    hline(img, 6, 9, 5, mid)                   # 两箭尖之间的提速段
+    hline(img, 0, 2, 3, dark)                  # 上/下尾迹短划（贴后箭臂，保持连通）
+    hline(img, 0, 2, 7, dark)
+    for y in (4, 5, 6):                        # 前箭尖增亮
+        px(img, 10, y, tip)
+    return img
+
+
+def factor_melee_drops():
+    """仅近战掉落: 交叉双剑（前浅钢/后暗钢）+ 金护手 + 暗钢剑柄 + 白色双剑尖。"""
+    img = canvas(12, 12)
+    for i in range(4, 11):                     # 后剑（↙ 反对角，暗钢）
+        px(img, 11 - i, i, SHARD_GREY)
+    for i in range(4, 10):
+        px(img, 10 - i, i, SHARD_GREY)
+    for i in range(4, 11):                     # 前剑（↘ 主对角，浅钢，压过后剑）
+        px(img, i, i, SHARD_PALE)
+    for i in range(4, 10):
+        px(img, i + 1, i, SHARD_PALE)
+    for x, y in ((2, 4), (3, 3), (4, 2)):      # 左护手（金，垂直于剑脊）
+        px(img, x, y, M_GOLD_D)
+    for x, y in ((9, 4), (8, 3), (7, 2)):      # 右护手
+        px(img, x, y, M_GOLD_D)
+    for x, y in ((2, 2), (1, 1), (0, 0)):      # 左剑柄（暗钢，延伸到角）
+        px(img, x, y, G_STONE)
+    for x, y in ((9, 2), (10, 1), (11, 0)):    # 右剑柄
+        px(img, x, y, G_STONE)
+    px(img, 10, 10, SHARD_WHITE)               # 剑尖高光
+    px(img, 1, 10, SHARD_WHITE)
+    return img
+
+
+def factor_energy_tax():
+    """蓝耗税: 青蓝能量滴（左上高光/右下暗缘）+ 贴右肩的红色 × 刻痕。"""
+    img = canvas(12, 12)
+    rows = ((2, (5,)), (3, (4, 5, 6)), (4, (3, 4, 5, 6, 7)),
+            (5, (3, 4, 5, 6, 7, 8)), (6, (3, 4, 5, 6, 7, 8)),
+            (7, (3, 4, 5, 6, 7, 8)), (8, (3, 4, 5, 6, 7, 8)),
+            (9, (4, 5, 6, 7, 8)), (10, (5, 6, 7)))
+    for y, xs in rows:
+        for x in xs:
+            c = RAMP_ICE[3] if (y >= 6 and x >= 6) else RAMP_ICE[2]   # 右下暗缘
+            px(img, x, y, c)
+    for y in (3, 4, 5):                        # 左侧高光条
+        px(img, 4, y, RAMP_ICE[1])
+    for x, y in ((7, 1), (8, 2), (9, 3), (9, 1), (7, 3)):   # × 刻痕（贴水滴右肩）
+        px(img, x, y, M_RIBBON)
+    return img
+
+
+def factor_bullet_haste():
+    """弹速提升: 右向弹头（白鼻/黄身/暗金底缘）+ 左侧三段尾迹速度线。"""
+    img = canvas(12, 12)
+    rows = ((4, (4, 5, 6, 7, 8)), (5, (3, 4, 5, 6, 7, 8, 9)),
+            (6, (2, 3, 4, 5, 6, 7, 8, 9, 10)),
+            (7, (3, 4, 5, 6, 7, 8, 9)), (8, (4, 5, 6, 7, 8)))
+    for y, xs in rows:
+        c = RAMP_CRIT[2] if y == 8 else RAMP_CRIT[1]       # 底缘暗金
+        for x in xs:
+            px(img, x, y, c)
+    for x, y in ((9, 5), (9, 6), (10, 6), (9, 7)):         # 弹鼻高光
+        px(img, x, y, SHARD_WHITE)
+    for y in (5, 6, 7):                                    # 尾迹速度线（贴弹底座）
+        hline(img, 0, 1, y, RAMP_HIT[1])
+    return img
+
+
+def factor_bargain_ban():
+    """禁红心半价: 金币（暗金缘/亮金面/左侧高光）+ 对角禁止斜线（贯穿币面，两端探出币缘）。"""
+    img = canvas(12, 12)
+    disk(img, 6, 6, 4, M_GOLD_D)               # 暗金外缘
+    disk(img, 6, 6, 3, M_GOLD)                 # 亮金盘面
+    for y in (5, 6):                           # 左侧高光（避开斜线走位）
+        px(img, 4, y, M_STAR)
+    for i in range(1, 11):                     # 禁止斜线 ↘（2px 粗）
+        px(img, i, i, M_RIBBON)
+    for i in range(1, 10):
+        px(img, i + 1, i, M_RIBBON)
+    return img
+
+
+def factor_narrow_vision():
+    """管视: 杏仁眼 + 竖缝瞳孔（全高 slit）+ 向右收束的双刃视野锥（管状视场）。"""
+    img = canvas(12, 12)
+    rows = ((3, (3, 4, 5, 6)), (4, (2, 3, 4, 5, 6, 7)),
+            (5, (1, 2, 3, 4, 5, 6, 7, 8)), (6, (1, 2, 3, 4, 5, 6, 7, 8)),
+            (7, (2, 3, 4, 5, 6, 7)), (8, (3, 4, 5, 6)))
+    for y, xs in rows:                         # 眼白（近白青）
+        for x in xs:
+            px(img, x, y, RAMP_ICE[1])
+    for y in (3, 4, 5, 6):                     # 竖缝瞳孔（暗调，"收窄"点题）
+        px(img, 5, y, G_PORTAL)
+    cone = ((7, 3), (8, 3), (8, 4), (9, 4), (9, 5), (10, 5),    # 上锥（2px 粗）
+            (10, 6), (11, 6),                                   # 共享锥尖
+            (7, 9), (8, 9), (8, 8), (9, 8), (9, 7), (10, 7))    # 下锥（镜像）
+    for x, y in cone:                          # 视野锥（青，自眼缘收束到尖点）
+        px(img, x, y, RAMP_ICE[3])
+    return img
+
+
+def factor_elite_surge():
+    """精英潮: 三尖金冠（亮尖/金身/暗金冠带）+ 冠带红宝石。"""
+    img = canvas(12, 12)
+    for x in (2, 5, 6, 9):                     # 三尖顶（增亮）
+        px(img, x, 3, M_STAR)
+    for x in (2, 3, 5, 6, 8, 9):               # 尖下延展（x4/x7 留谷）
+        px(img, x, 4, M_GOLD)
+    for y in (5, 6, 7):                        # 冠身合拢
+        hline(img, 2, 9, y, M_GOLD)
+    for y in (8, 9):                           # 冠带（暗金）
+        hline(img, 2, 9, y, M_GOLD_D)
+    for x in (3, 5, 6, 8):                     # 冠带红宝石
+        px(img, x, 8, M_RIBBON)
+    return img
+
+
+def factor_single_element():
+    """元素独尊: 四元素色环（右起顺时针 FIRE/ICE/POISON/SHOCK，对齐 elements.gd 枚举序）
+    + 白色轮辐与中心单色核（白 = 中性"被锁定的唯一元素"载体，避免偏向某元素）。"""
+    img = canvas(12, 12)
+    for deg in range(360):                     # 1° 步进描环（与 ring_conn 同法，保证 8-连通）
+        rad = math.radians(deg)
+        x = int(round(6 + 4 * math.cos(rad)))
+        y = int(round(6 + 4 * math.sin(rad)))
+        if 45 <= deg < 135:                    # 下象限
+            c = E_ICE
+        elif 135 <= deg < 225:                 # 左象限
+            c = E_POISON
+        elif 225 <= deg < 315:                 # 上象限
+            c = E_SHOCK
+        else:                                  # 右象限（315~360 与 0~45）
+            c = E_FIRE
+        px(img, x, y, c)
+    for k in (1, 2, 3):                        # 四向轮辐（贴环）+ 中心十字核
+        px(img, 6, 6 - k, SHARD_WHITE)
+        px(img, 6, 6 + k, SHARD_WHITE)
+        px(img, 6 - k, 6, SHARD_WHITE)
+        px(img, 6 + k, 6, SHARD_WHITE)
+    return img
+
+
 def build_all():
     """确定性构建全部素材（每次调用独立 rng，种子固定 42）。"""
     rng = random.Random(SEED)
@@ -325,6 +499,20 @@ def build_all():
     imgs["trial_gate.png"] = trial_gate()
     imgs["trial_medal.png"] = trial_medal()
     return imgs
+
+
+def build_trials():
+    """确定性构建 8 张试炼因子图标（静态像素画，无随机量，两遍构建自然一致）。"""
+    return {
+        "factor_enemy_haste.png": factor_enemy_haste(),
+        "factor_melee_drops.png": factor_melee_drops(),
+        "factor_energy_tax.png": factor_energy_tax(),
+        "factor_bullet_haste.png": factor_bullet_haste(),
+        "factor_bargain_ban.png": factor_bargain_ban(),
+        "factor_narrow_vision.png": factor_narrow_vision(),
+        "factor_elite_surge.png": factor_elite_surge(),
+        "factor_single_element.png": factor_single_element(),
+    }
 
 
 # ---------------------------------------------------------------- QA（三重）
@@ -481,19 +669,60 @@ EXPECT = {
 }
 ORDER = list(EXPECT.keys())
 
+# ---------------------------------------------------------------- M3-P0-6 试炼因子图标规格
+TRIAL_EXPECT = {
+    "factor_enemy_haste.png": (12, 12, 1),
+    "factor_melee_drops.png": (12, 12, 1),
+    "factor_energy_tax.png": (12, 12, 1),
+    "factor_bullet_haste.png": (12, 12, 1),
+    "factor_bargain_ban.png": (12, 12, 1),
+    "factor_narrow_vision.png": (12, 12, 1),
+    "factor_elite_surge.png": (12, 12, 1),
+    "factor_single_element.png": (12, 12, 1),
+}
+TRIAL_ORDER = list(TRIAL_EXPECT.keys())
+TRIAL_IMAGERY = {
+    "factor_enemy_haste.png": "双重右向箭头 + 贯穿中线速度线/上下尾迹短划（敌人移速与攻速 +20%）",
+    "factor_melee_drops.png": "交叉双剑：前浅钢/后暗钢、金护手、暗钢柄、白剑尖（本局仅掉落近战武器）",
+    "factor_energy_tax.png": "青蓝能量滴 + 贴右肩红 × 刻痕（技能蓝耗 ×1.5）",
+    "factor_bullet_haste.png": "右向弹头 + 左侧三段尾迹速度线（弹速 +25%）",
+    "factor_bargain_ban.png": "金币 + 对角禁止斜线（商店禁购红心、半价失效）",
+    "factor_narrow_vision.png": "杏仁眼 + 竖缝瞳孔 + 向右收束视野锥（视野 ×0.65）",
+    "factor_elite_surge.png": "三尖金冠 + 冠带红宝石（精英出现率 +100%）",
+    "factor_single_element.png": "四元素色环（顺时针 FIRE/ICE/POISON/SHOCK）+ 白轮辐与中心单色核（本局仅单一元素）",
+}
+TRIAL_CONSUMER = "R-B: HUD 因子角标 + 试炼面板因子卡"
+
+# 旧产物交付基线（M3-P0-4 上一卡落盘值）——重跑后 SHA-256 前 16 位必须逐字节一致，
+# 任何漂移 = 追加段污染了旧生成路径 = FAIL（退出码 3）。
+LEGACY_SHA16 = {
+    "spark_hit_strip4.png": "88260f56056a4cae",
+    "spark_crit_strip4.png": "b4a5bd1571bc4852",
+    "spark_fire_strip4.png": "0f692338b508ebd0",
+    "spark_ice_strip4.png": "3c7a550a45779a23",
+    "spark_poison_strip4.png": "c75c2f31da4ba4ac",
+    "spark_shock_strip4.png": "5be47085d3fda30b",
+    "muzzle_v2_strip3.png": "e17fe73dc9f594e7",
+    "kill_shard_strip6.png": "d5ad219bf4ef20eb",
+    "trial_gate.png": "a5b6974df8a72b53",
+    "trial_medal.png": "5cd8fb517d817488",
+}
+
 
 # ---------------------------------------------------------------- 清单
-def write_manifest(results, hashes):
+def write_manifest(results, hashes, tresults, thashes):
     lines = [
-        "# M3 特效素材清单（art/generated/fx · Juice v2 素材包）",
+        "# M3 生成素材清单（art/generated/fx + art/generated/trials）",
         "",
-        "> 本清单由 `tools/spritegen_m3.py` 自动生成并维护（任务卡 **M3-P0-4**）。",
-        "> **所有权**: 本文件与本包 10 个 PNG 归 M3 所有；`art/generated/MANIFEST.md` 及该目录",
+        "> 本清单由 `tools/spritegen_m3.py` 自动生成并维护（任务卡 **M3-P0-4**；试炼因子图标节为 **M3-P0-6**）。",
+        "> **覆盖**: 本清单覆盖 `art/generated/fx/`（Juice v2 特效素材包）与 `art/generated/trials/`（试炼因子图标包）两目录。",
+        "> **所有权**: 本文件与 fx 包 10 个 PNG、trials 包 8 个 PNG 归 M3 所有；`art/generated/MANIFEST.md` 及该目录",
         "> 既有 12 个 fx PNG（fx_muzzle/fx_explosion/fx_puff 等）归 M1/M2 所有——互不写入、互不覆盖。",
         "> **接线**: ArtLookup 注册 + 池化消费在 M3 执行卡 **J-C** 落地；届时向",
         "> `tests/unit/test_art_lookup.gd` 追加存在性断言（沿用 M2-T28 模式）。",
         "> **导入**: .import sidecar 由编排者统一生成（本任务禁跑 godot）；像素材质需 nearest 过滤。",
-        "> **确定性**: seed=42，同参数重跑逐字节一致；脚本内置两遍构建 + SHA-256 自证（不一致退出码非 0）。",
+        "> **确定性**: seed=42，同参数重跑逐字节一致；脚本内置两遍构建 + SHA-256 自证（不一致退出码非 0），",
+        "> 并内置 fx 10 件旧产物基线哈希核对（偏离即 FAIL，见脚本 LEGACY_SHA16）。",
         "> **QA 口径**（三重，程序化判定，全过才交付）:",
         "> 1. 对比度 = 前景（alpha>0）平均亮度(0~100) − 底色亮度（调色板最暗色 #181420 ≈ 8.9），阈值 ≥30；",
         "> 2. 剪影 = 亮度压至 30% 后按阈值（底色→前景中位亮度距离的 25%）重建 mask 与可见 mask 的 IoU ≥0.85，",
@@ -568,6 +797,24 @@ def write_manifest(results, hashes):
         "- 全部条带为 16px 槽位横向帧序列，单帧 ≤6 色、像素数 ≤256，适合池化零分配消费；",
         "- 超预算降级路径（规格 §2 J3）: 关帧动画退化为单帧贴图——每条带首帧可独立作为降级帧使用。",
         "",
+        "## 试炼因子图标（art/generated/trials/）",
+        "",
+        "> 任务卡 **M3-P0-6** · 8 张 12x12 单帧静态图标，风格与 `fx/trial_gate` · `fx/trial_medal` 同代",
+        "> （粗块面徽章感、12px 下剪影可辨，规避 1px 碎细节）；色值全部取自脚本内 DB16 衍生调色板（未新增色值），",
+        "> 元素色对齐 `autoload/fx.gd` `ELEMENT_COLORS`（经色阶最近值，与火花包同口径）；",
+        "> 因子效果参数对照 `tests/unit/test_trials_data.gd` TRIAL_PARAMS。",
+        "",
+        "| 文件 | 尺寸 | 意象（因子效果） | 对比度(≥30) | 剪影 IoU(≥0.85) | 主连通域(≥0.85) | 颜色数(≤6) | 消费方 | sha256-16 |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for name in TRIAL_ORDER:
+        q = tresults[name][0]
+        lines.append(
+            f"| `trials/{name}` | 12x12 | {TRIAL_IMAGERY[name]} | {q['contrast']:.1f} "
+            f"| {q['iou']:.3f} | {q['share']:.3f} | {q['ncolors']} | {TRIAL_CONSUMER} "
+            f"| {thashes[name][:16]} |")
+    lines += [
+        "",
         f"（本清单由脚本自动写出，重跑 `python tools/spritegen_m3.py` 即再生；生成时间不写入以保持逐字节幂等。）",
     ]
     (OUT / "MANIFEST_M3.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -585,30 +832,51 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
-    print(f"== M3-P0-4 spritegen == seed={SEED} out={OUT.relative_to(ROOT)}")
+    print(f"== M3-P0-4+P0-6 spritegen == seed={SEED} "
+          f"out={OUT.relative_to(ROOT)} + {OUT_TRIALS.relative_to(ROOT)}")
 
-    # 1) 确定性自证: 独立构建两遍，逐文件比对 PNG 字节哈希
-    imgs = build_all()                       # 第 1 遍（QA 与落盘均用它）
+    # 1) 确定性自证: fx + trials 各独立构建两遍，逐文件比对 PNG 字节哈希
+    imgs, trials = build_all(), build_trials()
     b1 = {k: png_bytes(v) for k, v in imgs.items()}
-    b2 = {k: png_bytes(v) for k, v in build_all().items()}  # 第 2 遍（仅比对）
+    t1 = {k: png_bytes(v) for k, v in trials.items()}
+    b2 = {k: png_bytes(v) for k, v in build_all().items()}    # 第 2 遍（仅比对）
+    t2 = {k: png_bytes(v) for k, v in build_trials().items()}
     h1 = {k: hashlib.sha256(v).hexdigest() for k, v in b1.items()}
     h2 = {k: hashlib.sha256(v).hexdigest() for k, v in b2.items()}
-    det_ok = h1 == h2
+    th1 = {k: hashlib.sha256(v).hexdigest() for k, v in t1.items()}
+    th2 = {k: hashlib.sha256(v).hexdigest() for k, v in t2.items()}
+    det_ok = h1 == h2 and th1 == th2
     for name in ORDER:
         mark = "OK" if h1[name] == h2[name] else "MISMATCH"
         print(f"  [det {mark}] {name}  sha256:{h1[name][:16]}")
+    for name in TRIAL_ORDER:
+        mark = "OK" if th1[name] == th2[name] else "MISMATCH"
+        print(f"  [det {mark}] trials/{name}  sha256:{th1[name][:16]}")
     if not det_ok:
         print("FAIL: 两遍构建哈希不一致，确定性自证未通过。")
         return 2
 
-    # 2) 三重 QA（内存产物上执行；不过则不落盘交付）
-    results = {}
+    # 1.5) 旧产物基线核对（M3-P0-6 铁律）: fx 既有 10 件哈希须与上一卡交付基线一致
+    legacy_bad = [n for n in ORDER if LEGACY_SHA16.get(n) != h1[n][:16]]
+    if legacy_bad:
+        print("FAIL: 旧产物哈希偏离交付基线（追加段污染了旧生成路径）:")
+        for n in legacy_bad:
+            print(f"  - fx/{n}: {h1[n][:16]} != 基线 {LEGACY_SHA16[n]}")
+        return 3
+
+    # 2) 三重 QA（fx + trials，内存产物上执行；不过则不落盘交付）
+    results, tresults = {}, {}
     all_fails = []
     for name in ORDER:
         w, h, n = EXPECT[name]
         per, fails = qa_sprite(imgs[name], w, h, n)
         results[name] = per
         all_fails += [f"{name}: {m}" for m in fails]
+    for name in TRIAL_ORDER:
+        w, h, n = TRIAL_EXPECT[name]
+        per, fails = qa_sprite(trials[name], w, h, n)
+        tresults[name] = per
+        all_fails += [f"trials/{name}: {m}" for m in fails]
     if all_fails:
         print("FAIL: QA 未通过（不交付）:")
         for m in all_fails:
@@ -623,7 +891,14 @@ def main():
         if p.read_bytes() != b1[name]:
             print(f"FAIL: {name} 写盘复核不一致。")
             return 4
-    write_manifest(results, h1)
+    OUT_TRIALS.mkdir(parents=True, exist_ok=True)
+    for name in TRIAL_ORDER:
+        p = OUT_TRIALS / name
+        p.write_bytes(t1[name])
+        if p.read_bytes() != t1[name]:
+            print(f"FAIL: trials/{name} 写盘复核不一致。")
+            return 4
+    write_manifest(results, h1, tresults, th1)
 
     # 4) 汇总输出
     print("-- QA（最差帧口径: 对比度≥30 / IoU≥0.85 / 主连通域≥0.85 / 颜色≤6）--")
@@ -634,7 +909,13 @@ def main():
               f"  iou>={min(q['iou'] for q in per):.3f}"
               f"  share>={min(q['share'] for q in per):.3f}"
               f"  colors<={max(q['ncolors'] for q in per)}")
-    print(f"OK: 交付 {len(ORDER)} 个 PNG + MANIFEST_M3.md（幂等，可重跑）")
+    print("-- QA（试炼因子图标 12x12）--")
+    for name in TRIAL_ORDER:
+        q = tresults[name][0]
+        print(f"  [qa PASS] trials/{name}  12x12  contrast>={q['contrast']:.1f}"
+              f"  iou>={q['iou']:.3f}  share>={q['share']:.3f}  colors<={q['ncolors']}")
+    print(f"OK: 交付 fx {len(ORDER)} + trials {len(TRIAL_ORDER)} 个 PNG + "
+          f"MANIFEST_M3.md（幂等，可重跑）")
     return 0
 
 
