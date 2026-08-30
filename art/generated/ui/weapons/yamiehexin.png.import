@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bm424hhcbh0hy"
-path="res://.godot/imported/zhulun_zhengwu.png-83184cc19e34423938a04f647929e5ec.ctex"
+uid="uid://cepf163w88srp"
+path="res://.godot/imported/yamiehexin.png-e174a87769c23bc497373c96198f0b91.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/zhulun_zhengwu.png"
-dest_files=["res://.godot/imported/zhulun_zhengwu.png-83184cc19e34423938a04f647929e5ec.ctex"]
+source_file="res://art/generated/ui/weapons/yamiehexin.png"
+dest_files=["res://.godot/imported/yamiehexin.png-e174a87769c23bc497373c96198f0b91.ctex"]
 
 [params]
 

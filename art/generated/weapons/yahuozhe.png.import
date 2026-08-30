@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://j3yh1s4opaay"
-path="res://.godot/imported/xiaomiehexin.png-47c3b9a9b6b6a3a4bdaef6f29f9c11ad.ctex"
+uid="uid://cw3xehpbpqawh"
+path="res://.godot/imported/yahuozhe.png-30f408d6e58d611a1777fd0ecb7a410f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/xiaomiehexin.png"
-dest_files=["res://.godot/imported/xiaomiehexin.png-47c3b9a9b6b6a3a4bdaef6f29f9c11ad.ctex"]
+source_file="res://art/generated/weapons/yahuozhe.png"
+dest_files=["res://.godot/imported/yahuozhe.png-30f408d6e58d611a1777fd0ecb7a410f.ctex"]
 
 [params]
 

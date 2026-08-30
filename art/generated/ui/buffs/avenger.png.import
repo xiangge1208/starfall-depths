@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cbbp3s5accu6i"
-path="res://.godot/imported/fenshenxinhaodan.png-99ad9a47a71b438f244abb40cf8e3fb5.ctex"
+uid="uid://byo8e3cs25bco"
+path="res://.godot/imported/avenger.png-fb288a7bb2faf8ef26247f53d5ea1c7e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/fenshenxinhaodan.png"
-dest_files=["res://.godot/imported/fenshenxinhaodan.png-99ad9a47a71b438f244abb40cf8e3fb5.ctex"]
+source_file="res://art/generated/ui/buffs/avenger.png"
+dest_files=["res://.godot/imported/avenger.png-fb288a7bb2faf8ef26247f53d5ea1c7e.ctex"]
 
 [params]
 

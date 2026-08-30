@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://re1ntpxk77yf"
-path="res://.godot/imported/xiaomiehaojiao.png-7579a518515a681942856bd30432cb65.ctex"
+uid="uid://dqiw0d2llaimk"
+path="res://.godot/imported/thorn_armor.png-15f519fad36ea712d8718e7a5df2d2a1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/weapons/xiaomiehaojiao.png"
-dest_files=["res://.godot/imported/xiaomiehaojiao.png-7579a518515a681942856bd30432cb65.ctex"]
+source_file="res://art/generated/ui/buffs/thorn_armor.png"
+dest_files=["res://.godot/imported/thorn_armor.png-15f519fad36ea712d8718e7a5df2d2a1.ctex"]
 
 [params]
 

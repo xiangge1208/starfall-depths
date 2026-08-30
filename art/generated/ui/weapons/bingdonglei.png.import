@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://djpck4x87yh56"
-path="res://.godot/imported/zhulun_zhengwu.png-b044639d9f37097eab7bc25c5f1ba0c6.ctex"
+uid="uid://ffcfetx4nnke"
+path="res://.godot/imported/bingdonglei.png-1b964347ae76b453be8362ad39ac9657.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/weapons/zhulun_zhengwu.png"
-dest_files=["res://.godot/imported/zhulun_zhengwu.png-b044639d9f37097eab7bc25c5f1ba0c6.ctex"]
+source_file="res://art/generated/ui/weapons/bingdonglei.png"
+dest_files=["res://.godot/imported/bingdonglei.png-1b964347ae76b453be8362ad39ac9657.ctex"]
 
 [params]
 

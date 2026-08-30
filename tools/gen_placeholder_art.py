@@ -2,11 +2,12 @@
 """占位像素素材生成器（可重复运行，输出确定性一致）。
 
 用法:
-    python tools/gen_placeholder_art.py                # 全量再生（清空目录后重建）
+    python tools/gen_placeholder_art.py                # 全量再生（先生成后清理陈旧，失败不毁库）
     python tools/gen_placeholder_art.py --hero-sheets  # m2-t17 定点：仅英雄行走帧表+MANIFEST 行
 
-说明: 全量入口当前依赖 M2 批次(gen_placeholder_art_m2)武器并集断言与 T6 落地的
-data/weapons.json(115 行)对齐后方可使用；--hero-sheets 为 characters/** 窄通道。
+说明: 全量入口自 m2-t21 起恢复可用——M2 批次武器并集已改为 data/weapons.json
+115 行数据驱动（旧 75 暂定 slug 废除），且 main() 时序由"先清空再生成"改为
+"先生成后按 SPEC 清单清理"（生成失败时旧素材保持可用，绝无半空库窗口）。
 
 输出:
     art/generated/<分类>/*.png   占位素材本体
@@ -14,7 +15,7 @@ data/weapons.json(115 行)对齐后方可使用；--hero-sheets 为 characters/*
     art/generated/_preview.png   全素材联络表（4x 放大，供人工检查）
 
 说明: 当前项目全部画面为程序化纯色 Polygon2D（详见 MANIFEST「现状」列），
-本脚本生成的像素占位图仅用于预先占位与风格锚定，尚未接入任何场景；
+本脚本生成的像素图仅用于预先占位与风格锚定，尚未接入任何场景；
 后续替换素材时按 MANIFEST 的「代码替换点」逐个接线即可。
 """
 import json
@@ -500,8 +501,8 @@ MANIFEST_GAP_NEW = "| 四向行走动画 | **m2-t17 已程序化交付**：`char
 
 def _manifest_splice_hero_sheets():
     """把 SPEC 内帧表行定点拼接进既有 MANIFEST（幂等；锚点=hero_ranger 行）。
-    全量 main() 在武器数据/暂定 slug 对齐修复前会连带其它子树重写，本拼接是
-    characters/** 的窄通道；write_manifest 的静态文案已同步为交付后口径。"""
+    m2-t21 全量入口恢复后 main() 会整表重写（帧表行随 SPEC 自然入表）；
+    本拼接保留给 --hero-sheets 窄通道（只重做 characters 帧表时同步清单）。"""
     p = OUT / "MANIFEST.md"
     text = p.read_text(encoding="utf-8")
     if MANIFEST_SHEET_MARK in text:
@@ -526,7 +527,7 @@ def _manifest_splice_hero_sheets():
 
 def gen_hero_sheets_scoped():
     """m2-t17 定点再生入口：仅重写 characters/hero_*_sheet.png + 拼接 MANIFEST 行。
-    不清空、不触碰其它子树（全量 main() 依赖 M2 批次武器并集修复后再用）。"""
+    不清空、不触碰其它子树（全量再生用 main()，m2-t21 起已恢复可用）。"""
     SPEC.clear()
     gen_hero_walk_sheets()
     _manifest_splice_hero_sheets()
@@ -1261,19 +1262,9 @@ ICON_TEMPLATES = {
 }
 
 
-def gen_weapon_icons():
-    weapons = json.load(open(ROOT / "data" / "weapons.json", encoding="utf-8"))
-    for wid, row in weapons.items():
-        img = canvas(16, 16)
-        blade = C(ELEM_COL.get(str(row.get("element", "none")), "#c8d0dc"))
-        acc = C(RARITY.get(str(row.get("rarity", "common")), "#cfd2d6"))
-        ICON_TEMPLATES.get(str(row.get("category", "pistol")), ICON_TEMPLATES["pistol"])(img, blade)
-        # 稀有度角标
-        rect(img, 13, 0, 15, 2, acc)
-        outline(img)
-        save(img, f"ui/weapons/{wid}.png",
-             f"武器图标「{row.get('name', wid)}」({row.get('category')}/{row.get('rarity')})",
-             "hud.gd:264-268 武器槽/商店卡片均为纯文字", "左上角标为稀有度色, 右下角标为元素色")
+# 注（m2-t21）：武器图标/手持图唯一出口已移 gen_placeholder_art_m2.gen_weapons_m2
+# （data/weapons.json 115 行数据驱动）——本节 ICON_TEMPLATES 与 hh_* 画笔模板保留，
+# 供 M2 批次经 base 注入复用；M1 侧不再单独出武器图（防同文件双写）。
 
 
 HH_METAL, HH_DARK, HH_WOOD, HH_WOOD_L = C("#c8d0dc"), C("#7a8496"), C("#8a6a3c"), C("#a8854e")
@@ -1372,24 +1363,8 @@ templates_hh = {
     "melee": hh_sword,  # 双匕按 is_melee+短刃特判
 }
 
-def gen_weapons_handheld():
-    """手持武器外观：16x16 朝右(0°)，持握点≈(4,8)。
-    接线约定：WeaponRig 下挂 Sprite2D，rotation=aim.angle()；朝左半球 flip_v=true
-    （对应 _fire_slot mirrored 副手齐射）；枪口 ≈ 玩家中心 +8px（weapons.json muzzle）。"""
-    weapons = json.load(open(ROOT / "data" / "weapons.json", encoding="utf-8"))
-    for wid, row in weapons.items():
-        img = canvas(16, 16)
-        elem = C(ELEM_COL.get(str(row.get("element", "none")), "#8a97ad"))
-        acc = C(RARITY.get(str(row.get("rarity", "common")), "#cfd2d6"))
-        if wid == "shuangbi":
-            hh_dagger(img, elem, acc)
-        else:
-            templates_hh.get(str(row.get("category", "pistol")), hh_pistol)(img, elem, acc)
-        outline(img)
-        save(img, f"weapons/{wid}.png",
-             f"手持武器「{row.get('name', wid)}」({row.get('category')})",
-             "weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移",
-             "朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度")
+# 注（m2-t21）：手持武器外观同图标——唯一出口在 gen_placeholder_art_m2.gen_weapons_m2；
+# 本节 templates_hh/hh_dagger/hh_pistol 画笔保留供 M2 批次注入复用。
 
 
 def gen_batch2():
@@ -1777,8 +1752,8 @@ def write_manifest():
         "",
         "- 脚本：`tools/gen_placeholder_art.py`（M1 批次+公共库，自动串联 `tools/gen_placeholder_art_m2.py`）",
         "- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。",
-        "- **M2 新内容 slug 为暂定拼音**（附录只有中文名无 id），待 `data/*.json` M2 行落地后如需改名，改脚本表 slug 重跑即可。",
-        "- Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；重跑只覆盖本目录。",
+        "- **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；仅 M2 Boss 5 种 slug 为附录 E 暂定名（data 行未落地）。",
+        "- Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；全量再生=先生成后按本清单清理陈旧（失败不毁库）。",
         "- 联络表：`_preview.png`（4x 放大，人工检查用，勿在游戏内引用）。",
     ]
     (OUT / "MANIFEST.md").write_text("\n".join(lines), encoding="utf-8")
@@ -1806,11 +1781,27 @@ def write_preview():
     sheet.save(OUT / "_preview.png")
 
 
+def _prune_stale():
+    """成功全量生成后清掉不在 SPEC 的残留（m2-t21 时序修复）。
+
+    旧实现"先清空目录再串联生成"是破坏性时序：生成中途断言/异常即把 art/generated
+    毁成半空库（M2 批次武器断链即此案例，全量入口一度禁跑）。改为先生成后清理：
+    - 生成失败时旧文件保持可用（可重跑修复），不再有"清空后写一半"窗口；
+    - 全量成功后按 SPEC 清单清除陈旧残留（如 m2-t21 废除的 75 武器暂定 slug），
+      终态与"清空重建"逐字节等价（每个 SPEC 条目每轮都被覆盖重写）。
+    保留项：MANIFEST.md/_preview.png（本轮末统一重写）与 .gitkeep。"""
+    keep = {"MANIFEST.md", "_preview.png", ".gitkeep"}
+    for rel, *_rest in SPEC:
+        keep.add(rel)
+    removed = []
+    for p in OUT.rglob("*"):
+        if p.is_file() and p.relative_to(OUT).as_posix() not in keep:
+            removed.append(p.relative_to(OUT).as_posix())
+            p.unlink()
+    return removed
+
+
 def main():
-    if OUT.exists():
-        for p in OUT.rglob("*"):
-            if p.is_file() and p.name != ".gitkeep" and p.name != "MANIFEST.md":
-                p.unlink()
     SPEC.clear()
     gen_hero_vanguard()
     gen_hero_ranger()
@@ -1842,8 +1833,6 @@ def main():
     gen_ui_icons()
     gen_buff_icons()
     gen_drink_icons()
-    gen_weapon_icons()
-    gen_weapons_handheld()
     gen_misc()
     gen_batch2()
     gen_batch3()
@@ -1857,9 +1846,11 @@ def main():
     except Exception:
         import traceback
         traceback.print_exc()   # M2 批次失败可见，但不妨碍 M1 产物落地
+        raise                    # m2-t21：失败即中止——陈旧清理绝不能在半量库上执行
+    removed = _prune_stale()
     write_manifest()
     write_preview()
-    print(f"生成 {len(SPEC)} 个素材 -> {OUT}")
+    print(f"生成 {len(SPEC)} 个素材 -> {OUT}（清理陈旧残留 {len(removed)} 项）")
 
 
 if __name__ == "__main__":

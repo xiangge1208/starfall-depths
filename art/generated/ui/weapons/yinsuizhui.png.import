@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c47rgdwo0wb3w"
-path="res://.godot/imported/yahuo_zhe.png-309d0c1e64707728b29031aadbaf95eb.ctex"
+uid="uid://bxadms3h5av3q"
+path="res://.godot/imported/yinsuizhui.png-224762e432f9422440862c2018b88c69.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/yahuo_zhe.png"
-dest_files=["res://.godot/imported/yahuo_zhe.png-309d0c1e64707728b29031aadbaf95eb.ctex"]
+source_file="res://art/generated/ui/weapons/yinsuizhui.png"
+dest_files=["res://.godot/imported/yinsuizhui.png-224762e432f9422440862c2018b88c69.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwrl7ou7v4dqa"
-path="res://.godot/imported/yinsuzhui.png-08def76f1a4dce302cd3a82ec8d9a7c0.ctex"
+uid="uid://d2f0gtv01cppj"
+path="res://.godot/imported/tantiaokuwu.png-0f8b1138a1ad76abd5d3b43a4194d659.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/yinsuzhui.png"
-dest_files=["res://.godot/imported/yinsuzhui.png-08def76f1a4dce302cd3a82ec8d9a7c0.ctex"]
+source_file="res://art/generated/weapons/tantiaokuwu.png"
+dest_files=["res://.godot/imported/tantiaokuwu.png-0f8b1138a1ad76abd5d3b43a4194d659.ctex"]
 
 [params]
 

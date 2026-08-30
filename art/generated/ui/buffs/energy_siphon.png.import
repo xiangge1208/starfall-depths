@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7etaxvfshw3l"
-path="res://.godot/imported/xiaomiehaojiao.png-5e5590bb23f1c0431f5ff50fab872b76.ctex"
+uid="uid://be5ioacr0heqc"
+path="res://.godot/imported/energy_siphon.png-90048b05f96a2f14345ee1e0f39a8b41.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/xiaomiehaojiao.png"
-dest_files=["res://.godot/imported/xiaomiehaojiao.png-5e5590bb23f1c0431f5ff50fab872b76.ctex"]
+source_file="res://art/generated/ui/buffs/energy_siphon.png"
+dest_files=["res://.godot/imported/energy_siphon.png-90048b05f96a2f14345ee1e0f39a8b41.ctex"]
 
 [params]
 

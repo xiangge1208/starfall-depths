@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dp6bodoqn8oyg"
-path="res://.godot/imported/zheshe_zhe.png-1ae70ffd46b9713ad73d3a9139c78024.ctex"
+uid="uid://qfr3y5jvycsm"
+path="res://.godot/imported/yaniemhaojiao.png-b351be4fb72ee26f36b18b1f81c5b607.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/zheshe_zhe.png"
-dest_files=["res://.godot/imported/zheshe_zhe.png-1ae70ffd46b9713ad73d3a9139c78024.ctex"]
+source_file="res://art/generated/weapons/yaniemhaojiao.png"
+dest_files=["res://.godot/imported/yaniemhaojiao.png-b351be4fb72ee26f36b18b1f81c5b607.ctex"]
 
 [params]
 

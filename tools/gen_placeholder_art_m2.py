@@ -5,8 +5,10 @@
     python tools/gen_placeholder_art.py      # 已自动串联本脚本（推荐入口）
     python tools/gen_placeholder_art_m2.py   # 单独重跑 M2 批次（先调 M1 全量再生）
 
-命名约定: 附录 A/B/C 只有中文名没有 id，新素材 slug 为**暂定拼音**，
-待 M2 data/*.json 行落地后如需改名，改本表 slug 重跑即可（清单同步更新）。
+命名约定（m2-t21 收编后口径）:
+    - 武器/敌人/增益 id 一律以 data/*.json 落地行为准（数据驱动出图，暂定拼音 slug 废除）；
+    - 仅 M2 Boss 5 种（gem_queen 等）尚无 data 行，slug 仍为附录 E 暂定名，
+      待 Boss 数据卡落地后如需改名，改本表 slug 重跑即可（清单同步更新）。
 """
 import json
 import math
@@ -19,84 +21,11 @@ base = None
 OUT = None
 
 # ---------------------------------------------------------------- 武器 115
-# (slug, 名称, 类别, 稀有, 元素) —— 75 把新增；其余 40 把从 data/weapons.json 按 id 复用。
-NEW_WEAPONS = [
-    ("zhulun_zhengwu", "左轮·正午", "pistol", "uncommon", "none"),
-    ("yahuo_zhe", "哑火者", "pistol", "epic", "none"),
-    ("yingwan", "影丸", "pistol", "epic", "none"),
-    ("zhusi", "蛛丝", "smg", "rare", "none"),
-    ("zheshe_zhe", "折射者", "smg", "epic", "none"),
-    ("bingzhuiji", "冰锥机", "smg", "epic", "ice"),
-    ("duyepensa", "毒液喷洒", "smg", "epic", "poison"),
-    ("cibao", "磁暴", "smg", "epic", "shock"),
-    ("zhongyanjicu", "终焉急促", "smg", "legend", "none"),
-    ("xinggui", "星轨", "rifle", "rare", "none"),
-    ("laobing", "老兵", "rifle", "epic", "none"),
-    ("caijue", "裁决", "rifle", "legend", "none"),
-    ("shuangguanliyi", "双管礼仪", "shotgun", "uncommon", "none"),
-    ("tanshexian", "弹射霰", "shotgun", "rare", "none"),
-    ("suijingpao", "碎晶炮", "shotgun", "epic", "ice"),
-    ("xiaomiehaojiao", "湮灭号角", "shotgun", "legend", "none"),
-    ("pojixuanding", "迫击·悬顶", "sniper", "rare", "none"),
-    ("yinsuzhui", "音速锥", "sniper", "rare", "none"),
-    ("changfeng", "长风", "sniper", "rare", "none"),
-    ("huoshenzhongpao", "火神重炮", "sniper", "epic", "fire"),
-    ("duantoutai", "断头台", "sniper", "epic", "none"),
-    ("guanri", "贯日", "sniper", "epic", "none"),
-    ("liedizhe", "裂地者", "sniper", "epic", "none"),
-    ("xingyunpao", "星陨炮★", "sniper", "legend", "none"),
-    ("dianciguidao", "电磁轨道", "sniper", "legend", "shock"),
-    ("shenpanzhiri", "审判之日", "sniper", "legend", "none"),
-    ("guanglengshoudian", "光棱手电", "laser", "uncommon", "none"),
-    ("xiangweirenguang", "相位刃光", "laser", "rare", "none"),
-    ("qiegezhe", "切割者", "laser", "rare", "none"),
-    ("lengjingquanzhang", "棱镜权杖", "laser", "epic", "none"),
-    ("dianhubian", "电弧鞭", "laser", "epic", "shock"),
-    ("chuanlengjing", "穿棱镜", "laser", "epic", "none"),
-    ("caihongfashengqi", "彩虹发生器", "laser", "legend", "none"),
-    ("guidaobiaojiqi", "轨道标记器", "laser", "legend", "none"),
-    ("jingjizhang", "荆棘杖", "staff", "rare", "poison"),
-    ("yunshizhang", "陨石杖", "staff", "epic", "fire"),
-    ("xinghuizhang", "星辉杖", "staff", "epic", "none"),
-    ("jingmianzhang", "镜面杖", "staff", "epic", "none"),
-    ("zhongyanzhizhang", "终焉之杖", "staff", "legend", "none"),
-    ("liannu", "连弩", "bow", "uncommon", "none"),
-    ("baoliejian", "爆裂箭", "bow", "rare", "fire"),
-    ("huixuanrengong", "回旋刃弓", "bow", "epic", "none"),
-    ("leimingnu", "雷鸣弩", "bow", "epic", "shock"),
-    ("fenliejian", "分裂箭", "bow", "epic", "none"),
-    ("guanxinggong", "贯星弓", "bow", "legend", "none"),
-    ("shoulei", "手雷", "throwable", "common", "none"),
-    ("ranshaoping", "燃烧瓶", "throwable", "uncommon", "fire"),
-    ("duqiguan", "毒气罐", "throwable", "uncommon", "poison"),
-    ("jishulei", "集束雷", "throwable", "rare", "none"),
-    ("bingdinglei", "冰冻雷", "throwable", "rare", "ice"),
-    ("huixuanbiao", "回旋镖", "throwable", "rare", "none"),
-    ("tantiaokunwu", "弹跳苦无", "throwable", "rare", "none"),
-    ("diancimaichonglei", "电磁脉冲雷", "throwable", "epic", "shock"),
-    ("heidongfashengqi", "黑洞发生器", "throwable", "legend", "none"),
-    ("xingheliudan", "星核榴弹", "throwable", "legend", "none"),
-    ("duyaduaren", "毒牙短刃", "melee", "uncommon", "poison"),
-    ("changqiang", "长枪", "melee", "uncommon", "none"),
-    ("lieyanjian", "烈焰剑", "melee", "rare", "fire"),
-    ("bingshuangjujian", "冰霜巨剑", "melee", "rare", "ice"),
-    ("lianchui", "链锤", "melee", "rare", "none"),
-    ("xuewenci", "血蚊刺", "melee", "epic", "none"),
-    ("zhuixingdajian", "坠星大剑", "melee", "epic", "none"),
-    ("guangjian", "光剑", "melee", "epic", "none"),
-    ("leishenzhichui", "雷神之锤★", "melee", "legend", "shock"),
-    ("zhanjiandao", "斩舰刀★", "melee", "legend", "none"),
-    ("cilishoutao", "磁力手套", "special", "uncommon", "none"),
-    ("hudunfashengqi", "护盾发生器", "special", "rare", "none"),
-    ("kuileiling", "傀儡铃", "special", "rare", "none"),
-    ("weixiubi", "维修臂", "special", "rare", "none"),
-    ("lantuhanqiang", "蓝图焊枪", "special", "rare", "none"),
-    ("fenshenxinhaodan", "分身信号弹", "special", "epic", "none"),
-    ("chuansongbiaoqiang", "传送标枪", "special", "epic", "none"),
-    ("wurenjimujian", "无人机母舰", "special", "epic", "none"),
-    ("shijianshalou", "时间沙漏", "special", "legend", "none"),
-    ("xiaomiehexin", "湮灭核心★", "special", "legend", "none"),
-]
+# m2-t21 管线收编（裁定⑪）：武器 id/名称/类别/稀有/元素以 data/weapons.json（T6 附录 A
+# 115 行）为**唯一权威**，逐行读表驱动出图；旧 NEW_WEAPONS 75 暂定拼音 slug 全部废除
+# （65 个与正式 id 重合、10 个非正式 slug 已随全量再生清出 art/generated）。
+# 数据类别 "throw"（附录 A 投掷）映射模板键 "throwable"。
+WEAPON_CAT_KEYS = {"throw": "throwable"}
 
 def _hh_sniper(img, elem, acc):
     rect(img, 1, 7, 3, 9, WOOD)            # 托
@@ -136,38 +65,39 @@ HH_TEMPLATES_M2 = {"sniper": _hh_sniper, "throwable": _hh_throwable, "special": 
 
 
 def gen_weapons_m2():
-    """115 把武器图标 + 手持图（M1 40 把复用 data/weapons.json 行, M2 新增 75 把）。"""
+    """115 把武器图标 + 手持图 —— data/weapons.json 全表数据驱动（m2-t21 收编，
+    武器美术唯一出口；M1 侧 gen_weapon_icons/gen_weapons_handheld 已删除防双写）。"""
     existing = json.load(open(OUT.parent.parent / "data" / "weapons.json", encoding="utf-8"))
     rows = []
     for wid, row in existing.items():
         rows.append((wid, str(row.get("name", wid)), str(row.get("category", "pistol")),
                      str(row.get("rarity", "common")), str(row.get("element", "none"))))
-    for slug, name, cat, rar, elem in NEW_WEAPONS:
-        rows.append((slug, name, cat, rar, elem))
-    assert len(rows) == 115, f"武器总数应为 115, 实际 {len(rows)}"
+    assert len(rows) == 115, f"附录 A 武器全集应为 115 把, data/weapons.json 实际 {len(rows)} 行"
     for wid, name, cat, rar, elem in rows:
+        key = WEAPON_CAT_KEYS.get(cat, cat)
         elem_c = C(base.ELEM_COL.get(elem, "#8a97ad"))
         acc = C(RARITY.get(rar, "#cfd2d6"))
         star = "（熔铸限定★）" if "★" in name else ""
         # 图标
         img = canvas(16, 16)
-        fn = base.ICON_TEMPLATES.get(cat)
+        fn = base.ICON_TEMPLATES.get(key)
         if fn is not None:
             fn(img, elem_c)
         else:  # M2 新类别: 狙击/投掷/特殊
-            HH_TEMPLATES_M2[cat](img, elem_c, acc)
+            HH_TEMPLATES_M2[key](img, elem_c, acc)
         rect(img, 13, 0, 15, 2, acc)   # 稀有度角标
         outline(img)
         save(img, f"ui/weapons/{wid}.png", f"武器图标「{name.strip('★')}」({cat}/{rar}){star}",
-             "附录 A 全表; M2 新增 75 把为暂定 slug", "左上角标=稀有度, 刀身/弹头色=元素")
+             "附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编）",
+             "左上角标=稀有度, 刀身/弹头色=元素")
         # 手持
         img = canvas(16, 16)
-        if cat in HH_TEMPLATES_M2:
-            HH_TEMPLATES_M2[cat](img, elem_c, acc)
+        if key in HH_TEMPLATES_M2:
+            HH_TEMPLATES_M2[key](img, elem_c, acc)
         elif wid == "shuangbi":
             base.hh_dagger(img, elem_c, acc)
         else:
-            base.templates_hh.get(cat, base.hh_pistol)(img, elem_c, acc)
+            base.templates_hh.get(key, base.hh_pistol)(img, elem_c, acc)
         outline(img)
         save(img, f"weapons/{wid}.png", f"手持武器「{name.strip('★')}」({cat}){star}",
              "weapon_rig.gd 无武器外观; muzzle=8px", "朝右0°, 持握点(4,8), 朝左 flip_v")

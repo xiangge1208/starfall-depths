@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cefhwbt6nwjyl"
-path="res://.godot/imported/bingdinglei.png-234324d8a739fd7327c42f5ad59128fe.ctex"
+uid="uid://vx1hbefoj0er"
+path="res://.godot/imported/yahuozhe.png-84341a1ceb89da87ea999c4f3c33dfe2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/bingdinglei.png"
-dest_files=["res://.godot/imported/bingdinglei.png-234324d8a739fd7327c42f5ad59128fe.ctex"]
+source_file="res://art/generated/ui/weapons/yahuozhe.png"
+dest_files=["res://.godot/imported/yahuozhe.png-84341a1ceb89da87ea999c4f3c33dfe2.ctex"]
 
 [params]
 

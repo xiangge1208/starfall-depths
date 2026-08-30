@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cjywbjhyr3nfd"
-path="res://.godot/imported/tantiaokunwu.png-3bc9104c1fab7e1d56eb830e74dc36a1.ctex"
+uid="uid://byclls784l0on"
+path="res://.godot/imported/yaniemhaojiao.png-e233f6dffc454019f8ed6a0a6186136f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/tantiaokunwu.png"
-dest_files=["res://.godot/imported/tantiaokunwu.png-3bc9104c1fab7e1d56eb830e74dc36a1.ctex"]
+source_file="res://art/generated/ui/weapons/yaniemhaojiao.png"
+dest_files=["res://.godot/imported/yaniemhaojiao.png-e233f6dffc454019f8ed6a0a6186136f.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dejwnev7tudg3"
-path="res://.godot/imported/zheshe_zhe.png-ca95a0f331ab45befa8778aa61f53792.ctex"
+uid="uid://bv08hu8n08bqv"
+path="res://.godot/imported/zuolunzhengwu.png-8083cb977054f2b4b26aa851313d19eb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/weapons/zheshe_zhe.png"
-dest_files=["res://.godot/imported/zheshe_zhe.png-ca95a0f331ab45befa8778aa61f53792.ctex"]
+source_file="res://art/generated/ui/weapons/zuolunzhengwu.png"
+dest_files=["res://.godot/imported/zuolunzhengwu.png-8083cb977054f2b4b26aa851313d19eb.ctex"]
 
 [params]
 

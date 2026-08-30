@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bovl7bqk27sfq"
-path="res://.godot/imported/tantiaokunwu.png-e2d8eba1ed5460cdf2de19663e7f97e4.ctex"
+uid="uid://ce1yd164brwxg"
+path="res://.godot/imported/bingdonglei.png-76c08ad9308aa500d7cf16fa3fcdaeca.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/weapons/tantiaokunwu.png"
-dest_files=["res://.godot/imported/tantiaokunwu.png-e2d8eba1ed5460cdf2de19663e7f97e4.ctex"]
+source_file="res://art/generated/weapons/bingdonglei.png"
+dest_files=["res://.godot/imported/bingdonglei.png-76c08ad9308aa500d7cf16fa3fcdaeca.ctex"]
 
 [params]
 

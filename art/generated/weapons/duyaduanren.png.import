@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bjrnkevsoi0qv"
-path="res://.godot/imported/xiaomiehexin.png-901f3bcee431a191bd4068b2b1205045.ctex"
+uid="uid://bmdvvdoopljp5"
+path="res://.godot/imported/duyaduanren.png-89eff523f79bfd6e37efb975aa13e136.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/weapons/xiaomiehexin.png"
-dest_files=["res://.godot/imported/xiaomiehexin.png-901f3bcee431a191bd4068b2b1205045.ctex"]
+source_file="res://art/generated/weapons/duyaduanren.png"
+dest_files=["res://.godot/imported/duyaduanren.png-89eff523f79bfd6e37efb975aa13e136.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bfveoqq5jbrvd"
-path="res://.godot/imported/duyaduaren.png-fbf736a6c12471fe68ce12e56859a516.ctex"
+uid="uid://butdty8ldnsl"
+path="res://.godot/imported/yinsuizhui.png-6897787d2e8eb0e8d678f4ac5d97da80.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/ui/weapons/duyaduaren.png"
-dest_files=["res://.godot/imported/duyaduaren.png-fbf736a6c12471fe68ce12e56859a516.ctex"]
+source_file="res://art/generated/weapons/yinsuizhui.png"
+dest_files=["res://.godot/imported/yinsuizhui.png-6897787d2e8eb0e8d678f4ac5d97da80.ctex"]
 
 [params]
 

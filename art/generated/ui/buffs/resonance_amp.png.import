@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3u7elu1ux4le"
-path="res://.godot/imported/duyaduaren.png-0831aa11d9ef40e6c30b33e94b45d551.ctex"
+uid="uid://tqao0hj1qif8"
+path="res://.godot/imported/resonance_amp.png-ae3cd99f6f2ef5555e9e9f4b656f0eae.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/weapons/duyaduaren.png"
-dest_files=["res://.godot/imported/duyaduaren.png-0831aa11d9ef40e6c30b33e94b45d551.ctex"]
+source_file="res://art/generated/ui/buffs/resonance_amp.png"
+dest_files=["res://.godot/imported/resonance_amp.png-ae3cd99f6f2ef5555e9e9f4b656f0eae.ctex"]
 
 [params]
 

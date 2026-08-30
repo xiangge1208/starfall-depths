@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://pw7meewn75w0"
-path="res://.godot/imported/yahuo_zhe.png-4af92898bb833974f2ed731456badf92.ctex"
+uid="uid://dreugkd11tlfe"
+path="res://.godot/imported/glutton.png-f5c28c40e283fe8515c9369cc517ebf9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/weapons/yahuo_zhe.png"
-dest_files=["res://.godot/imported/yahuo_zhe.png-4af92898bb833974f2ed731456badf92.ctex"]
+source_file="res://art/generated/ui/buffs/glutton.png"
+dest_files=["res://.godot/imported/glutton.png-f5c28c40e283fe8515c9369cc517ebf9.ctex"]
 
 [params]
 

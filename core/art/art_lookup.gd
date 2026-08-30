@@ -235,6 +235,8 @@ static func apply_player_sprite(player: Node2D) -> void:
 	if t == null:
 		return
 	spr.texture = t
+	spr.hframes = 1                    # m2-t21（T17 Minor①）：写回站立像须清帧表切片，防 4x4 残留裁切
+	spr.vframes = 1
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.scale = Vector2(0.75, 0.75)
 
