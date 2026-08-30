@@ -22,6 +22,8 @@ extends Node2D
 
 const TILE := 16
 const WALL_T := 16
+## m2-t4 A2 生态（GDD §10）：冰面补丁常量演示尺寸（A2 模板 JSON biome 字段后续卡驱动）。
+const A2_ICE_PATCH_PX := Vector2(96, 64)
 const PASSAGE_HALF := 16.0            # 走廊通行半宽（门洞 32px，M0 同款）
 const GATE_T := 16.0                  # 闸门沿走廊向厚度
 const SPAWN_MIN_DOOR_PX := 64.0
@@ -76,6 +78,10 @@ var use_real_guests := true
 ## pos: Vector2) -> Variant（返回 EnemyBase 即接管该嘉宾的生成）。
 var guest_spawner := Callable()
 var buffs_manager: BuffManager = null
+## m2-t4 A2 生态挂载状态：暗视野组件 + 冰面区域（set_biome_a2 挂载/卸载）。
+var biome_a2 := false
+var biome_fx: BiomeFx = null
+var biome_ice: IceZone = null
 
 var _rooms: Dictionary = {}           # int id -> FloorRoom
 var _gates: Dictionary = {}           # "min|max" -> {shape, panel, a, b, open}
@@ -122,10 +128,46 @@ func bind_facility_state(drink_state: Dictionary, used_shrine_kinds: Dictionary)
 	_used_shrine_kinds = used_shrine_kinds
 
 
+## m2-t4 A2 生态开关（GDD §10 A2「暗视野 + 冰面打滑」）：true 挂暗视野组件
+## （CanvasModulate + 玩家光圈 + 敌人剪影下限）并给每房铺一块冰面补丁；false 卸载
+## 并恢复（敌人 modulate 复位、玩家 friction_mult 回 1.0）。幂等：重复同值调用 no-op。
+## 冰面补丁现为常量演示（每房内域中心 A2_ICE_PATCH_PX）；A2 模板 JSON 的 biome 字段
+## 由后续卡替换此处数据源。
+func set_biome_a2(enabled: bool) -> void:
+	if biome_a2 == enabled:
+		return
+	biome_a2 = enabled
+	if enabled:
+		if player == null:
+			push_error("FloorScene.set_biome_a2: no player")
+			biome_a2 = false
+			return
+		biome_fx = BiomeFx.new()
+		biome_fx.name = "BiomeA2Fx"
+		biome_fx.setup(player)
+		add_child(biome_fx)
+		biome_ice = IceZone.new()
+		for id in _rooms:
+			var room: FloorRoom = _rooms[id]
+			var inner := room.outer.grow(-WALL_T)
+			biome_ice.add_zone(Rect2(inner.get_center() - A2_ICE_PATCH_PX / 2.0, A2_ICE_PATCH_PX))
+	else:
+		if biome_fx != null and is_instance_valid(biome_fx):
+			biome_fx.restore_enemies()
+			biome_fx.queue_free()
+		biome_fx = null
+		biome_ice = null
+		if player != null and is_instance_valid(player):
+			player.friction_mult = 1.0
+
+
 func _physics_process(_delta: float) -> void:
 	if not _built or player == null:
 		return
 	var frame := Engine.get_physics_frames()
+	# m2-t4 A2 冰面：帧级进出接缝（进域 ×0.25 / 出域回 1.0，只写玩家）。
+	if biome_ice != null and player != null:
+		biome_ice.tick(player)
 	var room: FloorRoom = _rooms.get(flow.current_room)
 	if room != null and room.combat != null:
 		for e in room.enemies:
