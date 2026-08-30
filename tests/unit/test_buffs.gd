@@ -393,8 +393,8 @@ func test_apply_to_player_writes_new_defense_meta_keys() -> void:
 	bm.pick("dash_extend")
 	bm.pick("phoenix")
 	bm.apply_to_player(p)
-	assert_int(int(p.get_meta("buff_anti_fire", 0))).is_equal(1)          # T10 岩浆抗性
-	assert_int(int(p.get_meta("buff_anti_ice", 0))).is_equal(1)           # T4 冰面免疫
+	assert_int(int(p.get_meta("buff_anti_fire", 0))).is_equal(1)          # 消费方待接线 → T35
+	assert_int(int(p.get_meta("buff_anti_ice", 0))).is_equal(1)           # 同上（T35 接冰面/岩浆抗性）
 	assert_int(int(p.get_meta("buff_anti_poison", 0))).is_equal(1)
 	assert_int(int(p.get_meta("buff_hurt_iframe_bonus_ticks", 0))).is_equal(15)
 	assert_float(float(p.get_meta("buff_bullet_dmg_taken_pct", 0.0))).is_equal_approx(-0.08, 0.0001)
@@ -549,3 +549,21 @@ func test_aggregate_sums_new_keys_and_flags() -> void:
 	assert_int(bm.aggregate()["anti_fire"]).is_equal(1)
 	assert_int(bm.aggregate()["anti_ice"]).is_equal(0)         # 未取 flag 中性 0
 	assert_float(bm.aggregate()["wealth_pct"]).is_equal_approx(0.0, 0.0001)
+
+func test_flag_keys_aggregate_max_not_sum() -> void:
+	# 评审 Major 修复②：flag 键 0/1 语义——重复拾取聚合取 max（非求和），恒 0/1。
+	# anti_* 为白卡可重复拾；element_vision 为蓝卡非唯一亦可重复；phoenix 唯一不可重复。
+	var bm := _mgr()
+	bm.pick("anti_fire")
+	bm.pick("anti_fire")                  # 抗火 ×2 → 聚合仍为 1（不是 2）
+	bm.pick("element_vision")
+	bm.pick("element_vision")
+	assert_int(bm.aggregate()["anti_fire"]).is_equal(1)
+	assert_int(bm.aggregate()["element_vision"]).is_equal(1)
+	assert_int(bm.aggregate()["anti_ice"]).is_equal(0)
+	# 落地 meta 同样恒 1
+	var p: Player = auto_free(Player.new())
+	p._test_init()
+	bm.apply_to_player(p)
+	assert_int(int(p.get_meta("buff_anti_fire", 0))).is_equal(1)
+	assert_int(int(p.get_meta("buff_element_vision", 0))).is_equal(1)

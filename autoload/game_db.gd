@@ -39,28 +39,37 @@ const BUFF_OPTIONAL := {}
 const BUFF_RARITIES: Array[String] = ["common", "uncommon", "rare"]
 # effects 键白名单（t9 控制器决议 + m2-t12 附录 C 全量键位对齐）：
 # 百分比键取数值，整型键取 int（_normalize_row 已还原）。
-# m2-t12 新增键消费方（消费卡号）：
-#   hunter    dmg_vs_statused_pct        → M1 CombatSystem 命中结算（目标异常时伤害乘区）
-#   resonance_amp resonance_radius_pct / resonance_duration_ticks
-#                                          → M1 共鸣结算 AoE 扩散（EnemyBase 读 resonance_event）
-#   avenger   vengeance_pct / vengeance_ticks → M1 CombatSystem 输出乘区（受击后窗口）
-#   anti_*    anti_fire/anti_ice/anti_poison → T10 A3 岩浆（抗性 meta 减半）/
-#                                          T4 冰面免疫 / M1 StatusComponent 免疫系
-#   nerve_reflex hurt_iframe_bonus_ticks  → M1 Player.take_hit_ctx（HURT_IFRAME_TICKS 加算）
-#   carapace  bullet_dmg_taken_pct        → M1 Player.take_hit_ctx（弹幕来伤乘区 1+pct）
-#   thorn_armor thorns_contact_dmg        → M1 接触伤路径（EnemyBase/RoomCombat 反伤）
-#   dash_extend roll_distance_pct         → M1 Player.start_roll（ROLL_DIST 乘区）
-#   phoenix   phoenix_flag                → M1 Player.take_hit_ctx 致死分支（每局 1 次）
-#   wealth    wealth_pct                  → M1 Pickup coin on_collect 乘区（天赋同义键 T15/T31）
-#   glutton   drink_effect_pct            → M1 DrinkMachine._apply_drink（效果值乘区）
-#   pickup_magnet pickup_radius_pct       → M1 Pickup.MAGNET_RANGE_PX 乘区（天赋同义键 T15；掉落面 T20）
-#   energy_siphon kill_energy_chance/amount → M1 击杀结算钩（RoomCombat 敌死亡）
-#   heart_sense heart_sense_pct           → M1 红心掉落掷签（掉落盐流 heart 权重乘区）
-#   ammo_convert passive_energy_interval_ticks/amount → M1 房间帧循环（周期回蓝）
-#   haggle    haggle_pct                  → M1 ShopLogic 商店结算乘区（1+pct，负值=降价）
-#   element_vision element_vision + telegraph_bonus_ticks → M1 敌方预警展示 +
-#                                          T7 敌激光警示线（预警 +0.15s=9t）
-#   resonance_vision resonance_vision     → 敌人异常高亮渲染钩子（随 T21 敌人渲染接线）
+# m2-t12 新增 25 键【消费方待接线 → T35】（编排者已立卡：meta 生效接线，含
+# player/pickup/shop_logic/drink_machine/weapon_rig/fx 的 get_meta("buff_<key>") 读取）。
+# 【评审 Major 修复① 注记改真】逐键核实：截至本 commit，下列键在代码库中零消费
+# （无任何 get_meta("buff_*") 调用；T4 ice_floor/biome_fx 不读 meta，T10 岩浆未交付，
+# Player.take_hit_ctx 用固定 HURT_IFRAME_TICKS 常量、Pickup/ShopLogic 均常量结算）。
+# 各键原注记声称的「M1 既有消费方」均为失实，改为目标消费模块 + T35 待接线状态：
+#   攻击侧（rig meta；目标消费 = CombatSystem 命中/共鸣结算路径）：
+#     hunter         dmg_vs_statused_pct / resonance_amp resonance_radius_pct +
+#                    resonance_duration_ticks / avenger vengeance_pct + vengeance_ticks
+#   防御侧（player meta）：
+#     抗性三键       anti_fire / anti_ice / anti_poison（目标 = StatusComponent 免疫 +
+#                    岩浆/冰面抗性；T4 冰面、T10 岩浆在 T35 一并接 meta）
+#     nerve_reflex   hurt_iframe_bonus_ticks（目标 = Player 受击无敌帧加算）
+#     carapace       bullet_dmg_taken_pct（目标 = Player 弹幕来伤乘区 1+pct）
+#     thorn_armor    thorns_contact_dmg（目标 = 接触伤路径反伤）
+#     dash_extend    roll_distance_pct（目标 = Player.start_roll 翻滚距离乘区）
+#     phoenix        phoenix_flag（目标 = Player 致死结算保留 1 HP，每局 1 次）
+#   资源/功能侧（player meta）：
+#     wealth         wealth_pct（目标 = Pickup coin 结算乘区）
+#     glutton        drink_effect_pct（目标 = DrinkMachine 效果值乘区）
+#     pickup_magnet  pickup_radius_pct（目标 = Pickup.MAGNET_RANGE_PX 乘区）
+#     energy_siphon  kill_energy_chance + kill_energy_amount（目标 = 击杀结算钩）
+#     heart_sense    heart_sense_pct（目标 = 红心掉落掷签乘区）
+#     ammo_convert   passive_energy_interval_ticks + passive_energy_amount（目标 = 周期回蓝）
+#     haggle         haggle_pct（目标 = ShopLogic 商店结算乘区 1+pct；负值 = 降价，
+#                    同 roll_cd_pct 约定。消费方约定【评审修复③】：T35 落地时须
+#                    clamp 到 [-0.5, 0] 或更窄——两三个议价叠加的理论极端值不得
+#                    产生 ≤0 价格或正收益）
+#     element_vision element_vision + telegraph_bonus_ticks（目标 = 敌方预警展示，
+#                    数值部分 = 预警 +0.15s = 9t；「预警线更醒目」视觉部分由消费方渲染）
+#     resonance_vision resonance_vision（目标 = 敌人异常高亮渲染）
 const BUFF_PCT_KEYS: Array[String] = [
 	"move_speed_pct", "crit_pct", "crit_dmg_pct", "atk_speed_pct",
 	"bullet_speed_pct", "status_rate_pct", "roll_cd_pct", "crit_detonate_pct",
@@ -77,7 +86,8 @@ const BUFF_INT_KEYS: Array[String] = [
 	"thorns_contact_dmg", "passive_energy_interval_ticks", "passive_energy_amount",
 	"kill_energy_amount", "telegraph_bonus_ticks",
 ]
-# 0/1 语义 flag 键（免疫系/视界系/不死鸟）：叠加无意义，幅度仅 0 或 1（m2-t12）
+# 0/1 语义 flag 键（免疫系/视界系/不死鸟）：行值仅 0 或 1；聚合取 max
+# （BuffManager.aggregate，重复拾取不叠加，结果恒 0/1）——m2-t12 评审修复②。
 const BUFF_FLAG_KEYS: Array[String] = [
 	"anti_fire", "anti_ice", "anti_poison", "phoenix_flag",
 	"element_vision", "resonance_vision",
