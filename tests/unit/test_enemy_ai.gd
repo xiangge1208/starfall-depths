@@ -622,3 +622,70 @@ func test_m2_marsh_toad_swallows_bullets_and_spits_back() -> void:
 		if int(cfg["damage"]) != 4:
 			bad.append(str(cfg["damage"]))
 	assert_str(", ".join(PackedStringArray(bad))).is_equal("")           # 20 存伤均分
+
+## 星髓聚合体（B.2 A3「随机切换 4 元素弹幕」的确定性轮换实现）：连续齐射元素按
+## 火→冰→电→毒 循环（第 5 轮回绕回火）；轮换按齐射推进（同轮 8 发元素一致，
+## 不按单弹推进）。齐射拍：windup 30 + cd 150 → 55/205/355/505/655。
+func test_m2_barrage_starmarrow_element_rotation_cycle() -> void:
+	var root: Node2D = auto_free(Node2D.new())
+	add_child(root)
+	var cs: CombatSystem = auto_free(M2SpyCombat.new(root, RngSvc.stream(1, "m2_rotate")))
+	var e: EnemyBase = auto_free(EnemyFactory.create(GameDB.enemies["starmarrow_blob"]))
+	assert_object(e).is_not_null()
+	e.set("combat", cs)
+	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	spy.brain_pos = Vector2(100, 0)
+	e.set("player_ref", spy)
+	e.on_player_seen(0)
+	assert_bool(bool(GameDB.enemies["starmarrow_blob"].get("element_rotate", false))).is_true()
+	var volley_elements: Array = []
+	var last_count := 0
+	for f in range(1, 660):
+		e.brain_tick(f)
+		if (cs as M2SpyCombat).spawned.size() > last_count:   # 本拍出一轮齐射
+			var first: Dictionary = (cs as M2SpyCombat).spawned[last_count]
+			volley_elements.append(int(first["element"]))
+			last_count = (cs as M2SpyCombat).spawned.size()
+	assert_int(volley_elements.size()).is_equal(5)            # 55/205/355/505/655 五轮
+	var want := [Elements.Id.FIRE, Elements.Id.ICE, Elements.Id.SHOCK,
+		Elements.Id.POISON, Elements.Id.FIRE]
+	var seq_ok := true
+	for i in volley_elements.size():
+		seq_ok = seq_ok and volley_elements[i] == want[i]
+	assert_bool(seq_ok).is_true()                             # 火→冰→电→毒→火（回绕）
+	var same_ok := true                                       # 同轮 8 发元素一致
+	for i in range((cs as M2SpyCombat).spawned.size() - 8, (cs as M2SpyCombat).spawned.size()):
+		same_ok = same_ok \
+			and int((cs as M2SpyCombat).spawned[i]["element"]) == Elements.Id.FIRE
+	assert_bool(same_ok).is_true()
+
+## 无 element_rotate 键的弹幕行不受轮换污染：数据面无键 + 行为面齐射元素恒 NONE
+## （冰晶法师为代表；火雨祭司/扇面系同键路径）。
+func test_m2_barrage_without_element_rotate_stays_none() -> void:
+	var no_key := [GameDB.enemies["ice_mage"], GameDB.enemies["firerain_priest"],
+		GameDB.enemies["seed_pitcher"], GameDB.enemies["echo_lurker"],
+		GameDB.enemies["flame_lich"]]
+	var key_leak := []
+	for r in no_key:
+		var row: Dictionary = r
+		if bool(row.get("element_rotate", false)):
+			key_leak.append(String(row["id"]))
+	assert_str(", ".join(PackedStringArray(key_leak))).is_equal("")   # 数据面：仅聚合体带键
+	var root: Node2D = auto_free(Node2D.new())
+	add_child(root)
+	var cs: CombatSystem = auto_free(M2SpyCombat.new(root, RngSvc.stream(1, "m2_nokey")))
+	var e: EnemyBase = auto_free(EnemyFactory.create(GameDB.enemies["ice_mage"]))
+	assert_object(e).is_not_null()
+	e.set("combat", cs)
+	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	spy.brain_pos = Vector2(100, 0)
+	e.set("player_ref", spy)
+	e.on_player_seen(0)
+	for f in range(1, 210):
+		e.brain_tick(f)                                  # 两轮齐射（55/205）
+	assert_int((cs as M2SpyCombat).spawned.size()).is_equal(16)
+	var none_ok := true
+	for c in (cs as M2SpyCombat).spawned:
+		var cfg: Dictionary = c
+		none_ok = none_ok and int(cfg["element"]) == Elements.Id.NONE
+	assert_bool(none_ok).is_true()                       # 行为面：无键 → 元素恒 NONE
