@@ -157,7 +157,7 @@ func set_biome_a2(enabled: bool) -> void:
 			biome_fx.queue_free()
 		biome_fx = null
 		biome_ice = null
-		if player != null:
+		if player != null and is_instance_valid(player):
 			player.friction_mult = 1.0
 
 

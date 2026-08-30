@@ -88,3 +88,9 @@ func _process(_delta: float) -> void:
 
 func _exit_tree() -> void:
 	restore_enemies()
+	# 楼层销毁路径（run_root 换层 queue_free，不经 set_biome_a2(false)）也须复位玩家
+	# 摩擦——层间 PROCESS_MODE_DISABLED 已冻结 tick，站冰面换层会把 0.25 泄漏到
+	# 下一层且新层 biome_ice==null 永无恢复。组件存活期间 tick 每帧覆写，此复位
+	# 只在组件消亡时生效，无双写竞争。
+	if player != null and is_instance_valid(player):
+		player.friction_mult = 1.0

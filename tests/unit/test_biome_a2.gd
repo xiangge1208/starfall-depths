@@ -298,3 +298,22 @@ func test_set_biome_a2_disable_unmounts_and_restores() -> void:
 	# 再关一次：幂等 no-op
 	fs.set_biome_a2(false)
 	assert_float(fs.player_node().friction_mult).is_equal(1.0)
+
+
+## Major-1 回归（楼层销毁路径）：run_root 换层直接 queue_free 旧 FloorScene，
+## 不经 set_biome_a2(false)；层间 PROCESS_MODE_DISABLED 已冻结 tick——站冰面
+## 换层不得把 0.25 泄漏到下一层。玩家先挂测试树（镜像 RunRoot 持有），free 层
+## 后存活，BiomeFx._exit_tree 须复位其摩擦。
+func test_floor_free_without_disable_restores_player_friction() -> void:
+	var player: Player = (PLAYER_SCENE as PackedScene).instantiate() as Player
+	auto_free(player)
+	add_child(player)                    # 先入树 → setup 不收养，层销毁后玩家存活
+	var fs := FloorScene.new()
+	_fs = fs                             # 断言中途失败时由 after_test 兜底回收
+	add_child(fs)
+	fs.setup(_typed_chain(["combat"]), player)
+	fs.set_biome_a2(true)
+	fs._physics_process(0.0)             # 玩家站 start 房冰面补丁中心
+	assert_float(player.friction_mult).is_equal(0.25)
+	fs.free()                            # 直接销毁（不走 set_biome_a2(false)）
+	assert_float(player.friction_mult).is_equal(1.0)
