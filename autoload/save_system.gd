@@ -36,6 +36,10 @@ func _default_data() -> Dictionary:
 		"unlocked_heroes": ["vanguard"] as Array[String],
 		"achievements": {},
 		"settings": DEFAULT_SETTINGS.duplicate(),
+		# m2-t15 最小新增：已购天赋列表（additive 键位，旧档缺失由 _merge_saved 回落
+		# 默认空表，无需版本迁移即可读）。T31 将以 SAVE_VERSION=2 把 purchased_talents /
+		# unlock_tasks 进度 / 成就字段一并 migration formalize，本键届时保留口径。
+		"purchased_talents": [] as Array[String],
 	}
 
 ## 读取存档到 data 并返回。缺文件→默认档（静默）；损坏/畸形→push_error+默认档；
@@ -73,6 +77,14 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 			if typeof(e) == TYPE_STRING:
 				arr.append(e)   # 非法元素静默丢弃（fail-SOFT）
 		out["unlocked_heroes"] = arr
+	# m2-t15：已购天赋列表同 unlocked_heroes 口径合并（数组内非 String 元素静默丢弃）
+	var talents_v: Variant = saved.get("purchased_talents")
+	if typeof(talents_v) == TYPE_ARRAY:
+		var tarr: Array[String] = []
+		for e: Variant in talents_v:
+			if typeof(e) == TYPE_STRING:
+				tarr.append(e)
+		out["purchased_talents"] = tarr
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
 		out["achievements"] = saved["achievements"]
 	var settings_v: Variant = saved.get("settings")
@@ -137,3 +149,23 @@ func unlock_hero(id: String) -> bool:
 	data["unlocked_heroes"] = heroes
 	save_now()
 	return true
+
+## 已购天赋列表（m2-t15 最小新增）：防御性读取——档内非数组/脏元素一律过滤，
+## 恒返回 Array[String]（空表 = 未购任何节点）。T31 migration v2 时保留本口径。
+func purchased_talents() -> Array[String]:
+	var out: Array[String] = []
+	var saved: Variant = data.get("purchased_talents")
+	if typeof(saved) == TYPE_ARRAY:
+		for e: Variant in saved:
+			if typeof(e) == TYPE_STRING:
+				out.append(e)   # 非法元素静默丢弃（fail-SOFT）
+	return out
+
+## 天赋购买入库（m2-t15）：幂等 append + 落盘。蓝晶扣减由调用方（TalentSystem.buy）
+## 经 add_gems(-cost) 完成——两次落盘在菜单场景可接受，非热路径。
+func record_talent_purchase(id: String) -> void:
+	var arr: Array = data.get("purchased_talents", [])
+	if not arr.has(id):
+		arr.append(id)
+	data["purchased_talents"] = arr
+	save_now()
