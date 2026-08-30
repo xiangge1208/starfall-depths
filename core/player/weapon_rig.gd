@@ -101,7 +101,7 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 		if alt < slots.size():
 			var aw: Dictionary = slots[alt]
 			if not aw.is_empty() and not aw["is_melee"]:
-					_fire_slot(aw, aim, true, frame)
+				_fire_slot(aw, aim, true, frame)
 	AudioMgr.play("shoot_player")         # m2-t5：开火成功音（双持齐射仍只一声）
 	return true
 
