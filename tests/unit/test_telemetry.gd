@@ -72,14 +72,17 @@ func test_flush_at_32_row_boundary() -> void:
 	assert_int(text.split("\n", false).size()).is_equal(33)                  # 表头 + 32 行
 
 ## 60 物理帧阈值：不足 32 行也须在 60 物理帧内落盘（autoload _physics_process）。
+## 满载加固（原 await physics_frame 版在全套件负载下偶发：await 可能跨多个物理帧且
+## _clean 不重置计数器，30 次 await 期间计数可冲破 60）——改为直接手动驱动
+## _physics_process 逐帧调用，边界语义确定：第 59 帧未落盘、第 60 帧必落盘。
 func test_flush_every_60_physics_frames() -> void:
 	_clean()
+	Telemetry._frames_since_flush = 0
 	Telemetry.log_row(["t60", 1])
-	for _i in 30:
-		await get_tree().physics_frame
-	assert_bool(FileAccess.file_exists("user://telemetry.csv")).is_false()   # 30 帧未到阈值
-	for _i in 40:
-		await get_tree().physics_frame                                       # 累计 70 ≥ 60
+	for i in 59:
+		Telemetry._physics_process(0.0)
+	assert_bool(FileAccess.file_exists("user://telemetry.csv")).is_false()   # 59 帧未到阈值
+	Telemetry._physics_process(0.0)                                         # 第 60 帧触发
 	assert_bool(FileAccess.file_exists("user://telemetry.csv")).is_true()
 
 # ---- m1-t18：kill 行 source 列 ----
