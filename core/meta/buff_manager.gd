@@ -1,13 +1,15 @@
 class_name BuffManager
 extends RefCounted
-## 局内增益管理（m1-t9，每局实例）：持有已取列表，按稀有度权重三选一抽取，
-## 并把已取效果聚合落地到 Player / WeaponRig 的公开字段。
-## 数据源：GameDB.buffs（buffs.json，t9 具名清单共 16 条 = 白9 + 绿5 + 蓝2）。
+## 局内增益管理（m1-t9 + m2-t12，每局实例）：持有已取列表，按稀有度权重三选一抽取，
+## 并把已取效果聚合落地到 Player / WeaponRig 的公开字段与 buff_* meta。
+## 数据源：GameDB.buffs（buffs.json，附录 C 全表 36 条 = 白15 + 绿11 + 蓝10）。
+## m2-t12 新键无既有公开字段的，经 set_meta("buff_<key>") 落地（绝对值幂等重写），
+## 消费方按 game_db.gd BUFF_*_KEYS 注释中的消费卡号接线（如 anti_fire → T10 岩浆）。
 
 const RARITY_ORDER: Array[String] = ["common", "uncommon", "rare"]
 const RARITY_WEIGHTS := {"common": 55, "uncommon": 30, "rare": 15}
 # 唯一增益（附录 C 标注「唯一」）：pick 后永久移出可抽池
-const UNIQUE_IDS: Array[String] = ["extra_projectiles", "crit_detonate"]
+const UNIQUE_IDS: Array[String] = ["extra_projectiles", "crit_detonate", "phoenix"]
 # 效果键白名单与中性默认值（与 GameDB.BUFF_*_KEYS 一致；float 用 0.0，int 用 0）
 const EFFECT_DEFAULTS := {
 	"move_speed_pct": 0.0, "crit_pct": 0.0, "crit_dmg_pct": 0.0,
@@ -16,7 +18,35 @@ const EFFECT_DEFAULTS := {
 	"element_proc_chance": 0.0,
 	"hp_max": 0, "shield_max": 0, "energy_max": 0,
 	"shield_delay_reduction_ticks": 0, "element_enchant": 0, "extra_projectiles": 0,
+	# m2-t12 新增键（附录 C 全量键位对齐；符号约定：负值 = 减少，同 roll_cd_pct）
+	"dmg_vs_statused_pct": 0.0, "resonance_radius_pct": 0.0,
+	"resonance_duration_ticks": 0,
+	"vengeance_pct": 0.0, "vengeance_ticks": 0,
+	"anti_fire": 0, "anti_ice": 0, "anti_poison": 0,
+	"hurt_iframe_bonus_ticks": 0, "bullet_dmg_taken_pct": 0.0,
+	"thorns_contact_dmg": 0, "roll_distance_pct": 0.0, "phoenix_flag": 0,
+	"wealth_pct": 0.0, "drink_effect_pct": 0.0, "pickup_radius_pct": 0.0,
+	"kill_energy_chance": 0.0, "kill_energy_amount": 0,
+	"heart_sense_pct": 0.0,
+	"passive_energy_interval_ticks": 0, "passive_energy_amount": 0,
+	"haggle_pct": 0.0,
+	"element_vision": 0, "telegraph_bonus_ticks": 0, "resonance_vision": 0,
 }
+# 落地到 player meta 的键（身体/防御/资源/功能侧；消费卡号见 game_db.gd 注释）
+const PLAYER_META_KEYS: Array[String] = [
+	"anti_fire", "anti_ice", "anti_poison",
+	"hurt_iframe_bonus_ticks", "bullet_dmg_taken_pct", "thorns_contact_dmg",
+	"roll_distance_pct", "phoenix_flag",
+	"wealth_pct", "drink_effect_pct", "pickup_radius_pct",
+	"kill_energy_chance", "kill_energy_amount", "heart_sense_pct",
+	"passive_energy_interval_ticks", "passive_energy_amount",
+	"haggle_pct", "element_vision", "telegraph_bonus_ticks", "resonance_vision",
+]
+# 落地到 rig meta 的键（输出放大侧：M1 WeaponRig 已是输出聚合点 rate_mult/crit_detonate_pct）
+const RIG_META_KEYS: Array[String] = [
+	"dmg_vs_statused_pct", "resonance_radius_pct", "resonance_duration_ticks",
+	"vengeance_pct", "vengeance_ticks",
+]
 
 var picked: Array[String] = []
 var _p_base := {}    # 首次 apply_to_player 时记录数值上限/移速基线（幂等重算用）
@@ -109,6 +139,7 @@ func aggregate() -> Dictionary:
 ## 落地到玩家（幂等：首次记录基线，之后按已取列表重算）。
 ## 覆盖 hp_max / shield_max / energy_max / move_speed；其余键经 aggregate() 暴露，
 ## 由后续任务接线（crit/状态/翻滚/盾延时暂无公开可写字段）。
+## m2-t12：新增键以绝对值写入 buff_* meta（幂等重写，不叠加），消费方按注释卡号接线。
 func apply_to_player(p: Player) -> void:
 	if _p_base.is_empty():
 		_p_base = {"hp_max": p.hp_max, "shield_max": p.shield_max,
@@ -131,10 +162,14 @@ func apply_to_player(p: Player) -> void:
 		+ int(p.get_meta("drink_shield_delay_reduction_ticks", 0))
 	p.roll_cd_pct = float(agg["roll_cd_pct"])
 	p.roll_cd_reduction_ticks = int(p.get_meta("drink_roll_cd_reduction_ticks", 0))
+	for k: String in PLAYER_META_KEYS:
+		p.set_meta("buff_" + k, agg[k])
 
 ## 落地到武器架（幂等，同 apply_to_player 基线策略）。
 ## 写 5 个共享字段：rate_mult / bullet_speed_mult / enchant_element /
 ## bonus_projectiles / crit_detonate_pct（字段为本任务在 weapon_rig.gd 声明）。
+## m2-t12：输出放大侧新键（猎杀者/共鸣增幅/复仇者）以绝对值写入 rig buff_* meta，
+## 由 CombatSystem/共鸣结算在命中路径读取（消费卡号见 game_db.gd 注释）。
 func apply_to_rig(rig: WeaponRig) -> void:
 	if _rig_base.is_empty():
 		_rig_base = {"enchant_element": rig.enchant_element,
@@ -154,3 +189,5 @@ func apply_to_rig(rig: WeaponRig) -> void:
 	else:
 		rig.enchant_element = int(_rig_base["enchant_element"])
 		rig.enchant_proc_chance = float(_rig_base["enchant_proc_chance"])
+	for k: String in RIG_META_KEYS:
+		rig.set_meta("buff_" + k, agg[k])

@@ -37,15 +37,50 @@ const BUFF_SCHEMA := {
 }
 const BUFF_OPTIONAL := {}
 const BUFF_RARITIES: Array[String] = ["common", "uncommon", "rare"]
-# effects 键白名单（t9 控制器决议）：百分比键取数值，整型键取 int（_normalize_row 已还原）
+# effects 键白名单（t9 控制器决议 + m2-t12 附录 C 全量键位对齐）：
+# 百分比键取数值，整型键取 int（_normalize_row 已还原）。
+# m2-t12 新增键消费方（消费卡号）：
+#   hunter    dmg_vs_statused_pct        → M1 CombatSystem 命中结算（目标异常时伤害乘区）
+#   resonance_amp resonance_radius_pct / resonance_duration_ticks
+#                                          → M1 共鸣结算 AoE 扩散（EnemyBase 读 resonance_event）
+#   avenger   vengeance_pct / vengeance_ticks → M1 CombatSystem 输出乘区（受击后窗口）
+#   anti_*    anti_fire/anti_ice/anti_poison → T10 A3 岩浆（抗性 meta 减半）/
+#                                          T4 冰面免疫 / M1 StatusComponent 免疫系
+#   nerve_reflex hurt_iframe_bonus_ticks  → M1 Player.take_hit_ctx（HURT_IFRAME_TICKS 加算）
+#   carapace  bullet_dmg_taken_pct        → M1 Player.take_hit_ctx（弹幕来伤乘区 1+pct）
+#   thorn_armor thorns_contact_dmg        → M1 接触伤路径（EnemyBase/RoomCombat 反伤）
+#   dash_extend roll_distance_pct         → M1 Player.start_roll（ROLL_DIST 乘区）
+#   phoenix   phoenix_flag                → M1 Player.take_hit_ctx 致死分支（每局 1 次）
+#   wealth    wealth_pct                  → M1 Pickup coin on_collect 乘区（天赋同义键 T15/T31）
+#   glutton   drink_effect_pct            → M1 DrinkMachine._apply_drink（效果值乘区）
+#   pickup_magnet pickup_radius_pct       → M1 Pickup.MAGNET_RANGE_PX 乘区（天赋同义键 T15；掉落面 T20）
+#   energy_siphon kill_energy_chance/amount → M1 击杀结算钩（RoomCombat 敌死亡）
+#   heart_sense heart_sense_pct           → M1 红心掉落掷签（掉落盐流 heart 权重乘区）
+#   ammo_convert passive_energy_interval_ticks/amount → M1 房间帧循环（周期回蓝）
+#   haggle    haggle_pct                  → M1 ShopLogic 商店结算乘区（1+pct，负值=降价）
+#   element_vision element_vision + telegraph_bonus_ticks → M1 敌方预警展示 +
+#                                          T7 敌激光警示线（预警 +0.15s=9t）
+#   resonance_vision resonance_vision     → 敌人异常高亮渲染钩子（随 T21 敌人渲染接线）
 const BUFF_PCT_KEYS: Array[String] = [
 	"move_speed_pct", "crit_pct", "crit_dmg_pct", "atk_speed_pct",
 	"bullet_speed_pct", "status_rate_pct", "roll_cd_pct", "crit_detonate_pct",
 	"element_proc_chance",
+	"dmg_vs_statused_pct", "resonance_radius_pct", "vengeance_pct",
+	"bullet_dmg_taken_pct", "roll_distance_pct",
+	"wealth_pct", "drink_effect_pct", "pickup_radius_pct",
+	"kill_energy_chance", "heart_sense_pct", "haggle_pct",
 ]
 const BUFF_INT_KEYS: Array[String] = [
 	"hp_max", "shield_max", "energy_max", "shield_delay_reduction_ticks",
 	"element_enchant", "extra_projectiles",
+	"resonance_duration_ticks", "vengeance_ticks", "hurt_iframe_bonus_ticks",
+	"thorns_contact_dmg", "passive_energy_interval_ticks", "passive_energy_amount",
+	"kill_energy_amount", "telegraph_bonus_ticks",
+]
+# 0/1 语义 flag 键（免疫系/视界系/不死鸟）：叠加无意义，幅度仅 0 或 1（m2-t12）
+const BUFF_FLAG_KEYS: Array[String] = [
+	"anti_fire", "anti_ice", "anti_poison", "phoenix_flag",
+	"element_vision", "resonance_vision",
 ]
 # 角色（t11）：16 键全部必填，无 optional；行级校验 validate_hero_row（start_weapons 白名单）
 const HERO_SCHEMA := {
@@ -357,7 +392,10 @@ func validate_buff_row(row: Dictionary) -> Array[String]:
 		return errors
 	for k: String in eff:
 		var v: Variant = eff[k]
-		if BUFF_PCT_KEYS.has(k):
+		if BUFF_FLAG_KEYS.has(k):
+			if typeof(v) != TYPE_INT or int(v) < 0 or int(v) > 1:
+				errors.append("effect %s must be int flag 0/1" % k)
+		elif BUFF_PCT_KEYS.has(k):
 			if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
 				errors.append("effect %s must be number" % k)
 		elif BUFF_INT_KEYS.has(k):
