@@ -159,7 +159,10 @@ func _ready() -> void:
 		get_tree().quit(1)
 
 func get_weapon(id: String) -> Dictionary:
-	return weapons.get(id, {})
+	# m2-t11：掉落池优先；locked（图鉴锁定）行回落 weapons_all——初始武器是授予而非掉落
+	# （GDD §6 守护者·萄 星辉杖为紫/橙，默认 locked）。掉落/商店仍只从 weapons 池滚 id，
+	# locked 无掉落途径的口径不变（解锁进池是 M2-T20 职责）。
+	return weapons.get(id, weapons_all.get(id, {}))
 
 func get_enemy(id: String) -> Dictionary:
 	return enemies.get(id, {})
@@ -401,7 +404,9 @@ func validate_drink_row(row: Dictionary) -> Array[String]:
 	return errors
 
 ## 角色行语义校验（t11），作为 heroes 表 _load_table 的 extra_check。
-## 约束：start_weapons 非空且每把武器都存在于 weapons 表（weapons 先于 heroes 装载）。
+## 约束：start_weapons 非空且每把武器都存在于 weapons 表（weapons 先于 heroes 装载）；
+## m2-t11：也接受 weapons_all（图鉴 locked 行）——初始武器是授予而非掉落（GDD §6
+## 守护者·萄 星辉杖为紫/橙），锁定口径只约束掉落池。
 ## skill_script 存在性由单测覆盖（test_hero_skill_scripts_exist_and_extend_skill_base）。
 func validate_hero_row(row: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -410,7 +415,7 @@ func validate_hero_row(row: Dictionary) -> Array[String]:
 		errors.append("start_weapons must be non-empty array")
 		return errors
 	for w: Variant in sw:
-		if typeof(w) != TYPE_STRING or not weapons.has(w):
+		if typeof(w) != TYPE_STRING or not (weapons.has(w) or weapons_all.has(w)):
 			errors.append("unknown start weapon: %s" % str(w))
 	return errors
 

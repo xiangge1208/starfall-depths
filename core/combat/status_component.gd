@@ -178,6 +178,15 @@ func damage_multiplier(now: int = -1) -> float:
 func is_frozen(now: int) -> bool:
 	return not is_boss and now < _freeze_until
 
+## 直冻接缝（m2-t11 奥术新星）：显式冻结窗，与 ICE 阈值触发（_trigger）并列的消费方。
+## 语义与 is_frozen 一致：Boss 免疫（GDD §7.3 冻结对 Boss 无效，豁免统一持有在状态侧）；
+## 取 max 不缩短既有窗（同 Player.apply_iframes 习语——调用方须在 take_hit 之后调用，
+## 否则 ICE 阈值触发的直接赋值（1.0s）会覆盖本窗）。
+func apply_freeze(ticks: int, now: int) -> void:
+	if is_boss or ticks <= 0:
+		return
+	_freeze_until = maxi(_freeze_until, now + ticks)
+
 func action_speed_multiplier(now: int) -> float:
 	return 0.7 if now < _ice_slow_until else 1.0
 

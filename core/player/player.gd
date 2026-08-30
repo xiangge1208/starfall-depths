@@ -12,6 +12,7 @@ const HURT_IFRAME_TICKS := 48      # 0.8s
 const SHIELD_DELAY_TICKS := 180    # 3.0s
 const SHIELD_INTERVAL_TICKS := 72  # 1.2s/点
 const RAMPAGE_DR := 0.7            # 狂潮(升级)：受伤 ×0.7（向下取整，min 1）
+const TIDE_DR := 0.8               # 生命潮汐(升级)：法阵内受伤 ×0.8（向下取整，min 1；m2-t11）
 const DEFIANCE_RADIUS_PX := 60.0   # 坚守：AoE 半径
 const DEFIANCE_KNOCKBACK_PX := 8.0 # 坚守：击退距离
 const DEFIANCE_STUN_TICKS := 30    # 坚守：眩晕 0.5s
@@ -42,6 +43,7 @@ var incoming_slow_until := -1
 var weapon_rig: WeaponRig = null   # tscn 子节点（_ready 解析；测试可手工注入）
 var combat: CombatSystem = null    # m1-t5：技能经 player.combat 写必暴窗（房间注入，同 rig.combat 契约）
 var rampage_active_until := -1     # 狂潮(升级)减伤窗：frame < 此值时受伤 ×0.7（技能写入）
+var tide_guard_until := -1         # 生命潮汐(升级)减伤窗：frame < 此值时受伤 ×0.8（技能每拍续写；m2-t11）
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
 var friction_mult := 1.0           # m2-t4 冰面接缝：IceZone 进域写 0.25 / 出域回 1.0（MoveMath 摩擦参数临时替换）
 var _roll_left := 0
@@ -140,6 +142,8 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	_last_damaged_frame = frame
 	if frame < rampage_active_until:
 		dmg = maxi(1, int(floor(float(dmg) * RAMPAGE_DR)))   # 狂潮(升级)：-30%
+	if frame < tide_guard_until:
+		dmg = maxi(1, int(floor(float(dmg) * TIDE_DR)))      # 生命潮汐(升级)：法阵内 -20%
 	var shield_before := shield
 	var hp_before := hp
 	var effective_before := maxi(0, shield_before) + maxi(0, hp_before)
