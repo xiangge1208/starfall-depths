@@ -32,6 +32,7 @@ const PLAYER_SCENE := preload("res://core/player/player.tscn")
 const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
 const GAME_CAMERA := preload("res://fx/game_camera.gd")
 const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店设施
+const FORGE_SCENE := preload("res://ui/forge.tscn")            # m2-t25 熔铸台设施
 const BULLET_VISUAL_CAP := 500
 const BLACK_SHOP_CHANCE := 0.25
 ## m2-t24 隐藏门（GDD §10/裁定）：A3 层号下界；星陨先知入场落点对门位偏移。
@@ -1005,6 +1006,14 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	RunState.add_kill()
 	var frame := Engine.get_physics_frames()
 	var enemy_id := String(e.row.get("id", ""))
+	# m2-t31 击杀蓝晶（GDD §14）：精英 +5 / 小 Boss +20 / Boss +50（Boss 首杀再 +300 入池）。
+	# 档位键 = guest_kind（A1 嘉宾三档统一标记）；真实 Boss 行（vine_colossus / gem_queen /
+	# prism_golem / frost_widow / magma_tyrant）只有 boss_script 无 guest_kind，按
+	# room_combat 同款口径等价归 boss 档；杂兵两键皆空 = 0 不入池。
+	var kill_kind := String(e.row.get("guest_kind", ""))
+	if kill_kind.is_empty() and String(e.row.get("boss_script", "")) != "":
+		kill_kind = "boss"
+	RunState.settle_kill_gems(kill_kind, enemy_id)
 	var notify_id := String(e.row.get("wave_id", enemy_id))
 	var killed_row: Dictionary = (e.row as Dictionary).duplicate(true)
 	var death_pos := e.global_position
@@ -1212,6 +1221,7 @@ func _open_facility(room_type: String, room: FloorRoom) -> void:
 
 ## 商店设施（T14 Shop 契约）：货单 ShopLogic.roll_stock（RunState loot 盐流，当层确定），
 ## 钱包 = RunState（coins/spend_coins/add_coins 鸭子接缝），回收回调 = 副手丢弃。
+## m2-t25：同房加挂熔铸台（每层固定 1 台，材料 = 玩家双武器槽当前两把）。
 func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
 	var shop := SHOP_SCENE.instantiate() as Shop
 	shop.name = "Shop"
@@ -1237,6 +1247,16 @@ func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
 		shrine.rng = _facility_rng
 		shrine.combat = player.combat
 		room.add_child(shrine)
+	# m2-t25 熔铸台：每层固定 1 台（GDD §8.3/§9.1 每层恰 1 商店房 → 常量选型挂商店房，
+	# 数据驱动模板字段由后续卡扩 schema）。wallet/pool/rng/run_state 全走 RunState 接缝。
+	var forge := FORGE_SCENE.instantiate() as Forge
+	forge.name = "Forge"
+	forge.position = local_pos + Vector2(0, 56)
+	forge.wallet = RunState
+	forge.pool = GameDB.weapons
+	forge.rng = RunState.stream(RunState.SALT_FORGE)
+	forge.run_state = RunState
+	room.add_child(forge)
 
 
 ## 商店回收回调（Shop.drop_weapon 契约）：丢弃副手（非当前槽）→ 返回武器信息

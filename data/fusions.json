@@ -1,0 +1,17 @@
+[
+  {"a": "tiejian", "b": "ranshaoping", "result": "lieyanjian"},
+  {"a": "tiejian", "b": "bingdonglei", "result": "bingshuangjujian"},
+  {"a": "shuangbi", "b": "duqiguan", "result": "duyaduanren"},
+  {"a": "changqiang", "b": "dianque", "result": "leishenzhichui"},
+  {"a": "zhuixingdajian", "b": "xingheliudan", "result": "zhanjiandao"},
+  {"a": "ronghuoshouqiang", "b": "xunxiang", "result": "zhongyanjicu"},
+  {"a": "guanchuanzhe", "b": "shenkong", "result": "caijue"},
+  {"a": "xinggui", "b": "pojixuanding", "result": "xingyunpao"},
+  {"a": "guanglengshoudian", "b": "lengjingquanzhang", "result": "caihongfashengqi"},
+  {"a": "xuetufazhang", "b": "yunshizhang", "result": "zhongyanzhizhang"},
+  {"a": "duangong", "b": "fenliejian", "result": "guanxinggong"},
+  {"a": "shoulei", "b": "diancimaichonglei", "result": "xingheliudan"},
+  {"a": "guangjian", "b": "shijianshalou", "result": "yamiehexin"},
+  {"a": "zhanhaoqingxiao", "b": "tanshexian", "result": "yaniemhaojiao"},
+  {"a": "liefengchanggong", "b": "leimingnu", "result": "dianciguidao"}
+]
