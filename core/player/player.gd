@@ -226,7 +226,7 @@ func apply_anti_ice_friction() -> void:
 
 ## m2-t35 弹药转化：每 interval ticks 被动回 amount 蓝（meta 缺省 = 无此增益零开销；
 ## 重复拾取聚合 interval/amount 各自求和——间隔变长、单次量变大，附录 C 加法语义）。
-func passive_energy_tick(frame: int) -> void:
+func passive_energy_tick(_frame: int) -> void:
 	var interval := int(get_meta("buff_passive_energy_interval_ticks", 0))
 	if interval <= 0:
 		_passive_energy_acc = 0
@@ -364,7 +364,9 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	_reflect_thorns(ctx)                             # m2-t35：荆棘护甲接触反伤（命中结算后）
 
 ## m2-t35 荆棘护甲：被接触（source_type "contact"）时对来敌反伤 thorns_contact_dmg。
-## 来敌以 ctx.from（接触瞬间方位）就近匹配 M0 "enemies" 分组（brain_pos 权威，同坚守被动）。
+## m2-t35 评审 Minor⑤（T33 顺手修）：目标 = 真正「就近」来敌——M0 "enemies" 分组内
+## 16px 环中距 ctx.from（接触瞬间方位）最近者（原实现取组序首个，与方位无关）。
+## 致死接触照常反伤（附录 C「被接触时反伤 3」无致死例外；结算位于受击收尾，测试钉死）。
 func _reflect_thorns(ctx: Dictionary) -> void:
 	if String(ctx.get("source_type", "")) != "contact":
 		return
@@ -372,21 +374,25 @@ func _reflect_thorns(ctx: Dictionary) -> void:
 	if thorns <= 0 or not is_inside_tree():
 		return
 	var from: Vector2 = ctx.get("from", global_position)
+	var nearest: Node2D = null
+	var nearest_d := INF
 	for node in get_tree().get_nodes_in_group("enemies"):
 		var e := node as Node2D
 		if e == null:
 			continue
 		var bp: Variant = e.get("brain_pos")
 		var e_pos: Vector2 = bp if typeof(bp) == TYPE_VECTOR2 else e.global_position
-		if e_pos.distance_to(from) > 16.0:
-			continue
-		e.take_hit({
+		var d := e_pos.distance_to(from)
+		if d <= 16.0 and d < nearest_d:
+			nearest = e
+			nearest_d = d
+	if nearest != null:
+		nearest.take_hit({
 			"amount": thorns, "is_crit": false, "element": Elements.Id.NONE,
 			"from": global_position, "source_type": "thorns",
 			"source_id": "thorn_armor", "source_name": "荆棘护甲", "attack_name": "荆棘反伤",
 			"player_damage": true,
 		})
-		break                                    # 单接触源只结算最近一个来敌
 
 ## 被动「坚守」（GDD §6 骑士·凛）：护盾破碎瞬间对 60px 内敌人 1 伤 + 击退 8px + 眩晕 30t。
 ## 寻敌沿用 M0 分组（RoomCombat 刷怪即入 "enemies" 组），位置以 brain_pos 权威（同敌方 AI）。

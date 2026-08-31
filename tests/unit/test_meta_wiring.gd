@@ -142,7 +142,8 @@ func test_nerve_reflex_and_talent_pct_extend_hurt_iframes() -> void:
 	# 神经反射 +15t；天赋 talent_hurt_iframe_pct 0.15 → round(48×1.15)=55；合计 70t。
 	var p := _player()
 	p.set_meta("buff_hurt_iframe_bonus_ticks", 15)
-	p.set_meta("talent_effects", TalentSystem.neutral_effects())
+	# m2-t35 评审 Minor⑥（T33 顺手清）：原首个 neutral_effects() set_meta 被下行
+	# 立即覆写，死调用删除。
 	p.set_meta("talent_effects", {"talent_hurt_iframe_pct": 0.15})
 	p.take_hit_ctx({"amount": 1}, 100)
 	assert_bool(p.is_invincible_at(169)).is_true()    # 100+70-1
@@ -179,6 +180,46 @@ func test_thorn_armor_reflects_contact_damage_to_attacker() -> void:
 	# 非接触源不反伤
 	p.take_hit_ctx({"amount": 2, "from": Vector2(100, 0), "source_type": "projectile"}, 200)
 	assert_int(enemy.hit_amounts.size()).is_equal(1)
+
+
+func test_thorn_armor_reflects_to_nearest_contact_enemy_not_group_order() -> void:
+	# T35 评审 Minor⑤：反伤目标是「就近来敌」（ctx.from 距离最近），非组序首个。
+	# 组序故意先加 12px 远敌、后加 5px 近敌——组序首个 = 远敌，就近 = 近敌。
+	var p: Player = auto_free(Player.new())
+	p._test_init()
+	add_child(p)
+	p.set_meta("buff_thorns_contact_dmg", 3)
+	var far: ThornsEnemyStub = auto_free(ThornsEnemyStub.new())
+	far.position = Vector2(112, 0)                    # 距 from 12px（16px 环内）
+	far.add_to_group("enemies")
+	add_child(far)
+	var near: ThornsEnemyStub = auto_free(ThornsEnemyStub.new())
+	near.position = Vector2(105, 0)                   # 距 from 5px
+	near.add_to_group("enemies")
+	add_child(near)
+	p.take_hit_ctx({"amount": 2, "from": Vector2(100, 0), "source_type": "contact"}, 100)
+	assert_int(far.hit_amounts.size()).is_equal(0)    # 组序首个（远敌）不挨打
+	assert_int(near.hit_amounts.size()).is_equal(1)   # 就近来敌挨打
+	assert_int(near.hit_amounts[0]).is_equal(3)
+
+
+func test_thorn_armor_still_reflects_on_lethal_contact() -> void:
+	# T35 评审 Minor⑤（致死弹行为显式化）：附录 C「被接触时反伤 3」无致死例外——
+	# 荆棘结算位于受击收尾，致死接触照常反伤（设计口径钉死，非疏漏）。
+	var p: Player = auto_free(Player.new())
+	p._test_init()
+	add_child(p)
+	p.hp = 1
+	p.shield = 0
+	p.set_meta("buff_thorns_contact_dmg", 3)
+	var enemy: ThornsEnemyStub = auto_free(ThornsEnemyStub.new())
+	enemy.position = Vector2(100, 0)
+	enemy.add_to_group("enemies")
+	add_child(enemy)
+	p.take_hit_ctx({"amount": 5, "from": Vector2(100, 0), "source_type": "contact"}, 100)
+	assert_int(p.hp).is_equal(0)                      # 致死
+	assert_int(enemy.hit_amounts.size()).is_equal(1)  # 荆棘仍反伤
+	assert_int(enemy.hit_amounts[0]).is_equal(3)
 
 
 func test_dash_extend_increases_roll_distance() -> void:

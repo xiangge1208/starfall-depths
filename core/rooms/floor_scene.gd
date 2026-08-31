@@ -1749,8 +1749,10 @@ func _pick_boss_row() -> void:
 		if GameDB.get_enemy(id).is_empty():
 			push_error("FloorScene: boss pool row missing '%s' — keep default" % id)
 			return
+	# m2-t36 评审 Minor③（T33 顺手修）：duplicate+sort + 下标取行与 boss_row_for_floor
+	# 重复——抽签后直接调权威函数取行，消除双份字典序逻辑。
 	var rng := RngSvc.stream(floor_idx, "boss")
-	_boss_row_id = pool[rng.randi_range(0, pool.size() - 1)]
+	_boss_row_id = boss_row_for_floor(fl, rng.randi_range(0, pool.size() - 1))
 
 
 ## 本层 Boss 数据行 id（测试/宿主视图）。

@@ -58,7 +58,11 @@ const CAGE_PILLAR_RADIUS_PX := 12.0
 const CAGE_PILLAR_LIFE_TICKS := 180   # 3s
 const CAGE_DMG := 6
 const CAGE_SLOT_ARC_DEG := 40.0       # 环位弧宽（360°/9 环位）
-const CAGE_GAP_ARC_DEG := CAGE_SLOT_ARC_DEG * 2.0   # 缺口豁口 = 邻柱间距（2 环位）
+# 缺口豁口窗 = 邻柱间距（2 环位）。披露（T36 评审 Minor①）：±40° 放行窗并非纯豁口——
+# 邻柱（±40° 柱心、半径 12px @ 环 64px）的实缘各伸入窗内 ~10.6°（atan(12/64)），
+# 即缺口窗两端各含 ~10.6° 柱体实弧：沿缺口贴柱越环会被判放行但撞柱体（穿柱宽容，
+# 几何上「弧段判定制」的已知近似，可辩护口径——柱体碰撞伤害另有其结算路径）。
+const CAGE_GAP_ARC_DEG := CAGE_SLOT_ARC_DEG * 2.0
 const CAGE_RNG_SALT := "boss_frost_widow_cage_gap"
 
 # ---- 全屏冰刺阵（P2）：内域纵切 8 泳道，2 条缝隙安全线（分盐流确定），其余 5 伤 ----
@@ -410,6 +414,8 @@ func _cage_expire_tick(frame: int) -> void:
 			if is_instance_valid(p):
 				p.despawn()
 			_cage_pillars.remove_at(i)
+	if _cage_pillars.is_empty():
+		_cage_confine = false   # m2-t36 评审 Minor②（T33 顺手修）：全柱到期 → 禁锢旗同步清
 
 
 func _despawn_cage_pillars() -> void:

@@ -206,6 +206,32 @@ func test_scene_a2_boss_room_spawns_pool_row_with_own_script() -> void:
 	assert_str(String(boss.row.get("wave_id", ""))).is_equal("vine_colossus")
 
 
+func test_scene_a2_boss_room_pool_rows_carry_table_hp() -> void:
+	# m2-t36 评审 Minor⑤（T33 顺手修，裁定㉖）：A2 端到端 Boss hp 契约——
+	# 池行经真实 spawn 路径（_spawn_real_guest 行替换）后 hp 必须与数据表一致：
+	# gem_queen 800 / frost_widow 1800 / prism_golem 1800（data/enemies.json 原值，
+	# 非裁定转述值——裁定㉖括号「800/1800/1800」与表核对一致）。
+	var want := {"gem_queen": 800, "frost_widow": 1800, "prism_golem": 1800}
+	for id: String in want:
+		var build := _typed_chain(["boss"])
+		var player: Player = (load("res://core/player/player.tscn") as PackedScene).instantiate() as Player
+		add_child(player)
+		_fs = FloorScene.new()
+		_fs.floor_idx = 2
+		_fs.boss_override = id
+		add_child(_fs)
+		_fs.setup(build, player)
+		assert_bool(_fs.enter_room(1)).is_true()
+		var boss := _find_enemy(_fs.room_node(1), id)
+		assert_object(boss).is_not_null()
+		if boss != null:
+			assert_int(boss.hp).is_equal(int(want[id])).override_failure_message(
+				"A2 boss %s hp=%d want %d" % [id, boss.hp, int(want[id])])
+		_fs.free()
+		_fs = null
+		player.free()
+
+
 func test_scene_a3_boss_room_spawns_magma_tyrant() -> void:
 	var fs := _make_scene(_typed_chain(["boss"]), 3)
 	assert_bool(fs.enter_room(1)).is_true()
@@ -435,6 +461,9 @@ func test_widow_cage_expiry_frees_player() -> void:
 	assert_int(b._cage_pillars.size()).is_equal(FrostWidow.CAGE_PILLAR_COUNT)  # until 拍仍在
 	b.brain_tick(land_end + FrostWidow.CAGE_PILLAR_LIFE_TICKS + 1)             # until+1 清场
 	assert_int(b._cage_pillars.size()).is_equal(0)
+	# m2-t36 评审 Minor②（T33 顺手修）：到期清场须同步清禁锢旗（纯卫生——
+	# 原实现靠 _cage_confine_tick 空柱守卫 no-op，旗残留至 Boss 退场）。
+	assert_bool(b._cage_confine).is_false()
 	var outside := Vector2.from_angle(blocked_ang) \
 		* (FrostWidow.CAGE_RING_RADIUS_PX + 26.0)
 	spy.brain_pos = outside
