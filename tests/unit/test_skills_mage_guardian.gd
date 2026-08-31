@@ -8,6 +8,18 @@ extends GdUnitTestSuite
 ## 帧注入风格同 test_skills/test_summons：cast/tick(frame) 直驱，不经 _physics_process。
 
 const NOVA_PATH := "res://core/player/skills/arcane_nova.gd"
+
+## m2-t33 密闭（裁定㉔）：locked 初始武器不入掉落池的断言与运行时池状态解耦——
+## 脏档（图鉴解锁回池）不得造成假败。
+var _seal: Dictionary = {}
+
+
+func before_test() -> void:
+	_seal = TestSaveSeal.seal("skills_mage_guardian")
+
+
+func after_test() -> void:
+	TestSaveSeal.restore(_seal)
 const TIDE_PATH := "res://core/player/skills/life_tide.gd"
 
 # ---- 夹具 ----

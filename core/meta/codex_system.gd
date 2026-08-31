@@ -28,10 +28,12 @@ const TASKS_PATH := "res://data/unlock_tasks.json"
 const TYPE_WHITELIST: Array[String] = [
 	"kill_x", "clear_floor_x", "craft_x", "resonate_x", "collect_gems_x", "buy_x",
 ]
-## 计数器键（J.2 counters.* 命名；floor_clears 为 {层号:int → 次数:int} 分桶）
+## 计数器键（J.2 counters.* 命名；floor_clears 为 {层号:int → 次数:int} 分桶）。
+## challenge_rooms_total（m2-t33 补线）：K.5 counters.* 清单内的挑战房累计，成就
+## 「挑战者」判定源；非 J.2 六类解锁条件类型，不参与 check_unlocks，仅随快照持久化。
 const COUNTER_KEYS: Array[String] = [
 	"kills_total", "resonances_total", "crafts_total",
-	"purchases_total", "gems_earned_total",
+	"purchases_total", "gems_earned_total", "challenge_rooms_total",
 ]
 
 var save_system: Node = null   # 测试注入缝（临时路径档）；_ready 兜底探测 /root/SaveSystem
@@ -94,7 +96,7 @@ func _load_tasks() -> Dictionary:
 func _reset_counters() -> void:
 	counters = {
 		"kills_total": 0, "resonances_total": 0, "crafts_total": 0,
-		"purchases_total": 0, "gems_earned_total": 0,
+		"purchases_total": 0, "gems_earned_total": 0, "challenge_rooms_total": 0,
 		"floor_clears": {},   # {层号:int → 通过次数:int}
 	}
 
@@ -236,6 +238,13 @@ func count_craft() -> void:
 func count_buy() -> void:
 	counters["purchases_total"] = int(counters.get("purchases_total", 0)) + 1
 	check_unlocks()
+
+
+## 挑战房清空计数（m2-t33 补线：floor_scene 挑战房清点 1 行直调）。K.5 counters.*
+## 口径——非 J.2 解锁条件，不进 check_unlocks；直接快照落盘（清房结算点，非热路径）。
+func count_challenge() -> void:
+	counters["challenge_rooms_total"] = int(counters.get("challenge_rooms_total", 0)) + 1
+	persist_counters()
 
 
 ## 蓝晶入账计数（本卡仅过层蓝晶经 on_floor_entered 间接进入；击杀/成就蓝晶口径 T32/T33）

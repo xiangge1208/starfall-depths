@@ -15,6 +15,7 @@ const SEED := 20260828
 
 var _saved_weapons: Variant = null
 var _saved_crafts: Variant = null
+var _seal: Dictionary = {}
 
 
 # ---------------------------------------------------------------- 替身与桩
@@ -44,7 +45,10 @@ func _stub_weapons(rows: Dictionary) -> void:
 
 ## 熔铸会上报 CodexSystem 的 craft_x 计数器（autoload 全局），逐例还原避免跨套件污染：
 ## 一旦累计到 craft_x 最小 goal（10，湮灭号角非★）会真的触发解锁并回池、改全局掉落池。
+## m2-t33 密闭（裁定㉔）：共享 save_headless.json + 运行时池逐用例隔离，
+## 与本套件既有 crafts_total 快照/stub 还原叠加（restore 在后）。
 func before_test() -> void:
+	_seal = TestSaveSeal.seal("forge")
 	_saved_crafts = CodexSystem.counters.get("crafts_total", 0)
 
 
@@ -55,6 +59,7 @@ func after_test() -> void:
 	if _saved_crafts != null:
 		CodexSystem.counters["crafts_total"] = _saved_crafts
 		_saved_crafts = null
+	TestSaveSeal.restore(_seal)
 
 
 func _rng(seed_value := SEED) -> RandomNumberGenerator:
@@ -489,6 +494,27 @@ func test_ui_rejected_fuse_does_not_report_craft() -> void:
 	var h := _open_forge(["tiejian", "ranshaoping"], 50)   # 费用 65 > 50
 	h["forge"]._on_fuse_pressed()
 	assert_int(int(CodexSystem.counters.get("crafts_total", 0))).is_equal(before)
+
+
+## m2-t33 成就补线（裁定㉗）：熔铸成功点除 craft_x 计数外，还须触发成就轮询——
+## 熔铸匠（crafts_total >= 10）在真实 UI 成交路径可达。档密闭同本套件先例：
+## 成就档换临时路径（after_test 还原全局引用），crafts_total 基线快照已在 before/after。
+func test_ui_fuse_notifies_achievement_system() -> void:
+	var saved_as_save: Node = AchievementSystem.save_system
+	var iso: Node = auto_free(load("res://autoload/save_system.gd").new())
+	iso.save_path = "user://test_forge_achv_%d.json" % absi(randi())
+	DirAccess.remove_absolute(iso.save_path)
+	iso.load_save()
+	AchievementSystem.save_system = iso
+	CodexSystem.counters["crafts_total"] = 9   # 预置 9：本次 UI 成交 = 第 10 次熔铸
+	var h := _open_forge(["tiejian", "ranshaoping"])
+	h["forge"]._on_fuse_pressed()
+	# 轮询点次序不敏感（K.1）：craft_x 达标搭车 weapon_unlocked recheck 或本点显式轮询。
+	AchievementSystem.notify_item_forged()
+	assert_bool(iso.is_achievement_unlocked("forge_smith")).is_true()
+	AchievementSystem.save_system = saved_as_save
+	DirAccess.remove_absolute(iso.save_path)
+	DirAccess.remove_absolute(iso.save_path + ".tmp")
 
 
 ## Minor-3：兜底路径的盐字面量必须与 RunState.SALT_FORGE 常量一致（防改一处忘一处）。

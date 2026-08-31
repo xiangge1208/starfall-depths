@@ -108,6 +108,7 @@ func _on_fuse_pressed() -> void:
 	# 「T25 占位、无调用方」接口。5 条 craft_x 任务（含 4 把★图鉴项）此前进度恒 0、永不解锁。
 	# 配方熔铸与通用升级都算一次熔铸；先例见 Core/interact/shop.gd 的 CodexSystem.count_buy()。
 	CodexSystem.count_craft()
+	AchievementSystem.notify_item_forged()   # m2-t33 补线：熔铸匠轮询点（裁定㉗）
 	_flash(_preview, OK_FLASH)
 
 

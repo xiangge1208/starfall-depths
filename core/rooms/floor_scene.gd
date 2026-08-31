@@ -1190,12 +1190,22 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 		if room.is_challenge:                # m2-t26：紫武器+大量金币必得；灾厄仅本房生效
 			_spawn_challenge_rewards(room)
 			_restore_calamity(room)
+			# m2-t33 成就补线（裁定㉗）：挑战房清 = K.5 counters.challenge_rooms_total +1
+			# + 「挑战者」判定轮询（notify 直调，同 T20 count_buy 直调先例）。
+			CodexSystem.count_challenge()
+			AchievementSystem.notify_challenge_cleared()
 		_emit_room_clear(room)
 		refresh_gates()
 		if room.type == "boss":
 			_flow_suspended = true           # 层间中转接管玩家（防进房检测抢人）
 			AudioMgr.boss_layer(false)       # m2-t22：Boss 退场 → 恢复生态曲
 			boss_defeated.emit(room.room_id)
+			# m2-t33 成就补线（裁定㉗，K.2/裁定⑧命名）：boss_slain(boss_id, floor_idx,
+			# 击杀武器)。boss 房单波单只（waves_for "boss"），完成清房的死亡体即 Boss
+			# 本体（行 id = 路由后真实行）；武器取当前武器（与 kill 行 source 同口径；
+			# "" = 类别未知，nitpicker 判定 fail-closed 不误解锁）。
+			AchievementSystem.notify_boss_slain(String(killed_row.get("id", "")),
+				floor_idx, _current_weapon_id())
 		# m2-t24 fix（评审 C-1）：隐藏门只在「房清拍」判定——小 Boss 为末波，房清即
 		# 小 Boss 已死；波 1 杂兵死亡（房未清）不得提前开门。
 		_maybe_open_starfall_gate(room, death_pos)
@@ -1744,8 +1754,10 @@ func _pick_boss_row() -> void:
 		if GameDB.get_enemy(id).is_empty():
 			push_error("FloorScene: boss pool row missing '%s' — keep default" % id)
 			return
+	# m2-t36 评审 Minor③（T33 顺手修）：duplicate+sort + 下标取行与 boss_row_for_floor
+	# 重复——抽签后直接调权威函数取行，消除双份字典序逻辑。
 	var rng := RngSvc.stream(floor_idx, "boss")
-	_boss_row_id = pool[rng.randi_range(0, pool.size() - 1)]
+	_boss_row_id = boss_row_for_floor(fl, rng.randi_range(0, pool.size() - 1))
 
 
 ## 本层 Boss 数据行 id（测试/宿主视图）。

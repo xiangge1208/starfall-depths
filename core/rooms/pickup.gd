@@ -53,6 +53,7 @@ func _on_body_entered(body: Node2D) -> void:
 			pl.add_energy(8)
 		"heart":
 			pl.heal(1)
+			AchievementSystem.notify_heart_pickup()   # m2-t33 补线：拒绝治疗会话源（K.3）
 		"gem":
 			if on_collect.is_valid():
 				on_collect.call()

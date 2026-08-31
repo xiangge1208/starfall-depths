@@ -17,6 +17,12 @@ const SEED := 20260828
 const DRAWS := 1000
 
 var _saved_weapons: Variant = null
+## m2-t33 密闭（裁定㉔）：共享 save_headless.json + 运行时池逐用例隔离（顺序/残留无关）。
+var _seal: Dictionary = {}
+
+
+func before_test() -> void:
+	_seal = TestSaveSeal.seal("shop")
 
 
 # ---------------------------------------------------------------- 替身与桩
@@ -114,6 +120,7 @@ func after_test() -> void:
 	if _saved_weapons != null:
 		GameDB.weapons = _saved_weapons
 		_saved_weapons = null
+	TestSaveSeal.restore(_seal)
 
 
 # ================================================================ 1) price 表

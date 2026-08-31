@@ -44,9 +44,15 @@ const REPLAY_TIME_SCALE := 8.0
 const REPLAY_PRE_ROLL_TICKS := 180     # 死亡帧前 3s 预滚（3s @ 60fps，同 TimeConst.FPS）
 const REPLAY_BANNER_TEXT := "这就是你的死亡时刻"
 const PLAYER_SCENE := preload("res://core/player/player.tscn")
+## M1 补录③（m1-final-review e6ed091；T33 预检落地）：死亡确认输入锁——面板打开后
+## 0.5s（30t）内的离散按键/点击一律吞掉，防致死瞬间连按/按住直接跳过死亡回顾。
+## 锁窗不作用回放退出路径：回放只能先经 Replay 按钮显式启动（GUI 输入先于
+## _unhandled_input，锁窗内的点击只会落在按钮/面板上，不会触发 _confirm）。
+const CONFIRM_LOCK_TICKS := 30
 
 var _report: Dictionary = {}
 var _confirmed := false               # 双击/双键守卫：蓝晶只入账一次
+var _opened_frame := -9999            # 输入锁基准帧（open 时落；-9999 = 永不过期防御）
 var _replay_state: int = ReplayState.IDLE
 var _replay_floor: FloorScene = null
 var _replay_player: Player = null
@@ -63,6 +69,7 @@ func _ready() -> void:
 ## 填充面板（测试可直接注入报告）。「回放」按钮只在有回放键时可见。
 func open(report: Dictionary) -> void:
 	_report = report
+	_opened_frame = Engine.get_physics_frames()   # M1 补录③：确认输入锁基准帧
 	_fill()
 	($Panel/Box/Replay as Button).visible = not DeathRecorder.replay_key.is_empty()
 
@@ -111,6 +118,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				or (mb != null and mb.pressed):
 			get_viewport().set_input_as_handled()
 			end_replay()
+		return
+	# M1 补录③：确认输入锁（open 后 0.5s 窗口）——吞掉离散按键/点击，防误确认。
+	if Engine.get_physics_frames() - _opened_frame < CONFIRM_LOCK_TICKS:
+		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey:
 		var key_ev := event as InputEventKey

@@ -224,6 +224,8 @@ func unlock_hero(id: String) -> bool:
 	heroes.append(id)
 	data["unlocked_heroes"] = heroes
 	save_now()
+	# m2-t33 补线（裁定㉗）：K.2 指定发射点 = unlock_hero 成功点（全员集合轮询源）。
+	AchievementSystem.notify_hero_unlocked(id)
 	return true
 
 ## 已购天赋列表（m2-t15 最小新增）：防御性读取——档内非数组/脏元素一律过滤，

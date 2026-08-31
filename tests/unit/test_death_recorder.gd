@@ -467,6 +467,50 @@ func test_confirm_awards_half_gems_once_and_resets_recorder() -> void:
 	assert_int(SaveSystem.gems()).is_equal(2)
 	assert_int(exits.size()).is_equal(1)
 
+## M1 补录③（m1-final-review e6ed091 / T33 预检）：死亡确认输入锁——面板打开后
+## 短窗（0.5s）内的离散按键/点击必须被吞掉，防致死瞬间的连按/按住直接跳过回顾。
+func _key_event() -> InputEventKey:
+	var ev := InputEventKey.new()
+	ev.pressed = true
+	ev.keycode = KEY_ENTER
+	return ev
+
+
+func test_confirm_input_lock_swallows_keys_right_after_open() -> void:
+	RunState.gems = 5
+	DeathRecorder.record_event(3, 100)
+	DeathRecorder.current_report = DeathRecorder.build_report(DeathRecorder.collect_run_stats())
+	var node: Control = _summary()
+	var dismissed := [false]
+	node.dismissed.connect(func() -> void: dismissed[0] = true)
+	node.open(DeathRecorder.current_report)     # open 落输入锁基准帧
+	node._unhandled_input(_key_event())          # 锁窗内任意键：吞掉，不确认
+	assert_bool(dismissed[0]).is_false()
+	assert_int(SaveSystem.gems()).is_equal(0)    # 蓝晶未入账
+	assert_bool(DeathRecorder.current_report.is_empty()).is_false()   # 报告未消费
+	var mb := InputEventMouseButton.new()
+	mb.pressed = true
+	mb.button_index = MOUSE_BUTTON_LEFT
+	node._unhandled_input(mb)                    # 点击同样被吞
+	assert_bool(dismissed[0]).is_false()
+	assert_int(SaveSystem.gems()).is_equal(0)
+
+
+func test_confirm_input_lock_expires_then_any_key_confirms() -> void:
+	RunState.gems = 5
+	DeathRecorder.record_event(3, 100)
+	DeathRecorder.current_report = DeathRecorder.build_report(DeathRecorder.collect_run_stats())
+	var node: Control = _summary()
+	var exits: Array = []
+	node.exit_override = func() -> void: exits.append(1)
+	node.open(DeathRecorder.current_report)
+	node._opened_frame = Engine.get_physics_frames() - 31   # 模拟锁窗（30t）已过
+	node._unhandled_input(_key_event())
+	assert_int(SaveSystem.gems()).is_equal(2)    # 锁过期 → 确认照常入账
+	assert_bool(DeathRecorder.current_report.is_empty()).is_true()   # reset 收尾
+	assert_array(exits).has_size(1)
+
+
 func test_next_run_cannot_reaward_previous_run_gems() -> void:
 	RunState.start_run("vanguard")
 	assert_int(RunState.next_floor()).is_equal(2)
@@ -502,6 +546,8 @@ func test_any_key_confirms_via_input_path() -> void:
 	var node: Control = _summary()
 	node.open(DeathRecorder.build_report(DeathRecorder.collect_run_stats()))
 	node.exit_override = func() -> void: pass
+	# M1 补录③：确认输入锁（open 后 0.5s）——本测试注入锁窗已过，断言任意键确认照常。
+	node._opened_frame = Engine.get_physics_frames() - 31
 	var ev := InputEventKey.new()
 	ev.keycode = KEY_SPACE
 	ev.pressed = true
