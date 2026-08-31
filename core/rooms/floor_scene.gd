@@ -53,6 +53,19 @@ const FIRE_RAIN_BOOM_COLOR := Color(1.0, 0.5, 0.15, 0.8)     # 火雨落点爆�
 
 ## A1 名录（data/enemies.json）：楼层垃圾怪池，波次按房号确定性轮转组合。
 const A1_TRASH := ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"]
+## m2-t26 挑战房灾厄常量（GDD §11 挑战房，仅本房生效；实现全走行级 override /
+## 临时 meta / 复用 BiomeFx，不侵入 player.gd / enemy_base.gd）。
+const CHALLENGE_STRENGTH_MULT := 1.25      # 挑战房波次强度：行 hp ×1.25（3 波强化怪）
+const CALAMITY_SPEED_MULT := 1.3           # 灾厄「敌速+30%」：行 speed/walk_speed/dash_speed ×1.3
+const CALAMITY_BULLET_MULT := 1.25         # 灾厄「弹速+25%」：行 bullet_speed ×1.25
+const CALAMITY_VISION_FACTOR := 0.65       # 灾厄「视野-35%」：暗视野组件调暗/光圈半径 ×0.65
+const CALAMITY_HEAL_META := "calamity_heal_disabled"   # 灾厄「治疗无效」：玩家临时 meta 标志
+const CALAMITY_SPEED_KEYS := ["speed", "walk_speed", "dash_speed"]   # 敌速键族（charger 无 speed）
+const CHALLENGE_COINS_MIN := 80            # 挑战房清房必得大量金币（下限）
+const CHALLENGE_COINS_MAX := 120           # 挑战房清房必得大量金币（上限）
+## m2-t26 小 Boss 楼层侧行 hp（附录 B.3「HP=A1 基准 180 / A2 400 / A3 870」）：
+## spawn 时按 floor_idx 替换行 hp（精英词缀倍率在其上照常生效）；表外楼层 clamp 到界。
+const MINIBOSS_FLOOR_HP := {1: 180, 2: 400, 3: 870}
 ## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（swift+berserk 词缀，
 ## drops weapon+hearts2）、垒主=自爆王虫（armored+leech，drops weapon+hearts2）、
 ## boss=藤蔓巨像（行内 boss_script → 真 3 阶段 BossBase 子类）。
@@ -113,6 +126,14 @@ var _geysers: Array[HazardMagma.MagmaGeyser] = []
 var _geyser_vis: Array[CanvasItem] = []
 var hazard_fire_rain: HazardMagma.FireRain = HazardMagma.FireRain.new()
 var _fire_rain_vis: Array[CanvasItem] = []
+## m2-t26 挑战房：combat 房择一承载（DungeonGraph 暂无原生 challenge 房型——房型矩阵
+## 缺口移交，见 docs/superpowers/reports/m2-room-matrix.md）；<0 = setup 自动择一。
+var challenge_room_id := -1
+## m2-t26 灾厄「视野-35%」暗视野组件（复用 A2 BiomeFx，房清/场景销毁时卸载）。
+var calamity_fx: BiomeFx = null
+var _calamity_rng: RandomNumberGenerator
+var _ui_layer: CanvasLayer = null
+var _calamity_panel: CalamityPanel = null
 
 var _rooms: Dictionary = {}           # int id -> FloorRoom
 var _gates: Dictionary = {}           # "min|max" -> {shape, panel, a, b, open}
@@ -212,6 +233,14 @@ func _physics_process(_delta: float) -> void:
 	_detect_room_enter()
 
 
+func _exit_tree() -> void:
+	# m2-t26 挑战房灾厄跨场景兜底：换层销毁时摘除玩家 meta 标志（玩家不被收养的宿主
+	# 路径下场景 free 后标志仍可泄漏到下一层）。灾厄 fx 为子节点随树释放，BiomeFx
+	# ._exit_tree 自行恢复敌人剪影；房清路径已先行还原，此处只兜底「未清房换层」。
+	if player != null and is_instance_valid(player) and player.has_meta(CALAMITY_HEAL_META):
+		player.remove_meta(CALAMITY_HEAL_META)
+
+
 func _process(_delta: float) -> void:
 	if not _built:
 		return
@@ -234,6 +263,8 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	_rig_rng = RunState.stream(RunState.SALT_RIG)
 	_loot_rng = RunState.stream(RunState.SALT_EVENT)   # M2-T1：事件/房间抽取独立盐（不再共享掉落流）
 	_facility_rng = RngSvc.stream(floor_idx, "facility")
+	_calamity_rng = RngSvc.stream(floor_idx, "calamity")   # m2-t26：挑战房择一独立盐（不扰动既有流）
+	_resolve_challenge_room(build)
 	if player.get_parent() == null:
 		add_child(player)
 	if not player.is_in_group("player"):
@@ -283,6 +314,9 @@ func _build_room(id: int, data: Dictionary) -> void:
 	_init_spawn_points(room, tpl)
 	if FloorFlow.COMBAT_TYPES.has(room.type):
 		room.waves_cfg = waves_for(id, room.type)
+		if id == challenge_room_id:               # m2-t26：挑战房 3 波配置 + 房标记
+			room.is_challenge = true
+			room.waves_cfg = challenge_waves_for(id)
 		var pool_root := Node2D.new()
 		pool_root.name = "ProjectilePoolRoot"
 		room.add_child(pool_root)
@@ -810,7 +844,10 @@ func enter_room(id: int) -> bool:
 	room.entry_frame = Engine.get_physics_frames()
 	Telemetry.log_row(["floor_enter", room.entry_frame, room.template_id])
 	if room.combat != null and not flow.is_cleared(id):
-		_start_room_combat(room)
+		if room.is_challenge and room.calamity_id.is_empty():
+			_open_calamity_panel(room)     # m2-t26：进门先灾厄 4 选 1（选定才开战）
+		else:
+			_start_room_combat(room)
 	else:
 		_place_guests(room)
 		if not room.cleared_emitted:
@@ -858,6 +895,14 @@ func _spawn_enemy(room: FloorRoom, id: String, world_pos: Vector2,
 		if counts_for_wave:
 			room.room_flow.notify_killed(id, Engine.get_physics_frames())
 		return null
+	# m2-t26 小 Boss 楼层缩放（占位回归对照路径；真实嘉宾在 _spawn_real_guest 同步缩放）
+	if row_override.is_empty() and is_guest and id == "miniboss_charger":
+		row["hp"] = miniboss_hp_for_floor(floor_idx, int(row.get("hp", 18)))
+	# m2-t26 挑战房波次行级强化：仅原始垃圾波次行（嘉宾/召唤/显式 override 不动）；
+	# duplicate 防污染 GameDB 缓存行（get_enemy 返回引用）。
+	if row_override.is_empty() and not is_guest and room.is_challenge \
+			and not room.calamity_id.is_empty():
+		row = _calamity_row(row.duplicate(true), room.calamity_id)
 	# T12/T13 缝：guest_spawner 注入时嘉宾生成让位宿主（返回 EnemyBase 即接管）。
 	if row_override.is_empty() and is_guest and guest_spawner.is_valid():
 		var spawned: Variant = guest_spawner.call(room.type, room.room_id, row.duplicate(), world_pos)
@@ -934,6 +979,8 @@ func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2,
 		return null
 	real_row["guest_kind"] = String((GUEST_SPECS[wave_id] as Dictionary)["kind"])
 	real_row["wave_id"] = wave_id
+	if wave_id == "miniboss_charger":         # m2-t26：小 Boss 楼层侧行 hp（B.3：A2 400/A3 870）
+		real_row["hp"] = miniboss_hp_for_floor(floor_idx, int(real_row.get("hp", 180)))
 	var e := EnemyFactory.spawn(real_row, room, world_pos - room.position)
 	if e == null:
 		push_error("FloorScene: cannot construct real guest '%s'" % real_id)
@@ -998,6 +1045,9 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	_spawn_guest_drops(room, killed_row, death_pos)
 	if room.room_flow.cleared and not room.cleared_emitted:
 		flow.notify_room_cleared(room.room_id)
+		if room.is_challenge:                # m2-t26：紫武器+大量金币必得；灾厄仅本房生效
+			_spawn_challenge_rewards(room)
+			_restore_calamity(room)
 		_emit_room_clear(room)
 		refresh_gates()
 		if room.type == "boss":
@@ -1067,6 +1117,10 @@ func _scatter(i: int) -> Vector2:
 
 
 func _spawn_pickup(room: FloorRoom, kind: String, world_pos: Vector2) -> void:
+	# m2-t26 灾厄「治疗无效」：本房不落红心（房内治疗源截断；meta 标志供其他消费方读）。
+	if kind == "heart" and player != null and is_instance_valid(player) \
+			and player.has_meta(CALAMITY_HEAL_META):
+		return
 	var p := Pickup.new()
 	p.kind = kind
 	p.position = world_pos - room.position   # 房间子节点：世界落点 → 房间局部
@@ -1379,6 +1433,180 @@ static func guest_row(id: String) -> Dictionary:
 	return row
 
 
+## m2-t26 挑战房波次（GDD §11：3 波强化怪）：组成 = 本层战斗房配置轮转 3 波
+## （波1/波2/波1 复用），奖励置零（清房改发紫武器 + 大量金币）；强度 ×1.25 由
+## _calamity_row 在 spawn 行级生效，与所选灾厄无关。
+static func challenge_waves_for(room_id: int) -> Dictionary:
+	var waves: Array = waves_for(room_id, "combat").get("waves", [])
+	if waves.is_empty():
+		return {}
+	return {"waves": [waves[0], waves[1 % waves.size()], waves[0]],
+		"coins": 0, "energy_orbs": 0, "hearts": 0}
+
+
+## m2-t26 小 Boss 楼层侧行 hp（附录 B.3：A1 基准 / A2 400 / A3 870）：floor1 返回
+## base（数据行原值口径不动），floor≥2 查表（表外 clamp 到 A3）；词缀倍率在其上生效。
+static func miniboss_hp_for_floor(floor_idx: int, base_hp: int) -> int:
+	if floor_idx <= 1:
+		return base_hp
+	return int(MINIBOSS_FLOOR_HP.get(clampi(floor_idx, 1, 3), base_hp))
+
+
+# ================================================================ m2-t26 挑战房灾厄
+
+## 挑战房择一：外部显式指定（challenge_room_id >= 0，须为 combat 房）优先；否则在
+## combat 房中以独立「calamity」盐流确定性取一（同种子同层恒同房）。combat 房不足
+## 2 间的退化构建体（单战斗房链/测试替身）不自动设挑战房——保留其常规战斗语义；
+## 显式指定不受此限。无 combat 房不设挑战房。
+func _resolve_challenge_room(build: Dictionary) -> void:
+	var want := challenge_room_id
+	challenge_room_id = -1
+	var combat_ids: Array[int] = []
+	for id in build["rooms"]:
+		if String(((build["rooms"][id] as Dictionary)["node"] as Dictionary).get("type", "")) \
+				== "combat":
+			combat_ids.append(int(id))
+	combat_ids.sort()
+	if combat_ids.is_empty():
+		if want >= 0:
+			push_error("FloorScene: challenge_room_id %d set but floor has no combat room" % want)
+		return
+	if want >= 0:
+		if combat_ids.has(want):
+			challenge_room_id = want
+		else:
+			push_error("FloorScene: challenge_room_id %d is not a combat room" % want)
+			if combat_ids.size() >= 2:
+				challenge_room_id = combat_ids[_calamity_rng.randi_range(0, combat_ids.size() - 1)]
+		return
+	if combat_ids.size() < 2:
+		return
+	challenge_room_id = combat_ids[_calamity_rng.randi_range(0, combat_ids.size() - 1)]
+
+
+## 进挑战房未选灾厄：开 4 选 1 面板（UI 层 30，同 inter_floor BuffPick 挂法）。
+func _open_calamity_panel(room: FloorRoom) -> void:
+	if calamity_panel_visible():
+		return                                  # 已在展示（enter_room 幂等重入）
+	if _ui_layer == null:
+		_ui_layer = CanvasLayer.new()
+		_ui_layer.name = "CalamityUILayer"
+		_ui_layer.layer = 30
+		add_child(_ui_layer)
+	if _calamity_panel != null and is_instance_valid(_calamity_panel):
+		_calamity_panel.queue_free()
+	_calamity_panel = CalamityPanel.new()
+	_calamity_panel.calamity_chosen.connect(_on_calamity_chosen.bind(room.room_id))
+	_ui_layer.add_child(_calamity_panel)
+	_calamity_panel.open()
+
+
+func calamity_panel_visible() -> bool:
+	return _calamity_panel != null and is_instance_valid(_calamity_panel) \
+		and _calamity_panel.visible
+
+
+## 选定灾厄 → 落地 + 开战（3 波强化怪）。房类型/重复选择守卫（幂等）。
+func _on_calamity_chosen(id: String, room_id: int) -> void:
+	var room: FloorRoom = _rooms.get(room_id)
+	if room == null or not room.is_challenge or not room.calamity_id.is_empty():
+		return
+	_apply_calamity(room, id)
+	_start_room_combat(room)
+
+
+## 测试/宿主定向选灾厄（等价面板选卡；未进挑战房或已选时拒绝）。
+func choose_calamity(id: String) -> bool:
+	var room: FloorRoom = _rooms.get(challenge_room_id)
+	if room == null or not room.is_challenge or not room.calamity_id.is_empty() \
+			or not CalamityPanel.CALAMITY_IDS.has(id):
+		return false
+	if _calamity_panel != null and is_instance_valid(_calamity_panel):
+		_calamity_panel.hide()
+	_apply_calamity(room, id)
+	_start_room_combat(room)
+	return true
+
+
+## 灾厄落地（仅本房生效）：敌速/弹速走 spawn 行级 override（无即时状态）；
+## 视野复用 A2 BiomeFx（调暗 0.65 灰 + 光圈半径 ×0.65）；治疗无效 = 玩家临时 meta。
+func _apply_calamity(room: FloorRoom, id: String) -> void:
+	room.calamity_id = id
+	Telemetry.log_row(["calamity", Engine.get_physics_frames(), id, room.template_id])
+	match id:
+		"vision":
+			if player == null:
+				push_error("FloorScene._apply_calamity: no player")
+				return
+			calamity_fx = BiomeFx.new()
+			calamity_fx.name = "CalamityVisionFx"
+			calamity_fx.setup(player)
+			add_child(calamity_fx)
+			calamity_fx.canvas_modulate.color = Color(
+				CALAMITY_VISION_FACTOR, CALAMITY_VISION_FACTOR, CALAMITY_VISION_FACTOR)
+			calamity_fx.light.texture_scale *= CALAMITY_VISION_FACTOR   # 光圈半径同比 -35%
+		"heal_disable":
+			if player != null:
+				player.set_meta(CALAMITY_HEAL_META, true)
+		"enemy_speed", "bullet_speed":
+			pass                                   # 行级 override 在 _spawn_enemy 生效
+
+
+## 挑战房波次行级强化（传入行必须为已复制副本）：hp ×1.25 恒定（强化怪与灾厄无关）；
+## 敌速灾厄覆写 speed 键族（charger 行用 walk/dash_speed，无 speed 键）；弹速灾厄
+## 覆写 bullet_speed（近战行无此键则不动）。
+func _calamity_row(row: Dictionary, calamity_id: String) -> Dictionary:
+	row["hp"] = maxi(1, int(round(float(row.get("hp", 10)) * CHALLENGE_STRENGTH_MULT)))
+	if calamity_id == "enemy_speed":
+		for key: String in CALAMITY_SPEED_KEYS:
+			if row.has(key):
+				row[key] = float(row[key]) * CALAMITY_SPEED_MULT
+	if calamity_id == "bullet_speed" and row.has("bullet_speed"):
+		row["bullet_speed"] = float(row["bullet_speed"]) * CALAMITY_BULLET_MULT
+	return row
+
+
+## 房清还原（灾厄仅本房生效）：状态位复位 + 暗视野组件卸载（restore_enemies 复位
+## 敌人剪影）+ 玩家 meta 摘除。幂等（未激活 no-op）。
+func _restore_calamity(room: FloorRoom) -> void:
+	if not room.calamity_id.is_empty():
+		room.calamity_id = ""
+	if calamity_fx != null and is_instance_valid(calamity_fx):
+		calamity_fx.queue_free()               # BiomeFx._exit_tree 自行恢复敌人剪影
+	calamity_fx = null
+	if player != null and is_instance_valid(player) and player.has_meta(CALAMITY_HEAL_META):
+		player.remove_meta(CALAMITY_HEAL_META)
+
+
+## 挑战房清房奖励（GDD §11：必得紫 + 大量金币）：epic 池取自 weapons_all 全量
+## （紫武默认 locked 不进普通掉落池，挑战保底即获取途径本身；★熔铸限定 forge_only
+## 仍排除）；金币 80~120 由 loot 盐流确定性掷签。标准奖励在挑战房配置中置零不重复。
+func _spawn_challenge_rewards(room: FloorRoom) -> void:
+	var center := room.outer.get_center()
+	var wid := _roll_challenge_epic_weapon()
+	Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, "epic_challenge"])
+	room.add_child(_build_loot_station(room, center - room.position, wid))
+	var coins := _loot_rng.randi_range(CHALLENGE_COINS_MIN, CHALLENGE_COINS_MAX)
+	for i in coins:
+		_spawn_pickup(room, "coin", center + _scatter(i))
+
+
+func _roll_challenge_epic_weapon() -> String:
+	var ids: Array[String] = []
+	for wid: String in GameDB.weapons_all:
+		var w: Dictionary = GameDB.weapons_all[wid]
+		if String(w.get("rarity", "")) == "epic" and not bool(w.get("forge_only", false)):
+			ids.append(wid)
+	if ids.is_empty():
+		return _roll_weapon("epic")            # 退化：普通池 epic → 全名录兜底（沿宝箱习语）
+	ids.sort()
+	return ids[_loot_rng.randi_range(0, ids.size() - 1)]
+
+
+func challenge_room() -> int:
+	return challenge_room_id
+
+
 # ================================================================ 相机 / HUD / 弹幕可视
 
 func _attach_interaction() -> void:
@@ -1516,6 +1744,8 @@ class FloorRoom extends Node2D:
 	var facility_built := false               # m1-t27：设施已接（shop/event 真设施占位）
 	var cleared_emitted := false
 	var coins := 0
+	var is_challenge := false                 # m2-t26：挑战房（combat 房行级标记承载）
+	var calamity_id := ""                     # m2-t26：已选灾厄 id（"" = 未选/已还原）
 
 	func wave_ids(index: int) -> Array:
 		var waves: Array = waves_cfg.get("waves", [])
