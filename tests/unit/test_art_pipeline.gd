@@ -9,6 +9,10 @@ extends GdUnitTestSuite
 const GUARD_SNIPPET := "res://tests/unit/art_prune_guard.py"
 
 func _python_exe() -> String:
+	# 优先托管隔离 venv（已装 Pillow；系统 python 不装包，避免污染环境）。
+	var venv := "C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
+	if FileAccess.file_exists(venv) and OS.execute(venv, ["--version"], [], true) == 0:
+		return venv
 	for exe: String in ["python", "py"]:
 		var out: Array = []
 		if OS.execute(exe, ["--version"], out, true) == 0:
