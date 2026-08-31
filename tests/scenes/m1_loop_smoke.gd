@@ -2,7 +2,7 @@ extends Node
 ## m1-t27 主循环无头冒烟（机检部分；视觉手感以 m1_evidence 截图驱动为辅）：
 ## run_root 装配（选角承接→HeroApplier→首层）→ 全层真实走图（战斗房两波清房、
 ## 精英/垒主/巨像真嘉宾、商店/宝箱/事件设施）→ boss 死亡开层间（三选一+喷泉+门）→
-## 推层第 2 层 → A2 真实入口里程碑。逐项 print，失败置 exit 1。
+## 推层第 2 层 → A2 真实楼层构建（模板落库后入口里程碑存根退役）。逐项 print，失败置 exit 1。
 ## 运行：godot --headless --path . res://tests/scenes/m1_loop_smoke.tscn
 
 var run_root: Node2D
@@ -42,6 +42,10 @@ func _run() -> void:
 		if id == boss:
 			continue
 		_check(fs.enter_room(id), "enter room %d (%s)" % [id, fs.flow.room_type(id)])
+		# m2-t26 挑战房（combat 择一）：进门先灾厄 4 选 1 才开战（等价玩家选卡，
+		# 同 test_calamity 真实构建体走查口径）；面板只对刚进入的房可见。
+		if fs.calamity_panel_visible():
+			_check(fs.choose_calamity("vision"), "calamity chosen in challenge room %d" % id)
 		if _is_combat_type(fs.flow.room_type(id)) and not fs.flow.cleared.has(id):
 			await _clear_room_waves(fs, id)
 	_check(fs.flow.boss_door_unlocked(), "boss door unlocked after miniboss")
@@ -110,6 +114,7 @@ func _run() -> void:
 		# 选增益走场景回调（等价玩家按 1）；phase BUFF(0)→FOUNTAIN(1) 即落地
 		var picked_id: String = inter.flow.offered[0]
 		var before_agg: Dictionary = inter.buffs_manager.aggregate()
+		var metas_before := _buff_metas(player)
 		var hp_max_before := player.hp_max
 		var shield_max_before := player.shield_max
 		var energy_max_before := player.energy_max
@@ -125,6 +130,8 @@ func _run() -> void:
 		await _until(func() -> bool: return inter.flow.phase >= InterFloorFlow.Phase.FOUNTAIN,
 			"buff chosen via inter floor")
 		var after_agg: Dictionary = inter.buffs_manager.aggregate()
+		# m2-t12 后新键（抗性/旗标/输出放大类）经 player/rig 的 buff_* meta 落地，
+		# 无公开字段可 diff——快照比对一并计入（否则随机抽到 anti_ice 等必假失败）。
 		var buff_changed: bool = after_agg != before_agg and (
 			player.hp_max != hp_max_before or player.shield_max != shield_max_before \
 			or player.energy_max != energy_max_before or player.move_speed != move_speed_before \
@@ -135,7 +142,8 @@ func _run() -> void:
 			or player.weapon_rig.crit_detonate_pct != float(rig_before["crit_detonate_pct"]) \
 			or player.crit_bonus != 0.0 or player.crit_damage_bonus != 0.0 \
 			or player.status_rate_bonus != 0.0 or player.roll_cd_pct != 0.0 \
-			or player.shield_delay_reduction_ticks != 0)
+			or player.shield_delay_reduction_ticks != 0 \
+			or _buff_metas(player) != metas_before)
 		_check(buff_changed, "chosen buff changes live player or weapon stats (%s)" % picked_id)
 		inter.flow.use_fountain(player)
 		await _until(func() -> bool: return inter.flow.phase == InterFloorFlow.Phase.DOOR,
@@ -144,11 +152,22 @@ func _run() -> void:
 		inter._on_door_interact(player)
 		_check(RunState.floor_idx == 2, "RunState advanced to floor 2")
 		_check(RunState.gems == gems0 + 60, "floor clear gems +60 (GDD 14.1)")
-		await _until(func() -> bool: return run_root.a2_entry_active(),
-			"player entered the real floor 2 milestone scene")
-		_check(run_root.floor_scene == null, "floor 1 scene released on floor transition")
-		_check(String(run_root.overlay_text()).contains("已进入第 2 层"),
-			"floor 2 entry text is unambiguous")
+		# m2-t26 后 A2 模板落库 → 层数据门放行真建第 2 层（A2 入口里程碑存根退役，
+		# 断言口径对齐 test_m1_integration 真建层契约）
+		await _until(func() -> bool: return run_root.floor_scene != null \
+			and run_root.floor_scene.floor_idx == 2, "real floor 2 built (A2 templates)")
+		_check(not run_root.a2_entry_active(), "A2 entry milestone stub retired")
+		_check(not run_root.m1_overlay_visible(), "M1 end overlay retired on real floor 2")
+		var fs2: FloorScene = run_root.floor_scene
+		if fs2 != null:
+			_check(fs2.room_count() == 13, "floor 2 built with 13 rooms")
+			var a2_only := true
+			for i in fs2.room_count():
+				var room: FloorScene.FloorRoom = fs2.room_node(i)
+				if room != null and room.template_id.begins_with("combat_") \
+						and not room.template_id.begins_with("combat_a2_"):
+					a2_only = false
+			_check(a2_only, "floor 2 combat rooms use A2 templates")
 
 	Telemetry.flush()
 	print("SMOKE DONE: %s (%d checks failed)" % ["OK" if failures.is_empty() else "FAILED",
@@ -159,6 +178,21 @@ func _run() -> void:
 
 
 # ================================================================ helpers
+
+## 玩家与武器架的 buff_* meta 快照（m2-t12 meta 落地键：抗性/旗标/输出放大类无公开字段）。
+func _buff_metas(p: Player) -> Dictionary:
+	var out := {}
+	for mv in p.get_meta_list():
+		var k := String(mv)
+		if k.begins_with("buff_"):
+			out[k] = p.get_meta(k)
+	if p.weapon_rig != null:
+		for mv in p.weapon_rig.get_meta_list():
+			var k := String(mv)
+			if k.begins_with("buff_"):
+				out["rig:" + k] = p.weapon_rig.get_meta(k)
+	return out
+
 
 func _check(ok: bool, label: String) -> void:
 	if not ok:

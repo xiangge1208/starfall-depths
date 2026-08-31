@@ -16,6 +16,8 @@ const TIDE_DR := 0.8               # 生命潮汐(升级)：法阵内受伤 ×0.
 const DEFIANCE_RADIUS_PX := 60.0   # 坚守：AoE 半径
 const DEFIANCE_KNOCKBACK_PX := 8.0 # 坚守：击退距离
 const DEFIANCE_STUN_TICKS := 30    # 坚守：眩晕 0.5s
+# m2-t26 灾厄「治疗无效」meta 键单一出处（FloorScene 挂载/摘除；heal() 前置拦截一切治疗源）
+const CALAMITY_HEAL_DISABLED_META := "calamity_heal_disabled"
 # m2-t17 四向行走帧表：art/generated/characters/hero_<id>_sheet.png（64x64，
 # 4 行=下/上/左/右 × 4 列=idle+walk×3，16px/帧）。帧序 = 方向行*4 + 列。
 const ANIM_SHEET_COLS := 4
@@ -298,8 +300,15 @@ func shield_at(frame: int) -> int:
 	var gained := int(floor(float(frame - _shield_next_at) / SHIELD_INTERVAL_TICKS)) + 1
 	return mini(shield_max, shield + gained)
 
-func heal(n: int) -> void:
+## 治疗单一收口（m2-t26 评审 I-1）：挑战房 heal_disable 灾厄以临时 meta 挂在玩家上
+## （FloorScene 进房挂载/房清或场景销毁摘除），一切治疗源（红心拾取、喷泉、商店、
+## 技能如守护者生命潮汐）统一经此处拦截——红心掉落截断在 FloorScene._spawn_pickup，
+## 技能/设施侧不再各自判灾厄。返回是否实际回复（测试断言用；所有调用方均可忽略）。
+func heal(n: int) -> bool:
+	if has_meta(CALAMITY_HEAL_DISABLED_META):
+		return false
 	hp = mini(hp_max, hp + n)
+	return true
 
 func add_energy(n: int) -> void:
 	energy = mini(energy_max, energy + n)

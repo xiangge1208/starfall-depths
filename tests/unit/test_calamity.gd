@@ -237,6 +237,9 @@ func test_vision_calamity_mounts_dim_fx_and_restores() -> void:
 			.is_equal_approx(Vector3(0.65, 0.65, 0.65), Vector3(0.001, 0.001, 0.001))
 		var base_scale := BiomeFx.LIGHT_RADIUS_PX * 2.0 / float(BiomeFx.LIGHT_TEXTURE_PX)
 		assert_float(fs.calamity_fx.light.texture_scale).is_equal_approx(base_scale * 0.65, 0.001)
+		# 剪影判定半径与光圈同口径（评审 Minor-1）：随灾厄同比缩径
+		assert_float(fs.calamity_fx.light_radius_px) \
+			.is_equal_approx(BiomeFx.LIGHT_RADIUS_PX * 0.65, 0.001)
 	var room: FloorScene.FloorRoom = fs.room_node(1)
 	for _w in 3:                                      # 3 波全清 → 房清还原
 		_kill_all(room)
@@ -265,6 +268,41 @@ func test_heal_disable_calamity_meta_flag_and_heart_gate() -> void:
 	assert_bool(_player.has_meta(FloorScene.CALAMITY_HEAL_META)).is_false()
 	fs._spawn_pickup(room, "heart", room.outer.get_center())
 	assert_int(_pickups_of(room, "heart")).is_equal(1)   # 还原后红心恢复掉落
+
+
+func test_heal_disable_blocks_skill_heal_via_heal_gate() -> void:
+	# I-1（评审）：治疗无效单一收口于 Player.heal()——技能治疗（守护者生命潮汐：
+	# 瞬回 2 + 法阵节拍 heal）与喷泉/商店/红心同被拦，不止红心掉落截断；
+	# 清房还原后治疗恢复（房外正常，红心截断由 _spawn_pickup 用例钉死不回归）
+	var fs := _make_scene(_typed_chain(["combat", "combat"]), 1, 1)
+	assert_bool(fs.enter_room(1)).is_true()
+	fs.choose_calamity("heal_disable")
+	var room: FloorScene.FloorRoom = fs.room_node(1)
+	# 直接治疗：返回 false（heal() 收口拦截）且 hp 不动
+	_player.hp = 1
+	assert_bool(_player.heal(3)).is_false()
+	assert_int(_player.hp).is_equal(1)
+	# 守护者视角：生命潮汐全链路走 heal() 收口 → 瞬回与法阵节拍治疗均无效
+	var sk: SkillBase = load("res://core/player/skills/life_tide.gd").new()
+	sk.name = "Skill"
+	sk.setup(_player, {})
+	_player.add_child(sk)
+	_player.hp = 1
+	assert_bool(sk.cast(100)).is_true()
+	assert_int(_player.hp).is_equal(1)                 # 瞬回 2 被拦
+	sk.tick(160)                                       # 法阵第 1 拍：acc 0.5 不落地
+	sk.tick(220)                                       # 第 2 拍累满 1 → heal(1) 被拦
+	assert_int(_player.hp).is_equal(1)
+	# 清房还原（meta 摘除）→ 治疗恢复
+	for _w in 3:
+		_kill_all(room)
+		await _await_until(func() -> bool: return _alive_enemies(room) == 3 \
+			or fs.flow.cleared.has(1))
+	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
+	assert_bool(_player.has_meta(FloorScene.CALAMITY_HEAL_META)).is_false()
+	_player.hp = 1
+	assert_bool(_player.heal(2)).is_true()             # 房外：还原后治疗照常
+	assert_int(_player.hp).is_equal(3)
 
 
 func test_challenge_clear_guarantees_epic_and_coins_then_restores() -> void:

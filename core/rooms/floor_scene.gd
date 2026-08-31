@@ -58,13 +58,13 @@ const FIRE_RAIN_BOOM_COLOR := Color(1.0, 0.5, 0.15, 0.8)     # 火雨落点爆�
 
 ## A1 名录（data/enemies.json）：楼层垃圾怪池，波次按房号确定性轮转组合。
 const A1_TRASH := ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"]
-## m2-t26 挑战房灾厄常量（GDD §11 挑战房，仅本房生效；实现全走行级 override /
-## 临时 meta / 复用 BiomeFx，不侵入 player.gd / enemy_base.gd）。
+## m2-t26 挑战房灾厄常量（GDD §11 挑战房，仅本房生效；敌速/弹速走行级 override、
+## 视野复用 BiomeFx、治疗无效 = 玩家临时 meta——heal() 侧收口拦截，评审 I-1）。
 const CHALLENGE_STRENGTH_MULT := 1.25      # 挑战房波次强度：行 hp ×1.25（3 波强化怪）
 const CALAMITY_SPEED_MULT := 1.3           # 灾厄「敌速+30%」：行 speed/walk_speed/dash_speed ×1.3
 const CALAMITY_BULLET_MULT := 1.25         # 灾厄「弹速+25%」：行 bullet_speed ×1.25
 const CALAMITY_VISION_FACTOR := 0.65       # 灾厄「视野-35%」：暗视野组件调暗/光圈半径 ×0.65
-const CALAMITY_HEAL_META := "calamity_heal_disabled"   # 灾厄「治疗无效」：玩家临时 meta 标志
+const CALAMITY_HEAL_META := Player.CALAMITY_HEAL_DISABLED_META   # 治疗无效 meta 键（出处收于 player.gd）
 const CALAMITY_SPEED_KEYS := ["speed", "walk_speed", "dash_speed"]   # 敌速键族（charger 无 speed）
 const CHALLENGE_COINS_MIN := 80            # 挑战房清房必得大量金币（下限）
 const CHALLENGE_COINS_MAX := 120           # 挑战房清房必得大量金币（上限）
@@ -1768,25 +1768,34 @@ func choose_calamity(id: String) -> bool:
 ## 灾厄落地（仅本房生效）：敌速/弹速走 spawn 行级 override（无即时状态）；
 ## 视野复用 A2 BiomeFx（调暗 0.65 灰 + 光圈半径 ×0.65）；治疗无效 = 玩家临时 meta。
 func _apply_calamity(room: FloorRoom, id: String) -> void:
-	room.calamity_id = id
 	Telemetry.log_row(["calamity", Engine.get_physics_frames(), id, room.template_id])
+	var applied := true
 	match id:
 		"vision":
+			# 已裁定㉑：A2 层生态暗视野 + 视野灾厄并存时双 BiomeFx 实例（灾厄 0.65 灰
+			# 覆盖生态 0.25 暗、光圈同位叠加，方向偏亮）——defer 给 T36 复合进 biome_fx，
+			# 此处保持二次实例化的最小实现，不做复合。
 			if player == null:
 				push_error("FloorScene._apply_calamity: no player")
-				return
-			calamity_fx = BiomeFx.new()
-			calamity_fx.name = "CalamityVisionFx"
-			calamity_fx.setup(player)
-			add_child(calamity_fx)
-			calamity_fx.canvas_modulate.color = Color(
-				CALAMITY_VISION_FACTOR, CALAMITY_VISION_FACTOR, CALAMITY_VISION_FACTOR)
-			calamity_fx.light.texture_scale *= CALAMITY_VISION_FACTOR   # 光圈半径同比 -35%
+				applied = false               # fx 未挂不记账（评审 Minor-3；幂等门可重选）
+			else:
+				calamity_fx = BiomeFx.new()
+				calamity_fx.name = "CalamityVisionFx"
+				calamity_fx.setup(player)
+				add_child(calamity_fx)
+				calamity_fx.canvas_modulate.color = Color(
+					CALAMITY_VISION_FACTOR, CALAMITY_VISION_FACTOR, CALAMITY_VISION_FACTOR)
+				calamity_fx.light.texture_scale *= CALAMITY_VISION_FACTOR   # 光圈半径同比 -35%
+				# 剪影判定半径与光圈同口径（评审 Minor-1）：否则 91~140px 环带内敌人
+				# 按「光圈内」提亮但实际无光，惩罚弱于设计
+				calamity_fx.light_radius_px = BiomeFx.LIGHT_RADIUS_PX * CALAMITY_VISION_FACTOR
 		"heal_disable":
 			if player != null:
-				player.set_meta(CALAMITY_HEAL_META, true)
+				player.set_meta(CALAMITY_HEAL_META, true)   # Player.heal() 前置拦截一切治疗
 		"enemy_speed", "bullet_speed":
 			pass                                   # 行级 override 在 _spawn_enemy 生效
+	if applied:
+		room.calamity_id = id                      # match 成功后才记账（评审 Minor-3）
 
 
 ## 挑战房波次行级强化（传入行必须为已复制副本）：hp ×1.25 恒定（强化怪与灾厄无关）；

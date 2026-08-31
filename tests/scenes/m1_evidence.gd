@@ -50,6 +50,10 @@ func _run() -> void:
 		# contract instead of recording transient, seed-dependent enter failures.
 		if not _check_store(fs.enter_room(id), "enter room %d (%s)" % [id, t]):
 			continue
+		# m2-t26 挑战房（combat 择一）：进门先灾厄 4 选 1 才开战（等价玩家选卡，
+		# 同 test_calamity 真实构建体走查口径）；面板只对刚进入的房可见。
+		if fs.calamity_panel_visible():
+			_check_store(fs.choose_calamity("vision"), "calamity chosen in challenge room %d" % id)
 		# Direct evidence driving must also move the real player into the entered
 		# room.  Otherwise FloorScene's production position detector observes the
 		# player still standing in the previous room during screenshot waits and
@@ -73,7 +77,7 @@ func _run() -> void:
 			shot += 1
 	_check(fs.flow.boss_door_unlocked(), "boss door unlocked after miniboss")
 
-	print("EVIDENCE 3: boss colossus -> inter floor -> A2 entry milestone")
+	print("EVIDENCE 3: boss colossus -> inter floor -> A2 real floor 2")
 	_check_store(fs.enter_room(boss), "enter boss room")
 	player.position = fs.room_rect(boss).get_center()
 	await _until(func() -> bool: return _find_enemy(fs.room_node(boss), "vine_colossus") != null,
@@ -102,21 +106,27 @@ func _run() -> void:
 		choose_event.physical_keycode = KEY_1
 		choose_event.pressed = true
 		Input.parse_input_event(choose_event)
-		await _frames(2)
-		_check(not inter._buff_pick.visible, "buff pick closes after selection")
+		# 合成键事件经缓冲冲刷后在主循环帧首投递——固定等 2 个物理帧在有窗节奏下
+		# 可能先于冲刷耗尽（无头 1:1 交替则必过），改条件等待消除时序竞态。
+		await _until(func() -> bool: return not inter._buff_pick.visible,
+			"buff pick closes after selection", "buff pick close", 120)
 		inter.flow.use_fountain(player)
 		await _frames(20)
 		await _shot("%02d-inter-floor-fountain-door" % shot)
 		await _until(func() -> bool: return inter.flow.phase == InterFloorFlow.Phase.DOOR,
 			"fountain -> door", "door phase")
 		inter._on_door_interact(player)
-		await _until(func() -> bool: return run_root.a2_entry_active(),
-			"A2 entry", "A2 entry milestone shown")
+		# m2-t26 后 A2 模板落库 → 层数据门放行真建第 2 层（A2 入口里程碑存根退役，
+		# 断言口径对齐 test_m1_integration 真建层契约）
+		await _until(func() -> bool: return run_root.floor_scene != null \
+			and run_root.floor_scene.floor_idx == 2, "real floor 2 built",
+			"real floor 2 (A2 templates)")
 		await _frames(20)
-		await _shot("%02d-a2-entry-milestone" % (shot + 1))
+		await _shot("%02d-a2-floor2-start" % (shot + 1))
 		_check(RunState.floor_idx == 2, "RunState advanced to floor 2")
-		_check(String(run_root.overlay_text()).contains("已进入第 2 层"),
-			"floor 2 entry text is unambiguous")
+		_check(run_root.floor_scene != null and run_root.floor_scene.floor_idx == 2 \
+			and run_root.floor_scene.room_count() == 13,
+			"floor 2 built with 13 rooms (A2 templates)")
 
 	Telemetry.flush()
 	print("EVIDENCE DONE: %s (%d failed)" % ["OK" if failures.is_empty() else "FAILED",
@@ -127,6 +137,12 @@ func _run() -> void:
 # ================================================================ capture / walk helpers
 
 func _shot(name: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		# 无头模式无渲染管线：frame_post_draw 恒不触发（无头探针实证 300 帧无信号）、
+		# 视口无纹理可取——跳过截图只走断言流（有窗运行仍产出真实画面 PNG）。
+		await get_tree().process_frame
+		print("  SHOT %s (skipped: headless)" % name)
+		return
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	var path := "%s/m1-%s.png" % [OUT_DIR, name]
