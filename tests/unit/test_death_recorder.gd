@@ -515,3 +515,158 @@ func test_summary_exit_override_takes_precedence() -> void:
 	node.exit_override = func() -> void: exits.append(1)
 	node._confirm()
 	assert_int(exits.size()).is_equal(1)
+
+
+# ================================================================ 7) ReplayKey 与死亡回放（m2-t24）
+## 回放键契约：致死时记录 {run_seed, floor_idx, death_frame}，death_frame 为
+## 层内帧（致死全局帧 - Telemetry floor_build 基准帧，无基准回退原帧，clamp ≥0）。
+## 回放状态机：start_replay → 8x 快进至死亡帧前 3s → 恢复 1.0 → death_frame 到点
+## 暂停 +「这就是你的死亡时刻」；观战玩家无敌+输入禁用；time_scale 恢复 1.0
+## 具 finally 语义（到点/退出/_exit_tree 三路兜底）。
+
+
+func test_fatal_records_replay_key_with_run_seed_floor_and_death_frame() -> void:
+	RunState.run_seed = 123456789
+	RunState.floor_idx = 2
+	EventBus.player_hit_resolved.emit(5, true, {
+		"frame": 555, "source_name": "弩兵", "attack_name": "弹幕",
+	})
+	assert_dict(DeathRecorder.replay_key).contains_keys(["run_seed", "floor_idx", "death_frame"])
+	assert_int(int(DeathRecorder.replay_key["run_seed"])).is_equal(123456789)
+	assert_int(int(DeathRecorder.replay_key["floor_idx"])).is_equal(2)
+	assert_int(int(DeathRecorder.replay_key["death_frame"])).is_equal(555)   # 无构建基准 → 原帧回退
+
+
+func test_replay_key_death_frame_is_floor_local_tick() -> void:
+	Telemetry.log_row(["floor_build", 1000, "5"])     # 楼层构建于全局帧 1000
+	EventBus.player_hit_resolved.emit(5, true, {"frame": 1180})
+	assert_int(int(DeathRecorder.replay_key["death_frame"])).is_equal(180)   # 层内帧
+
+
+func test_replay_key_floor_local_clamps_negative_to_zero() -> void:
+	Telemetry.log_row(["floor_build", 2000, "5"])
+	EventBus.player_hit_resolved.emit(5, true, {"frame": 1500})   # 异常：致死帧早于构建帧
+	assert_int(int(DeathRecorder.replay_key["death_frame"])).is_equal(0)
+
+
+func test_replay_key_absent_for_non_fatal_and_cleared_on_reset() -> void:
+	EventBus.player_hit_resolved.emit(5, false, {"frame": 100})
+	assert_bool(DeathRecorder.replay_key.is_empty()).is_true()
+	EventBus.player_hit_resolved.emit(5, true, {"frame": 200})
+	assert_bool(DeathRecorder.replay_key.is_empty()).is_false()
+	DeathRecorder.reset()
+	assert_bool(DeathRecorder.replay_key.is_empty()).is_true()
+
+
+func test_report_carries_replay_key() -> void:
+	RunState.run_seed = 42
+	RunState.floor_idx = 3
+	EventBus.player_hit_resolved.emit(5, true, {"frame": 777})
+	var report := DeathRecorder.build_report({})
+	assert_dict(report["replay_key"]).is_equal(DeathRecorder.replay_key)
+
+
+func _replayable_summary(death_frame: int) -> Control:
+	# 回放面板脚手架：激活种子 + 注入回放键 + 装载报告（走 _ready 自动填充路径）
+	RunState.start_run("vanguard")
+	DeathRecorder.record_replay_key(RunState.run_seed, 1, death_frame)
+	DeathRecorder.current_report = DeathRecorder.build_report(DeathRecorder.collect_run_stats())
+	return _summary()
+
+
+func test_summary_replay_button_visible_only_with_replay_key() -> void:
+	var plain: Control = _summary()
+	plain.open(DeathRecorder.build_report({}))
+	assert_bool((plain.get_node("Panel/Box/Replay") as Button).visible).is_false()
+	var keyed: Control = _replayable_summary(100000)
+	assert_bool((keyed.get_node("Panel/Box/Replay") as Button).visible).is_true()
+
+
+func test_summary_replay_fast_forwards_then_pauses_at_death_frame() -> void:
+	var node: Control = _replayable_summary(40)       # 死亡帧 40 < 180t 预滚 → 快进段为 0
+	node.start_replay()
+	assert_int(node.replay_state()).is_equal(1)       # FAST_FORWARD
+	assert_float(Engine.time_scale).is_equal(8.0)
+	var fl: FloorScene = node.replay_floor()
+	assert_object(fl).is_not_null()
+	var spectator: Player = fl.player_node()
+	assert_int(spectator.process_mode).is_equal(Node.PROCESS_MODE_DISABLED)   # 观战：输入禁用
+	assert_bool(spectator.is_invincible()).is_true()                          # 观战：无敌
+	node._replay_advance(1)                           # ≥ ff_until(0)：恢复实速进 LIVE
+	assert_float(Engine.time_scale).is_equal(1.0)
+	assert_int(node.replay_state()).is_equal(2)       # LIVE
+	node._replay_advance(39)
+	assert_int(node.replay_state()).is_equal(2)
+	node._replay_advance(40)                          # ≥ death_frame：到点
+	assert_int(node.replay_state()).is_equal(3)       # DONE
+	assert_float(Engine.time_scale).is_equal(1.0)
+	assert_int((node.replay_floor() as FloorScene).process_mode).is_equal(Node.PROCESS_MODE_DISABLED)
+	assert_str(node.replay_banner_text()).is_equal("这就是你的死亡时刻")
+	node.end_replay()                                 # after_test 前恢复全局状态
+
+
+func test_summary_replay_end_restores_timescale_and_panel() -> void:
+	var node: Control = _replayable_summary(100000)
+	node.start_replay()
+	assert_bool(node.replay_active()).is_true()
+	node.end_replay()
+	assert_float(Engine.time_scale).is_equal(1.0)
+	assert_bool(node.replay_active()).is_false()
+	assert_object(node.replay_floor()).is_null()
+	assert_bool((node.get_node("Panel") as Control).visible).is_true()
+	assert_bool((node.get_node("Dim") as ColorRect).visible).is_true()
+	assert_bool((node.get_node("ReplayView") as Control).visible).is_false()
+	assert_bool(DeathRecorder.suppressed).is_false()
+
+
+func test_summary_input_during_replay_ends_replay_not_confirm() -> void:
+	var node: Control = _replayable_summary(100000)
+	RunState.gems = 6                                  # start_run 之后注入（开局会清零）
+	var exits: Array = []
+	node.exit_override = func() -> void: exits.append(1)
+	node.start_replay()
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	node._unhandled_input(ev)
+	assert_bool(node.replay_active()).is_false()
+	assert_float(Engine.time_scale).is_equal(1.0)
+	assert_array(exits).is_empty()                    # 回放中按键不触发结算离场
+	assert_int(RunState.gems).is_equal(6)             # 蓝晶未入账（待结算池原封不动）
+
+
+func test_summary_replay_teleports_spectator_to_fatal_room_with_waves() -> void:
+	RunState.start_run("vanguard")
+	var build := DungeonBuilder.build(RunState.run_seed, 1)
+	var target := -1
+	var pos := Vector2.ZERO
+	for id in build["rooms"]:
+		var rid := int(id)
+		if String((((build["rooms"] as Dictionary)[rid] as Dictionary)["node"] as Dictionary)["type"]) == "combat":
+			target = rid
+			var rd: Dictionary = (build["rooms"] as Dictionary)[rid]
+			var tpl := RoomTemplate.get_room(String(rd["template_id"]))
+			var size: Array = tpl.get("size", [22, 14])
+			pos = Vector2(rd["world_pos"]) + Vector2(size[0], size[1]) * 8.0   # 房外框中心
+			break
+	assert_int(target).is_greater_equal(0)
+	DeathRecorder.record_replay_key(RunState.run_seed, 1, 100000)
+	var report := DeathRecorder.build_report({})
+	report["fatal_event"] = {"pos": pos}
+	var node: Control = _summary()
+	node.open(report)
+	node.start_replay()
+	var fl: FloorScene = node.replay_floor()
+	assert_int(fl.flow.current_room).is_equal(target)      # BFS 放行 → 致死房即当前房
+	assert_int(fl.room_node(target).enemies.size()).is_greater(0)   # 同波次：进房即刷波
+	assert_vector(fl.player_node().global_position).is_equal(pos)   # 观战者落于致死点
+	assert_int(fl.room_count()).is_equal((build["rooms"] as Dictionary).size())   # 同布局
+	node.end_replay()
+
+
+func test_summary_exit_tree_restores_timescale_finally() -> void:
+	var node: Control = _replayable_summary(100000)
+	node.start_replay()
+	assert_float(Engine.time_scale).is_equal(8.0)
+	node.free()                                       # 任意路径离场：finally 语义
+	assert_float(Engine.time_scale).is_equal(1.0)

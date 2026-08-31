@@ -23,6 +23,12 @@ extends Node
 ## 【结算口径】蓝晶死亡保留 50%（GDD §14/§19）：gems_awarded = floor(RunState.gems / 2)，
 ## 由 DeathSummary 确认时经 SaveSystem.add_gems 入账。reset() 同时清 Telemetry 会话
 ## 计数（T18 预留的重开口径）；T23 的 start_run 整合时可改为开局调用 reset。
+##
+## 【m2-t24 回放键】致死时记录 ReplayKey {run_seed, floor_idx, death_frame}：
+## death_frame 为层内帧（致死全局帧 - Telemetry floor_build 基准帧，无基准回退
+## 原帧、clamp ≥0）——DeathSummary 据此重建该层 FloorScene 做 3s 死亡回顾重放
+## （演示性重放，见 death_summary.gd 头注释）；report 同时携带 replay_key。
+## reset() 清空（新局不可回放旧局）。
 
 const WINDOW_TICKS := 180   # 3s @60fps：受击事件保留窗
 const SUMMARY_SCENE := "res://ui/death_summary.tscn"
@@ -35,6 +41,9 @@ var suppressed := false
 var open_summary_override: Callable = Callable()
 ## 最近一次致死生成的报告（DeathSummary 场景 _ready 读取；reset 清空）。
 var current_report: Dictionary = {}
+## m2-t24：最近一次致死的回放键 {run_seed, floor_idx, death_frame}（层内帧）；
+## DeathSummary「回放」按钮据此重建楼层。reset() 清空。
+var replay_key: Dictionary = {}
 
 var _window: Array[Dictionary] = []   # {frame, amount, source_type/id/name, attack_name, pos, fatal}
 var _fatal_handled := false           # once-per-fatal：同局第二次致命不再重复开
@@ -65,7 +74,7 @@ func record_event(amount: int, frame: int, source_type := "", source_id := "",
 func window() -> Array[Dictionary]:
 	return _window.duplicate(true)
 
-## 组装 DeathReport：stats（run_stats 注入 + Telemetry 会话）+ cause + window。
+## 组装 DeathReport：stats（run_stats 注入 + Telemetry 会话）+ cause + window + replay_key。
 ## run_stats 缺键按 0 处理（纯函数口径，测试注入任意子集均安全）。
 func build_report(run_stats: Dictionary) -> Dictionary:
 	var gems := int(run_stats.get("gems", 0))
@@ -86,7 +95,28 @@ func build_report(run_stats: Dictionary) -> Dictionary:
 		"cause": _cause_text(fatal_event),
 		"fatal_event": fatal_event,
 		"window": window(),
+		"replay_key": replay_key.duplicate(true),
 	}
+
+
+## m2-t24：记录回放键（_on_player_hit_resolved 致死路径调用；测试可直调注入）。
+## death_frame 语义为「层内帧」：重放重建的 FloorScene 从层内 0 帧起播，快进/暂停
+## 目标均以层内帧计（见 death_summary.gd）。
+func record_replay_key(p_run_seed: int, p_floor_idx: int, death_frame: int) -> void:
+	replay_key = {
+		"run_seed": p_run_seed,
+		"floor_idx": p_floor_idx,
+		"death_frame": maxi(death_frame, 0),
+	}
+
+
+## 致死全局帧 → 层内帧：减 Telemetry floor_build 基准帧（FloorScene.setup 落行）。
+## 无基准（headless/异常注入，基准 -1）回退原帧；差值为负（异常）clamp 0。
+func floor_local_death_tick(fatal_frame: int) -> int:
+	var build_frame := Telemetry.floor_build_frame()
+	if build_frame < 0:
+		return maxi(fatal_frame, 0)
+	return maxi(fatal_frame - build_frame, 0)
 
 ## 致死原因只取最后一击，不用第一击/最大伤害/窗口总伤害替代。
 func _cause_text(fatal_event: Dictionary) -> String:
@@ -110,11 +140,12 @@ func collect_run_stats() -> Dictionary:
 		"gems": RunState.gems,
 	}
 
-## 新局复位：清窗口/报告/致命守卫，并清 Telemetry 会话计数（T18 重开口径）。
+## 新局复位：清窗口/报告/回放键/致命守卫，并清 Telemetry 会话计数（T18 重开口径）。
 ## T23 整合时建议在 start_run 调用；v1 由 DeathSummary 确认离场时触发。
 func reset() -> void:
 	_window.clear()
 	current_report = {}
+	replay_key = {}
 	_fatal_handled = false
 	Telemetry.reset_session()
 
@@ -127,6 +158,7 @@ func _on_player_hit_resolved(amount: int, fatal: bool, ctx: Dictionary) -> void:
 	if not fatal or suppressed or _fatal_handled:
 		return
 	_fatal_handled = true                   # once-per-fatal：同局只开一次
+	record_replay_key(RunState.run_seed, RunState.floor_idx, floor_local_death_tick(frame))
 	current_report = build_report(collect_run_stats())
 	if open_summary_override.is_valid():    # 测试/整合注入口（不受前台场景门限制）
 		open_summary_override.call(current_report)

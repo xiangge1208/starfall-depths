@@ -71,8 +71,7 @@ text = "开 始"
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-text = "图鉴 · M2"
-disabled = true
+text = "图 鉴"
 
 [node name="TalentsBtn" type="Button" parent="Menu"]
 custom_minimum_size = Vector2(140, 18)

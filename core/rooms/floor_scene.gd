@@ -309,14 +309,21 @@ func _build_floor_and_walls(room: FloorRoom, w: float, h: float, doors: Array) -
 		_solid_child(room, seg, tiles[1])
 
 
-## 生物群系地块：start=庭院 / boss=Boss 房 / 其余=洞穴。
+## 生物群系地块：start=庭院 / boss=Boss 房 / 其余=按层套件（m2-t27 fix 渲染接线：
+## 经 ArtLookup.biome_set(floor_idx)，1/2/3 → cave/crystal/magma；路径还原为瓦片名
+## 供下游 tile_path/_prop_fallback_color 按名寻址）。套件 door 键在此不适用——
+## 门贴图仍由 refresh_gates 规则锁/战斗封门决定（door_locked/door_closed），保持现状。
 func _biome_tiles(room_type: String) -> Array[String]:
 	match room_type:
 		"start":
 			return ["floor_garden", "wall_garden"]
 		"boss":
 			return ["floor_boss", "wall_boss"]
-	return ["floor_cave", "wall_cave"]
+	var kit := ArtLookup.biome_set(floor_idx)
+	if kit.is_empty():
+		return ["floor_cave", "wall_cave"]
+	return [String(kit["floor"]).get_file().get_basename(),
+			String(kit["wall"]).get_file().get_basename()]
 
 
 ## 原染色表（贴图缺图回落用，M0 数值保留）。
@@ -680,8 +687,13 @@ func _build_corridor(c: Dictionary) -> void:
 		_:
 			push_error("FloorScene: bad corridor dir '%s'" % dir)
 			return
-	# m1-t28：走廊地板贴 corridor_floor.png（缺图回落原染色）。
-	var corridor_floor: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path("corridor_floor"),
+	# m1-t28：走廊地板贴 corridor_*.png（m2-t27 fix：随层套件经 biome_set 分化，
+	# cave 层即通用 corridor_floor；缺图回落原染色）。
+	var corridor_tile := "corridor_floor"
+	var kit := ArtLookup.biome_set(floor_idx)
+	if not kit.is_empty():
+		corridor_tile = String(kit["corridor"]).get_file().get_basename()
+	var corridor_floor: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path(corridor_tile),
 		floor_rect)
 	if corridor_floor == null:
 		corridor_floor = Polygon2D.new()
@@ -1003,6 +1015,7 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 		refresh_gates()
 		if room.type == "boss":
 			_flow_suspended = true           # 层间中转接管玩家（防进房检测抢人）
+			AudioMgr.boss_layer(false)       # m2-t22：Boss 退场 → 恢复生态曲
 			boss_defeated.emit(room.room_id)
 
 
@@ -1088,6 +1101,8 @@ func _detect_room_enter() -> void:
 
 func _on_flow_room_event(room_type: String, room_id: int) -> void:
 	room_event.emit(room_type, room_id)
+	if room_type == "boss":
+		AudioMgr.boss_layer(true)   # m2-t22：Boss 房首进 → Boss 曲层（AudioMgr 幂等）
 	_open_facility(room_type, _rooms.get(room_id))
 
 

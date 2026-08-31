@@ -181,7 +181,7 @@ const TABLES := {
 	"drinks": "res://data/drinks.json", "talents": "res://data/talents.json",
 }
 
-var weapons: Dictionary = {}        # 掉落池（locked 已排除）；消费方：FloorScene._roll_weapon / ShopLogic._weapons / validate_hero_row / get_weapon
+var weapons: Dictionary = {}        # 掉落池（locked 已排除；m2-t20 解锁非★经 grant_to_pool 回池）；消费方：FloorScene._roll_weapon / ShopLogic._weapons / validate_hero_row / get_weapon
 var weapons_all: Dictionary = {}    # 全量 115 把（含 locked）；图鉴侧出口（M2-T20 CodexSystem 直接读此表）
 var enemies: Dictionary = {}
 var rooms: Dictionary = {}
@@ -214,9 +214,25 @@ func _ready() -> void:
 
 func get_weapon(id: String) -> Dictionary:
 	# m2-t11：掉落池优先；locked（图鉴锁定）行回落 weapons_all——初始武器是授予而非掉落
-	# （GDD §6 守护者·萄 星辉杖为紫/橙，默认 locked）。掉落/商店仍只从 weapons 池滚 id，
-	# locked 无掉落途径的口径不变（解锁进池是 M2-T20 职责）。
+	# （GDD §6 守护者·萄 星辉杖为紫/橙，默认 locked）。掉落/商店仍只从本池滚 id；
+	# 解锁武器经 grant_to_pool 回池（M2-T20，CodexSystem.check_unlocks 调）。
 	return weapons.get(id, weapons_all.get(id, {}))
+
+## 解锁武器回池（M2-T20）：locked 行经图鉴解锁后重新进掉落池（J.6「解锁进池」）。
+## 幂等（已在池/未知 id 静默忽略）；★forge_only 的排除由调用方（CodexSystem）把守——
+## 本方法只做「weapons_all → weapons」的单向搬移，不读 unlock_tasks（数据卡不经 GameDB 装载）。
+func grant_to_pool(id: String) -> void:
+	if id.is_empty() or not weapons_all.has(id) or weapons.has(id):
+		return
+	weapons[id] = weapons_all[id]
+
+## 当前有效掉落池（M2-T20）：weapons 的 id 快照，字典序确定（测试与 ShopLogic 池源同口径）。
+func drop_pool() -> Array[String]:
+	var out: Array[String] = []
+	for id: String in weapons:
+		out.append(id)
+	out.sort()
+	return out
 
 func get_enemy(id: String) -> Dictionary:
 	return enemies.get(id, {})
