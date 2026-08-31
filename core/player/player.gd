@@ -299,6 +299,10 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	if dmg == 0:
 		return
 	if is_invincible_at(frame):
+		# m2-t33 成就补线（K.3 走位大师窗口源）：翻滚无敌帧内躲过「弹幕」计数
+		# （仅 source_type "projectile"；接触/状态伤害与受击无敌帧不属「躲弹幕」口径）。
+		if frame < _roll_end_frame and String(ctx.get("source_type", "")) == "projectile":
+			AchievementSystem.notify_roll_dodge()
 		return
 	# m2-t35 甲壳：弹幕伤害 ×(1+buff_bullet_dmg_taken_pct)（负值 = 减免；向下取整且
 	# 不低于 1，与狂潮/潮汐减伤同一 min 1 口径）。只对弹幕（source_type "projectile"）生效。

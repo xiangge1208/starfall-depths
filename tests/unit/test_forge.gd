@@ -491,6 +491,27 @@ func test_ui_rejected_fuse_does_not_report_craft() -> void:
 	assert_int(int(CodexSystem.counters.get("crafts_total", 0))).is_equal(before)
 
 
+## m2-t33 成就补线（裁定㉗）：熔铸成功点除 craft_x 计数外，还须触发成就轮询——
+## 熔铸匠（crafts_total >= 10）在真实 UI 成交路径可达。档密闭同本套件先例：
+## 成就档换临时路径（after_test 还原全局引用），crafts_total 基线快照已在 before/after。
+func test_ui_fuse_notifies_achievement_system() -> void:
+	var saved_as_save: Node = AchievementSystem.save_system
+	var iso: Node = auto_free(load("res://autoload/save_system.gd").new())
+	iso.save_path = "user://test_forge_achv_%d.json" % absi(randi())
+	DirAccess.remove_absolute(iso.save_path)
+	iso.load_save()
+	AchievementSystem.save_system = iso
+	CodexSystem.counters["crafts_total"] = 9   # 预置 9：本次 UI 成交 = 第 10 次熔铸
+	var h := _open_forge(["tiejian", "ranshaoping"])
+	h["forge"]._on_fuse_pressed()
+	# 轮询点次序不敏感（K.1）：craft_x 达标搭车 weapon_unlocked recheck 或本点显式轮询。
+	AchievementSystem.notify_item_forged()
+	assert_bool(iso.is_achievement_unlocked("forge_smith")).is_true()
+	AchievementSystem.save_system = saved_as_save
+	DirAccess.remove_absolute(iso.save_path)
+	DirAccess.remove_absolute(iso.save_path + ".tmp")
+
+
 ## Minor-3：兜底路径的盐字面量必须与 RunState.SALT_FORGE 常量一致（防改一处忘一处）。
 func test_forge_fallback_salt_matches_run_state_constant() -> void:
 	assert_str(ForgeLogic.SALT_FORGE).is_equal(RunState.SALT_FORGE)

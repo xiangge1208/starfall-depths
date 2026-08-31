@@ -95,6 +95,9 @@ func buy(id: String) -> bool:
 	save_system.add_gems(-cost)
 	save_system.record_talent_purchase(id)
 	purchased.append(id)
+	# m2-t33 补线（裁定㉗）：K.2 talent_purchased 发射点 = buy 成功点
+	# （天赋异禀/满溢之光轮询源）。
+	AchievementSystem.notify_talent_purchased(id)
 	return true
 
 # ---- 聚合 ----

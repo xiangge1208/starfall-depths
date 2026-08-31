@@ -39,10 +39,10 @@ func _physics_process(_delta: float) -> void:
 		var w := _rig.current() if _rig != null else {}
 		if not w.is_empty() and bool(w.get("is_melee", false)):
 			if _melee != null and _melee.combat != null and _melee.try_attack(frame):
-				Telemetry.log_row(["fire", frame, String(w.get("id", ""))])
+				_log_fire(w, frame)
 		elif _rig != null and _rig.combat != null and current_aim != Vector2.ZERO \
 				and _rig.try_fire(current_aim, frame):
-			Telemetry.log_row(["fire", frame, String(_rig.current().get("id", ""))])
+			_log_fire(_rig.current(), frame)
 	if (Input.is_action_just_pressed("switch_weapon") \
 			or Input.is_action_just_pressed("touch_switch_weapon")) and _rig != null:
 		_rig.switch_slot(frame)
@@ -64,6 +64,15 @@ func _fire_requested() -> bool:
 	if _touch_mouse_captured():
 		physical_fire = false
 	return physical_fire or touch_fire or gamepad_fire
+
+
+## 开火/挥击成功点（近战 try_attack / 远程 try_fire 各一处汇口）：
+## telemetry fire 行（m1-t18 契约）+ 成就开火窗口源（m2-t33 补线，K.3 赤手空拳
+## 「本层仅用近战」口径：近战挥击计 melee，其余计远程）。
+func _log_fire(w: Dictionary, frame: int) -> void:
+	var id := String(w.get("id", ""))
+	Telemetry.log_row(["fire", frame, id])
+	AchievementSystem.notify_weapon_used(id)
 
 func _touch_mode() -> bool:
 	return TouchMode.enabled(

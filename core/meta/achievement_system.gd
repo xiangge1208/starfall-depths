@@ -18,16 +18,20 @@ extends Node
 ## 接线说明（附录 K.1/K.2 + 台账裁定⑧）：
 ## - 既有信号直连（不动发射侧文件）：EventBus.resonance_triggered / enemy_damaged /
 ##   enemy_killed / player_hit_resolved / room_cleared + CodexSystem.weapon_unlocked。
-## - K.2 新声明信号（boss_slain/floor_reached/floor_cleared/victory_achieved/item_forged/
-##   hero_unlocked/talent_purchased/prop_destroyed/roll_dodge/challenge_cleared/
-##   shop_purchase）发射点不在本卡文件所有权内 → 走 notify_* 直调 API（同 T20
-##   count_buy 直调先例），由发射责任卡（T35 meta 接线 / BossBase/InterFloor/Player
-##   等死亡与流转点）各 1 行接入；缺席期间对应成就判定自然休眠，不误解锁。
-##   注：24 条成就无一消费 shop_purchase（该信号是 T20 buy_x 计数源，归 T35 发射），
-##   故本卡无需为其做就绪检测。
-## - fail-safe 占位（本卡设计）：T25 v2 counters 缺席键（crafts_total/
-##   challenge_rooms_total）按占位 0，对应成就（熔铸匠/挑战者）在 v2 落地前不可达，
-##   列入移交；codex_seen 同为 T25 v2 字段，缺席时回落 unlocked_weapons 子集口径
+## - K.2 新声明信号（boss_slain/floor_reached/floor_cleared/victory/item_forged/
+##   hero_unlocked/talent_purchased/prop_destroyed/roll_dodge/challenge_cleared）
+##   由 T33 补线（裁定㉗）：发射点各 1 行 notify_* 直调（同 T20 count_buy 直调先例）——
+##   boss_slain=floor_scene boss 房清 / floor_reached+floor_cleared=run_root 过层门 /
+##   victory=run_root 胜利链 / item_forged=ui/forge 成交点 / hero_unlocked=SaveSystem.
+##   unlock_hero 成功点（K.2 指定）/ talent_purchased=TalentSystem.buy 成功点 /
+##   roll_dodge=player 翻滚窗躲弹幕 / challenge_cleared=floor_scene 挑战房清
+##   （count_challenge 计数 + notify 同点）。
+##   仍缺席的判定链（fail-closed 休眠，不误解锁）：
+##   · prop_destroyed：可破坏物机制未建（props 为静态 solid，无破坏路径）→ 拆迁办
+##     blocked，待机制卡落地后 1 行接入；
+##   · shop_purchase：24 条成就无消费方（T20 buy_x 计数源，T35 已发射），无需就绪检测。
+## - fail-safe 占位：试炼 2 条（trials_total）M3 激活，判定器不接线；
+##   codex_seen（藏品家/大收藏家权威源）写键方未落地期间回落 unlocked_weapons 子集口径
 ##   （保守低估不误解锁，见 _state_value）。
 ## - 计数源与 T20 图鉴共享（计划卡明文）：单局会话计数订阅与 CodexSystem 同一批
 ##   EventBus 遥测信号（上述既有 5 路），累计口径一律读 SaveSystem 持久字段
@@ -389,11 +393,13 @@ func recheck() -> Array[String]:
 	return newly
 
 
-## 状态源解析：save:xxx → SaveSystem 防御性集合大小；counter:xxx → T25 v2
-## counters.*（缺席键占位 0——熔铸匠/挑战者/试炼×2 在 v2 落地前不可达，fail-safe）。
+## 状态源解析：save:xxx → SaveSystem 防御性集合大小；counter:xxx → 权威计数器。
+## counter 口径（T33 补线）：优先 CodexSystem 活计数器（存档 v2 unlock_tasks 的内存
+## 权威，count_craft/count_challenge 写入方同源，结算点落盘）；直构实例（无树，
+## codex 缺席）回落 save.data["counters"]（T32 期测试注入缝，保留）。
 ## codex_seen（K.3/K.5 藏品家/大收藏家权威源）当前无写入方（T20 只写 unlocked_weapons，
-## 持久化归 T25 v2）：键缺席期间回落 unlocked_weapons().size()——它是 codex_seen 的
-## 真子集（任务解锁必已见过），保守低估、绝不误解锁；T25 落键后自动切换为权威口径。
+## 持久化归 T25 v2）：键缺席期间回落 unlocked_weapons 子集口径——它是 codex_seen 的
+## 真子集（任务解锁必已见过），保守低估、绝不误解锁；写键方落地后自动切换为权威口径。
 func _state_value(source: String) -> int:
 	if source.begins_with("save:"):
 		match source.substr(5):
@@ -420,6 +426,9 @@ func _state_value(source: String) -> int:
 				return h
 		return 0
 	if source.begins_with("counter:"):
+		var codex := get_node_or_null("/root/CodexSystem")
+		if codex != null and codex.get("counters") is Dictionary:
+			return int((codex.get("counters") as Dictionary).get(source.substr(8), 0))
 		var counters: Variant = save_system.data.get("counters", {})
 		if typeof(counters) == TYPE_DICTIONARY:
 			return int((counters as Dictionary).get(source.substr(8), 0))

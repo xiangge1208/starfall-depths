@@ -82,6 +82,7 @@ func _begin() -> void:
 		_reset_runtime_for_new_run()
 	_ensure_talents()                      # m2-t35：天赋系统就绪（注入优先，缺省读档）
 	DeathRecorder.reset()                  # T22 建议的开局复位（清致死窗/遥测会话）
+	AchievementSystem.reset_session()      # m2-t33 补线：成就单局口径同点清零（K.1/K.4）
 	if player == null:
 		_spawn_hero_player()
 	_start_floor(RunState.floor_idx)
@@ -171,6 +172,7 @@ func _on_boss_defeated(_room_id: int) -> void:
 ## 填充，确认时蓝晶全额入账）。延迟到帧末路由：boss_defeated 在物理回调链内发出，
 ## 同帧立即换场景会先于其他监听者把节点摘树（同 DeathRecorder._open_summary 手法）。
 func _on_victory_achieved() -> void:
+	AchievementSystem.notify_victory()   # m2-t33 补线：守夜人/速通者/拒绝治疗判定点
 	Telemetry.log_row(["victory", Engine.get_physics_frames(),
 		RunState.floor_idx, RunState.kills])
 	if victory_route_override.is_valid():
@@ -217,6 +219,11 @@ func _quiesce_floor_combat_for_inter_floor() -> void:
 ## 释放层间 → 有当层数据则重建楼层；无（M1 仅 A1）→ M1 完结浮层。
 func _on_next_floor_requested(new_floor: int) -> void:
 	CodexSystem.on_floor_entered(new_floor)   # m2-t20：过层计数 + 蓝晶入账 + 解锁结算
+	# m2-t33 成就补线（裁定㉗，K.2 过层点发射）：floor_cleared(通过层号) 先求值——
+	# slum_king/moneybags/bare_hands 用「本层」的受击/开火窗口与 RunState 快照；
+	# 随后 floor_reached(抵达层号) 吸收新层窗口重置（深入者判定 + 赤手空拳本层口径）。
+	AchievementSystem.notify_floor_cleared(new_floor - 1)
+	AchievementSystem.notify_floor_reached(new_floor)
 	if inter_floor != null and is_instance_valid(inter_floor):
 		inter_floor.queue_free()
 	inter_floor = null
