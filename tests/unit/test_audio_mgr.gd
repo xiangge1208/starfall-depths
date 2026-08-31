@@ -78,11 +78,13 @@ func test_pool_round_robin_reuses_all_eight_and_steals_oldest() -> void:
 	assert_int(players.size()).is_equal(8)
 	for i in 8:
 		mgr.play("ui_click")
-	# 8 次播放后 8 个 player 全部被用过（stream 已挂载），第 8 个仍在 playing
+	# 8 次播放后 8 个 player 全部被用过（stream 已挂载）。
+	# 注：不断言瞬态 playing（0.09s 音效在全量负载下可能已自然播完），
+	# 轮转契约由 pitch 持久值钉住（play 后 pitch_scale 常驻）。
 	for p in players:
 		assert_that((p as AudioStreamPlayer).stream).is_not_null()
-	assert_bool((players[7] as AudioStreamPlayer).playing).is_true()
-	# 第 9 次播放：无空闲语音 → 轮转回最旧（players[0]，被夺走）
+	assert_float((players[7] as AudioStreamPlayer).pitch_scale).is_equal(1.0)
+	# 第 9 次播放：无空闲语音 → 轮转回最旧（players[0]，被夺走，pitch 覆写为 1.5）
 	mgr.play("ui_click", 1.5)
 	assert_float((players[0] as AudioStreamPlayer).pitch_scale).is_equal(1.5)
 
