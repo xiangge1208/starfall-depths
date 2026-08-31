@@ -15,6 +15,7 @@ const SEED := 20260828
 
 var _saved_weapons: Variant = null
 var _saved_crafts: Variant = null
+var _seal: Dictionary = {}
 
 
 # ---------------------------------------------------------------- 替身与桩
@@ -44,7 +45,10 @@ func _stub_weapons(rows: Dictionary) -> void:
 
 ## 熔铸会上报 CodexSystem 的 craft_x 计数器（autoload 全局），逐例还原避免跨套件污染：
 ## 一旦累计到 craft_x 最小 goal（10，湮灭号角非★）会真的触发解锁并回池、改全局掉落池。
+## m2-t33 密闭（裁定㉔）：共享 save_headless.json + 运行时池逐用例隔离，
+## 与本套件既有 crafts_total 快照/stub 还原叠加（restore 在后）。
 func before_test() -> void:
+	_seal = TestSaveSeal.seal("forge")
 	_saved_crafts = CodexSystem.counters.get("crafts_total", 0)
 
 
@@ -55,6 +59,7 @@ func after_test() -> void:
 	if _saved_crafts != null:
 		CodexSystem.counters["crafts_total"] = _saved_crafts
 		_saved_crafts = null
+	TestSaveSeal.restore(_seal)
 
 
 func _rng(seed_value := SEED) -> RandomNumberGenerator:

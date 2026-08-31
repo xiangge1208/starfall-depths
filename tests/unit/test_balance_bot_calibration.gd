@@ -11,6 +11,18 @@ extends GdUnitTestSuite
 
 # ================================================================ ① 炮台 DPS（裁定①口径：射速 2/s × 伤 4 = 8 DPS）
 
+
+## m2-t33 密闭（裁定㉔）：共享 save_headless.json + 运行时池逐用例隔离——
+## ①档读法（boss_first_kills/gems 快照还原）与 ②池漂移复核从此与磁盘残留无关。
+var _seal: Dictionary = {}
+
+
+func before_test() -> void:
+	_seal = TestSaveSeal.seal("balance")
+
+
+func after_test() -> void:
+	TestSaveSeal.restore(_seal)
 func test_turret_thorn_cycle_and_dps() -> void:
 	# 荆棘炮台：3 连发 ×4 伤，稳态周期 = cd(150) + 连发间隙 2×(6-1) = 160t
 	# → 持续 DPS = 12 / (160/60) = 4.5（裁定①口径 8 DPS 的 56%）。

@@ -25,10 +25,19 @@ const CATEGORIES: Array[String] = [
 
 var _pool: Dictionary = {}
 
+## m2-t33 密闭（裁定㉔）：运行时池/共享档逐用例隔离——池出口契约与档状态完全解耦
+## （J.6 口径下 unlocked_weapons ⊆ locked 行仍成立，本套件直接断言纯净池）。
+var _seal: Dictionary = {}
+
 
 func before_test() -> void:
+	_seal = TestSaveSeal.seal("weapons_pool")
 	var db: Variant = auto_free(load("res://autoload/game_db.gd").new())
 	_pool = db._load_table(POOL_PATH, GameDB.WEAPON_SCHEMA, GameDB.WEAPON_OPTIONAL)
+
+
+func after_test() -> void:
+	TestSaveSeal.restore(_seal)
 
 
 func _count_by(key: String, value: String) -> int:
