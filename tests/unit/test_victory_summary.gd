@@ -167,6 +167,23 @@ func test_confirm_awards_full_gems_once() -> void:
 	assert_int(exits.size()).is_equal(1)
 
 
+func test_confirm_awards_kill_gems_full_amount() -> void:
+	# m2-t31：击杀蓝晶入池（精英 +5 / 小 Boss +20）→ 胜利确认全额入账（含击杀来源；
+	# 与 T18 既有入账路径合一，不双计——池在确认时一次性消费归零）。
+	RunState.start_run("vanguard")
+	RunState.settle_kill_gems("elite", "shuangdao_lizardman")
+	RunState.settle_kill_gems("miniboss", "zibao_wangchong")
+	var before := SaveSystem.gems()
+	var node: Control = _summary()
+	var exits: Array = []
+	node.exit_override = func() -> void: exits.append(1)
+
+	node._confirm()
+	assert_int(RunState.gems).is_equal(0)                # 池一次性消费
+	assert_int(SaveSystem.gems()).is_equal(before + 25)  # 胜利全额：击杀蓝晶 25 整额入账
+	assert_int(exits.size()).is_equal(1)
+
+
 func test_victory_full_amount_contrasts_death_half() -> void:
 	# 口径钉死：同 7 待结算蓝晶，死亡 settle_death_gems 只得 floor(7/2)=3，
 	# 胜利面板全额 7 入账（GDD §14 死亡/胜利入账口径差）。

@@ -262,3 +262,53 @@ func test_codex_summary_counts_unlocked() -> void:
 	ui.codex_system = cs
 	add_child(ui)
 	assert_str(ui.summary_text()).contains("1 / 115")
+
+
+# ================================================================ m2-t31 计数器持久化（存档 v2 对接）
+
+func test_counters_restore_from_save_on_construct() -> void:
+	# J.2 跨局累计：档内 unlock_tasks 进度在构造时恢复（含 floor_clears 层号分桶）。
+	var save: Variant = _cs_with_save("restore")
+	save.record_unlock_tasks({
+		"kills_total": 42, "gems_earned_total": 300,
+		"floor_clears": {1: 4, 2: 1},
+	})
+	var cs: Variant = auto_free(load("res://core/meta/codex_system.gd").new(save))
+	assert_int(int(cs.counters["kills_total"])).is_equal(42)
+	assert_int(int(cs.counters["gems_earned_total"])).is_equal(300)
+	var clears: Dictionary = cs.counters["floor_clears"]
+	assert_int(int(clears.get(1, 0))).is_equal(4)
+	assert_int(int(clears.get(2, 0))).is_equal(1)
+
+
+func test_persist_counters_writes_snapshot_to_save() -> void:
+	# persist_counters：内存计数器快照整体覆写入档（SaveSystem.record_unlock_tasks）。
+	var cs: Variant = _cs("persist")
+	for _i in 7:
+		cs.count_kill("kuli_bug")
+	cs.persist_counters()
+	var saved: Dictionary = cs.save_system.unlock_tasks()
+	assert_int(int(saved["kills_total"])).is_equal(7)
+
+
+func test_on_floor_entered_persists_counters_and_restores_cumulative() -> void:
+	# 层进入 = 计数结算点（与 check_unlocks 合一）：写档后全新实例读回继续累计。
+	var cs: Variant = _cs("floorpersist")
+	for _i in 3:
+		cs.count_kill("kuli_bug")
+	cs.on_floor_entered(2)
+	assert_int(int(cs.save_system.unlock_tasks()["kills_total"])).is_equal(3)
+	var cs2: Variant = auto_free(load("res://core/meta/codex_system.gd").new(cs.save_system))
+	cs2.count_kill("kuli_bug")     # 恢复 3 后继续累计 → 4
+	assert_int(int(cs2.counters["kills_total"])).is_equal(4)
+
+
+func test_check_unlocks_piggybacks_counter_persist() -> void:
+	# 解锁达成时计数器快照随解锁写盘搭车（解锁本身已写盘，无额外热路径 IO）。
+	# zhuixingdajian = clear_floor_x param 2 goal 1（通过第 2 层 ×1）。
+	var cs: Variant = _cs("unlockpersist")
+	assert_bool(cs.save_system.unlocked_weapons().has("zhuixingdajian")).is_false()
+	cs.on_floor_entered(3)         # 进入第 3 层 = 通过第 2 层 ×1 → 解锁达成
+	assert_bool(cs.save_system.unlocked_weapons().has("zhuixingdajian")).is_true()
+	var saved: Dictionary = cs.save_system.unlock_tasks()
+	assert_int(int(saved["floor_clears"].get(2, 0))).is_equal(1)

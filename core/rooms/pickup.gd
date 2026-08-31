@@ -1,12 +1,14 @@
 class_name Pickup
 extends Area2D
-## 掉落拾取（m0-t12）：coin / energy / heart。玩家接触结算；coin 带磁吸。
-## 结算：coin → 房间计数（on_collect 回调）；energy → add_energy(8)；heart → heal(1)。
+## 掉落拾取（m0-t12）：coin / energy / heart / gem。玩家接触结算；coin 带磁吸。
+## 结算：coin → 房间计数（on_collect 回调）；energy → add_energy(8)；heart → heal(1)；
+## gem → on_collect 回调（m2-t24：蓝晶拾取，接线方落 RunState.add_gems）。
 
 const COLORS := {
 	"coin": Color(1.0, 0.85, 0.2),
 	"energy": Color(0.3, 0.6, 1.0),
 	"heart": Color(1.0, 0.3, 0.4),
+	"gem": Color(0.35, 0.6, 1.0),
 }
 const MAGNET_RANGE_PX := 56.0
 const MAGNET_SPEED := 140.0
@@ -52,6 +54,9 @@ func _on_body_entered(body: Node2D) -> void:
 			pl.add_energy(8)
 		"heart":
 			pl.heal(1)
+		"gem":
+			if on_collect.is_valid():
+				on_collect.call()
 	Telemetry.log_row(["pickup", Engine.get_physics_frames(), kind])
 	AudioMgr.play("pickup_" + kind)      # m2-t5：coin/energy/heart → pickup_* 三连 key
 	queue_free()                             # flush 上下文中安全（延迟到帧末释放）

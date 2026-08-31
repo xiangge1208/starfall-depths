@@ -1,0 +1,86 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/forge.gd" id="1_forge"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_forge"]
+radius = 20.0
+
+[node name="Forge" type="Area2D"]
+script = ExtResource("1_forge")
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_forge")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="UILayer/UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="UILayer/UI/Center"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/UI/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "熔铸台"
+horizontal_alignment = 1
+
+[node name="Coins" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = ""
+horizontal_alignment = 1
+
+[node name="MatRow" type="HBoxContainer" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Preview" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = ""
+horizontal_alignment = 1
+
+[node name="Cost" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = ""
+horizontal_alignment = 1
+
+[node name="FuseBtn" type="Button" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "熔铸"
+
+[node name="CloseBtn" type="Button" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "关闭 (Esc)"

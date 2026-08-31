@@ -32,8 +32,12 @@ const PLAYER_SCENE := preload("res://core/player/player.tscn")
 const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
 const GAME_CAMERA := preload("res://fx/game_camera.gd")
 const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店设施
+const FORGE_SCENE := preload("res://ui/forge.tscn")            # m2-t25 熔铸台设施
 const BULLET_VISUAL_CAP := 500
 const BLACK_SHOP_CHANCE := 0.25
+## m2-t24 隐藏门（GDD §10/裁定）：A3 层号下界；星陨先知入场落点对门位偏移。
+const A3_FLOOR_IDX := 3
+const STARFALL_GATE_OFFSET_PX := Vector2(0, -40)
 
 ## m2-t7 危险地块视觉常量（表现，非玩法数值——周期/伤害在 HazardSpikes/RollingRock）。
 const SPIKE_WARN_COLOR := Color(1.0, 0.35, 0.3, 0.35)    # 地面红纹（预警）
@@ -106,6 +110,8 @@ const BULLET_VISUAL_SCALE := 0.75      # 8x8 弹底图 ≈ 原 5px 方块
 signal room_event(room_type: String, room_id: int)
 ## m1-t27：boss 房清（巨像死亡）——宿主 RunRoot 据此开层间中转。
 signal boss_defeated(room_id: int)
+## m2-t24：A3 隐藏门开启（星陨先知自星陨门入场）——叙事/UI 接缝。
+signal starfall_gate_opened(room_id: int)
 
 var flow := FloorFlow.new()
 var player: Player = null
@@ -167,6 +173,9 @@ var _flow_suspended := false
 var _facility_rng: RandomNumberGenerator
 var _drink_state := {"uses_left": DrinkMachine.USES_PER_FLOOR}
 var _used_shrine_kinds: Dictionary = {}
+## m2-t24 隐藏门携带判定（宽松口径）：本层任意共鸣触发计数（EventBus 订阅，
+## 楼层实例重建 = 新层自然清零；实例释放时 Godot 自动断开信号连接）。
+var _floor_resonances := 0
 
 
 # ================================================================ 生命周期
@@ -323,6 +332,8 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	_bullet_layer.z_index = 20
 	add_child(_bullet_layer)
 	flow.room_event.connect(_on_flow_room_event)
+	# m2-t24 隐藏门携带判定：本层共鸣计数（EnemyBase 共鸣结算 → EventBus 广播）
+	EventBus.resonance_triggered.connect(_on_floor_resonance_triggered)
 	Telemetry.log_row(["floor_build", Engine.get_physics_frames(), str(_rooms.size())])
 
 
@@ -1125,6 +1136,15 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	RunState.add_kill()
 	var frame := Engine.get_physics_frames()
 	var enemy_id := String(e.row.get("id", ""))
+	# m2-t31 击杀蓝晶（GDD §14）：精英 +5 / 小 Boss +20 / Boss +50（Boss 首杀再 +300 入池）。
+	# 档位键 = guest_kind（A1 嘉宾三档统一标记）；真实 Boss 行（vine_colossus / gem_queen /
+	# prism_golem / frost_widow / magma_tyrant / starfall_prophet——隐藏 Boss 同口径归
+	# boss 档；其行内 drops gems3 实体掉落与击杀入池叠加 = 裁定⑲合法口径）只有
+	# boss_script 无 guest_kind，按 room_combat 同款口径等价归 boss 档；杂兵两键皆空 = 0 不入池。
+	var kill_kind := String(e.row.get("guest_kind", ""))
+	if kill_kind.is_empty() and String(e.row.get("boss_script", "")) != "":
+		kill_kind = "boss"
+	RunState.settle_kill_gems(kill_kind, enemy_id)
 	var notify_id := String(e.row.get("wave_id", enemy_id))
 	var killed_row: Dictionary = (e.row as Dictionary).duplicate(true)
 	var death_pos := e.global_position
@@ -1135,6 +1155,11 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	room.enemies.erase(e)
 	_spawn_frames.erase(e.get_instance_id())
 	if not e.counts_for_wave:
+		# m2-t24：星陨先知为隐藏门波次外嘉宾——死亡仍走行内 drops（3 蓝晶+头目魂），
+		# 但不消费 RoomFlow 波次（不回锁已清房）。
+		if String(killed_row.get("id", "")) == "starfall_prophet":
+			_spawn_guest_drops(room, killed_row, death_pos)
+			AudioMgr.boss_layer(false)   # m2-t24 fix（评审 M-5）：隐藏 Boss 退场 → 恢复生态曲
 		return
 	room.room_flow.notify_killed(notify_id, frame)
 	_spawn_guest_drops(room, killed_row, death_pos)
@@ -1149,10 +1174,14 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 			_flow_suspended = true           # 层间中转接管玩家（防进房检测抢人）
 			AudioMgr.boss_layer(false)       # m2-t22：Boss 退场 → 恢复生态曲
 			boss_defeated.emit(room.room_id)
+		# m2-t24 fix（评审 C-1）：隐藏门只在「房清拍」判定——小 Boss 为末波，房清即
+		# 小 Boss 已死；波 1 杂兵死亡（房未清）不得提前开门。
+		_maybe_open_starfall_gate(room, death_pos)
 
 
 ## m1-t27 嘉宾死亡掉落（行内 drops 契约："weapon"=随机武器掉落台（ShopLogic.roll_weapon_id，
 ## loot 盐流确定性），"hearts2"=2 红心）。掉落台复用宝箱的 _build_loot_station（E 拾取换手）。
+## m2-t24 追加："gems3"=3 蓝晶（RunState 局内蓝晶账）+ "soul"=头目魂（纯叙事贴花，无战斗奖励数值）。
 func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> void:
 	var drops := String(row.get("drops", ""))
 	if drops.is_empty():
@@ -1167,6 +1196,83 @@ func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) ->
 	if drops.contains("hearts2"):
 		for i in 2:
 			_spawn_pickup(room, "heart", world_pos + _scatter(71 + i))
+	if drops.contains("gems3"):
+		for i in 3:
+			_spawn_gem(room, world_pos + _scatter(90 + i))
+	if drops.contains("soul"):
+		_build_boss_soul(room, world_pos)
+
+
+## 蓝晶掉落（星陨先知契约）：Pickup "gem" 拾取经 RunState.add_gems 入局内蓝晶账
+## （死亡结算 50% 保留 / 过层全额入账沿用既有口径）。
+func _spawn_gem(room: FloorRoom, world_pos: Vector2) -> void:
+	var gem := Pickup.new()
+	gem.kind = "gem"
+	gem.position = world_pos - room.position   # 房间子节点：世界落点 → 房间局部
+	gem.on_collect = func() -> void:
+		RunState.add_gems(1)
+	room.add_child(gem)
+
+
+## 头目魂（纯叙事贴花，无战斗奖励数值）：Boss 死亡处半透明星徽，随房存续。
+func _build_boss_soul(room: FloorRoom, world_pos: Vector2) -> void:
+	var soul := Node2D.new()
+	soul.name = "BossSoul"
+	soul.position = world_pos - room.position
+	var vis := Polygon2D.new()
+	var pts := PackedVector2Array()
+	for i in 12:
+		pts.append(Vector2.from_angle(TAU * float(i) / 12.0 - TAU / 4.0)
+			* (14.0 if i % 2 == 0 else 6.0))
+	vis.polygon = pts
+	vis.color = Color(0.5, 0.75, 1.0, 0.45)
+	vis.z_index = 8
+	soul.add_child(vis)
+	room.add_child(soul)
+
+
+## m2-t24 隐藏门（GDD §10 裁定）：A3 层小 Boss 死亡且房间清空时若本层触发过任意共鸣
+## （携带判定宽松口径：_floor_resonances >0）→ 星陨门开启：门贴花落位 +
+## 星陨先知自门入场（波次外嘉宾 counts_for_wave=false，不回锁已清房）。
+## 调用契约（评审 C-1 修复）：仅在 `room.room_flow.cleared` 成立的死亡拍调用
+## （_on_enemy_died 房清分支内）——小 Boss 为末波，房清即小 Boss 已死；
+## 波 1 杂兵死亡不触发。幂等：门已开（重复死亡/多小 Boss 防御）则跳过。
+func _maybe_open_starfall_gate(room: FloorRoom, death_pos: Vector2) -> void:
+	if room == null or not is_instance_valid(room) or room.type != "miniboss":
+		return
+	if RunState.floor_idx < A3_FLOOR_IDX or _floor_resonances <= 0:
+		return
+	if room.has_node("StarfallGate"):
+		return
+	var gate := Node2D.new()
+	gate.name = "StarfallGate"
+	gate.position = death_pos - room.position
+	var vis := Polygon2D.new()
+	var pts := PackedVector2Array()
+	for i in 10:
+		pts.append(Vector2.from_angle(TAU * float(i) / 10.0 - TAU / 4.0)
+			* (20.0 if i % 2 == 0 else 9.0))
+	vis.polygon = pts
+	vis.color = Color(0.45, 0.65, 1.0, 0.75)
+	vis.z_index = 8
+	gate.add_child(vis)
+	room.add_child(gate)
+	# 入场落点夹进房内域（同 _spawn_summoned_enemy 习语）——门贴花仍在死亡点。
+	var radius := float(GameDB.get_enemy("starfall_prophet").get("radius", 6.0))
+	var interior := Rect2(room.outer.position + Vector2(WALL_T + radius, WALL_T + radius),
+		room.outer.size - Vector2((WALL_T + radius) * 2.0, (WALL_T + radius) * 2.0))
+	var spawn_pos := death_pos + STARFALL_GATE_OFFSET_PX
+	spawn_pos = Vector2(clampf(spawn_pos.x, interior.position.x, interior.end.x),
+		clampf(spawn_pos.y, interior.position.y, interior.end.y))
+	_spawn_enemy(room, "starfall_prophet", spawn_pos, {}, false)
+	AudioMgr.boss_layer(true)   # m2-t24 fix（评审 M-5）：隐藏 Boss 入场 → Boss 曲层（幂等；死亡即恢复）
+	starfall_gate_opened.emit(room.room_id)
+
+
+## m2-t24 隐藏门携带判定（宽松口径）计数：本层任意共鸣触发 +1（读少写多，只增不清；
+## 楼层实例重建 = 新层自然归零）。
+func _on_floor_resonance_triggered(_reaction: int, _at: Vector2, _payload: Dictionary) -> void:
+	_floor_resonances += 1
 
 
 ## m1-t18 kill 行来源取值：玩家当前武器 id（rig 未接线 → ""）；boss 判定复用 RoomCombat.kill_source。
@@ -1259,6 +1365,7 @@ func _open_facility(room_type: String, room: FloorRoom) -> void:
 
 ## 商店设施（T14 Shop 契约）：货单 ShopLogic.roll_stock（RunState loot 盐流，当层确定），
 ## 钱包 = RunState（coins/spend_coins/add_coins 鸭子接缝），回收回调 = 副手丢弃。
+## m2-t25：同房加挂熔铸台（每层固定 1 台，材料 = 玩家双武器槽当前两把）。
 func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
 	var shop := SHOP_SCENE.instantiate() as Shop
 	shop.name = "Shop"
@@ -1284,6 +1391,16 @@ func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
 		shrine.rng = _facility_rng
 		shrine.combat = player.combat
 		room.add_child(shrine)
+	# m2-t25 熔铸台：每层固定 1 台（GDD §8.3/§9.1 每层恰 1 商店房 → 常量选型挂商店房，
+	# 数据驱动模板字段由后续卡扩 schema）。wallet/pool/rng/run_state 全走 RunState 接缝。
+	var forge := FORGE_SCENE.instantiate() as Forge
+	forge.name = "Forge"
+	forge.position = local_pos + Vector2(0, 56)
+	forge.wallet = RunState
+	forge.pool = GameDB.weapons
+	forge.rng = RunState.stream(RunState.SALT_FORGE)
+	forge.run_state = RunState
+	room.add_child(forge)
 
 
 ## 商店回收回调（Shop.drop_weapon 契约）：丢弃副手（非当前槽）→ 返回武器信息
