@@ -373,3 +373,86 @@ func test_setup_opts_player_sprite_into_lit_mask() -> void:
 	auto_free(fx)
 	fx.setup(p)
 	assert_int(p.get_node("Sprite").light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+# ---------------------------------------------------------------- fix1（评审 Important-1）：弹幕可读性折叠
+## T37 首轮把弹幕留在默认位（不参与光圈重渲）——评审指出飞行敌弹是 A2 图的主要
+## 威胁刺激，失去光圈增亮是玩家可见的最大保真损失。实测两条路（探针口径）：
+##   - 弹幕进光照参与集：diag +3.7 但探针 F2 100.4 → ~148（+47，预算下不可接受）；
+##   - self_modulate 折叠（本落点）：逐项 modulate 写入零批处理成本（首轮矩阵
+##     f2_nomod 实证），近似既往光圈加亮曲线。
+## 预警纹（地面红纹等）计数小、走真实光照参与集（见下组测试）。
+
+func test_bullet_aid_monotonic_falloff_matches_aura_curve() -> void:
+	assert_object(BiomeFx.bullet_aid(0.0, BiomeFx.LIGHT_RADIUS_PX)) \
+		.is_equal(Color(1.0 + BiomeFx.LIGHT_ENERGY, 1.0 + BiomeFx.LIGHT_ENERGY,
+			1.0 + BiomeFx.LIGHT_ENERGY))                       # 光圈中心最大增亮
+	# 单调衰减；光圈边与圈外 = WHITE（无增亮，不低于原亮度）
+	var prev := 2.3
+	for d in [0, 35, 70, 105, 139, 140, 200, 1000]:
+		var c := BiomeFx.bullet_aid(float(d), BiomeFx.LIGHT_RADIUS_PX)
+		assert_float(c.r).is_less_equal(prev)
+		prev = c.r
+	assert_object(BiomeFx.bullet_aid(BiomeFx.LIGHT_RADIUS_PX, BiomeFx.LIGHT_RADIUS_PX)) \
+		.is_equal(Color.WHITE)
+	assert_object(BiomeFx.bullet_aid(1000.0, BiomeFx.LIGHT_RADIUS_PX)).is_equal(Color.WHITE)
+	assert_object(BiomeFx.bullet_aid(10.0, 0.0)).is_equal(Color.WHITE)   # 无光圈口径
+
+
+func test_aura_gradient_matches_texture_anchor() -> void:
+	# 复刻 _aura_texture 渐变锚点：中心 1.0 / 半半径 0.25 / 边缘 0.0
+	assert_float(BiomeFx.aura_gradient(0.0)).is_equal(1.0)
+	assert_float(BiomeFx.aura_gradient(0.25)).is_equal(0.625)
+	assert_float(BiomeFx.aura_gradient(0.5)).is_equal(0.25)
+	assert_float(BiomeFx.aura_gradient(1.0)).is_equal(0.0)
+
+
+func test_floor_bullet_visuals_get_aura_brightness_aid() -> void:
+	# 表现层弹幕镜像（floor_scene 共享池）：A2 下光圈内弹幕 self_modulate > 1，
+	# 无暗视野组件时复位 WHITE（池化跨层安全）；光照参与集保持默认位（零重渲）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	fs.set_biome_a2(true)
+	fs.enter_room(1)
+	var room := fs.room_node(1)
+	fs.player.global_position = fs.room_rect(1).get_center()   # 玩家与弹同点（光圈中心）
+	room.combat.spawn_projectile({
+		"pos": fs.player.position, "vel": Vector2(60, 0), "damage": 0,
+		"faction": Projectile.Faction.ENEMY, "radius": 3.0, "life_seconds": 5.0,
+	})
+	fs._sync_bullet_visuals()
+	assert_int(fs._bullet_sprites.size()).is_greater(0)
+	if fs._bullet_sprites.size() > 0:
+		var vis := fs._bullet_sprites[0]
+		assert_int(vis.light_mask).is_equal(1)             # 不参与光照重渲（零 draw 成本）
+		assert_float(vis.self_modulate.r).is_greater(1.0)  # 光圈内增亮生效
+	# 卸载暗视野：下一次同步复位 WHITE（池化不泄漏）
+	fs.set_biome_a2(false)
+	fs._sync_bullet_visuals()
+	if fs._bullet_sprites.size() > 0:
+		assert_object(fs._bullet_sprites[0].self_modulate).is_equal(Color.WHITE)
+
+
+func test_hazard_telegraph_visuals_opt_into_lit_mask() -> void:
+	# 地面预警纹（地刺瓦片/滚石预警道/间歇泉瓦片）创建即 opt-in——伤害预告刺激
+	# 在暗视野下保持 T37 前亮度；火雨红圈同口径（schedule_fire_rain 楼层级）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var room := fs.room_node(1)
+	fs._build_spikes(room, [3, 3], fs.room_rect(1).position + Vector2(64, 64))
+	fs._build_rock(room, {"side": "W"}, fs.room_rect(1).position + Vector2(96, 64))
+	fs._build_geyser(room, [2, 2], fs.room_rect(1).position + Vector2(128, 64))
+	assert_int(fs._spikes_vis.size()).is_greater(0)
+	if fs._spikes_vis.size() > 0:
+		assert_int(fs._spikes_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	assert_int(fs._rock_line_vis.size()).is_greater(0)
+	if fs._rock_line_vis.size() > 0:
+		assert_int(fs._rock_line_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	assert_int(fs._rock_vis.size()).is_greater(0)
+	if fs._rock_vis.size() > 0:
+		assert_int(fs._rock_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	assert_int(fs._geyser_vis.size()).is_greater(0)
+	if fs._geyser_vis.size() > 0:
+		assert_int(fs._geyser_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	fs.schedule_fire_rain(fs.room_rect(1).get_center())
+	assert_int(fs._fire_rain_vis.size()).is_greater(0)
+	if fs._fire_rain_vis.size() > 0:
+		assert_int(fs._fire_rain_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)

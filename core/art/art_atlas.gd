@@ -19,6 +19,7 @@ const BASE_PREFIX := "res://art/generated/"
 static var _enabled := true          # 测试/降级开关（false = 原逐文件路径直通）
 static var _loaded := false          # 清单已加载（含加载失败的负缓存）
 static var _manifest: Dictionary = {}        # rel -> Rect2i
+static var _invalid: Dictionary = {}         # rel -> true（畸形/越界行负缓存：热路径零重复告警/零重建）
 static var _page: Texture2D = null
 static var _page_size := Vector2i.ZERO
 static var _regions: Dictionary = {}         # rel -> AtlasTexture（备忘，热路径零重建）
@@ -34,26 +35,27 @@ static func region_of(path: String) -> Rect2i:
 	return r
 
 
-## 查询路径的共享页 AtlasTexture；任何未命中（停用/无清单/无页/不在表/越界）
+## 查询路径的共享页 AtlasTexture；任何未命中（停用/无清单/无页/不在表/畸形/越界）
 ## 返回 null，由调用方回落逐文件纹理。
+## m2-t37 fix（评审 Minor-5）：先判界后建对象；越界行负缓存——热路径重复查询
+## 不再重复告警/重复分配。
 static func texture_for(path: String) -> Texture2D:
 	var r := region_of(path)
 	if r == Rect2i():
 		return null
 	var rel := path.substr(BASE_PREFIX.length())
+	if _invalid.has(rel):
+		return null
+	if r.position.x < 0 or r.position.y < 0 \
+			or r.end.x > _page_size.x or r.end.y > _page_size.y:
+		push_warning("ArtAtlas: region out of page '%s' %s" % [path, r])
+		_invalid[rel] = true
+		return null
 	if _regions.has(rel):
 		return _regions[rel]
-	var page := page_texture()
-	if page == null:
-		return null
 	var at := AtlasTexture.new()
-	at.atlas = page
+	at.atlas = _page
 	at.region = Rect2(r)
-	var size_err := r.position.x < 0 or r.position.y < 0 \
-		or r.end.x > _page_size.x or r.end.y > _page_size.y
-	if size_err:
-		push_warning("ArtAtlas: region out of page '%s' %s" % [path, r])
-		return null
 	_regions[rel] = at
 	return at
 
@@ -83,12 +85,36 @@ static func reset_for_tests() -> void:
 	_enabled = true
 	_loaded = false
 	_manifest = {}
+	_invalid = {}
 	_page = null
 	_page_size = Vector2i.ZERO
 	_regions = {}
 
 
 # ---- 内部 ------------------------------------------------------------------
+
+## 清单归一化（可单测：JSON float → int 归一；畸形行拒入并记负缓存，好行不受
+## 牵连）。成功返回 true 并落 _manifest/_page_size/_invalid；缺 page/size 返回 false。
+static func _apply_manifest(data: Dictionary) -> bool:
+	var page_name := String(data.get("page", ""))
+	var size: Array = data.get("size", [])
+	if page_name.is_empty() or size.size() != 2:
+		push_warning("ArtAtlas: manifest missing page/size '%s'" % MANIFEST_PATH)
+		return false
+	_page_size = Vector2i(int(size[0]), int(size[1]))
+	var entries: Dictionary = data.get("entries", {}) as Dictionary
+	for rel: String in entries:
+		var rect: Array = entries[rel]
+		var integral := rect.size() == 4
+		for v: Variant in rect:
+			integral = integral and float(int(float(v))) == float(v)   # JSON float 须整数值
+		if not integral:
+			push_warning("ArtAtlas: bad entry '%s' (expect integer [x,y,w,h])" % rel)
+			_invalid[rel] = true
+			continue
+		_manifest[rel] = Rect2i(int(rect[0]), int(rect[1]), int(rect[2]), int(rect[3]))
+	return true
+
 
 static func _ensure_loaded() -> void:
 	if _loaded:
@@ -101,22 +127,13 @@ static func _ensure_loaded() -> void:
 		push_warning("ArtAtlas: manifest unparsable '%s'" % MANIFEST_PATH)
 		return
 	var data := parsed as Dictionary
-	var page_name := String(data.get("page", ""))
-	var size: Array = data.get("size", [])
-	if page_name.is_empty() or size.size() != 2:
-		push_warning("ArtAtlas: manifest missing page/size '%s'" % MANIFEST_PATH)
+	if not _apply_manifest(data):
+		_page_size = Vector2i.ZERO
 		return
-	var page := load(PAGE_DIR + page_name) as Texture2D
+	var page := load(PAGE_DIR + String(data.get("page", ""))) as Texture2D
 	if page == null:
-		push_warning("ArtAtlas: page texture missing '%s'" % page_name)
+		push_warning("ArtAtlas: page texture missing '%s'" % String(data.get("page", "")))
+		_page_size = Vector2i.ZERO
+		_manifest.clear()
 		return
 	_page = page
-	_page_size = Vector2i(int(size[0]), int(size[1]))
-	var entries: Dictionary = data.get("entries", {}) as Dictionary
-	# JSON.parse_string 产出 float——统一 int() 归一（工程既有 _normalize_row 惯例）
-	for rel: String in entries:
-		var rect: Array = entries[rel]
-		if rect.size() != 4:
-			push_warning("ArtAtlas: bad entry '%s' (expect [x,y,w,h])" % rel)
-			continue
-		_manifest[rel] = Rect2i(int(rect[0]), int(rect[1]), int(rect[2]), int(rect[3]))

@@ -1919,8 +1919,17 @@ def main():
     # m2-t37 全图集合并（§18.3「draw call ≤150（全图集）」前提）：世界精灵装订单页
     # 图集。置于 m2 批次之后、prune 之前——图集失败即中止，绝不带陈旧/缺失图集执行
     # 清理（同 m2-t21 fail-closed 时序）；产物经 add 入 SPEC，随清理白名单保留。
-    import gen_art_atlas as _atlas
-    _atlas.pack_atlas(OUT, add_spec=add)
+    # fix（评审 Minor-8）：Pillow 缺失等失败给标注化信息后再抛（原样裸 traceback）。
+    try:
+        import gen_art_atlas as _atlas
+        _atlas.pack_atlas(OUT, add_spec=add)
+    except Exception:
+        import traceback
+        traceback.print_exc()   # 图集失败可见（含 Pillow ImportError）
+        raise RuntimeError(
+            "m2-t37 全图集生成失败——中止（绝不带陈旧/缺失图集去 prune）。"
+            "修复提示：确认 Pillow 可用（ART_ATLAS_PYTHON 可指认解释器）、"
+            "素材尺寸 ≤128px、总体可装入 1024x1024 页")
     removed = _prune_after_m2(m2_joined)
     write_manifest()
     write_preview()

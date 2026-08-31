@@ -588,6 +588,7 @@ func _build_spikes(room: FloorRoom, grid: Array, world: Vector2) -> void:
 	vis.position = world - room.position
 	vis.z_index = -4
 	vis.visible = false
+	vis.light_mask = BiomeFx.LIT_ITEM_MASK   # m2-t37 fix1：地面预警纹保持光圈增亮
 	room.add_child(vis)
 	_spikes_vis.append(vis)
 
@@ -610,6 +611,7 @@ func _build_rock(room: FloorRoom, hz: Dictionary, world: Vector2) -> void:
 	line.color = Color(1.0, 0.75, 0.2, 0.25)
 	line.z_index = -4
 	line.visible = false
+	line.light_mask = BiomeFx.LIT_ITEM_MASK   # m2-t37 fix1：滚石预警道保持光圈增亮
 	room.add_child(line)
 	_rock_line_vis.append(line)
 	var rock := Polygon2D.new()
@@ -618,6 +620,7 @@ func _build_rock(room: FloorRoom, hz: Dictionary, world: Vector2) -> void:
 	rock.color = Color(0.45, 0.4, 0.38)
 	rock.z_index = 4
 	rock.visible = false
+	rock.light_mask = BiomeFx.LIT_ITEM_MASK   # m2-t37 fix1：石体同旧口径（全量参与）
 	room.add_child(rock)
 	_rock_vis.append(rock)
 
@@ -657,6 +660,7 @@ func _build_geyser(room: FloorRoom, grid: Array, world: Vector2) -> void:
 	vis.position = world - room.position
 	vis.z_index = -4
 	vis.visible = false
+	vis.light_mask = BiomeFx.LIT_ITEM_MASK   # m2-t37 fix1：间歇泉预警纹保持光圈增亮
 	room.add_child(vis)
 	_geyser_vis.append(vis)
 
@@ -671,6 +675,7 @@ func schedule_fire_rain(world_pos: Vector2) -> void:
 	circle.position = world_pos
 	circle.z_index = 6
 	circle.modulate = FIRE_RAIN_WARN_COLOR
+	circle.light_mask = BiomeFx.LIT_ITEM_MASK   # m2-t37 fix1：火雨红圈保持光圈增亮
 	add_child(circle)
 	_fire_rain_vis.append(circle)
 
@@ -1966,8 +1971,22 @@ func _sync_bullet_visuals() -> void:
 			vis.position = p.position
 			vis.texture = ArtLookup.bullet_texture(p.faction, p.element)   # M2-T1 备忘缓存
 			vis.modulate = p.modulate
+			# m2-t37 fix1（评审 Important-1）：光圈内弹幕自增亮补偿（A2 暗视野可读性）。
+			# 实测探针口径：弹幕进光照参与集 +47 draw（150 预算下不可接受）——改走
+			# self_modulate 折叠（逐项 modulate 写入零批处理成本，首轮矩阵 f2_nomod 实证）。
+			vis.self_modulate = _bullet_aid(vis)
 		else:
 			vis.visible = false
+
+
+## A2 光圈弹幕增亮（fix1）：无暗视野组件时 WHITE（池化复位安全）；
+## 有则按弹幕到玩家距离取 BiomeFx 折叠亮度（随 _vision_factor 缩径同步）。
+func _bullet_aid(vis: Sprite2D) -> Color:
+	if biome_fx == null or not is_instance_valid(biome_fx) \
+			or player == null or not is_instance_valid(player):
+		return Color.WHITE
+	var dist := vis.global_position.distance_to(player.global_position)
+	return BiomeFx.bullet_aid(dist, biome_fx.light_radius_px)
 
 
 # ================================================================ 查询面（测试/HUD）

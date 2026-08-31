@@ -13,9 +13,11 @@ const LIGHT_TEXTURE_PX := 256                 # 径向渐变光斑纹理边长
 const SILHOUETTE_FLOOR := 0.4                 # 光圈外敌人 modulate 下限（公平性剪影）
 ## m2-t37 A2 光圈批处理（§18.3 F2 draw call 超标修复）：光圈收口到专属可见位——
 ## 只有 opt-in 本位的世界条目（ArtLookup 工厂产出的静态地形面/陈设 + 敌人剪影 +
-## 玩家外观）参与光照重渲；高计数瞬态条目（弹幕/伤害数字/FX 粒子）留在默认位 1，
-## 不再被逐项重渲。实测（40 敌满压，task-37 报告）：全量参与 ~150 draw → opt-in
-## 配置 ~110-119（= 无光圈基线），批处理沿 lit/unlit 翻转的碎裂增量归零。
+## 玩家外观 + fix1 的预警纹）参与光照重渲；高计数瞬态条目（弹幕/伤害数字/FX 粒子）
+## 留在默认位 1，不再被逐项重渲——弹幕的可读性由 bullet_aid self_modulate 折叠
+## 承担（探针实测参与集方案 +47 draw 被否，折叠 +0.8）。实测（task-37 报告）：
+## 全量参与 ~150 draw → opt-in 配置 ~110-119（= 无光圈基线），批处理沿 lit/unlit
+## 翻转的碎裂增量归零。
 const LIT_ITEM_MASK := 2
 
 var player: Player = null
@@ -67,6 +69,25 @@ static func silhouette_modulate(dist_px: float, light_radius: float = LIGHT_RADI
 	if light_radius <= 0.0:
 		return SILHOUETTE_FLOOR
 	return clampf(lerpf(1.0, SILHOUETTE_FLOOR, dist_px / light_radius), SILHOUETTE_FLOOR, 1.0)
+
+
+## 光斑径向衰减纯函数（0:1 → 0.5:0.25 → 1:0 分段线性，复刻 _aura_texture 渐变；
+## t = 距离/光圈半径 ∈ [0,1]）。单测与弹幕增亮折叠共用。
+static func aura_gradient(t: float) -> float:
+	if t <= 0.5:
+		return lerpf(1.0, 0.25, t * 2.0)
+	return lerpf(0.25, 0.0, (t - 0.5) * 2.0)
+
+
+## m2-t37 fix1（评审 Important-1）弹幕可读性折叠：光圈内弹幕的自增亮系数。
+## 返回 (1 + LIGHT_ENERGY×g) 的灰度 Color——近似既往 PointLight2D 对弹幕的加亮
+## （引擎光照精确式未公开，折叠为同形近似；半径随 _vision_factor 缩径同步）。
+## 纯静态可单测；半径 ≤0（无光圈）返回 WHITE。
+static func bullet_aid(dist_px: float, light_radius: float) -> Color:
+	if light_radius <= 0.0:
+		return Color.WHITE
+	var f := 1.0 + LIGHT_ENERGY * aura_gradient(clampf(dist_px / light_radius, 0.0, 1.0))
+	return Color(f, f, f)
 
 
 ## 卸载/复用前恢复敌人 modulate（disable 路径与 _exit_tree 都走这里）。

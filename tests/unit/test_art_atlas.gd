@@ -65,7 +65,6 @@ func _src_image(rel: String) -> Image:
 # ------------------------------------------------ 1) 产物规格
 
 func test_manifest_spec_and_page_exist() -> void:
-	assert_int(int(manifest.get("size", [0, 0])[0])).is_equal(int(manifest.get("size", [0, 0])[0]))
 	var w := int(manifest.get("size", [0, 0])[0])
 	var h := int(manifest.get("size", [0, 0])[1])
 	assert_bool(w > 0 and h > 0).is_true()
@@ -229,6 +228,42 @@ func test_unknown_path_still_null_without_crash() -> void:
 	assert_object(ArtLookup.tex("res://art/generated/enemies/no_such.png")).is_null()
 
 
+# ------------------------------------------------ 5b) 畸形/越界行负缓存（评审 Minor-5）
+
+func test_malformed_rows_negative_cached_at_load() -> void:
+	# 归一化直接注入（跳过文件 I/O）：错误元数的行被拒并记入负缓存，好行不受牵连
+	var data := {
+		"page": "atlas_page.png", "size": [64, 64],
+		"entries": {
+			"good/a.png": [2, 2, 8, 8],
+			"bad_arity.png": [2, 2, 8],
+			"bad_float.png": [2.5, 2, 8, 8],
+		},
+	}
+	assert_bool(ArtAtlas._apply_manifest(data)).is_true()
+	assert_int(ArtAtlas._manifest.size()).is_equal(1)
+	assert_bool(ArtAtlas._invalid.has("bad_arity.png")).is_true()
+	assert_bool(ArtAtlas._invalid.has("bad_float.png")).is_true()
+	assert_bool(ArtAtlas._invalid.has("good/a.png")).is_false()
+
+
+func test_out_of_bounds_row_rejected_before_allocation_and_negative_cached() -> void:
+	# 先判界后建对象（Minor-5）：越界行 texture_for 恒 null，负缓存生效——
+	# 热路径重复查询不再告警/不再重建（_regions 备忘不含该行）
+	var data := {
+		"page": "atlas_page.png", "size": [64, 64],
+		"entries": {"enemies/oob.png": [60, 60, 16, 16]},
+	}
+	ArtAtlas._apply_manifest(data)
+	ArtAtlas._loaded = true             # 跳过文件重载，专测越界判定路径
+	var t := ArtAtlas.texture_for("res://art/generated/enemies/oob.png")
+	assert_object(t).is_null()
+	assert_bool(ArtAtlas._invalid.has("enemies/oob.png")).is_true()
+	assert_bool(ArtAtlas._regions.has("enemies/oob.png")).is_false()
+	# 二次查询走负缓存（零重复告警语义：仍 null，行为稳定）
+	assert_object(ArtAtlas.texture_for("res://art/generated/enemies/oob.png")).is_null()
+
+
 # ------------------------------------------------ 6) 生成器幂等（additive 契约）
 
 func test_atlas_generator_idempotent_and_additive() -> void:
@@ -256,9 +291,12 @@ func test_atlas_generator_idempotent_and_additive() -> void:
 
 
 func _python_exe() -> String:
-	var venv := "C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
-	if FileAccess.file_exists(venv) and OS.execute(venv, ["--version"], [], true) == 0:
-		return venv
+	# m2-t37 fix（评审 Minor-4）：环境变量 ART_ATLAS_PYTHON 优先（指向含 Pillow 的
+	# 解释器，机器相关路径不入库），回落 PATH 上的 python / py。
+	var override := OS.get_environment("ART_ATLAS_PYTHON")
+	if not override.is_empty() and FileAccess.file_exists(override) \
+			and OS.execute(override, ["--version"], [], true) == 0:
+		return override
 	for exe: String in ["python", "py"]:
 		var out: Array = []
 		if OS.execute(exe, ["--version"], out, true) == 0:
