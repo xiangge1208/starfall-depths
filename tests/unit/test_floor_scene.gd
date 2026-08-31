@@ -606,6 +606,41 @@ func test_scene_full_walk_elite_miniboss_boss() -> void:
 	assert_array(boss_defeats).contains(3)
 
 
+func test_scene_kill_gem_routing_guest_and_boss_script_rows() -> void:
+	# m2-t31 击杀蓝晶路由：A1 嘉宾按 guest_kind 档位（boss=50+首杀300）；
+	# 真实 Boss 行（boss_script、无 guest_kind——frost_widow 等 M2 Boss 同形）等价
+	# 归 boss 档；杂兵两键皆空 = 0。首杀标记写 SaveSystem → 临时档重定向守卫
+	# （同 test_death_recorder 手法，绝不触真实 user://save.json）。
+	var saved_path := SaveSystem.save_path
+	var tmp := "user://test_t31_killgems_%d.json" % absi(randi())
+	SaveSystem.save_path = tmp
+	SaveSystem.load_save()                    # 全新空档：首杀名录清零
+	RunState.start_run("vanguard")
+	var fs := _make_scene(_typed_chain(["boss"]))
+	var room: FloorScene.FloorRoom = fs.room_node(1)
+	assert_bool(fs.enter_room(1)).is_true()
+	_kill_all(room)                           # 嘉宾藤蔓巨像（guest_kind=boss）
+	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
+	assert_int(RunState.gems).is_equal(50 + 300)
+	assert_array(SaveSystem.boss_first_kills()).is_equal(["vine_colossus"])
+	# 真实 Boss 行 frost_widow：仅 boss_script 无 guest_kind → 等价 boss 档 + 各自首杀
+	var widow := fs._spawn_enemy(room, "frost_widow", room.outer.get_center(), {}, false)
+	assert_object(widow).is_not_null()
+	widow.take_hit({"amount": 999999, "is_crit": false, "element": 0,
+		"from": widow.global_position})
+	assert_int(RunState.gems).is_equal(50 + 300 + 50 + 300)
+	assert_array(SaveSystem.boss_first_kills()).is_equal(["vine_colossus", "frost_widow"])
+	# 杂兵（两键皆空）：0 入池
+	var bug := fs._spawn_enemy(room, "kuli_bug", room.outer.get_center(), {}, false)
+	assert_object(bug).is_not_null()
+	bug.take_hit({"amount": 9999, "is_crit": false, "element": 0, "from": bug.global_position})
+	assert_int(RunState.gems).is_equal(700)
+	SaveSystem.save_path = saved_path         # 还原真实档视图
+	SaveSystem.load_save()
+	DirAccess.remove_absolute(tmp)
+	DirAccess.remove_absolute(tmp + ".tmp")
+
+
 func test_scene_wave_composition_deterministic() -> void:
 	var a := FloorScene.waves_for(3, "combat")
 	var b := FloorScene.waves_for(3, "combat")

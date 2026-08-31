@@ -132,17 +132,16 @@ func test_stream_follows_floor() -> void:
 
 func test_next_floor_returns_new_index_and_gems_boundaries() -> void:
 	# GDD §14.1 每层通过 +60/120/200：进入下一层时结算；3 层后封顶 200。
-	# m2-t31 层间入账契约：进门先把累积池全额入档并清空，再发过层奖励留池，
-	# 门后池内恒只有本门过层奖励（上层击杀蓝晶已在门入档，不双计）。
 	RunState.start_run("vanguard")
+	var g0 := RunState.gems
 	assert_int(RunState.next_floor()).is_equal(2)
-	assert_int(RunState.gems).is_equal(60)
+	assert_int(RunState.gems).is_equal(g0 + 60)
 	assert_int(RunState.next_floor()).is_equal(3)
-	assert_int(RunState.gems).is_equal(120)   # 上门 60 已入档，池 = 新奖励 120
+	assert_int(RunState.gems).is_equal(g0 + 180)
 	assert_int(RunState.next_floor()).is_equal(4)
-	assert_int(RunState.gems).is_equal(200)
+	assert_int(RunState.gems).is_equal(g0 + 380)
 	assert_int(RunState.next_floor()).is_equal(5)
-	assert_int(RunState.gems).is_equal(200)   # clamp：第 4 次仍 +200
+	assert_int(RunState.gems).is_equal(g0 + 580)   # clamp：第 4 次仍 +200
 
 func test_a1_death_settlement_awards_half_once_and_consumes_pending() -> void:
 	RunState.start_run("vanguard")
@@ -198,7 +197,7 @@ func test_run_time_accumulation() -> void:
 # ================================================================ m2-t31 蓝晶结算完整
 
 func test_add_gems_accumulates_pending_pool() -> void:
-	# 击杀蓝晶便捷方法：直接入池（不走层结算）；入档时机 = 层间门 / 终局结算。
+	# 击杀蓝晶便捷方法：直接入池（不走层结算）；入档时机 = 终局结算（死亡减半/胜利全额）。
 	RunState.start_run("vanguard")
 	RunState.add_gems(5)
 	RunState.add_gems(20)
@@ -231,34 +230,30 @@ func test_boss_first_kill_awarded_once_per_boss_and_persists() -> void:
 	SaveSystem.load_save()
 	assert_array(SaveSystem.boss_first_kills()).is_equal(["vine_colossus", "frost_widow"])
 
-func test_next_floor_banks_pending_gems_once_no_double_count() -> void:
-	# 层间入账不双计（核心口径）：门把池内全额（含击杀蓝晶）入档并清空，
-	# 过层奖励留池——胜利/死亡只结算其后新累积的部分，每颗蓝晶恰入档一次。
+func test_all_gem_sources_accumulate_into_pending_pool() -> void:
+	# 各来源累加（m2-t31 核心口径）：过层 + 击杀蓝晶同池累积，不互相覆盖；
+	# 池在终局（死亡/胜利）前只涨不清——GDD §14「死亡也保留 50%」作用于全池。
+	# 预标记首杀：剥离 +300 干扰，本测试只验证档位累加。
 	RunState.start_run("vanguard")
-	assert_int(SaveSystem.gems()).is_equal(0)
-	RunState.add_gems(40)                                  # 本层击杀蓝晶
-	assert_int(RunState.next_floor()).is_equal(2)
-	assert_int(SaveSystem.gems()).is_equal(40)             # 门：池 40 全额入档
-	assert_int(RunState.gems).is_equal(60)                 # 过层奖励留池
-	RunState.add_gems(30)                                  # 第 2 层击杀蓝晶
-	assert_int(RunState.next_floor()).is_equal(3)
-	assert_int(SaveSystem.gems()).is_equal(40 + 60 + 30)   # 池 90 全额入档（无重复计入）
-	assert_int(RunState.gems).is_equal(120)
+	assert_bool(SaveSystem.record_boss_first_kill("vine_colossus")).is_true()
+	RunState.settle_kill_gems("elite", "shuangdao_lizardman")          # +5
+	assert_int(RunState.next_floor()).is_equal(2)                     # +60
+	RunState.settle_kill_gems("miniboss", "zibao_wangchong")          # +20
+	RunState.settle_kill_gems("boss", "vine_colossus")                # +50（首杀已标记，仅档位）
+	assert_int(RunState.gems).is_equal(5 + 60 + 20 + 50)
+	assert_int(SaveSystem.gems()).is_equal(0)                         # 终局前绝不入档
+	assert_int(RunState.next_floor()).is_equal(3)                     # +120
+	assert_int(RunState.gems).is_equal(5 + 60 + 20 + 50 + 120)
 
-func test_next_floor_with_empty_pool_makes_no_save_write() -> void:
-	# 池空不写盘（防无谓 IO；门后仍发过层奖励）。
+func test_death_settlement_halves_pool_with_kill_gems() -> void:
+	# 死亡减半作用于含击杀蓝晶的全池（GDD §14）：过层 60 + 击杀 5+50 = 115 → 半 57；
+	# 一次性消费归零，重复结算不可再领（入账经 DeathSummary → SaveSystem.add_gems）。
 	RunState.start_run("vanguard")
+	assert_bool(SaveSystem.record_boss_first_kill("vine_colossus")).is_true()
 	assert_int(RunState.next_floor()).is_equal(2)
-	assert_int(SaveSystem.gems()).is_equal(0)
-	assert_int(RunState.gems).is_equal(60)
-
-func test_death_settlement_after_door_only_halves_unbanked_pool() -> void:
-	# 口径披露：过层奖励/上层击杀蓝晶已在门全额入档（落袋为安），
-	# 死亡 50% 只作用于其后本层未入账池——每颗蓝晶仍恰入档一次。
-	RunState.start_run("vanguard")
-	RunState.add_gems(50)
-	assert_int(RunState.next_floor()).is_equal(2)          # 门：50 入档，池 = 60
-	RunState.add_gems(70)                                  # 第 2 层击杀蓝晶 → 池 130
-	assert_int(RunState.settle_death_gems()).is_equal(65)  # 死亡减半只折损未入账池
-	assert_int(SaveSystem.gems()).is_equal(50 + 65)        # 门入档 50 + 死亡入账 65
+	RunState.settle_kill_gems("elite", "shuangdao_lizardman")
+	RunState.settle_kill_gems("boss", "vine_colossus")   # 首杀已标记：仅档位 50
+	assert_int(RunState.gems).is_equal(60 + 5 + 50)
+	assert_int(RunState.settle_death_gems()).is_equal(57)
 	assert_int(RunState.gems).is_equal(0)
+	assert_int(RunState.settle_death_gems()).is_equal(0)

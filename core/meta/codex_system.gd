@@ -6,8 +6,9 @@ extends Node
 ## autoload 名 "CodexSystem"（无 class_name——引擎规则 class_name 不得遮蔽 autoload
 ## 单例名，命名规则同 GameDB/RunState/SaveSystem）；注册在 SaveSystem 之后（_ready 读档回池）。
 ##
-## 计数口径（J.2：跨局累计；持久化归 M2-T25 存档 v2——本卡计数器为内存会话累计，
-## autoload 生命周期跨局存活、进程退出即清零，解锁结果本身已入档不丢）：
+## 计数口径（J.2：跨局累计；持久化自 m2-t31 存档 v2 起接入——计数器快照存
+## SaveSystem.unlock_tasks，构造/_ready 读档恢复，层进入与解锁达成时落盘；
+## 进程退出最多丢自上次结算点后的增量，解锁结果本身已入档不丢）：
 ##   kills_total       ← EventBus.enemy_killed（每敌死亡 +1，与 Telemetry kill 行同源）
 ##   resonances_total  ← EventBus.resonance_triggered（共鸣触发 +1）
 ##   crafts_total      ← count_craft()（T25 熔铸台接线占位，当前无调用方=恒 0）
@@ -39,16 +40,18 @@ var counters: Dictionary = {}  # 六类计数器（见 COUNTER_KEYS / floor_clea
 
 ## _init(save) 直构注入（测试）；autoload 无参实例化 → save 为 null，_ready 探测。
 ## 任务表装载与计数器复位在 _init 完成（纯 FileAccess+JSON，不触树）——直构实例
-## （不入树，_ready 不跑）同样具备完整任务数据。
+## （不入树，_ready 不跑）同样具备完整任务数据。注入 save 时顺手恢复跨局计数。
 func _init(save: Object = null) -> void:
 	save_system = save
 	tasks = _load_tasks()
 	_reset_counters()
+	_restore_counters()
 
 
 func _ready() -> void:
 	if save_system == null:
 		save_system = get_node_or_null("/root/SaveSystem")
+	_restore_counters()
 	# 事件计数源（既有信号直连，不动发射侧文件）
 	EventBus.enemy_killed.connect(count_kill)
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
@@ -94,6 +97,38 @@ func _reset_counters() -> void:
 		"purchases_total": 0, "gems_earned_total": 0,
 		"floor_clears": {},   # {层号:int → 通过次数:int}
 	}
+
+
+## 跨局计数恢复（m2-t31 存档 v2）：从 SaveSystem.unlock_tasks 读回累计值盖在
+## 归零基线上（SaveSystem 已做 fail-SOFT 归一化：标量 int / floor_clears 整型键）。
+## save_system 缺席（未注入直构）或档内空进度 = 保持归零基线。
+func _restore_counters() -> void:
+	if save_system == null or not save_system.has_method("unlock_tasks"):
+		return
+	var saved: Dictionary = save_system.unlock_tasks()
+	if saved.is_empty():
+		return
+	for k: String in COUNTER_KEYS:
+		var v: Variant = saved.get(k)
+		if typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT:
+			counters[k] = int(v)
+	var bucket: Dictionary = counters.get("floor_clears", {})
+	var saved_bucket: Variant = saved.get("floor_clears")
+	if typeof(saved_bucket) == TYPE_DICTIONARY:
+		for fk: Variant in saved_bucket:
+			var fv: Variant = saved_bucket[fk]
+			if typeof(fv) == TYPE_INT or typeof(fv) == TYPE_FLOAT:
+				bucket[int(fk)] = int(fv)
+	counters["floor_clears"] = bucket
+
+
+## 计数器快照落盘（m2-t31 存档 v2）：调用于计数结算点——层进入（on_floor_entered）、
+## 解锁达成（check_unlocks 搭车，解锁本身已写盘）、终局结算确认（Death/VictorySummary）。
+## 非每次击杀热路径；进程退出最多丢自上次结算点后的增量（披露口径）。
+func persist_counters() -> void:
+	if save_system == null or not save_system.has_method("record_unlock_tasks"):
+		return
+	save_system.record_unlock_tasks(snapshot_counters())
 
 
 # ---- 查询 ----
@@ -148,6 +183,7 @@ func snapshot_counters() -> Dictionary:
 ## 全表扫描：条件达成（cur >= goal）且未解锁 → 入档 + 回池（非★）+ 播信号。
 ## 返回本次新解锁的武器 id 列表。幂等（已解锁跳过）；save 缺席（直构未注入）时不动作。
 ## 挂点：每层进入（run_root → on_floor_entered）、每次计数事件后（本卡计数 API 内联调用）。
+## m2-t31：解锁达成时计数器快照搭车落盘（解锁本身已写盘，无额外热路径 IO）。
 func check_unlocks() -> Array[String]:
 	var newly: Array[String] = []
 	if save_system == null:
@@ -163,6 +199,8 @@ func check_unlocks() -> Array[String]:
 		_grant_if_poolable(weapon)
 		newly.append(weapon)
 		weapon_unlocked.emit(weapon)
+	if not newly.is_empty():
+		persist_counters()
 	return newly
 
 
@@ -210,7 +248,7 @@ func count_gems(n: int) -> void:
 
 ## 层进入挂点（run_root._on_next_floor_requested 1 行直调）：进入 N 层（N>=2）即
 ## 「通过第 N-1 层」→ clears[N-1]+1 并按 RunState.FLOOR_GEMS 镜像过层蓝晶入账，
-## 随后 check_unlocks（结算点与每层进入合一）。
+## 随后 check_unlocks（结算点与每层进入合一）。m2-t31：作为计数结算点快照落盘。
 func on_floor_entered(new_floor: int) -> void:
 	if new_floor < 2:
 		return
@@ -222,3 +260,4 @@ func on_floor_entered(new_floor: int) -> void:
 	var awarded := int(gems_table[clampi(cleared - 1, 0, gems_table.size() - 1)])
 	counters["gems_earned_total"] = int(counters.get("gems_earned_total", 0)) + awarded
 	check_unlocks()
+	persist_counters()

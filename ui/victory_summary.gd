@@ -83,6 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	_confirm()
 
 ## 确认结算：蓝晶全额入账（一次性）→ 复位记录器 → 广播 dismissed → 回主菜单。
+## m2-t31：确认即终局结算点——图鉴跨局计数器（CodexSystem）快照落盘（存档 v2）。
 func _confirm() -> void:
 	if _confirmed:
 		return
@@ -91,6 +92,9 @@ func _confirm() -> void:
 	RunState.gems = 0                       # 本局待结算蓝晶消费归零（防重复领取）
 	if awarded > 0:
 		SaveSystem.add_gems(awarded)
+	var codex: Node = get_node_or_null("/root/CodexSystem")
+	if codex != null and codex.has_method("persist_counters"):
+		codex.persist_counters()
 	DeathRecorder.reset()
 	dismissed.emit()
 	_exit_to_menu()

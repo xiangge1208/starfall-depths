@@ -993,9 +993,16 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	# counts_for_wave=false 与原始波次生态隔离，仍是玩家本局的一次真实击杀；
 	# room.enemies.has(e) 是重复 died 回调的幂等门，确保每个实例只计一次。
 	RunState.add_kill()
-	RunState.settle_kill_gems(String(e.row.get("guest_kind", "")), enemy_id)   # m2-t31 击杀蓝晶：精英5/小B20/Boss50+首杀300
 	var frame := Engine.get_physics_frames()
 	var enemy_id := String(e.row.get("id", ""))
+	# m2-t31 击杀蓝晶（GDD §14）：精英 +5 / 小 Boss +20 / Boss +50（Boss 首杀再 +300 入池）。
+	# 档位键 = guest_kind（A1 嘉宾三档统一标记）；真实 Boss 行（vine_colossus / gem_queen /
+	# prism_golem / frost_widow / magma_tyrant）只有 boss_script 无 guest_kind，按
+	# room_combat 同款口径等价归 boss 档；杂兵两键皆空 = 0 不入池。
+	var kill_kind := String(e.row.get("guest_kind", ""))
+	if kill_kind.is_empty() and String(e.row.get("boss_script", "")) != "":
+		kill_kind = "boss"
+	RunState.settle_kill_gems(kill_kind, enemy_id)
 	var notify_id := String(e.row.get("wave_id", enemy_id))
 	var killed_row: Dictionary = (e.row as Dictionary).duplicate(true)
 	var death_pos := e.global_position

@@ -11,7 +11,12 @@ extends Node
 ## 接线说明（控制器决议）：本卡只交付服务+测试；RunState.next_floor 的蓝晶结算
 ## 不在本卡改动 run_state.gd，由 T20/T22 结算时调用 SaveSystem.add_gems 持久化。
 
-const SAVE_VERSION := 1   # 迁移钩子：将来档结构变更时递增，并在 _migrate 补 from_version 分支
+## m2-t31 存档 v2：SAVE_VERSION 1→2。v2 相对 v1 纯增量（additive）——新增
+## unlock_tasks 进度（CodexSystem 计数器快照）与 boss_first_kills 名录，全部由
+## _merge_saved 的默认骨架回落，无键搬移/改形；版本戳是正式化（此后新字段按
+## 版本分支演进，不再靠 additive 默认值隐式兜底）。purchased_talents（m2-t15）/
+## unlocked_weapons（m2-t20）/成就字段自 v1 起已存在，v2 保留口径不变。
+const SAVE_VERSION := 2   # 迁移钩子：档结构变更时递增，并在 _migrate 补 from_version 分支
 
 const DEFAULT_SETTINGS := {
 	"screen_shake": 1.0,
@@ -36,16 +41,20 @@ func _default_data() -> Dictionary:
 		"unlocked_heroes": ["vanguard"] as Array[String],
 		"achievements": {},
 		"settings": DEFAULT_SETTINGS.duplicate(),
-		# m2-t15 最小新增：已购天赋列表（additive 键位，旧档缺失由 _merge_saved 回落
-		# 默认空表，无需版本迁移即可读）。T31 将以 SAVE_VERSION=2 把 purchased_talents /
-		# unlock_tasks 进度 / 成就字段一并 migration formalize，本键届时保留口径。
+		# m2-t15 已购天赋列表（v1 起 additive；v2 保留口径不变）：旧档缺失由
+		# _merge_saved 回落默认空表。TalentSystem.buy 成功后经 record_talent_purchase
+		# 入库（别造第二套：读写都走本系统）。
 		"purchased_talents": [] as Array[String],
 		# m2-t20：图鉴已解锁武器 id（T20 解锁引擎达成任务后入库；同 additive 键位，
 		# 旧档缺失回落空表。★4 把 forge_only 解锁后也记这里，掉落池过滤由 GameDB 侧排除）。
 		"unlocked_weapons": [] as Array[String],
-		# m2-t31：Boss 首杀名录（击杀蓝晶 +300 的防重刷标记；同 additive 键位，旧档
-		# 缺失由 _merge_saved 回落默认空表，无需版本迁移即可读——正式 v2 migration 归 T25）。
+		# m2-t31（v2 新增）：Boss 首杀名录（击杀蓝晶 +300 的防重刷标记；旧档缺失
+		# 由 _merge_saved 回落默认空表）。
 		"boss_first_kills": [] as Array[String],
+		# m2-t31（v2 新增）：图鉴解锁任务进度（CodexSystem.counters 快照：五标量
+		# 计数 + floor_clears 层号分桶）。CodexSystem 在层进入/解锁/终局结算点写入，
+		# _ready 读档恢复——J.2 跨局累计的持久化后端。
+		"unlock_tasks": {},
 	}
 
 ## 读取存档到 data 并返回。缺文件→默认档（静默）；损坏/畸形→push_error+默认档；
@@ -107,6 +116,9 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 			if typeof(e) == TYPE_STRING:
 				barr.append(e)
 		out["boss_first_kills"] = barr
+	# m2-t31（v2）：解锁任务进度合并（标量计数 int 还原；floor_clears 的 JSON 字符串
+	# 键归一化回 int——CodexSystem 按整型层号查桶；非数字/非字典该键回落默认）
+	out["unlock_tasks"] = _normalize_unlock_tasks(saved.get("unlock_tasks"))
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
 		out["achievements"] = saved["achievements"]
 	var settings_v: Variant = saved.get("settings")
@@ -118,11 +130,42 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 				out["settings"][k] = sv
 	return out
 
-## 迁移桩（结构就绪）：当前 SAVE_VERSION=1，无历史版本，故为 no-op。
-## 将来加档字段时：递增 SAVE_VERSION，在此按 from_version 分支补默认值/搬移键，
-## 返回迁移后的完整档（版本戳由 load_save 统一盖）。
+## 迁移钩子（结构就绪）。v1→v2（m2-t31）：纯 additive——unlock_tasks 进度 /
+## boss_first_kills 名录等 v2 新键 v1 写档器从不写入，_merge_saved 默认骨架已回落，
+## v1 既有键（gems/unlocked_heroes/purchased_talents/unlocked_weapons/achievements/
+## settings）原样保留，故本分支无搬移动作，仅作正式化记录。幂等由 load_save 保证：
+## from_version == SAVE_VERSION 时不进本函数（重复载入 v2 档零迁移）。
+## 将来 v3：在此按 from_version 分支补默认值/搬移键，返回迁移后的完整档
+## （版本戳由 load_save 统一盖）。
 func _migrate(migrated: Dictionary, from_version: int) -> Dictionary:
+	if from_version < 2:
+		pass   # v1→v2 additive-only：见上注，无键搬移
 	return migrated
+
+## unlock_tasks 进度归一化（m2-t31 v2）：标量计数 float→int 还原（JSON 数字统一为
+## float）；floor_clears 分桶键 int 化（JSON 对象键只能是字符串，CodexSystem 按整型
+## 层号查桶）；非数字标量/非字典分桶整键丢弃（fail-SOFT 回落默认）。未知顶层键按
+## 原样保留（SaveSystem 不做 codex 键白名单——单一事实源在 CodexSystem.COUNTER_KEYS）。
+func _normalize_unlock_tasks(saved: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if typeof(saved) != TYPE_DICTIONARY:
+		return out
+	for k: String in saved:
+		var val: Variant = saved[k]
+		if k == "floor_clears":
+			if typeof(val) == TYPE_DICTIONARY:
+				var bucket: Dictionary = {}
+				for fk: Variant in val:
+					var fv: Variant = val[fk]
+					if _is_number(fv):
+						bucket[int(fk)] = int(fv)
+				out[k] = bucket
+		elif _is_number(val):
+			out[k] = int(val)
+	return out
+
+func _is_number(v: Variant) -> bool:
+	return typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT
 
 ## 写盘：临时文件写完 flush 后 rename 覆盖目标（原子性足够——进程任意时刻死掉
 ## 最多留下 .tmp 残骸，save.json 本体要么是旧档要么是新档，不会写半截）。
@@ -236,3 +279,18 @@ func record_boss_first_kill(id: String) -> bool:
 	data["boss_first_kills"] = arr
 	save_now()
 	return true
+
+## 解锁任务进度读取（m2-t31 v2）：防御性——档内非字典/脏键经 _merge_saved 归一化，
+## 恒返回 Dictionary（空表 = 全零进度）。CodexSystem._ready 恢复计数器用。
+func unlock_tasks() -> Dictionary:
+	var saved: Variant = data.get("unlock_tasks")
+	if typeof(saved) == TYPE_DICTIONARY:
+		return saved
+	return {}
+
+## 解锁任务进度入库（m2-t31 v2）：整体快照覆写 + 落盘（计数器只在层进入/解锁/
+## 终局结算点写入，非每次击杀热路径）。floor_clears 分桶键 int 化后存储，JSON 落盘
+## 自动转字符串、_merge_saved 读回再归一化（往返一致）。
+func record_unlock_tasks(progress: Dictionary) -> void:
+	data["unlock_tasks"] = _normalize_unlock_tasks(progress)
+	save_now()
