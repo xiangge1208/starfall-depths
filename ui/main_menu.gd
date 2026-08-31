@@ -20,6 +20,7 @@ func _ready() -> void:
 	if save_system == null:
 		save_system = get_node_or_null("/root/SaveSystem")
 	_router = get_node_or_null("/root/SceneRouter")
+	AudioMgr.play_music("menu")   # m2-t22：主菜单 BGM（同曲幂等，重进不重启）
 	$Menu/StartBtn.pressed.connect(_on_start_pressed)
 	$Menu/SettingsBtn.pressed.connect(_on_settings_pressed)
 	$Menu/QuitBtn.pressed.connect(_on_quit_pressed)
