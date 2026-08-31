@@ -8,9 +8,9 @@
 
 | 项 | 值 |
 |---|---|
-| main tip | `7478f79`（merge: m2-t25） |
+| main tip | `df9691a`（test: hermetic forge preview） |
 | 工作树 | 干净，仅 `.tmp_session_extract/`（排查临时目录，可删） |
-| 全量测试 | **1199/1199 绿**，68 套件，0 errors / 0 failures / 0 flaky / 0 orphans，exit 0（T31+T32+T25 合入后） |
+| 全量测试 | **1219/1219 绿**，69 套件，exit 0（T31+T32+T25+prophet 合入后） |
 | 测试耗时 | 2m13s |
 
 ### ⚠️ 环境前提（否则会误判为红）
@@ -23,7 +23,7 @@
 
 ## 卡片状态总表
 
-### 已合并（28 张）
+### 已合并（29 张）
 
 | 卡 | 内容 | 合并提交 | 备注 |
 |---|---|---|---|
@@ -54,13 +54,14 @@
 | T31 | 蓝晶结算 + 存档 migration v2 | 0d07799 | 评审 Approved；回退「进门入账」保死亡减半口径 |
 | T32 | 成就系统 22 激活 | a04f32f | 评审 Approved；save_system 与 T31 并集；17 条待 T35 发射 |
 | T25 | 熔铸台场景接线 | 7478f79 | 评审 Imp×2 全闭环（craft_x 接线由存留代理补）；裁定⑮⑯⑰ |
+| prophet | 星陨先知 + 隐藏门 | 701a791 | 评审 C-1/I-1 修复轮 `e71e23f`（门提前开→房清拍判定 + 共鸣斩单击化）；编排者亲核修复证据 |
 
 ### 待处理（9 张）
 
 | 卡 | 内容 | 分支 | 状态 | 下一步 |
 |---|---|---|---|---|
 | **prophet** | 星陨先知 + 隐藏门 | `m2-prophet` | 评审 NEEDS FIXES（`855e034`：**C-1 门提前开启** / I-1 共鸣斩无敌帧吞伤 / I-2 与 T31 合并面 / Min×7） | 修复轮已派（merge main 去重 add_gems + C/I 修复）→ 复评 → merge |
-| **T26** | 挑战房灾厄 + **A2/A3 模板 ×16（裁定⑭）** + 房型矩阵复核 + 移交项 | `m2-t26` | **实现完成 1127 绿**（6 提交 `2e08aa8..569d79e`；披露①A2/A3 波次仍 A1 名录 ③Boss 恒 vine_colossus → T36） | 独立评审中 → merge |
+| **T26** | 挑战房灾厄 + **A2/A3 模板 ×16（裁定⑭）** + 房型矩阵复核 + 移交项 | `m2-t26` | 评审 NEEDS FIXES（`a5dcaa7`：**I-1 治疗无效未拦技能回血** / **I-2 m1_evidence+m1_loop_smoke 的 a2_entry 桩漏改** / I-3 视野灾厄双实例→裁定㉑ defer / Min×4）；**修复轮已派** | 修复 → 复核 → merge |
 | **T28** | Balance Bot 全层回归 | `m2-t28` | **第三波已派**（T25 已合解锁）；校准点见裁定⑰⑲ | 实现 → 评审 → merge |
 | **T29** | §18.3 全指标压测 | `m2-t29` | **第三波已派** | 实现 → 评审 → merge |
 | **T36** | **Boss 楼层路由接线（新卡，裁定⑳）**：A1 vine_colossus / A2 / A3 真 Boss 进 FloorScene waves + HivePillar/Crystal 出生接线 + T16 cage 机制化 + 精英楼层缩放（T26 披露②） | — | 已立项待派（第四波，待 prophet/T26 合并后错开 floor_scene） | 立卡派发 |
@@ -124,6 +125,8 @@ T27 报告也侧面印证：「A2/A3 层模板 `door_local`/spawn 缺键」—�
 18. **前会话存留代理（僵尸）事件记录**：2026-08-31 12:55–13:15，一存活代理在 `.worktrees/m2-t25` 自主执行修复轮并读走本编排者评审报告（`5b1061b`）后提交 `0e25990`/`78bb9e8`（craft_x 接线 + 盐常量，评审 Important-1/Minor-3 全闭环）。处理：不派对抗代理，监控其产出；其裁定编号以台账为准重编。其修复轮已随 `7478f79` 合入。
 19. **先知击杀经济口径**（prophet 评审 I-2）：T31 击杀结算（Boss +50 / 首杀 +300）是标准权威；prophet 的 gems3 实体掉落是隐藏 Boss 设计加成，两者**叠加合法**（先知击杀合计 +53 或 +353 首杀）。列入 T28 校准点。
 20. **T36 立卡（Boss 楼层路由接线）**：T26 披露③——FloorScene Boss 房波次三层恒 `vine_colossus`（floor_scene.gd:1373），gem_queen/prism_golem/frost_widow/magma_tyrant/starfall_prophet 均未路由进场；M2 门禁「三层 Boss 各三阶段」被此阻塞。范围：楼层×Boss 池路由（附录 E 归属：A1 vine_colossus / A2 gem_queen+prism_golem+frost_widow 池 / A3 magma_tyrant，先知走隐藏门已有机制）+ T14 移交 HivePillar/Crystal 出生接线 + T16 移交 cage 机制化 + T26 披露②精英楼层缩放。floor_scene 所有权：待 prophet/T26 合并后派。
+21. **挑战房「视野-35%」灾厄双 BiomeFx 实例 defer**（T26 评审 I-3）：后挂 CanvasModulate 胜出致灾厄房画面反亮（0.65 替换生态 0.25）+ 双光圈叠加；0.4 剪影下限仍兜底。修复方向 = 复合进既有 biome_fx 而非二次实例；承接 **T36**（同动 floor_scene/biome_fx，避免双卡竞争所有权）。
+22. **无头跑图共享 `save_headless.json` 累积真实图鉴进度**：场景级测试（m1 smoke 等）经真解锁链解锁武器回池并持久化——属产品正确行为；测试侧密封化先例 `df9691a`（forge 空桶前提显式构造）。**T33 预检核对项**：全量门禁前清档重跑一次，确认无其他「纯净引导」假设测试。
 
 ## 移交/遗留项（消费卡号）
 
