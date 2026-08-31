@@ -2,10 +2,11 @@ extends Node
 ## m2-t29 H-2 §18.3 全指标压测探针（GDD §18.3 预算表）：
 ##   活动实体 ≤300 / 同屏弹幕 ≤500 / draw call ≤150（全图集）/ 逻辑帧 ≤6ms / 渲染 ≤10ms。
 ##
-## 场景构成（每层）：start_a1 → 该层最密战斗模板（密度 = 刷点+陈设+危险地块，平局取
-## 字典序最小）。a2/a3 模板 JSON 本基线未落地（T26 分支评审中未合）→ floor 2/3 回退
-## floor 1 池；生态差异仍真实（floor_idx 驱动 cave/crystal/magma 瓦片套件，A2 暗视野+
-## 冰面，A3 岩浆池+间歇泉+火雨）——规格偏差报告披露，T26 合入后选型自动生效。
+## 场景构成（每层）：start_a<层> → 该层最密战斗模板（密度 = 刷点+陈设+危险地块，平局
+## 取字典序最小）。T26 已合入：a2/a3 模板池在库，densest_combat_id 按层池自动选型
+## （combat_a2_01 / combat_a3_08）；A3 岩浆池/间歇泉由模板 hazards 行走生产路径实例化
+## （首批注入 workaround 已随内容落地移除）。生态特效（floor_idx 驱动 cave/crystal/
+## magma 瓦片套件，A2 暗视野+剪影+冰面，A3 火雨）照旧全开。
 ## 压力注入：40 敌（enemies.json 非 boss 字典序前 40，确定性）+ 敌弹打满 400 公平
 ## 淘汰线（GDD §7.5）+ 0 伤玩家弹补足 500 总池（0 伤保证敌/玩家不死、负载稳定）+
 ## 层生态特效全开。0 伤命中仍走完整命中管线（伤害数字/白闪/音频事件）= juice 全开。
@@ -91,8 +92,6 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 	# 玩家落位战斗房中心（m1_evidence 习语：位置检测器据此维持当前房）
 	fs.player.position = fs.room_rect(1).get_center()
 	await _physics_frames(5)             # 波次落地（enter 同拍 + 余量）
-	if floor_idx == 3:
-		_inject_magma_suite(fs, room)     # A3 全特效：岩浆池×2 + 间歇泉（火雨采样中周期调度）
 	var injected := _inject_enemies(fs, room, stress_enemy_ids(ENEMY_TARGET))
 	_top_up_bullets(fs, room, _topup_rng)
 
