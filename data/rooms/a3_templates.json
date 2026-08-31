@@ -1,0 +1,178 @@
+{
+  "combat_a3_01": {
+    "id": "combat_a3_01",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "magma",
+    "spawn_points": [[5, 4], [16, 4], [5, 9], [16, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [3, 3], "hp": 20},
+      {"kind": "pillar", "grid": [18, 3], "hp": 20},
+      {"kind": "pillar", "grid": [3, 10], "hp": 20},
+      {"kind": "pillar", "grid": [18, 10], "hp": 20}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [11, 7], "radius": 40},
+      {"kind": "geyser", "grid": [8, 5]},
+      {"kind": "geyser", "grid": [14, 5]},
+      {"kind": "geyser", "grid": [8, 9]},
+      {"kind": "geyser", "grid": [14, 9]}
+    ]
+  },
+  "combat_a3_02": {
+    "id": "combat_a3_02",
+    "size": [22, 14],
+    "doors": ["N", "S", "E"],
+    "biome": "magma",
+    "spawn_points": [[6, 4], [15, 4], [10, 9], [16, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [3, 7], "hp": 20},
+      {"kind": "pillar", "grid": [18, 7], "hp": 20},
+      {"kind": "crate", "grid": [11, 3], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [6, 7], "radius": 32},
+      {"kind": "magma", "grid": [15, 7], "radius": 32},
+      {"kind": "geyser", "grid": [9, 10]},
+      {"kind": "geyser", "grid": [13, 10]}
+    ]
+  },
+  "combat_a3_03": {
+    "id": "combat_a3_03",
+    "size": [22, 14],
+    "doors": ["W", "E", "N"],
+    "biome": "magma",
+    "spawn_points": [[5, 5], [16, 5], [8, 9], [13, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [8, 2], "hp": 20},
+      {"kind": "pillar", "grid": [13, 2], "hp": 20},
+      {"kind": "crate", "grid": [3, 8], "hp": 8},
+      {"kind": "crate", "grid": [18, 8], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [11, 6], "radius": 56},
+      {"kind": "geyser", "grid": [6, 4]},
+      {"kind": "geyser", "grid": [16, 4]}
+    ]
+  },
+  "combat_a3_04": {
+    "id": "combat_a3_04",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "magma",
+    "spawn_points": [[5, 4], [16, 4], [5, 9], [16, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [3, 6], "hp": 20},
+      {"kind": "pillar", "grid": [18, 8], "hp": 20},
+      {"kind": "crate", "grid": [10, 11], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [11, 5], "radius": 24},
+      {"kind": "magma", "grid": [11, 9], "radius": 24},
+      {"kind": "geyser", "grid": [6, 7]},
+      {"kind": "geyser", "grid": [16, 7]}
+    ]
+  },
+  "combat_a3_05": {
+    "id": "combat_a3_05",
+    "size": [22, 14],
+    "doors": ["E", "W", "S"],
+    "biome": "magma",
+    "spawn_points": [[6, 4], [11, 4], [16, 5], [8, 8]],
+    "props": [
+      {"kind": "pillar", "grid": [5, 6], "hp": 20},
+      {"kind": "pillar", "grid": [16, 6], "hp": 20},
+      {"kind": "crate", "grid": [18, 3], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [11, 11], "radius": 40},
+      {"kind": "geyser", "grid": [7, 3]},
+      {"kind": "geyser", "grid": [15, 3]}
+    ]
+  },
+  "combat_a3_06": {
+    "id": "combat_a3_06",
+    "size": [22, 14],
+    "doors": ["N", "E", "W"],
+    "biome": "magma",
+    "spawn_points": [[5, 5], [16, 5], [10, 9], [15, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [10, 6], "hp": 20},
+      {"kind": "pillar", "grid": [11, 7], "hp": 20},
+      {"kind": "crate", "grid": [4, 4], "hp": 8},
+      {"kind": "crate", "grid": [17, 4], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [4, 9], "radius": 32},
+      {"kind": "magma", "grid": [17, 9], "radius": 32},
+      {"kind": "geyser", "grid": [8, 4]},
+      {"kind": "geyser", "grid": [14, 9]}
+    ]
+  },
+  "combat_a3_07": {
+    "id": "combat_a3_07",
+    "size": [22, 14],
+    "doors": ["N", "W", "S"],
+    "biome": "magma",
+    "spawn_points": [[8, 4], [15, 4], [6, 9], [16, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [5, 7], "hp": 20},
+      {"kind": "pillar", "grid": [16, 7], "hp": 20},
+      {"kind": "crate", "grid": [11, 10], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [11, 6], "radius": 32},
+      {"kind": "geyser", "grid": [14, 5]},
+      {"kind": "geyser", "grid": [14, 8]}
+    ]
+  },
+  "combat_a3_08": {
+    "id": "combat_a3_08",
+    "size": [22, 14],
+    "doors": ["S", "E", "W"],
+    "biome": "magma",
+    "spawn_points": [[5, 4], [16, 4], [8, 9], [13, 9]],
+    "props": [
+      {"kind": "pillar", "grid": [7, 4], "hp": 20},
+      {"kind": "pillar", "grid": [14, 4], "hp": 20},
+      {"kind": "pillar", "grid": [5, 8], "hp": 20},
+      {"kind": "pillar", "grid": [16, 8], "hp": 20}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [6, 6], "radius": 24},
+      {"kind": "magma", "grid": [16, 6], "radius": 24},
+      {"kind": "magma", "grid": [6, 10], "radius": 24},
+      {"kind": "magma", "grid": [16, 10], "radius": 24},
+      {"kind": "geyser", "grid": [11, 6]},
+      {"kind": "geyser", "grid": [11, 8]}
+    ]
+  },
+  "start_a3": {
+    "id": "start_a3",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "magma",
+    "spawn_points": [],
+    "props": [
+      {"kind": "pillar", "grid": [5, 5], "hp": 20},
+      {"kind": "pillar", "grid": [16, 5], "hp": 20},
+      {"kind": "pillar", "grid": [5, 8], "hp": 20},
+      {"kind": "pillar", "grid": [16, 8], "hp": 20}
+    ],
+    "hazards": [
+      {"kind": "magma", "grid": [11, 11], "radius": 24}
+    ]
+  },
+  "boss_a3": {
+    "id": "boss_a3",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "magma",
+    "spawn_points": [[11, 6]],
+    "props": [
+      {"kind": "pillar", "grid": [4, 4], "hp": 20},
+      {"kind": "pillar", "grid": [17, 9], "hp": 20}
+    ],
+    "hazards": []
+  }
+}

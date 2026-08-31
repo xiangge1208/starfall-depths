@@ -1,16 +1,22 @@
 class_name TestRoomTemplates
 extends GdUnitTestSuite
 ## M1-T4：A1 房间模板库 + GameDB rooms 加载校验。
+## m2-t26：A2/A3 模板 ×16 落库（每生态 8 战斗 + 起始/Boss，biome 字段 + A2 冰面/地刺/
+## 晶柱 + A3 岩浆/喷口 hazards 字段）。
 
 const COMBAT_IDS := ["combat_a1_01", "combat_a1_02", "combat_a1_03", "combat_a1_04",
 	"combat_a1_05", "combat_a1_06", "combat_a1_07", "combat_a1_08"]
-const EXPECTED_PROP_HP := {"pillar": 20, "crate": 8, "bush": 4}
+const COMBAT_A2_IDS := ["combat_a2_01", "combat_a2_02", "combat_a2_03", "combat_a2_04",
+	"combat_a2_05", "combat_a2_06", "combat_a2_07", "combat_a2_08"]
+const COMBAT_A3_IDS := ["combat_a3_01", "combat_a3_02", "combat_a3_03", "combat_a3_04",
+	"combat_a3_05", "combat_a3_06", "combat_a3_07", "combat_a3_08"]
+const EXPECTED_PROP_HP := {"pillar": 20, "crate": 8, "bush": 4, "crystal_pillar": 20}
 
 
 func test_all_ten_templates_loaded() -> void:
 	for id: String in COMBAT_IDS + ["start_a1", "boss_a1"]:
 		assert_dict(GameDB.rooms).contains_keys(id)
-	assert_int(GameDB.rooms.size()).is_equal(10)
+	assert_int(GameDB.rooms.size()).is_equal(30)   # m2-t26：A1 10 + A2 10 + A3 10
 
 
 func test_all_rows_pass_room_validation() -> void:
@@ -31,8 +37,112 @@ func test_combat_ids_exclude_start_and_boss() -> void:
 
 
 func test_combat_ids_floor_param() -> void:
-	# A2/A3 模板未实装：floor_idx=2 应返回空而不是 A1 的行
-	assert_array(RoomTemplate.combat_ids(2)).is_empty()
+	# m2-t26：A2/A3 模板落库——floor 参数按层取池（8 行同层模板，不串层）
+	var ids2 := RoomTemplate.combat_ids(2)
+	assert_int(ids2.size()).is_equal(8)
+	for id: String in ids2:
+		assert_bool(id.begins_with("combat_a2_")).is_true()
+	var ids3 := RoomTemplate.combat_ids(3)
+	assert_int(ids3.size()).is_equal(8)
+	for id: String in ids3:
+		assert_bool(id.begins_with("combat_a3_")).is_true()
+
+
+# ---------------------------------------------------------------- m2-t26 A2/A3 模板
+
+func test_a2_a3_sixteen_combat_templates_loaded() -> void:
+	# 16 战斗模板 + 各层起始/Boss（4 门完备）全部入库
+	for id: String in COMBAT_A2_IDS + COMBAT_A3_IDS + ["start_a2", "boss_a2", "start_a3", "boss_a3"]:
+		assert_dict(GameDB.rooms).contains_keys(id)
+	for id: String in COMBAT_A2_IDS + COMBAT_A3_IDS:
+		var row: Dictionary = GameDB.rooms[id]
+		assert_array(row["size"]).is_equal([22, 14])
+		assert_array(row["doors"]).is_not_empty()
+		assert_array(row["spawn_points"]).is_not_empty()
+	# 起始/Boss 模板 4 门完备（未用门为封闭门框，装配器 fit-aware 恒覆盖）
+	for id: String in ["start_a1", "boss_a1", "start_a2", "boss_a2", "start_a3", "boss_a3"]:
+		assert_array((GameDB.rooms[id] as Dictionary)["doors"]).is_equal(["N", "S", "E", "W"])
+
+
+func test_biome_field_driven_by_template() -> void:
+	# biome optional 键：A2 行 crystal / A3 行 magma / A1 行缺省 ""（无群系特效）
+	for id: String in COMBAT_A2_IDS + ["start_a2", "boss_a2"]:
+		assert_str(String(GameDB.rooms[id].get("biome", ""))).is_equal("crystal")
+	for id: String in COMBAT_A3_IDS + ["start_a3", "boss_a3"]:
+		assert_str(String(GameDB.rooms[id].get("biome", ""))).is_equal("magma")
+	for id: String in COMBAT_IDS + ["start_a1", "boss_a1"]:
+		assert_str(String(GameDB.rooms[id].get("biome", ""))).is_equal("")
+
+
+func _hazard_kinds(ids: Array, kind: String) -> int:
+	var n := 0
+	for id: String in ids:
+		for hz: Dictionary in (GameDB.rooms[id] as Dictionary)["hazards"]:
+			if String(hz["kind"]) == kind:
+				n += 1
+	return n
+
+
+func test_a2_hazard_fields_ice_spikes_crystal_pillars() -> void:
+	# A2：冰面（radius 形状）+ 地刺（grid）+ 晶柱（crystal_pillar props，折射语义 M4 接线）
+	var ice := _hazard_kinds(COMBAT_A2_IDS, "ice")
+	var spikes := _hazard_kinds(COMBAT_A2_IDS, "spikes")
+	assert_int(ice).is_greater_equal(8)
+	assert_int(spikes).is_greater_equal(12)
+	var crystals := 0
+	for id: String in COMBAT_A2_IDS:
+		var has_crystal := false
+		for p: Dictionary in (GameDB.rooms[id] as Dictionary)["props"]:
+			if String(p["kind"]) == "crystal_pillar":
+				assert_int(int(p["hp"])).is_equal(20)
+				has_crystal = true
+		crystals += 1 if has_crystal else 0
+	assert_int(crystals).is_equal(8)          # 每张 A2 战斗模板至少 1 根晶柱
+	for hz: Dictionary in (GameDB.rooms["combat_a2_01"] as Dictionary)["hazards"]:
+		if String(hz["kind"]) == "ice":
+			assert_int(int(hz["radius"])).is_greater(0)
+
+
+func test_a3_hazard_fields_magma_geysers() -> void:
+	# A3：岩浆 DOT 池（radius）+ 间歇喷口（grid）；每张 A3 战斗模板至少 1 个岩浆系 hazards
+	var magma := _hazard_kinds(COMBAT_A3_IDS, "magma")
+	var geysers := _hazard_kinds(COMBAT_A3_IDS, "geyser")
+	assert_int(magma).is_greater_equal(8)
+	assert_int(geysers).is_greater_equal(10)
+	for id: String in COMBAT_A3_IDS:
+		var has_lava := false
+		for hz: Dictionary in (GameDB.rooms[id] as Dictionary)["hazards"]:
+			match String(hz["kind"]):
+				"magma":
+					assert_int(int(hz["radius"])).is_greater(0)
+					has_lava = true
+				"geyser":
+					has_lava = true
+		assert_bool(has_lava).is_true()
+
+
+func test_a2_a3_template_layouts_distinct() -> void:
+	# 布局差异化（T4 原则）：同层 8 模板的 props+hazards 布局指纹互不相同
+	for ids: Array in [COMBAT_A2_IDS, COMBAT_A3_IDS]:
+		var seen := {}
+		for id: String in ids:
+			var row: Dictionary = GameDB.rooms[id]
+			var fingerprint := var_to_str(row["doors"]) + "|" + var_to_str(row["props"]) \
+				+ "|" + var_to_str(row["hazards"])
+			assert_bool(seen.has(fingerprint)).is_false()
+			seen[fingerprint] = id
+
+
+func test_schema_rejects_bad_biome_tag() -> void:
+	var row := _valid_row("bad_biome")
+	row["biome"] = "jungle"
+	assert_array(GameDB.validate_room_row(row)).is_not_empty()
+
+
+func test_schema_accepts_ice_hazard_with_radius() -> void:
+	var row := _valid_row("ice_ok")
+	row["hazards"] = [{"kind": "ice", "grid": [11, 7], "radius": 32}]
+	assert_array(GameDB.validate_room_row(row)).is_empty()
 
 
 func test_accessor_get_returns_row() -> void:
@@ -141,9 +251,10 @@ func test_combat_layouts_distinct() -> void:
 
 
 func test_hazards_vine_data_only() -> void:
-	# 本任务 hazard 仅数据（藤蔓减速带，效果后续任务实现）
+	# 本任务 hazard 仅数据（藤蔓减速带，效果后续任务实现）；m2-t26 起库含 A2/A3
+	# 冰面/地刺/岩浆/喷口行——本契约收窄到 A1 行（A1 生态唯一 hazard = vine r24）
 	var hazard_count := 0
-	for id: String in GameDB.rooms:
+	for id: String in COMBAT_IDS + ["start_a1", "boss_a1"]:
 		for h: Dictionary in GameDB.rooms[id]["hazards"]:
 			hazard_count += 1
 			assert_str(h["kind"]).is_equal("vine")

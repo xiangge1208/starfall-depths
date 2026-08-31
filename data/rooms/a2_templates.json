@@ -1,0 +1,187 @@
+{
+  "combat_a2_01": {
+    "id": "combat_a2_01",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "crystal",
+    "spawn_points": [[5, 4], [16, 4], [5, 9], [16, 9]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [9, 5], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [12, 5], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [9, 8], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [12, 8], "hp": 20}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [11, 7], "radius": 56},
+      {"kind": "spikes", "grid": [3, 3]},
+      {"kind": "spikes", "grid": [18, 3]},
+      {"kind": "spikes", "grid": [3, 10]},
+      {"kind": "spikes", "grid": [18, 10]}
+    ]
+  },
+  "combat_a2_02": {
+    "id": "combat_a2_02",
+    "size": [22, 14],
+    "doors": ["N", "S", "E"],
+    "biome": "crystal",
+    "spawn_points": [[6, 4], [15, 4], [10, 9], [16, 9]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [4, 4], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [17, 4], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [4, 9], "hp": 20},
+      {"kind": "crate", "grid": [18, 10], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [6, 7], "radius": 40},
+      {"kind": "ice", "grid": [15, 7], "radius": 40},
+      {"kind": "spikes", "grid": [8, 2]},
+      {"kind": "spikes", "grid": [11, 2]},
+      {"kind": "spikes", "grid": [14, 2]}
+    ]
+  },
+  "combat_a2_03": {
+    "id": "combat_a2_03",
+    "size": [22, 14],
+    "doors": ["W", "E", "N"],
+    "biome": "crystal",
+    "spawn_points": [[5, 5], [16, 5], [8, 9], [13, 9]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [10, 3], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [11, 3], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [10, 10], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [11, 10], "hp": 20},
+      {"kind": "crate", "grid": [3, 7], "hp": 8},
+      {"kind": "crate", "grid": [18, 7], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [11, 6], "radius": 64},
+      {"kind": "spikes", "grid": [6, 8]},
+      {"kind": "spikes", "grid": [15, 8]}
+    ]
+  },
+  "combat_a2_04": {
+    "id": "combat_a2_04",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "crystal",
+    "spawn_points": [[5, 4], [16, 4], [5, 9], [16, 9]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [3, 3], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [18, 3], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [3, 10], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [18, 10], "hp": 20}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [11, 7], "radius": 48},
+      {"kind": "spikes", "grid": [7, 7]},
+      {"kind": "spikes", "grid": [15, 7]},
+      {"kind": "spikes", "grid": [11, 4]},
+      {"kind": "spikes", "grid": [11, 10]}
+    ]
+  },
+  "combat_a2_05": {
+    "id": "combat_a2_05",
+    "size": [22, 14],
+    "doors": ["E", "W", "S"],
+    "biome": "crystal",
+    "spawn_points": [[6, 4], [11, 4], [16, 9], [8, 9]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [6, 6], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [9, 8], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [12, 5], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [15, 7], "hp": 20},
+      {"kind": "crate", "grid": [4, 10], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [3, 4], "radius": 32},
+      {"kind": "ice", "grid": [18, 9], "radius": 32},
+      {"kind": "spikes", "grid": [11, 7]}
+    ]
+  },
+  "combat_a2_06": {
+    "id": "combat_a2_06",
+    "size": [22, 14],
+    "doors": ["N", "E", "W"],
+    "biome": "crystal",
+    "spawn_points": [[5, 5], [16, 5], [10, 9], [15, 9]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [10, 6], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [11, 6], "hp": 20},
+      {"kind": "crate", "grid": [4, 4], "hp": 8},
+      {"kind": "crate", "grid": [17, 4], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [5, 8], "radius": 36},
+      {"kind": "ice", "grid": [16, 8], "radius": 36},
+      {"kind": "spikes", "grid": [7, 11]},
+      {"kind": "spikes", "grid": [11, 11]},
+      {"kind": "spikes", "grid": [15, 11]}
+    ]
+  },
+  "combat_a2_07": {
+    "id": "combat_a2_07",
+    "size": [22, 14],
+    "doors": ["N", "W", "S"],
+    "biome": "crystal",
+    "spawn_points": [[8, 4], [15, 4], [6, 9], [16, 9]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [11, 3], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [11, 10], "hp": 20},
+      {"kind": "crate", "grid": [5, 7], "hp": 8},
+      {"kind": "crate", "grid": [16, 7], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [11, 6], "radius": 40},
+      {"kind": "spikes", "grid": [4, 4]},
+      {"kind": "spikes", "grid": [17, 9]}
+    ]
+  },
+  "combat_a2_08": {
+    "id": "combat_a2_08",
+    "size": [22, 14],
+    "doors": ["S", "E", "W"],
+    "biome": "crystal",
+    "spawn_points": [[5, 4], [16, 4], [10, 8], [15, 8]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [7, 4], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [14, 4], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [5, 8], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [16, 8], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [11, 11], "hp": 20},
+      {"kind": "crate", "grid": [11, 4], "hp": 8}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [10, 6], "radius": 36},
+      {"kind": "spikes", "grid": [8, 10]},
+      {"kind": "spikes", "grid": [14, 10]}
+    ]
+  },
+  "start_a2": {
+    "id": "start_a2",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "crystal",
+    "spawn_points": [],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [5, 5], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [16, 5], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [5, 8], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [16, 8], "hp": 20}
+    ],
+    "hazards": [
+      {"kind": "ice", "grid": [11, 7], "radius": 32}
+    ]
+  },
+  "boss_a2": {
+    "id": "boss_a2",
+    "size": [22, 14],
+    "doors": ["N", "S", "E", "W"],
+    "biome": "crystal",
+    "spawn_points": [[11, 6]],
+    "props": [
+      {"kind": "crystal_pillar", "grid": [4, 4], "hp": 20},
+      {"kind": "crystal_pillar", "grid": [17, 9], "hp": 20}
+    ],
+    "hazards": []
+  }
+}

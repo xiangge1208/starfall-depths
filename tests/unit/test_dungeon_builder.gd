@@ -166,9 +166,11 @@ func test_seed_at_uses_stable_hash_with_salt_777() -> void:
 
 func test_combat_pool_matches_room_template_accessor() -> void:
 	# --script 无头模式编译约束（见 dungeon_builder.gd 头注）镜像了 combat_ids 逻辑，
-	# 此处钉住两者等价，防漂移
+	# 此处钉住两者等价，防漂移（m2-t26：A2/A3 池落库，等价性扩到全三层数据）
 	assert_array(DungeonBuilder.combat_pool(1)).is_equal(RoomTemplate.combat_ids(1))
-	assert_array(DungeonBuilder.combat_pool(2)).is_empty()
+	assert_array(DungeonBuilder.combat_pool(2)).is_equal(RoomTemplate.combat_ids(2))
+	assert_array(DungeonBuilder.combat_pool(3)).is_equal(RoomTemplate.combat_ids(3))
+	assert_array(DungeonBuilder.combat_pool(4)).is_empty()   # 表外楼层恒空池 fail-closed
 
 
 # ---------------------------------------------------------------- validate_build
@@ -295,7 +297,33 @@ func test_real_seed_388_fully_door_aligned() -> void:
 
 
 func test_floor_without_templates_fails_closed() -> void:
-	# A2 模板未实装：floor_idx=2 产出结构但 validate_build 报缺失（不静默回退 A1）
-	var build := DungeonBuilder.build(SEEDS[0], 2)
-	assert_int((build["rooms"] as Dictionary).size()).is_equal(TOTAL_NODES)
-	assert_array(DungeonBuilder.validate_build(build)).is_not_empty()
+	# m2-t26 前提反转：A2/A3 模板已落库——floor 2/3 真实构建体 validate_build 必净
+	#（原「A2 模板未实装 → validate 报缺失」的 fail-closed 契约由模板存在性接管）；
+	# 表外楼层（无模板池）仍 fail-closed 报缺失，不静默回退别层模板。
+	for floor_idx in [2, 3]:
+		var build := DungeonBuilder.build(SEEDS[0], floor_idx)
+		assert_int((build["rooms"] as Dictionary).size()).is_equal(TOTAL_NODES)
+		assert_array(DungeonBuilder.validate_build(build)).is_empty()
+	var beyond := DungeonBuilder.build(SEEDS[0], 4)
+	assert_array(DungeonBuilder.validate_build(beyond)).is_not_empty()
+
+
+func test_a2_a3_floors_fully_validate_and_dedupe() -> void:
+	# m2-t26（房型矩阵复核的层侧证据）：A2/A3 各 40 种子真实构建体全过门对齐校验；
+	# 同层 combat 模板 ≤2 次去重 + 模板不跨层串用（combat_a2_* 不得出现在 floor 3 构建）
+	for floor_idx in [2, 3]:
+		var pool := RoomTemplate.combat_ids(floor_idx)
+		var other := RoomTemplate.combat_ids(1 if floor_idx == 3 else 3)
+		for i in 40:
+			var build := DungeonBuilder.build(300000 + i, floor_idx)
+			assert_array(DungeonBuilder.validate_build(build)).is_empty()
+			var counts := {}
+			for id in build["rooms"]:
+				var tid := String((build["rooms"][id] as Dictionary)["template_id"])
+				counts[tid] = int(counts.get(tid, 0)) + 1
+				assert_bool(other.has(tid)).is_false()
+			for tid: String in counts:
+				if pool.has(tid):
+					assert_int(int(counts[tid])).is_less_equal(2)
+				else:
+					assert_int(int(counts[tid])).is_equal(1)  # start_a<f> / boss_a<f>

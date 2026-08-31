@@ -272,6 +272,10 @@ func _spectate_to_fatal_pos(floor_scene: FloorScene, build: Dictionary, pos: Vec
 	if _replay_player != null and is_instance_valid(_replay_player):
 		_replay_player.global_position = pos
 	floor_scene.enter_room(target)                         # 终点：真装配（接线+波次+锁门）
+	# m2-t26：致死房是挑战房时回放自动代选灾厄（观战近似——重建的挑战房未走过
+	# 4 选 1，不代选则波次被灾厄面板挂起、回放无战斗可看；不追求复现当时所选条目）。
+	if target == floor_scene.challenge_room() and floor_scene.calamity_panel_visible():
+		floor_scene.choose_calamity("enemy_speed")
 
 ## FloorFlow 邻接 BFS（start → target）；不可达返回空表。
 func _bfs_path(floor_scene: FloorScene, target: int) -> Array[int]:
