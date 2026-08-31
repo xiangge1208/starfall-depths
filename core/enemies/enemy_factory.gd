@@ -40,6 +40,12 @@ const BOSS_SCRIPTS := {
 		"res://core/enemies/bosses/gem_queen.gd"),
 	"res://core/enemies/bosses/prism_golem.gd": preload(
 		"res://core/enemies/bosses/prism_golem.gd"),
+	# m2-t16：D-3 寒渊蛛母（附录 E.4）
+	"res://core/enemies/bosses/frost_widow.gd": preload(
+		"res://core/enemies/bosses/frost_widow.gd"),
+	# m2-t19：D-3 熔核暴君（附录 E.5）
+	"res://core/enemies/bosses/magma_tyrant.gd": preload(
+		"res://core/enemies/bosses/magma_tyrant.gd"),
 }
 
 

@@ -4,7 +4,8 @@ extends RefCounted
 ##   BUFF（增益三选一，复用 T9 BuffManager.roll_three / pick）
 ##   → FOUNTAIN（治疗喷泉：免费回 2 HP，仅一次）
 ##   → DOOR（下一层门：RunState.next_floor() 推层并结算蓝晶）→ DONE。
-## 第 3 层（floor_idx >= 3）Boss 后直接胜利结算桩（victory 旗，M2 接完整结算）。
+## 第 3 层（floor_idx >= 3）Boss 后直接胜利：置 victory 旗并发 victory_achieved
+## （m2-t18 真实触发，RunRoot 接信号切胜利结算场景；重复 open 幂等只首触发一次）。
 ##
 ## 乞丐 payout 接缝（T19 规格，duck-typed 防御）：DOOR 阶段 advance() 时若
 ## RunState.pending_investment > 0 且 beggar_paid_floor == floor_idx，
@@ -14,8 +15,12 @@ extends RefCounted
 
 enum Phase { BUFF, FOUNTAIN, DOOR, DONE }
 
+## m2-t18 胜利触发：第 3 层 Boss 后 open_with_offerings 走胜利分支时发出
+## （宿主 RunRoot 接线 → SceneRouter 切 victory 结算场景；本类保持纯逻辑无头）。
+signal victory_achieved
+
 const FOUNTAIN_HEAL := 2        # GDD §11：治疗喷泉免费回 2 HP
-const VICTORY_FLOOR := 3        # GDD §4.2：第 3 层 Boss 后胜利（M1 桩）
+const VICTORY_FLOOR := 3        # GDD §4.2：第 3 层 Boss 后胜利（m2-t18 起发 victory_achieved）
 const PAYOUT_CHANCE := 0.7      # 乞丐投资返还概率（T19 规格）
 
 var phase: int = Phase.BUFF
@@ -38,11 +43,14 @@ func setup(p_floor_idx: int, p_buffs: BuffManager) -> void:
 	phase = Phase.BUFF
 
 
-## Boss 死亡触发：掷三选一 → BUFF；第 3 层 → 胜利桩跳过全部阶段（返回空名录）。
+## Boss 死亡触发：掷三选一 → BUFF；第 3 层 → victory_achieved 触发并跳过全部阶段
+## （返回空名录；victory 旗幂等守卫保证信号只发一次，重复 open 不重发防双结算）。
 ## 抽池空（roll_three 返回 []）→ 跳过 BUFF 直进 FOUNTAIN（防软锁）。
 func open_with_offerings(rng: RandomNumberGenerator) -> Array[String]:
 	if floor_idx >= VICTORY_FLOOR:
-		victory = true
+		if not victory:
+			victory = true
+			victory_achieved.emit()
 		phase = Phase.DONE
 		offered = []
 		return []

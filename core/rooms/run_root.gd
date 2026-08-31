@@ -12,7 +12,8 @@ extends Node2D
 ##   调用并结算蓝晶——本节点只消费 RunState.floor_idx / new_floor，不重复推层）。
 ##   层数数据门：M1 仅交付 A1 完整模板。A1 门推进到 floor_idx=2 时进入一个真实的
 ##   A2 入口/里程碑场景（玩家实例、HUD 与第 2 层种子语义均已切换），但不扩做 A2
-##   战斗内容；第 3 层胜利结算桩仍由 InterFloorFlow.VICTORY_FLOOR 持有，M2 接入。
+##   战斗内容；第 3 层 Boss 后 InterFloorFlow 发 victory_achieved → 本节点经
+##   SceneRouter 切胜利结算场景（m2-t18 接入，VictorySummary 全屏面板）。
 ##   死亡：DeathRecorder autoload 全局接管——本节点经 SceneRouter 路由为前台场景
 ##   （res://core/rooms/ 非工具区），致命伤直接 goto("death")，整棵（含本节点/
 ##   FloorScene/层间）随换场景干净释放，DeathSummary 确认后回主菜单。
@@ -25,6 +26,7 @@ extends Node2D
 
 const INTER_FLOOR_SCENE := preload("res://core/rooms/inter_floor.tscn")
 const PLAYER_SCENE := preload("res://core/player/player.tscn")
+const VICTORY_SCENE := "res://ui/victory_summary.tscn"   # m2-t18：胜利结算场景（SceneRouter 路由键同步注册）
 
 const A2_ENTRY_FLOOR := 2
 const OVERLAY_TEXT := "已进入第 2 层 · 晶核洞穴入口"
@@ -36,6 +38,9 @@ var player: Player = null
 var floor_scene: FloorScene = null
 var inter_floor: Node2D = null
 var buffs := BuffManager.new()             # 局内共享（跨层保留已取增益，T20 契约）
+## 胜利路由接缝（m2-t18 测试注入口）：有效时替代真实场景切换（同 DeathRecorder
+## open_summary_override 模式——gdUnit 前台非游戏场景，真跳会把面板漏成孤儿节点）。
+var victory_route_override: Callable = Callable()
 var _overlay: CanvasLayer = null
 var _a2_entry: Node2D = null
 var _facility_run_seed := 0
@@ -120,6 +125,8 @@ func _start_floor(idx: int) -> void:
 
 
 ## boss 死亡（FloorScene.boss_defeated，boss 房清时发出）：嵌层间中转于楼层之上。
+## 第 3 层胜利链（m2-t18）：open() 内 flow 走胜利分支发 victory_achieved →
+## _on_victory_achieved 切胜利结算场景——连接必须先于 open()（同步发射）。
 func _on_boss_defeated(_room_id: int) -> void:
 	if inter_floor != null:
 		return
@@ -127,8 +134,25 @@ func _on_boss_defeated(_room_id: int) -> void:
 	inter_floor = INTER_FLOOR_SCENE.instantiate() as Node2D
 	add_child(inter_floor)
 	inter_floor.setup(player, buffs, RunState.floor_idx)
+	inter_floor.flow.victory_achieved.connect(_on_victory_achieved)
 	inter_floor.next_floor_requested.connect(_on_next_floor_requested)
 	inter_floor.open()
+
+
+## 第 3 层 Boss 死亡链路终点：切胜利结算场景（VictorySummary 读 RunState/Telemetry
+## 填充，确认时蓝晶全额入账）。延迟到帧末路由：boss_defeated 在物理回调链内发出，
+## 同帧立即换场景会先于其他监听者把节点摘树（同 DeathRecorder._open_summary 手法）。
+func _on_victory_achieved() -> void:
+	Telemetry.log_row(["victory", Engine.get_physics_frames(),
+		RunState.floor_idx, RunState.kills])
+	if victory_route_override.is_valid():
+		victory_route_override.call()
+		return
+	var router := get_node_or_null("/root/SceneRouter")
+	if router != null and router.has_method("goto"):
+		router.call_deferred("goto", "victory")
+		return
+	get_tree().change_scene_to_file.call_deferred(VICTORY_SCENE)   # 路由器缺席兜底
 
 
 ## 层间是安全中转房，不是旧 Boss 房上的 UI 覆盖层。Boss 清房后旧 FloorScene
