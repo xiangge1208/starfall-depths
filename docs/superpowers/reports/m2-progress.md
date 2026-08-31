@@ -75,3 +75,4 @@ main 测试基线：**929/929 绿**（3760272）。合并轨迹 744→761(T4)→
 - 流程：实现（TDD）→ 独立评审（规格+质量双维，报告入 docs/superpowers/reports/task-N-report.md）→ Major 修复 → merge --no-ff → 全量门禁复跑 → 台账更新 → 派下一卡。
 - 测试：先 `godot --headless --path . --import`，再 `godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode`（gdUnit 6.2.1 fail-fast，套件内首个失败即停）。
 - 子 Agent 后台不可用时：单条消息内多 Agent 调用并发；已完成 Agent 用 SendMessage 续命做修复轮。
+| T13 | 刺客数据+选角扩展 | ✅ 已合并 | 748525f（评审 Approved 附条件已结：台账以 main 侧存活；935 绿实测） | 935 绿 | 影袭变体沿用裁定允许；GDD§6 刺客三项（翻滚CD0.45/近战反弹特质/残影斩口径）→ 移交表 T33 预检；shadow_reap 接线并入 echo/blessing 行 |
