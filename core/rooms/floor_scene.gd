@@ -48,6 +48,7 @@ const GEYSER_TILE_PX := 16.0                                # 喷口判定/视�
 const GEYSER_WARN_COLOR := Color(1.0, 0.45, 0.2, 0.35)       # 喷口预警（地面橙纹）
 const GEYSER_ERUPT_COLOR := Color(1.0, 0.25, 0.1, 1.0)       # 喷发（伤害窗）
 const MAGMA_POOL_COLOR := Color(0.9, 0.35, 0.1, 0.55)        # 岩浆池缺图回落染色
+const ICE_PATCH_COLOR := Color(0.62, 0.78, 0.92, 0.42)      # 冰面补丁缺图回落染色（m2-t26）
 const FIRE_RAIN_WARN_COLOR := Color(1.0, 0.3, 0.2, 0.35)     # 火雨红圈（预警）
 const FIRE_RAIN_BOOM_COLOR := Color(1.0, 0.5, 0.15, 0.8)     # 火雨落点爆发拍
 
@@ -66,6 +67,15 @@ const CHALLENGE_COINS_MAX := 120           # 挑战房清房必得大量金币�
 ## m2-t26 小 Boss 楼层侧行 hp（附录 B.3「HP=A1 基准 180 / A2 400 / A3 870」）：
 ## spawn 时按 floor_idx 替换行 hp（精英词缀倍率在其上照常生效）；表外楼层 clamp 到界。
 const MINIBOSS_FLOOR_HP := {1: 180, 2: 400, 3: 870}
+## m2-t26 小 Boss 抽取池（附录 B.3 全 6 行；T9 评审移交「抽取池接线」）：setup 按
+## 层以独立 "miniboss" 盐流确定性取一（同 run_seed 同层恒同体——RngSvc.stream 为
+## 无状态派生）；行内 elite_affixes/drops 数据驱动生效（6 行 drops 一致 weapon,hearts2）。
+## elite 嘉宾恒双刀蜥人不变（REAL_GUEST_ROWS 既有映射）；电磁蛛召 A2 冰蛛的跨层
+## 顾虑（T9 m7）由按层缩放的冰蛛行 hp 兜住（summon_row 未经缩放——披露见报告）。
+const MINIBOSS_POOL: Array[String] = [
+	"shuangdao_lizardman", "zibao_wangchong", "stone_shield_monk",
+	"undead_gunner", "volt_spider", "marsh_toad",
+]
 ## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（swift+berserk 词缀，
 ## drops weapon+hearts2）、垒主=自爆王虫（armored+leech，drops weapon+hearts2）、
 ## boss=藤蔓巨像（行内 boss_script → 真 3 阶段 BossBase 子类）。
@@ -132,6 +142,11 @@ var challenge_room_id := -1
 ## m2-t26 灾厄「视野-35%」暗视野组件（复用 A2 BiomeFx，房清/场景销毁时卸载）。
 var calamity_fx: BiomeFx = null
 var _calamity_rng: RandomNumberGenerator
+## m2-t26：本层小 Boss 抽取结果（MINIBOSS_POOL 按层确定性取一；setup 派生一次）。
+var _miniboss_row_id := "zibao_wangchong"
+## m2-t26：小 Boss 抽取定向覆盖（测试/宿主接缝，同 challenge_room_id 习语）：
+## 非空且为池内合法行时 setup 让位池抽取；非法值响亮失败回落池抽取。
+var miniboss_override := ""
 var _ui_layer: CanvasLayer = null
 var _calamity_panel: CalamityPanel = null
 
@@ -183,34 +198,53 @@ func bind_facility_state(drink_state: Dictionary, used_shrine_kinds: Dictionary)
 ## m2-t4 A2 生态开关（GDD §10 A2「暗视野 + 冰面打滑」）：true 挂暗视野组件
 ## （CanvasModulate + 玩家光圈 + 敌人剪影下限）并给每房铺一块冰面补丁；false 卸载
 ## 并恢复（敌人 modulate 复位、玩家 friction_mult 回 1.0）。幂等：重复同值调用 no-op。
-## 冰面补丁现为常量演示（每房内域中心 A2_ICE_PATCH_PX）；A2 模板 JSON 的 biome 字段
-## 由后续卡替换此处数据源。
+## m2-t26（T4 移交）：冰面补丁常量演示保留在 set_biome_a2 路径（既有演示契约）；
+## 生产数据源改为模板驱动——biome 字段挂暗视野（mount_biome_a2，无演示补丁）、
+## hazards kind=ice 逐行铺冰面（_build_ice，带视觉）。
 func set_biome_a2(enabled: bool) -> void:
-	if biome_a2 == enabled:
-		return
-	biome_a2 = enabled
 	if enabled:
-		if player == null:
-			push_error("FloorScene.set_biome_a2: no player")
-			biome_a2 = false
-			return
-		biome_fx = BiomeFx.new()
-		biome_fx.name = "BiomeA2Fx"
-		biome_fx.setup(player)
-		add_child(biome_fx)
+		mount_biome_a2(true)
+	else:
+		unmount_biome_a2()
+
+
+## m2-t26：A2 生态组件挂载（set_biome_a2 与模板 biome 字段共用底座）。
+## demo_patches = true：每房内域中心补常量演示冰面（set_biome_a2 既有演示契约）；
+## false：冰面完全交模板 hazards 数据（_apply_template_biome → _build_ice）。
+## 幂等（已挂载 no-op）；无玩家时响亮失败不置位。
+func mount_biome_a2(demo_patches := false) -> void:
+	if biome_a2:
+		return
+	if player == null or not is_instance_valid(player):
+		push_error("FloorScene.mount_biome_a2: no player")
+		return
+	biome_a2 = true
+	biome_fx = BiomeFx.new()
+	biome_fx.name = "BiomeA2Fx"
+	biome_fx.setup(player)
+	add_child(biome_fx)
+	if biome_ice == null:                       # 已有容器（hazards 先铺过冰面）不重建
 		biome_ice = IceZone.new()
+	if demo_patches:
 		for id in _rooms:
 			var room: FloorRoom = _rooms[id]
 			var inner := room.outer.grow(-WALL_T)
 			biome_ice.add_zone(Rect2(inner.get_center() - A2_ICE_PATCH_PX / 2.0, A2_ICE_PATCH_PX))
-	else:
-		if biome_fx != null and is_instance_valid(biome_fx):
-			biome_fx.restore_enemies()
-			biome_fx.queue_free()
-		biome_fx = null
-		biome_ice = null
-		if player != null and is_instance_valid(player):
-			player.friction_mult = 1.0
+
+
+## m2-t26：A2 生态组件卸载（暗视野还原敌人剪影 + 冰面容器置空 + 玩家摩擦复位）。
+## 幂等（未挂载 no-op）。
+func unmount_biome_a2() -> void:
+	if not biome_a2:
+		return
+	biome_a2 = false
+	if biome_fx != null and is_instance_valid(biome_fx):
+		biome_fx.restore_enemies()
+		biome_fx.queue_free()
+	biome_fx = null
+	biome_ice = null
+	if player != null and is_instance_valid(player):
+		player.friction_mult = 1.0
 
 
 func _physics_process(_delta: float) -> void:
@@ -264,6 +298,7 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	_loot_rng = RunState.stream(RunState.SALT_EVENT)   # M2-T1：事件/房间抽取独立盐（不再共享掉落流）
 	_facility_rng = RngSvc.stream(floor_idx, "facility")
 	_calamity_rng = RngSvc.stream(floor_idx, "calamity")   # m2-t26：挑战房择一独立盐（不扰动既有流）
+	_pick_miniboss_row()                                   # m2-t26：小 Boss 抽取池按层接线（独立盐）
 	_resolve_challenge_room(build)
 	if player.get_parent() == null:
 		add_child(player)
@@ -310,6 +345,8 @@ func _build_room(id: int, data: Dictionary) -> void:
 	_build_floor_and_walls(room, w, h, doors)
 	_build_unused_door_frames(room, w, h, doors)
 	_build_props(room, tpl)
+	_apply_template_biome(tpl)                 # m2-t26：biome 字段（crystal → A2 暗视野；
+	                                           # 先于 hazards——冰面行要落进已挂容器）
 	_build_hazards(room, tpl)
 	_init_spawn_points(room, tpl)
 	if FloorFlow.COMBAT_TYPES.has(room.type):
@@ -410,14 +447,19 @@ func _build_unused_door_frames(room: FloorRoom, w: float, h: float, doors: Array
 
 
 ## 模板陈设：pillar/crate 实体阻挡，bush 仅视觉。m1-t28：prop_*.png 接线。
-## m2-t7：pillar（含 A2 晶柱形态，GDD §10「晶柱折射敌方激光」）登记
-## refraction_pillars 组——EnemyLaser 折射判定按组取世界坐标。
+## m2-t26（T7 评审移交「A2 混排晶柱 kind 拆分」）：折射是晶柱（crystal_pillar，
+## GDD §10「晶柱折射敌方激光」）专属——登记 refraction_pillars 组供 EnemyLaser
+## 折射判定；石柱（pillar，A1/A3）只挡弹不折射。crystal_pillar 贴图
+## prop_crystal_pillar.png（T28 生成器已产出）。
 func _build_props(room: FloorRoom, tpl: Dictionary) -> void:
 	for p: Dictionary in tpl.get("props", []):
 		var center := _tile_center(p.get("grid", [0, 0]))
 		match String(p.get("kind", "")):
 			"pillar":
-				var body := _solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_pillar")
+				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_pillar")
+			"crystal_pillar":
+				var body := _solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)),
+					"prop_crystal_pillar")
 				body.add_to_group(EnemyLaser.PILLAR_GROUP)
 			"crate":
 				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_crate")
@@ -425,10 +467,10 @@ func _build_props(room: FloorRoom, tpl: Dictionary) -> void:
 				_vis_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_bush")
 
 
-## m2-t7/m2-t10 危险地块实例化（模板 hazards 字段驱动，GDD §10）：vine=藤蔓减速带（A1）
-## / spikes=周期地刺（A2）/ rock=滚石发射口（A1）/ magma=岩浆 DOT 池（A3）/
-## geyser=间歇喷口（A3）。未知 kind 告警跳过（fail-soft；GameDB hazards 白名单
-## = vine + magma/geyser，spikes/rock 行待 A2/A3 模板卡扩展 schema 落库）。
+## m2-t7/m2-t10/m2-t26 危险地块实例化（模板 hazards 字段驱动，GDD §10）：vine=藤蔓
+## 减速带（A1）/ spikes=周期地刺（A2）/ rock=滚石发射口（A1）/ magma=岩浆 DOT 池（A3）/
+## geyser=间歇喷口（A3）/ ice=冰面补丁（A2，m2-t26 随模板落库接线）。
+## 未知 kind 告警跳过（fail-soft；GameDB hazards 白名单与各组件形状契约一致）。
 func _build_hazards(room: FloorRoom, tpl: Dictionary) -> void:
 	for hz: Dictionary in tpl.get("hazards", []):
 		var grid: Array = hz.get("grid", [0, 0])
@@ -437,6 +479,8 @@ func _build_hazards(room: FloorRoom, tpl: Dictionary) -> void:
 		match String(hz.get("kind", "")):
 			"vine":
 				_build_vine(room, local, float(hz.get("radius", 24)))
+			"ice":
+				_build_ice(room, local, float(hz.get("radius", 24)))
 			"spikes":
 				_build_spikes(room, grid, world)
 			"rock":
@@ -472,6 +516,36 @@ func _build_vine(room: FloorRoom, local: Vector2, radius: float) -> void:
 		vis.modulate = Color(1, 1, 1, 0.9)
 	vis.z_index = -5
 	room.add_child(vis)
+
+
+## m2-t26（T4 移交）A2 冰面（模板 hazards kind=ice 数据驱动）：IceZone 域（世界坐标
+## 外接方，同 vine/magma 几何）+ 视觉（hazard_ice.png 缩放至 2r，缺图回落淡蓝半透明
+## 圆）。冰面容器独立挂载——非 crystal 模板带 ice 行同样生效（容器缺省懒建）。
+func _build_ice(room: FloorRoom, local: Vector2, radius: float) -> void:
+	if biome_ice == null:
+		biome_ice = IceZone.new()
+	biome_ice.add_zone(Rect2(local - Vector2(radius, radius) + room.position,
+		Vector2(radius * 2.0, radius * 2.0)))
+	var vis: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("hazard_ice"))
+	if vis == null:
+		var poly := Polygon2D.new()
+		poly.polygon = _circle_poly(radius)
+		poly.color = ICE_PATCH_COLOR
+		vis = poly
+		vis.position = local
+	else:
+		(vis as Sprite2D).scale = Vector2.ONE * (radius * 2.0 / (vis as Sprite2D).texture.get_size().x)
+		vis.position = local
+	vis.z_index = -5
+	room.add_child(vis)
+
+
+## m2-t26（T4 移交）：模板 biome 字段驱动——crystal 房（A2）挂暗视野（整层一次，
+## mount_biome_a2 幂等，无演示冰面补丁）；冰面 zone 逐行由 hazards kind=ice 铺设。
+## magma 无全局生态组件（岩浆基调由瓦片套件按 floor_idx 呈现， hazards 自带实例）。
+func _apply_template_biome(tpl: Dictionary) -> void:
+	if String(tpl.get("biome", "")) == "crystal":
+		mount_biome_a2(false)
 
 
 ## 周期地刺（A2）：一瓦片判定域；错峰偏移 = 网格确定性散列（同层多簇不同步）。
@@ -821,6 +895,13 @@ func _wire_room_combat(room: FloorRoom) -> void:
 	for child in player.get_children():
 		if child is ShieldSpirit:
 			(child as ShieldSpirit).combat = room.combat
+	# m2-t26（T25 评审 Important-2 移入本卡）：召唤物跨房间残留收口——summons 组
+	# 存活体（工程师炮台等，挂在玩家/楼层各处）换房时 combat 重接到当前房；不重接
+	# 则残留旧房 CombatSystem（索敌/开火哑火、可击毁面失效直到超时退场）。
+	# duck-typed combat 接缝同 ShieldSpirit（SummonBase.combat）。
+	for node in get_tree().get_nodes_in_group("summons"):
+		if node is SummonBase:
+			(node as SummonBase).combat = room.combat
 	# m1-t27：英雄暴击基础值注入（HeroApplier meta 接缝 "crit_base" 的房间层读出，
 	# T11 披露的接线位；无 meta（裸玩家测试路径）保持 CombatSystem 默认值）。
 	if player.has_meta("crit_base"):
@@ -983,6 +1064,8 @@ func _spawn_summoned_enemy(row_id: String, world_pos: Vector2, row_override: Dic
 func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2,
 		counts_for_wave: bool) -> EnemyBase:
 	var real_id := String(REAL_GUEST_ROWS.get(wave_id, ""))
+	if wave_id == "miniboss_charger":         # m2-t26：抽取池按层（B.3 全 6 行确定性取一）
+		real_id = _miniboss_row_id
 	if real_id.is_empty():
 		return null
 	var real_row: Dictionary = GameDB.get_enemy(real_id).duplicate()
@@ -1462,6 +1545,31 @@ static func miniboss_hp_for_floor(floor_idx: int, base_hp: int) -> int:
 	if floor_idx <= 1:
 		return base_hp
 	return int(MINIBOSS_FLOOR_HP.get(clampi(floor_idx, 1, 3), base_hp))
+
+
+## m2-t26 小 Boss 抽取（T9 评审移交）：MINIBOSS_POOL 按层确定性取一（字典序 +
+## "miniboss" 盐流）；miniboss_override 定向覆盖优先（测试/宿主接缝）；行缺失
+## 响亮失败回落既有 zibao 映射（fail-soft，数据校验下不可达）。
+func _pick_miniboss_row() -> void:
+	if not miniboss_override.is_empty():
+		if MINIBOSS_POOL.has(miniboss_override) \
+				and not GameDB.get_enemy(miniboss_override).is_empty():
+			_miniboss_row_id = miniboss_override
+			return
+		push_error("FloorScene: miniboss_override '%s' not in pool — pool draw" % miniboss_override)
+	var pool: Array[String] = MINIBOSS_POOL.duplicate()
+	pool.sort()
+	for id: String in pool:
+		if GameDB.get_enemy(id).is_empty():
+			push_error("FloorScene: miniboss pool row missing '%s' — keep default" % id)
+			return
+	var rng := RngSvc.stream(floor_idx, "miniboss")
+	_miniboss_row_id = pool[rng.randi_range(0, pool.size() - 1)]
+
+
+## 本层小 Boss 数据行 id（测试/宿主视图）。
+func miniboss_row() -> String:
+	return _miniboss_row_id
 
 
 # ================================================================ m2-t26 挑战房灾厄

@@ -553,7 +553,13 @@ func test_scene_guest_placeholders() -> void:
 func test_scene_full_walk_elite_miniboss_boss() -> void:
 	# 端到端链路（m1-t27 真实嘉宾）：start→elite(锁→2 波→清)→miniboss(自爆王虫)→
 	# boss(真藤蔓巨像 boss_script)→全清 + boss_defeated。
-	var fs := _make_scene(_typed_chain(["elite", "miniboss", "boss"]))
+	# m2-t26：小 Boss 抽取池化后定向钉自爆王虫（armored ×3 + leech 断言口径）。
+	var player: Player = (load("res://core/player/player.tscn") as PackedScene).instantiate() as Player
+	_fs = FloorScene.new()
+	_fs.miniboss_override = "zibao_wangchong"
+	add_child(_fs)
+	_fs.setup(_typed_chain(["elite", "miniboss", "boss"]), player)
+	var fs := _fs
 	var events: Array = []
 	fs.room_event.connect(func(t: String, id: int) -> void: events.append("%s:%d" % [t, id]))
 	# elite：进房即锁 + 波1 三只 + room_event 转发
@@ -623,6 +629,30 @@ func test_scene_wave_composition_deterministic() -> void:
 	# elite 波2 = 3 垃圾 + 1 精英；boss 单波 colossus
 	assert_int((FloorScene.waves_for(1, "elite")["waves"][1] as Array).size()).is_equal(4)
 	assert_array(FloorScene.waves_for(1, "boss")["waves"][0]).contains("vine_colossus")
+
+
+func test_scene_summons_rewire_combat_on_room_switch() -> void:
+	# m2-t26（T25 评审 Important-2 移入本卡）：召唤物跨房间残留收口——summons 组
+	# 成员（挂楼层任意处，非玩家子节点）换房时 combat 重接当前房，不残留旧房弹池。
+	# 房 2 显式指定为挑战房：进房接线先于灾厄面板挂起（面板不影响本断言）。
+	var player: Player = (load("res://core/player/player.tscn") as PackedScene).instantiate() as Player
+	_fs = FloorScene.new()
+	_fs.challenge_room_id = 2
+	add_child(_fs)
+	_fs.setup(_typed_chain(["combat", "combat"]), player)
+	var summon := SummonBase.new()
+	summon.add_to_group("summons")
+	_fs.add_child(summon)
+	assert_bool(_fs.enter_room(1)).is_true()
+	assert_object(summon.combat).is_same(_fs.room_node(1).combat)
+	var room: FloorScene.FloorRoom = _fs.room_node(1)
+	_kill_all(room)
+	await _await_until(func() -> bool: return _alive_enemies(room) == 3)
+	_kill_all(room)
+	await _await_until(func() -> bool: return _fs.flow.cleared.has(1))
+	assert_bool(_fs.enter_room(2)).is_true()
+	assert_object(summon.combat).is_same(_fs.room_node(2).combat)
+	summon.queue_free()
 
 
 # ---------------------------------------------------------------- helpers

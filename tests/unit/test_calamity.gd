@@ -300,16 +300,40 @@ func test_challenge_clear_guarantees_epic_and_coins_then_restores() -> void:
 
 
 func test_miniboss_floor_scaling_scene() -> void:
-	# floor2 小 Boss 真实行 hp 400（armored 词缀在其上 ×3）；floor1 基准 180 不变
+	# floor2 小 Boss：抽取池任意行 → 行 hp 400（B.3 楼层表；armored 词缀在其上 ×3，
+	# 无 armored 行保持 400——词缀是行内数据，不属楼层缩放）；数据行不落缩放
 	var fs := _make_scene(_typed_chain(["miniboss"]), 2)
+	assert_bool(FloorScene.MINIBOSS_POOL.has(fs.miniboss_row())).is_true()
 	assert_bool(fs.enter_room(1)).is_true()
 	_kill_all(fs.room_node(1))
-	await _await_until(func() -> bool: return _find_enemy(fs.room_node(1), "zibao_wangchong") != null)
-	var mb := _find_enemy(fs.room_node(1), "zibao_wangchong")
+	await _await_until(func() -> bool: return _find_miniboss(fs.room_node(1)) != null)
+	var mb := _find_miniboss(fs.room_node(1))
 	assert_object(mb).is_not_null()
 	if mb != null:
-		assert_int(mb.hp).is_equal(400 * 3)
-	assert_int(int(GameDB.get_enemy("zibao_wangchong")["hp"])).is_equal(180)   # 数据行不落缩放
+		var want := 400
+		if (mb.row.get("elite_affixes", []) as Array).has("armored"):
+			want *= 3
+		assert_int(mb.hp).is_equal(want)
+		assert_int(int(GameDB.get_enemy(String(mb.row["id"]))["hp"])).is_equal(180)
+
+
+func test_miniboss_pool_per_floor_deterministic() -> void:
+	# m2-t26 抽取池按层接线：同 run_seed 同层恒同体（RngSvc.stream 无状态派生），
+	# 池 = 附录 B.3 全 6 行；层数独立取值（不重复派生同盐流）
+	RngSvc.setup_run(SEED)
+	var fs2 := _make_scene(_typed_chain(["miniboss"]), 2)
+	RngSvc.setup_run(SEED)
+	var fs2b := _make_scene(_typed_chain(["miniboss"]), 2)
+	RngSvc.setup_run(SEED)
+	var fs3 := _make_scene(_typed_chain(["miniboss"]), 3)
+	assert_str(fs2b.miniboss_row()).is_equal(fs2.miniboss_row())
+	assert_bool(FloorScene.MINIBOSS_POOL.has(fs3.miniboss_row())).is_true()
+	assert_int(FloorScene.MINIBOSS_POOL.size()).is_equal(6)
+	# 数据契约：6 行全 hp 180 + drops 一致（guest 掉落口径不随抽取体漂移）
+	for id: String in FloorScene.MINIBOSS_POOL:
+		var row := GameDB.get_enemy(id)
+		assert_int(int(row["hp"])).is_equal(180)
+		assert_str(String(row.get("drops", ""))).is_equal("weapon,hearts2")
 
 
 func test_calamity_meta_removed_on_scene_exit() -> void:
@@ -428,6 +452,15 @@ func _kill_all(room: FloorScene.FloorRoom) -> void:
 func _find_enemy(room: FloorScene.FloorRoom, id: String) -> EnemyBase:
 	for e in room.enemies:
 		if is_instance_valid(e) and String(e.row.get("id", "")) == id \
+				and e.state != EnemyBase.State.DEAD:
+			return e
+	return null
+
+
+## 小 Boss 嘉宾按波次标记定位（抽取池化后数据行 id 不再恒 zibao_wangchong）。
+func _find_miniboss(room: FloorScene.FloorRoom) -> EnemyBase:
+	for e in room.enemies:
+		if is_instance_valid(e) and String(e.row.get("wave_id", "")) == "miniboss_charger" \
 				and e.state != EnemyBase.State.DEAD:
 			return e
 	return null

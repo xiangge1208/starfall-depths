@@ -492,6 +492,7 @@ func _rng(seed_value: int) -> RandomNumberGenerator:
 
 func _make_floor(types: Array) -> FloorScene:
 	var fs := FloorScene.new()
+	fs.miniboss_override = "zibao_wangchong"   # m2-t26：抽取池化后定向钉自爆王虫（armored+leech 断言）
 	add_child(fs)
 	fs.setup(_typed_chain(types), _player_instance())    # setup 收养无父玩家
 	_fs = fs

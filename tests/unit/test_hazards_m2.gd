@@ -8,9 +8,10 @@ extends GdUnitTestSuite
 ## 3) RollingRock（纯逻辑）：WAIT(interval) → WARN 30t（0.5s 预警线）→ ROLL
 ##    （200px/s 直线）→ 撞墙（出房内域）消失 → 回 WAIT；伤害仅 ROLL 相位圆接触。
 ## 4) FloorScene 接线：模板 hazards 字段 → vine/spikes/rock 实例化 + 帧驱动伤害；
-##    pillar 陈设入 refraction_pillars 组（敌方激光折射源）。
-## 注：spikes/rock 数据行当前不在 A1 模板库（GameDB hazards 白名单仅 vine，
-## A2/A3 模板卡扩展 schema）——接线用注入 GameDB.rooms 测试行验证。
+##    晶柱（crystal_pillar）入 refraction_pillars 组（敌方激光折射源，m2-t26 kind 拆分：
+##    石柱不折射）+ 冰面/biome 字段模板驱动（m2-t26，T4 移交）。
+## 注：spikes/rock 数据行不在 A1 模板库（A1 生态唯一 hazard = vine）——接线用注入
+## GameDB.rooms 测试行验证；A2/A3 模板（含 ice/magma/geyser 行）已随 m2-t26 落库。
 
 const PLAYER_SCENE := preload("res://core/player/player.tscn")
 const SPAN_PX := 416.0
@@ -307,7 +308,75 @@ func test_floor_scene_rock_rolls_and_damages_player_on_lane() -> void:
 	assert_int(p.hp + p.shield).is_equal(before - RollingRock.DAMAGE)
 
 
-func test_pillar_props_join_refraction_group() -> void:
-	var fs := _make_scene(_typed_chain(["treasure"], "combat_a1_01"))   # 4 根 pillar
+func test_crystal_pillars_join_refraction_group() -> void:
+	# m2-t26（T7 评审移交「A2 混排晶柱 kind 拆分」）：折射是晶柱（crystal_pillar）
+	# 专属——A2 模板晶柱入 refraction_pillars 组（EnemyLaser 折射源）
+	var fs := _make_scene(_typed_chain(["treasure"], "combat_a2_01"))   # 4 根晶柱
 	var pillars := fs.get_tree().get_nodes_in_group(EnemyLaser.PILLAR_GROUP)
 	assert_int(pillars.size()).is_greater_equal(4)
+
+
+func test_stone_pillars_do_not_refract() -> void:
+	# m2-t26 kind 拆分：石柱（pillar，A1/A3）只挡弹，不入折射组
+	var fs := _make_scene(_typed_chain(["treasure"], "combat_a1_01"))   # 4 根石柱
+	assert_int(fs.get_tree().get_nodes_in_group(EnemyLaser.PILLAR_GROUP).size()).is_equal(0)
+
+
+# ---------------------------------------------------------------- m2-t26 冰面/biome 模板驱动
+
+func _inject_biome_template(biome: String, hazards: Array) -> void:
+	GameDB.rooms[T7_TPL] = {
+		"id": T7_TPL, "size": [22, 14], "doors": ["N", "S", "E", "W"],
+		"biome": biome,
+		"spawn_points": [[5, 4], [16, 9]],
+		"props": [],
+		"hazards": hazards,
+	}
+
+
+func test_ice_hazard_builds_zone_visual_and_slip() -> void:
+	# m2-t26（T4 移交）：hazards kind=ice → IceZone 域 + hazard_ice.png 视觉 +
+	# 玩家进域摩擦 ×0.25（帧驱动）；biome: crystal 挂暗视野（无演示补丁，冰面纯数据行）
+	_inject_biome_template("crystal", [{"kind": "ice", "grid": [11, 7], "radius": 32}])
+	var fs := _make_scene(_typed_chain(["treasure"], T7_TPL))
+	assert_bool(fs.biome_a2).is_true()                   # crystal → 暗视野挂载
+	assert_object(fs.biome_fx).is_not_null()
+	assert_object(fs.biome_ice).is_not_null()
+	if fs.biome_ice != null:
+		assert_int(fs.biome_ice.zones.size()).is_equal(1)   # 仅数据行（无常量演示补丁）
+	var room: FloorScene.FloorRoom = fs.room_node(1)
+	var found_vis := false
+	for c in room.get_children():
+		if c is Sprite2D and "hazard_ice" in (c as Sprite2D).texture.resource_path:
+			found_vis = true
+	assert_bool(found_vis).is_true()
+	# 玩家站上冰面 → 一帧后摩擦 0.25；出域回 1.0
+	var p := fs.player_node()
+	p.global_position = fs.room_rect(1).get_center()
+	fs._physics_process(0.0)
+	assert_float(p.friction_mult).is_equal(0.25)
+	p.global_position = fs.room_rect(1).get_center() + Vector2(160, 0)
+	fs._physics_process(0.0)
+	assert_float(p.friction_mult).is_equal(1.0)
+
+
+func test_crystal_biome_mount_is_idempotent_no_demo_patches() -> void:
+	# 多个 crystal 房只挂一次暗视野；冰面 zone 数 = 数据行数（无 per-room 演示补丁）
+	_inject_biome_template("crystal", [{"kind": "ice", "grid": [11, 7], "radius": 24}])
+	var fs := _make_scene(_typed_chain(["treasure", "treasure"], T7_TPL))
+	var fx_count := 0
+	for c in fs.get_children():
+		if c is BiomeFx:
+			fx_count += 1
+	assert_int(fx_count).is_equal(1)
+	if fs.biome_ice != null:
+		assert_int(fs.biome_ice.zones.size()).is_equal(2)   # 每房 1 条数据行
+
+
+func test_magma_biome_template_mounts_no_fx() -> void:
+	# biome: magma 无全局生态组件（岩浆基调由瓦片套件按 floor_idx，hazards 自带实例）
+	_inject_biome_template("magma", [{"kind": "magma", "grid": [11, 11], "radius": 24}])
+	var fs := _make_scene(_typed_chain(["treasure"], T7_TPL))
+	assert_bool(fs.biome_a2).is_false()
+	assert_object(fs.biome_fx).is_null()
+	assert_object(fs.hazard_magma).is_not_null()         # 岩浆域照常实例化

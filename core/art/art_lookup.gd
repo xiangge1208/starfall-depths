@@ -119,8 +119,10 @@ const TILES := {
 	"prop_pillar": "tiles/prop_pillar.png",
 	"prop_crate": "tiles/prop_crate.png",
 	"prop_bush": "tiles/prop_bush.png",
+	"prop_crystal_pillar": "tiles/prop_crystal_pillar.png",
 	"hazard_vine": "tiles/hazard_vine.png",
 	"hazard_lava": "tiles/hazard_lava.png",
+	"hazard_ice": "tiles/hazard_ice.png",
 }
 
 static var _cache: Dictionary = {}
