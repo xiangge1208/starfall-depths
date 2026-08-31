@@ -97,14 +97,22 @@ const PICKUP_TEXTURES := {
 }
 
 ## 地块/门/陈设（16x16 无缝可平铺；按房间生物群系选 floor_*/wall_*）。
+## m2-t27（I-3 A2/A3 接线验证）：补 crystal/magma 套件行（T28 生成器已产出图，
+## 映射表此前的缺口）——层套件经 biome_set(floor_idx) 寻址；走廊变体随套件可寻址。
 const TILES := {
 	"floor_cave": "tiles/floor_cave.png",
 	"floor_garden": "tiles/floor_garden.png",
 	"floor_boss": "tiles/floor_boss.png",
+	"floor_crystal": "tiles/floor_crystal.png",
+	"floor_magma": "tiles/floor_magma.png",
 	"wall_cave": "tiles/wall_cave.png",
 	"wall_garden": "tiles/wall_garden.png",
 	"wall_boss": "tiles/wall_boss.png",
+	"wall_crystal": "tiles/wall_crystal.png",
+	"wall_magma": "tiles/wall_magma.png",
 	"corridor_floor": "tiles/corridor_floor.png",
+	"corridor_crystal": "tiles/corridor_crystal.png",
+	"corridor_magma": "tiles/corridor_magma.png",
 	"door_closed": "tiles/door_closed.png",
 	"door_locked": "tiles/door_locked.png",
 	"chest_closed": "tiles/chest_closed.png",
@@ -146,13 +154,16 @@ static func sprite_for_enemy(row: Dictionary) -> String:
 		return BASE + String(GUEST_FALLBACK[kind])
 	return ""
 
-## 弹丸路径：元素弹（cfg element != NONE）用 elem_<name>.png，否则按阵营底图。
-## laser 谱系 M1 无弹形表现（projectiles/laser_seg.png 预留，暂不接线）。
+## 弹丸路径（m2-t27 元素弹阵营分化）：元素弹（cfg element != NONE）玩家用
+## elem_<name>.png，敌方用 elem_<name>_enemy.png（暗边框变体，生成器 variant="enemy"）；
+## 无元素保持阵营底图。laser 谱系 M1 无弹形表现（projectiles/laser_seg.png 预留，暂不接线）。
 static func projectile_texture_path(is_player: bool, element: int) -> String:
 	if element != Elements.Id.NONE:
 		var name := String(Elements.NAMES.get(element, ""))
 		if not name.is_empty() and name != "none":
-			return BASE + "projectiles/elem_%s.png" % name
+			if is_player:
+				return BASE + "projectiles/elem_%s.png" % name
+			return BASE + "projectiles/elem_%s_enemy.png" % name
 	return BASE + (BULLET_PLAYER if is_player else BULLET_ENEMY)
 
 static func pickup_texture_path(kind: String) -> String:
@@ -164,6 +175,28 @@ static func tile_path(tile_name: String) -> String:
 	if TILES.has(tile_name):
 		return BASE + String(TILES[tile_name])
 	return ""
+
+## 层生物群系套件（m2-t27 I-3 A2/A3 瓦片接线验证）：floor_idx 1→cave/garden 套、
+## 2→crystal 套、3→magma 套。返回 {floor, wall, door} 三键全路径（门各层共用
+## door_closed——生成器无 per-biome 门图）；套件走廊变体 corridor_*/crystal/magma
+## 经 TILES 寻址。未知层（<1 或 >3）返回空表，由调用方回落。
+## floor 1 主体取 cave（普通房）；start 庭院 garden 特例仍由 floor_scene 按房型选。
+static func biome_set(floor_idx: int) -> Dictionary:
+	var kit := ""
+	match floor_idx:
+		1:
+			kit = "cave"
+		2:
+			kit = "crystal"
+		3:
+			kit = "magma"
+		_:
+			return {}
+	return {
+		"floor": tile_path("floor_%s" % kit),
+		"wall": tile_path("wall_%s" % kit),
+		"door": tile_path("door_closed"),
+	}
 
 ## 武器图标（ui/weapons/<id>.png，115 张全名录按 id 约定寻址）。
 static func weapon_icon_path(weapon_id: String) -> String:
