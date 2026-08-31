@@ -548,6 +548,43 @@ ENEMY_SPRITES = {
 }
 
 
+MANIFEST_PROJ_ANCHOR = "| `projectiles/elem_shock.png` |"
+
+
+def _manifest_splice_missing_rows():
+    """把 SPEC 中 MANIFEST 尚缺的行定点拼接进既有清单（幂等，逐行查重）。
+    供 --projectiles 窄通道同步清单（全量再生走 main() 整表重写，不经此处）。"""
+    p = OUT / "MANIFEST.md"
+    text = p.read_text(encoding="utf-8")
+    rows = []
+    for rel, purpose, current, note in SPEC:
+        if f"`{rel}`" not in text:
+            img = Image.open(OUT / rel)
+            rows.append(f"| `{rel}` | {img.width}x{img.height} | {purpose} | {current} | "
+                        f"{note if note else '—'} |")
+    if not rows:
+        return                          # 幂等：无缺失行（重跑零字节漂移）
+    out = []
+    inserted = False
+    for line in text.split("\n"):
+        out.append(line)
+        if line.startswith(MANIFEST_PROJ_ANCHOR):
+            out.extend(rows)
+            inserted = True
+    if not inserted:
+        raise RuntimeError("MANIFEST 锚点行缺失: " + MANIFEST_PROJ_ANCHOR)
+    p.write_text("\n".join(out), encoding="utf-8")
+
+
+def gen_projectiles_scoped():
+    """m2-t27 定点再生入口：仅重写 projectiles/*.png + 拼接 MANIFEST 缺行。
+    不清空、不触碰其它子树（全量再生用 main()）。"""
+    SPEC.clear()
+    gen_projectiles()
+    _manifest_splice_missing_rows()
+    print(f"[scoped] 弹丸素材 {len(SPEC)} 张 -> {OUT / 'projectiles'}（MANIFEST 已同步）")
+
+
 def gen_enemy(id_, name, current, note, painter):
     img = painter()
     outline(img)
@@ -694,13 +731,31 @@ def paint_colossus():
 
 
 # ---------------------------------------------------------------- projectiles
-def bullet(core, mid, edge, size=8):
+def bullet(core, mid, edge, size=8, border=None):
+    """圆形弹丸（8x8 默认）。border 非 None 时最外圈改画暗色描边（m2-t27 敌方元素弹
+    变体示敌）；纯几何无随机项，输出确定（全局 RNG 流零消耗，不动其它素材确定性）。"""
     img = canvas(size, size)
     r = size // 2 - 1
-    disk(img, size // 2, size // 2, r, edge)
+    disk(img, size // 2, size // 2, r, border if border is not None else edge)
+    if border is not None:
+        disk(img, size // 2, size // 2, max(1, r - 1), edge)
     disk(img, size // 2, size // 2, max(1, r - 2), mid)
     px(img, size // 2 - 1, size // 2 - 1, core)
     return img
+
+
+ELEM_ENEMY_BORDER = OUTLINE   # 敌方元素弹暗边框色（同全局描边深色 #181420）
+
+
+def save_elem_bullet(elem, hexes, variant="player"):
+    """元素弹按 variant 出图（m2-t27 阵营分化）：player=基础图 / enemy=暗边框变体。
+    文件名 elem_<elem>.png 与 elem_<elem>_<variant>.png；同色系+暗圈示敌。"""
+    border = ELEM_ENEMY_BORDER if variant == "enemy" else None
+    img = bullet(C("#ffffff"), C(hexes[0]), C(hexes[1]), border=border)
+    suffix = "" if variant == "player" else "_%s" % variant
+    purpose = f"{elem} 元素弹" if variant == "player" else f"{elem} 元素弹（敌方变体·暗边框）"
+    save(img, f"projectiles/elem_{elem}{suffix}.png", purpose,
+         "autoload/fx.gd:18-21 元素色表（火/冰/毒/电）", "元素异常命中粒子同色系")
 
 
 def gen_projectiles():
@@ -716,9 +771,8 @@ def gen_projectiles():
         "fire": ("#ff4a1e", "#ffb03a"), "ice": ("#8ae8ff", "#3a86c8"),
         "poison": ("#a8e84a", "#4a8a2e"), "shock": ("#e0b0ff", "#8040c8"),
     }.items():
-        img = bullet(C("#ffffff"), C(hexes[0]), C(hexes[1]))
-        save(img, f"projectiles/elem_{elem}.png", f"{elem} 元素弹",
-             "autoload/fx.gd:18-21 元素色表（火/冰/毒/电）", "元素异常命中粒子同色系")
+        save_elem_bullet(elem, hexes)
+        save_elem_bullet(elem, hexes, variant="enemy")   # m2-t27 敌方暗边框变体
     img = canvas(16, 6)
     rect(img, 0, 2, 15, 3, C("#ffe0b0", 200))
     rect(img, 2, 1, 13, 4, C("#ff9a3a", 150))
@@ -1872,5 +1926,7 @@ if __name__ == "__main__":
     import sys as _argv
     if "--hero-sheets" in _argv.argv[1:]:
         gen_hero_sheets_scoped()
+    elif "--projectiles" in _argv.argv[1:]:
+        gen_projectiles_scoped()
     else:
         main()
