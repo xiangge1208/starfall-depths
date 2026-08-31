@@ -40,6 +40,9 @@ const BOSS_SCRIPTS := {
 		"res://core/enemies/bosses/gem_queen.gd"),
 	"res://core/enemies/bosses/prism_golem.gd": preload(
 		"res://core/enemies/bosses/prism_golem.gd"),
+	# m2-t19：D-4 熔核暴君（附录 E.5）
+	"res://core/enemies/bosses/magma_tyrant.gd": preload(
+		"res://core/enemies/bosses/magma_tyrant.gd"),
 }
 
 
