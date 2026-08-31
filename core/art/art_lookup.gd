@@ -215,6 +215,11 @@ static func weapon_icon_path(weapon_id: String) -> String:
 static func tex(path: String) -> Texture2D:
 	if path.is_empty():
 		return null
+	# m2-t37 全图集：命中图集条目即返回共享页 AtlasTexture（批处理前提：世界精灵
+	# 同一底层纹理）；未命中（tiles/帧表/图集未生成/停用）回落原逐文件路径 fail-closed。
+	var atl := ArtAtlas.texture_for(path)
+	if atl != null:
+		return atl
 	if not _cache.has(path):
 		var res: Variant = load(path)
 		if res == null:
@@ -242,6 +247,9 @@ static func make_sprite(path: String) -> Sprite2D:
 	var spr := Sprite2D.new()
 	spr.texture = t
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# m2-t37 A2 光圈批处理：世界精灵 opt-in 光照专属位（BiomeFx 光圈 cull_mask 同位）；
+	# 高计数瞬态条目（弹幕/伤害数字/FX）不走本工厂 → 默认位，零逐项光照重渲。
+	spr.light_mask = BiomeFx.LIT_ITEM_MASK
 	return spr
 
 ## 矩形平铺（地板/墙/走廊）：region + repeat 无缝 16x16（visual 判定留截图证据）。
@@ -249,6 +257,11 @@ static func make_sprite(path: String) -> Sprite2D:
 static func make_tiled(path: String, rect: Rect2) -> Sprite2D:
 	var spr := make_sprite(path)
 	if spr == null:
+		return null
+	if spr.texture is AtlasTexture:
+		# fail-closed（m2-t37）：平铺依赖 texture_repeat，AtlasTexture 不支持重复寻址
+		# ——tiles/ 由生成器排除，进到这里说明排除表被破坏。
+		push_error("ArtLookup.make_tiled: atlas texture cannot repeat '%s'" % path)
 		return null
 	spr.centered = false
 	spr.position = rect.position

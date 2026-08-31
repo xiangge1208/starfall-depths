@@ -1916,6 +1916,20 @@ def main():
         import traceback
         traceback.print_exc()   # M2 批次失败可见（含 ImportError）
         raise                    # m2-t21：失败即中止——绝不能带着半量库去 prune
+    # m2-t37 全图集合并（§18.3「draw call ≤150（全图集）」前提）：世界精灵装订单页
+    # 图集。置于 m2 批次之后、prune 之前——图集失败即中止，绝不带陈旧/缺失图集执行
+    # 清理（同 m2-t21 fail-closed 时序）；产物经 add 入 SPEC，随清理白名单保留。
+    # fix（评审 Minor-8）：Pillow 缺失等失败给标注化信息后再抛（原样裸 traceback）。
+    try:
+        import gen_art_atlas as _atlas
+        _atlas.pack_atlas(OUT, add_spec=add)
+    except Exception:
+        import traceback
+        traceback.print_exc()   # 图集失败可见（含 Pillow ImportError）
+        raise RuntimeError(
+            "m2-t37 全图集生成失败——中止（绝不带陈旧/缺失图集去 prune）。"
+            "修复提示：确认 Pillow 可用（ART_ATLAS_PYTHON 可指认解释器）、"
+            "素材尺寸 ≤128px、总体可装入 1024x1024 页")
     removed = _prune_after_m2(m2_joined)
     write_manifest()
     write_preview()
@@ -1926,7 +1940,17 @@ if __name__ == "__main__":
     import sys as _argv
     if "--hero-sheets" in _argv.argv[1:]:
         gen_hero_sheets_scoped()
+        # m2-t37：scoped 再生改动了图集源（英雄帧表虽不在图集，仍幂等重打包保一致）
+        import gen_art_atlas as _atlas
+        _atlas.pack_atlas(OUT)
     elif "--projectiles" in _argv.argv[1:]:
         gen_projectiles_scoped()
+        # m2-t37：scoped 再生后图集随源刷新（幂等，重打包零漂移）
+        import gen_art_atlas as _atlas
+        _atlas.pack_atlas(OUT)
+    elif "--atlas" in _argv.argv[1:]:
+        # m2-t37 窄通道：仅重打包图集（additive/idempotent，不触碰任何源图）
+        import gen_art_atlas as _atlas
+        _atlas.pack_atlas(OUT)
     else:
         main()

@@ -317,3 +317,142 @@ func test_floor_free_without_disable_restores_player_friction() -> void:
 	assert_float(player.friction_mult).is_equal(0.25)
 	fs.free()                            # 直接销毁（不走 set_biome_a2(false)）
 	assert_float(player.friction_mult).is_equal(1.0)
+
+
+# ---------------------------------------------------------------- m2-t37 光圈批处理（lit-mask 收口）
+## §18.3 F2 draw call 超标根因（m2-t37 实测归因，见 task-37 报告）：光圈默认
+## cull_mask=1 使画布上全部条目（弹幕/伤害数字/FX 粒子…）参与逐项光照重渲，
+## 批处理沿 lit/unlit 状态翻转碎裂 → O(穿越次数) 增量（40 敌满压下 ~+33~+45）。
+## 修复：光圈收口到专属位 LIT_ITEM_MASK=2——只有 opt-in 的世界条目（静态地形面/
+## 陈设 + 敌人剪影 + 玩家外观）被照亮；高计数瞬态条目（弹幕/伤害数字/粒子）不再
+## 参与。实测 opt-in 配置回到无光圈基线（~110-119 vs 全亮 ~150+，探针证据见报告）。
+
+func test_light_cull_mask_is_dedicated_bit_not_default() -> void:
+	# 专属位 2（默认可见位 1 不再有光圈参与）：弹幕/伤害数字/FX 走默认位 → 零逐项重渲
+	assert_int(BiomeFx.LIT_ITEM_MASK).is_equal(2)
+	assert_int(BiomeFx.LIT_ITEM_MASK).is_not_equal(1)
+	var fx := _fx()
+	var light := _light_of(fx)
+	assert_object(light).is_not_null()
+	if light != null:
+		assert_int(light.range_item_cull_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+func test_dressed_enemy_sprite_opts_into_lit_mask() -> void:
+	# 敌人剪影仍被光圈真实照亮（opt-in）：dress_enemy_sprite 产出的精灵在专属位上
+	var e := EnemyBase.new()
+	auto_free(e)
+	add_child(e)
+	assert_bool(ArtLookup.dress_enemy_sprite(e, {"id": "kuli_bug", "radius": 6.0})).is_true()
+	var spr := e.get_node("Sprite") as Sprite2D
+	assert_object(spr).is_not_null()
+	if spr != null:
+		assert_int(spr.light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+func test_world_tile_and_prop_sprites_opt_into_lit_mask() -> void:
+	# 静态世界面（平铺地板/墙 + 单图陈设/门/危险地块）opt-in——lit-tiles 配置
+	# 实测零增量（回无光圈基线）；走 ArtLookup 工厂统一落位
+	var tiled := ArtLookup.make_tiled(ArtLookup.tile_path("floor_cave"), Rect2(0, 0, 64, 64))
+	auto_free(tiled)
+	assert_object(tiled).is_not_null()
+	if tiled != null:
+		assert_int(tiled.light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	var prop := ArtLookup.make_sprite(ArtLookup.tile_path("prop_crate"))
+	auto_free(prop)
+	assert_object(prop).is_not_null()
+	if prop != null:
+		assert_int(prop.light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+func test_setup_opts_player_sprite_into_lit_mask() -> void:
+	# 玩家外观同样 opt-in（光圈中心玩家亮度与既往行为一致）；缺 Sprite 节点静默跳过
+	var p := _player()
+	assert_int(p.get_node("Sprite").light_mask).is_equal(1)   # 场景默认位
+	var fx := BiomeFx.new()
+	auto_free(fx)
+	fx.setup(p)
+	assert_int(p.get_node("Sprite").light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+# ---------------------------------------------------------------- fix1（评审 Important-1）：弹幕可读性折叠
+## T37 首轮把弹幕留在默认位（不参与光圈重渲）——评审指出飞行敌弹是 A2 图的主要
+## 威胁刺激，失去光圈增亮是玩家可见的最大保真损失。实测两条路（探针口径）：
+##   - 弹幕进光照参与集：diag +3.7 但探针 F2 100.4 → ~148（+47，预算下不可接受）；
+##   - self_modulate 折叠（本落点）：逐项 modulate 写入零批处理成本（首轮矩阵
+##     f2_nomod 实证），近似既往光圈加亮曲线。
+## 预警纹（地面红纹等）计数小、走真实光照参与集（见下组测试）。
+
+func test_bullet_aid_monotonic_falloff_matches_aura_curve() -> void:
+	assert_object(BiomeFx.bullet_aid(0.0, BiomeFx.LIGHT_RADIUS_PX)) \
+		.is_equal(Color(1.0 + BiomeFx.LIGHT_ENERGY, 1.0 + BiomeFx.LIGHT_ENERGY,
+			1.0 + BiomeFx.LIGHT_ENERGY))                       # 光圈中心最大增亮
+	# 单调衰减；光圈边与圈外 = WHITE（无增亮，不低于原亮度）
+	var prev := 2.3
+	for d in [0, 35, 70, 105, 139, 140, 200, 1000]:
+		var c := BiomeFx.bullet_aid(float(d), BiomeFx.LIGHT_RADIUS_PX)
+		assert_float(c.r).is_less_equal(prev)
+		prev = c.r
+	assert_object(BiomeFx.bullet_aid(BiomeFx.LIGHT_RADIUS_PX, BiomeFx.LIGHT_RADIUS_PX)) \
+		.is_equal(Color.WHITE)
+	assert_object(BiomeFx.bullet_aid(1000.0, BiomeFx.LIGHT_RADIUS_PX)).is_equal(Color.WHITE)
+	assert_object(BiomeFx.bullet_aid(10.0, 0.0)).is_equal(Color.WHITE)   # 无光圈口径
+
+
+func test_aura_gradient_matches_texture_anchor() -> void:
+	# 复刻 _aura_texture 渐变锚点：中心 1.0 / 半半径 0.25 / 边缘 0.0
+	assert_float(BiomeFx.aura_gradient(0.0)).is_equal(1.0)
+	assert_float(BiomeFx.aura_gradient(0.25)).is_equal(0.625)
+	assert_float(BiomeFx.aura_gradient(0.5)).is_equal(0.25)
+	assert_float(BiomeFx.aura_gradient(1.0)).is_equal(0.0)
+
+
+func test_floor_bullet_visuals_get_aura_brightness_aid() -> void:
+	# 表现层弹幕镜像（floor_scene 共享池）：A2 下光圈内弹幕 self_modulate > 1，
+	# 无暗视野组件时复位 WHITE（池化跨层安全）；光照参与集保持默认位（零重渲）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	fs.set_biome_a2(true)
+	fs.enter_room(1)
+	var room := fs.room_node(1)
+	fs.player.global_position = fs.room_rect(1).get_center()   # 玩家与弹同点（光圈中心）
+	room.combat.spawn_projectile({
+		"pos": fs.player.position, "vel": Vector2(60, 0), "damage": 0,
+		"faction": Projectile.Faction.ENEMY, "radius": 3.0, "life_seconds": 5.0,
+	})
+	fs._sync_bullet_visuals()
+	assert_int(fs._bullet_sprites.size()).is_greater(0)
+	if fs._bullet_sprites.size() > 0:
+		var vis := fs._bullet_sprites[0]
+		assert_int(vis.light_mask).is_equal(1)             # 不参与光照重渲（零 draw 成本）
+		assert_float(vis.self_modulate.r).is_greater(1.0)  # 光圈内增亮生效
+	# 卸载暗视野：下一次同步复位 WHITE（池化不泄漏）
+	fs.set_biome_a2(false)
+	fs._sync_bullet_visuals()
+	if fs._bullet_sprites.size() > 0:
+		assert_object(fs._bullet_sprites[0].self_modulate).is_equal(Color.WHITE)
+
+
+func test_hazard_telegraph_visuals_opt_into_lit_mask() -> void:
+	# 地面预警纹（地刺瓦片/滚石预警道/间歇泉瓦片）创建即 opt-in——伤害预告刺激
+	# 在暗视野下保持 T37 前亮度；火雨红圈同口径（schedule_fire_rain 楼层级）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var room := fs.room_node(1)
+	fs._build_spikes(room, [3, 3], fs.room_rect(1).position + Vector2(64, 64))
+	fs._build_rock(room, {"side": "W"}, fs.room_rect(1).position + Vector2(96, 64))
+	fs._build_geyser(room, [2, 2], fs.room_rect(1).position + Vector2(128, 64))
+	assert_int(fs._spikes_vis.size()).is_greater(0)
+	if fs._spikes_vis.size() > 0:
+		assert_int(fs._spikes_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	assert_int(fs._rock_line_vis.size()).is_greater(0)
+	if fs._rock_line_vis.size() > 0:
+		assert_int(fs._rock_line_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	assert_int(fs._rock_vis.size()).is_greater(0)
+	if fs._rock_vis.size() > 0:
+		assert_int(fs._rock_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	assert_int(fs._geyser_vis.size()).is_greater(0)
+	if fs._geyser_vis.size() > 0:
+		assert_int(fs._geyser_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	fs.schedule_fire_rain(fs.room_rect(1).get_center())
+	assert_int(fs._fire_rain_vis.size()).is_greater(0)
+	if fs._fire_rain_vis.size() > 0:
+		assert_int(fs._fire_rain_vis[0].light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
