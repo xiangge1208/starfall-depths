@@ -358,6 +358,8 @@ Statistics: 12 test cases | 0 errors | 1 failures | ...
 
 > `m2-progress.md:123`（裁定 18）：「…一存活代理在 `.worktrees/m2-t25` 自主执行修复轮…处理：不派对抗代理，监控其产出；其裁定编号以台账为准重编。**若其在 main 上自行 merge 即回滚并接管**。」
 
+**时序证据**（`git log --date=format:%m-%d\ %H:%M`）：提示词 → `0e25990` 08-31 **13:07**（修复轮①）→ 台账 `2c34f30` 08-31 **13:10**（裁定 15–18，含上述回滚意图）→ 本轮 `78bb9e8` **13:15** → 报告 `260d820` **13:27**。即台账指令**晚于**本卡提示词，是本轮能拿到的最新编排者意图。
+
 合入 main 属共享状态变更（T28 依赖 T25，且编排者明确预留了回滚意图），故**停在分支上等待确认**。分支已与 main 完全同步（`git log m2-t25..main` 为空），确认后一条命令即可完成：
 
 ```
@@ -373,11 +375,23 @@ cd /d/workspace/thomas && git checkout main && git merge --no-ff m2-t25
 | 文件 | 改动 | 理由 |
 |---|---|---|
 | `core/meta/codex_system.gd` | **2 行注释**（`:13`、`:191`） | Important-1 要求「把占位注释改真」——原文「T25 熔铸台接线占位，当前无调用方=恒 0」在接线后已失实。仅注释，零代码改动 |
-| `docs/superpowers/reports/m2-progress.md` | 台账更新 | 提示词步骤 8 指定 |
+| `docs/superpowers/reports/m2-progress.md` | 台账更新（**未执行**，见 §11） | 提示词步骤 8 指定 |
 | `docs/superpowers/reports/task-25-report.md` | 追加本 Fix Round 1 | 与提示词指定的 `.superpowers/sdd/...` 副本同步，避免两份报告分叉 |
 
 本卡所有权文件内的改动：`core/meta/forge_logic.gd`、`ui/forge.gd`、`tests/unit/test_forge.gd`。未改 `data/fusions.json`、`ui/forge.tscn`、`core/rooms/floor_scene.gd`、`autoload/run_state.gd`（本轮无需求）。
 
 ---
 
-**Fix Round 1 结束。分支 `m2-t25` @ `78bb9e8`，全量 1145/1145 绿，等编排者确认合入。**
+## 11. 收尾待办（需编排者确认后执行）
+
+| # | 待办 | 阻塞原因 | 确认后动作 |
+|---|---|---|---|
+| 1 | 合入 main（`git checkout main && git merge --no-ff m2-t25`） | 台账裁定 18 预留回滚 | 一条命令，分支已与 main 同步，预计无冲突 |
+| 2 | 台账 T25 行改「已合并」+ 合并提交号 + 最终数字 | 依赖 #1 的提交号 | `m2-progress.md:59` 改为「已合并（merge `<hash>`）：全量 1145/1145、67 套件、`test_forge` 48/48，解锁 T28」 |
+| 3 | 台账「编排者裁定记录」补记本轮 | 裁定 15/16/17 已覆盖⑭⑮⑯，仅缺状态刷新 | 追加一行：「⑮⑯ 已落 `0e25990`/`78bb9e8`；craft_x 接线（评审 5b1061b Important-1）已落 `78bb9e8`」 |
+
+>tip 之所以不先改台账再合入：`m2-progress.md` 是编排者正在写的文件（13:10 刚提交过），此时在同一文件上落笔会为后续合入制造冲突面；且「已合并」状态与合并提交号在 #1 完成前无法如实填写。
+
+---
+
+**Fix Round 1 结束。分支 `m2-t25` @ `260d820`（报告）/ `78bb9e8`（代码），全量 1145/1145 绿，等编排者确认合入。**
