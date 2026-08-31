@@ -12,6 +12,8 @@ extends Interactable
 ## 固定配方熔铸不消耗次数。
 ## 流程：预览（ForgeLogic.preview，不掷签）→ 扣费（ForgeLogic.fuse_cost）→
 ## 熔铸（ForgeLogic.fuse，升级路径此刻才消费 rng）→ 产物入槽。
+## 产物继承（附录 D，裁定⑯）：配方产物的 energy_cost/element 由 ForgeLogic 算出，
+## 本层负责盖到实际装备的槽行上（_apply_inherited_stats）——只复制后改实例，不污染 GameDB。
 
 const TITLE := "熔铸台"
 const CARD_MIN := Vector2(108, 84)
@@ -101,24 +103,45 @@ func _on_fuse_pressed() -> void:
 		return
 	if kind == "upgrade" and run_state != null:
 		run_state.set("forge_upgrades", _upgrades_used() + 1)
-	_apply_result(String(out["id"]))
+	_apply_result(out)
 	_flash(_preview, OK_FLASH)
 
 
-## 产物装备：清双槽 → 指针复位槽 0 → equip 落首空槽（即槽 0）。
+## 产物装备：清双槽 → 指针复位槽 0 → equip 落首空槽（即槽 0）→ 继承值覆写槽行。
 ## rig.slot 直写披露：WeaponRig 无显式 set_slot 接缝；clear_slot/equip 内部
 ## _sync_run_state 会在 equip 收尾把 selected_slot=0 重新同步进 RunState。
-func _apply_result(weapon_id: String) -> void:
+func _apply_result(product: Dictionary) -> void:
 	var p := _player as Player
 	if p == null or p.weapon_rig == null:
 		return
 	var rig := p.weapon_rig
+	var pid := String(product.get("id", ""))
 	rig.clear_slot(0)
 	rig.clear_slot(1)
 	rig.slot = 0
-	rig.equip(weapon_id)
+	rig.equip(pid)
+	_apply_inherited_stats(rig, pid, product)
 	_snapshot_slots()
 	_refresh()
+
+
+## 附录 D 产物继承落槽（裁定⑯）：energy_cost/element 是**局内实例属性**，继承值必须
+## 盖到实际装备的那把武器上，否则「蓝耗取两材料较高者、元素取 B 材料」只活在返回值里。
+## 仅配方产物携带这两个键（通用升级产物沿用武器自身静表值，行为不变）。
+## WeaponRig.equip 存的是 GameDB 行**共享引用**，故必须先 duplicate 再改——直写会污染全量表。
+## （rig.slots 直写披露：本卡不拥有 weapon_rig.gd，不改其公开接口；行替换不改 id，
+##  equip 收尾的 _sync_run_state 之后 RunState 聚合仍与槽内容一致。）
+func _apply_inherited_stats(rig: WeaponRig, pid: String, product: Dictionary) -> void:
+	if not (product.has("energy_cost") or product.has("element")):
+		return
+	if rig.slots.is_empty() or String((rig.slots[0] as Dictionary).get("id", "")) != pid:
+		return                                     # equip 失败/槽位不符：不动槽
+	var row: Dictionary = (rig.slots[0] as Dictionary).duplicate()
+	if product.has("energy_cost"):
+		row["energy_cost"] = int(product["energy_cost"])
+	if product.has("element"):
+		row["element"] = String(product["element"])
+	rig.slots[0] = row
 
 
 # ---------------------------------------------------------------- 面板刷新

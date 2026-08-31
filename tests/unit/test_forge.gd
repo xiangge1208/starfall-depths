@@ -163,11 +163,41 @@ func test_recipes_pairs_unique() -> void:
 		seen.append(key)
 
 
+## M-3：双向覆盖（此前只做正向包含，4 元素重复数组也能通过）。
 func test_fusion_only_marks_exactly_the_four_star_weapons() -> void:
 	var names := ["雷神之锤", "斩舰刀", "星陨炮", "湮灭核心"]
 	assert_int(ForgeLogic.FUSION_ONLY.size()).is_equal(4)
+	var got: Array[String] = []
 	for id: String in ForgeLogic.FUSION_ONLY:
-		assert_bool(names.has(String(GameDB.get_weapon(id).get("name", "")))).is_true()
+		got.append(String(GameDB.get_weapon(id).get("name", "")))
+	got.sort()
+	for nm: String in names:                     # 正向：常量里的名字都是★
+		assert_bool(names.has(nm)).is_true()
+	for nm: String in names:                     # 反向：4 个★名字都被常量命中
+		assert_bool(got.has(nm)).override_failure_message("star not covered: " + nm).is_true()
+	assert_int(got.size()).is_equal(names.size())   # 名字互不重复（防重复元素数组）
+
+
+## 裁定⑭：权威源 = data/unlock_tasks.json 的 forge_only:true 条目。双向钉死「两处一致」，
+## 数据侧增删★而常量未同步（或反之）立刻 RED，杜绝静默漂移。
+func test_fusion_only_matches_unlock_tasks_forge_only_data() -> void:
+	var data_ids := ForgeLogic.forge_only_from_data()
+	assert_int(data_ids.size()).is_equal(ForgeLogic.FUSION_ONLY.size())
+	for id: String in data_ids:
+		assert_bool(ForgeLogic.FUSION_ONLY.has(id)) \
+			.override_failure_message("data has star not in FUSION_ONLY: " + id).is_true()
+	for id: String in ForgeLogic.FUSION_ONLY:
+		assert_bool(data_ids.has(id)) \
+			.override_failure_message("FUSION_ONLY has id not marked forge_only: " + id).is_true()
+	# 数据可用时 fusion_only() 走数据侧（不落兜底）
+	assert_int(ForgeLogic.fusion_only().size()).is_equal(data_ids.size())
+
+
+## M-1：缓存哨兵可重置，重置后重读结果一致（缺文件不会每次调用都重读刷 error）。
+func test_reset_caches_then_reload_gives_same_tables() -> void:
+	ForgeLogic.reset_caches()
+	assert_int(ForgeLogic.recipes().size()).is_equal(15)
+	assert_int(ForgeLogic.fusion_only().size()).is_equal(4)
 
 
 # ================================================================ 2) fuse
@@ -193,6 +223,69 @@ func test_fuse_all_15_recipes_hit() -> void:
 		var out := ForgeLogic.fuse(String(row["a"]), String(row["b"]), GameDB.weapons_all, _rng())
 		assert_str(String(out.get("id", ""))).is_equal(String(row["result"]))
 		assert_str(String(out.get("kind", ""))).is_equal("recipe")
+
+
+# ---- 裁定⑯：附录 D 产物继承（蓝耗取两材料较高者、元素附魔取 B 材料）----
+
+func test_fuse_recipe_inherits_energy_cost_as_higher_of_materials() -> void:
+	# 铁剑(ec0) + 燃烧瓶(ec2) → 烈焰剑（静表 ec0）→ 继承后 = max(0,2) = 2
+	assert_int(int(GameDB.get_weapon("lieyanjian").get("energy_cost", -1))).is_equal(0)
+	var out := ForgeLogic.fuse("tiejian", "ranshaoping", GameDB.weapons, _rng())
+	assert_str(String(out.get("id", ""))).is_equal("lieyanjian")
+	assert_int(int(out.get("energy_cost", -1))).is_equal(2)
+
+
+## 元素取「配方表 b 键」那把（燃烧瓶 fire），而非第二个入参——熔铸对投入顺序无感。
+func test_fuse_recipe_inherits_element_from_recipe_b_slot() -> void:
+	var fwd := ForgeLogic.fuse("tiejian", "ranshaoping", GameDB.weapons, _rng())
+	assert_str(String(fwd.get("element", ""))).is_equal("fire")
+	# 顺序反转：若实现误取「第二个入参」（此时是铁剑 none）则此断言失败
+	var rev := ForgeLogic.fuse("ranshaoping", "tiejian", GameDB.weapons, _rng())
+	assert_str(String(rev.get("element", ""))).is_equal("fire")
+	assert_int(int(rev.get("energy_cost", -1))).is_equal(int(fwd.get("energy_cost", -1)))
+
+
+## 继承值覆盖静表值（光剑 ec0 + 时间沙漏 ec8 → 湮灭核心 静表 ec5 → 8）。
+func test_fuse_recipe_inherited_energy_cost_overrides_static_row() -> void:
+	var out := ForgeLogic.fuse("guangjian", "shijianshalou", GameDB.weapons_all, _rng())
+	assert_str(String(out.get("id", ""))).is_equal("yamiehexin")
+	assert_int(int(out.get("energy_cost", -1))).is_equal(8)
+
+
+## 材料/产物行缺 energy_cost/element 时按常规回落（0 / "none"）。
+func test_fuse_recipe_inheritance_falls_back_when_fields_absent() -> void:
+	var pool := {
+		"tiejian": {"id": "tiejian", "name": "铁剑", "rarity": "common"},
+		"ranshaoping": {"id": "ranshaoping", "name": "燃烧瓶", "rarity": "uncommon"},
+		"lieyanjian": {"id": "lieyanjian", "name": "烈焰剑", "rarity": "rare"},
+	}
+	var out := ForgeLogic.fuse("tiejian", "ranshaoping", pool, _rng())
+	assert_int(int(out.get("energy_cost", -1))).is_equal(0)
+	assert_str(String(out.get("element", ""))).is_equal("none")
+
+
+func test_preview_recipe_reports_inherited_stats() -> void:
+	var out := ForgeLogic.preview("tiejian", "ranshaoping", GameDB.weapons)
+	assert_int(int(out.get("energy_cost", -1))).is_equal(2)
+	assert_str(String(out.get("element", ""))).is_equal("fire")
+
+
+## 继承是局内实例属性：绝不回写 GameDB 表行（rig.slots 存的是共享行引用，必须复制）。
+func test_fuse_recipe_does_not_mutate_global_weapon_table() -> void:
+	var before_ec := int(GameDB.get_weapon("lieyanjian").get("energy_cost", -1))
+	var before_el := String(GameDB.get_weapon("lieyanjian").get("element", ""))
+	ForgeLogic.fuse("tiejian", "ranshaoping", GameDB.weapons, _rng())
+	assert_int(int(GameDB.get_weapon("lieyanjian").get("energy_cost", -1))).is_equal(before_ec)
+	assert_str(String(GameDB.get_weapon("lieyanjian").get("element", ""))).is_equal(before_el)
+
+
+## M-2：产物 locked 不在掉落池时 name 不得退化成拼音 id（回落 weapons_all 取展示名）。
+func test_fuse_locked_product_name_falls_back_to_weapons_all() -> void:
+	# 星轨 + 迫击·悬顶 → ★星陨炮（locked，不在掉落池）
+	var out := ForgeLogic.fuse("xinggui", "pojixuanding", GameDB.weapons, _rng())
+	assert_str(String(out.get("id", ""))).is_equal("xingyunpao")
+	assert_str(String(out.get("name", ""))).is_equal("星陨炮")
+	assert_str(String(out.get("rarity", ""))).is_equal("legend")
 
 
 func test_fuse_same_weapon_rejected() -> void:
@@ -221,13 +314,14 @@ func test_fuse_locked_material_not_in_drop_pool_rejected() -> void:
 		.get("id", ""))).is_equal("leishenzhichui")
 
 
+## M-3：不再用「同种子探针再跑一遍 randi_range」当 oracle（同义反复，实现换抽法会跟着漂移）。
+## 改为两条独立断言：①候选集 = 独立算出的目标桶（字典序、排除材料与★）；
+## ②golden 值硬编码（SEED 下首抽索引 = 1 → "ub"）。
 func test_fuse_generic_upgrade_picks_next_rarity() -> void:
-	var out := ForgeLogic.fuse("ca", "cb", _stub_pool(), _rng())
-	# 白对 → +1 = 绿桶 → 候选 [ua, ub]（排除不适用：材料必不在 +1 桶）；
-	# 期望值 = 同种子探针 rng 的首抽（与 fuse 内部选取同源对齐）
-	var probe := _rng()
-	var expected: String = ["ua", "ub"][probe.randi_range(0, 1)]
-	assert_str(String(out.get("id", ""))).is_equal(expected)
+	var pool := _stub_pool()
+	var out := ForgeLogic.fuse("ca", "cb", pool, _rng())
+	assert_array(ForgeLogic._candidates(pool, "uncommon", "ca", "cb")).is_equal(["ua", "ub"])
+	assert_str(String(out.get("id", ""))).is_equal("ub")
 	assert_str(String(out.get("kind", ""))).is_equal("upgrade")
 	assert_str(String(out.get("rarity", ""))).is_equal("uncommon")
 
@@ -349,6 +443,19 @@ func test_ui_recipe_fuse_spends_equips_slot0_clears_slot1_keeps_counter() -> voi
 	assert_array(wallet.spent).contains([65])
 	assert_str(forge.coins_text()).is_equal("435 金币")
 	assert_int((h["run_state"] as RunStateProbe).forge_upgrades).is_equal(0)
+
+
+## 裁定⑯：继承值落到实际装备的槽位行（局内实例），且不污染 GameDB 全量表。
+func test_ui_recipe_fuse_applies_inherited_stats_to_equipped_slot() -> void:
+	var h := _open_forge(["tiejian", "ranshaoping"])
+	var forge: Forge = h["forge"]
+	forge._on_fuse_pressed()
+	var rig: WeaponRig = h["rig"]
+	assert_str(String(rig.slots[0].get("id", ""))).is_equal("lieyanjian")
+	assert_int(int(rig.slots[0].get("energy_cost", -1))).is_equal(2)
+	assert_str(String(rig.slots[0].get("element", ""))).is_equal("fire")
+	# 槽位行必须是全表行的副本：改实例不得污染全局（slots 存的是共享行引用）
+	assert_int(int(GameDB.get_weapon("lieyanjian").get("energy_cost", -1))).is_equal(0)
 
 
 func test_ui_generic_upgrade_fuse_spends_and_counts() -> void:
