@@ -10,6 +10,9 @@ extends Interactable
 ## wallet 为 duck-typed（同 T14 契约）：spend_coins(n) -> bool；金币不足拒绝且不扣次数。
 
 signal drink_bought(id: String)
+## m2-t35：购买成功点信号（T3 K 表同名；kind 恒 "drink"——附录 K.1 发射点接线归本卡）。
+## 消费方（T25 结算聚合 / 成就 K 表）后续按同名对接；缺席期间不误解锁。
+signal shop_purchase(kind: String)
 
 const USES_PER_FLOOR := 3
 const PANEL_OFFSET := Vector2(-236, -84) # 面板相对机器（480x270 视口居中偏上）
@@ -93,6 +96,7 @@ func buy(idx: int) -> bool:
 	uses_left -= 1
 	_state["uses_left"] = uses_left       # 状态回写（跨楼层持久归调用方）
 	drink_bought.emit(applied_id)
+	shop_purchase.emit("drink")           # m2-t35：T3 K 表同名购买信号（成功点）
 	_refresh_panel()
 	return true
 
@@ -106,9 +110,15 @@ func _roll_concrete() -> String:
 
 ## 效果应用器（static 纯逻辑，headless 直测）：同 BuffManager 写公开字段的口径；
 ## 白名单外键 no-op（fail-closed 第二道防线，GameDB 校验外的运行时保险）。
+## m2-t35 大胃王：效果值 ×(1+buff_drink_effect_pct)（glutton +50% → hp_max +2 落 +3；
+## 移速 +10% 落 +15%）——商店第六饮料卡复用本应用器，两条购买路径口径天然一致；
+## int 效果按 float 缩放后取整（floor，json 值均为整数量纲）。
 static func _apply_drink(effect: String, value: float, p: Player) -> void:
 	if p == null:
 		return
+	var glutton := float(p.get_meta("buff_drink_effect_pct", 0.0))
+	if glutton != 0.0:
+		value = value * (1.0 + glutton)
 	match effect:
 		"hp_max":
 			p.hp_max = int(p.hp_max) + int(value)

@@ -39,7 +39,7 @@ func _physics_process(delta: float) -> void:
 	var p := _find_player()
 	if p == null:
 		return
-	if p.global_position.distance_to(global_position) <= MAGNET_RANGE_PX:
+	if p.global_position.distance_to(global_position) <= magnet_range_px(p):
 		position = position.move_toward(p.global_position, MAGNET_SPEED * delta)
 
 func _on_body_entered(body: Node2D) -> void:
@@ -48,8 +48,7 @@ func _on_body_entered(body: Node2D) -> void:
 	var pl := body as Player
 	match kind:
 		"coin":
-			if on_collect.is_valid():
-				on_collect.call()
+			_emit_coin_gain(pl)
 		"energy":
 			pl.add_energy(8)
 		"heart":
@@ -63,6 +62,28 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _find_player() -> Player:
 	return get_tree().get_first_node_in_group("player") as Player
+
+## m2-t35 捡拾磁铁（buff_pickup_radius_pct）+ 天赋磁吸（talent_pickup_radius_pct）：
+## 磁吸半径 = 基线 ×(1+两者加法叠加)。static 纯读数（测试直锚）。
+static func magnet_range_px(pl: Player) -> float:
+	var pct := float(pl.get_meta("buff_pickup_radius_pct", 0.0)) \
+		+ pl.talent_effect_value("talent_pickup_radius_pct")
+	return MAGNET_RANGE_PX * (1.0 + pct)
+
+## m2-t35 金币计数乘区：财富（buff_wealth_pct）+ 天赋金币获取（talent_coin_gain_pct）
+## 加法叠加为每枚金币期望 gain；整数化用跨拾取 carry 累加器（player meta 持有）——
+## 无增益时恒 1 枚/次，零头不丢失（5 枚 +20% = 6 次）。
+func _emit_coin_gain(pl: Player) -> void:
+	if not on_collect.is_valid():
+		return
+	var gain := 1.0 + float(pl.get_meta("buff_wealth_pct", 0.0)) \
+		+ pl.talent_effect_value("talent_coin_gain_pct")
+	var carry := float(pl.get_meta("coin_gain_carry", 0.0)) + gain
+	carry = roundf(carry * 1e6) / 1e6   # 浮点零头卫生：0.8+1.2 类累积极易掉到 1.99...98 漏一枚
+	var whole := int(floor(carry))
+	pl.set_meta("coin_gain_carry", carry - float(whole))
+	for i in whole:
+		on_collect.call()
 
 func _shape_for(k: String) -> PackedVector2Array:
 	match k:

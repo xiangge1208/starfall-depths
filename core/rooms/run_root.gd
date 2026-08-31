@@ -38,6 +38,15 @@ var player: Player = null
 var floor_scene: FloorScene = null
 var inter_floor: Node2D = null
 var buffs := BuffManager.new()             # 局内共享（跨层保留已取增益，T20 契约）
+## m2-t35：局内天赋系统（T15 永久 meta）。默认 _begin 时经 /root/SaveSystem 构造
+## （测试可在 _begin 前注入替身密封真实档——裁定㉔ df9691a 同源先例）。
+## 固定落地顺序 Hero→Buffs→Talents：开局首拍 talents.apply_to_player 恰一次；此后
+## 每拍 buff 重 apply（层重建 floor setup / 层间三选一）后走 player.
+## repair_talent_absolute_keys 成对修补——T15 披露的六键绝对写覆盖缝
+## （crit/暴伤/异常/盾延时/roll_cd/附魔概率）由此收口。
+## 披露：本字段不随 _reset_runtime_for_new_run 重建——生产路径每局都是全新 RunRoot
+## （SceneRouter 换场景）自然重读已购；同实例跨局复用（仅测试）保留已购快照。
+var talents: TalentSystem = null
 ## 胜利路由接缝（m2-t18 测试注入口）：有效时替代真实场景切换（同 DeathRecorder
 ## open_summary_override 模式——gdUnit 前台非游戏场景，真跳会把面板漏成孤儿节点）。
 var victory_route_override: Callable = Callable()
@@ -46,6 +55,7 @@ var _a2_entry: Node2D = null
 var _facility_run_seed := 0
 var _drink_states: Dictionary = {}         # floor_idx -> {uses_left}; 同层重建不补次数
 var _used_shrine_kinds: Dictionary = {}    # 四类雕像整局一次
+var _talents_applied := false              # m2-t35：开局 talents.apply 恰一次；此后 wipe→repair
 
 ## 测试/嵌入缝：_ready 仅在「当前活动场景」时自举（同 FloorScene/InterFloor 约定）；
 ## 测试挂为子节点后直调 _begin()。
@@ -70,10 +80,17 @@ func _begin() -> void:
 	if _facility_run_seed != RunState.run_seed:
 		_facility_run_seed = RunState.run_seed
 		_reset_runtime_for_new_run()
+	_ensure_talents()                      # m2-t35：天赋系统就绪（注入优先，缺省读档）
 	DeathRecorder.reset()                  # T22 建议的开局复位（清致死窗/遥测会话）
 	if player == null:
 		_spawn_hero_player()
 	_start_floor(RunState.floor_idx)
+
+
+## m2-t35：天赋系统惰性构造（后端读真实档）；注入缝在 _begin 前仍然生效。
+func _ensure_talents() -> void:
+	if talents == null:
+		talents = TalentSystem.new()
 
 
 ## 新局硬隔离：丢弃所有持有上一局运行时状态的对象，再由 _begin 重新装配英雄/楼层。
@@ -91,6 +108,7 @@ func _reset_runtime_for_new_run() -> void:
 	buffs = BuffManager.new()
 	_drink_states.clear()
 	_used_shrine_kinds.clear()
+	_talents_applied = false
 
 
 ## 英雄装配（T11 HeroApplier 契约）：面板字段 + 初始武器 + 技能换装 + meta。
@@ -122,6 +140,16 @@ func _start_floor(idx: int) -> void:
 	add_child(floor_scene)
 	floor_scene.boss_defeated.connect(_on_boss_defeated)
 	floor_scene.setup(build, player, buffs) # 玩家有父（RunRoot）→ 不被收养，落位 start
+	# m2-t35 ③：固定顺序 Hero→Buffs→Talents。开场首拍 talents.apply_to_player（own-delta
+	# 落地全量天赋）；此后每拍层重建 floor setup 内 buff 重 apply 会绝对写覆盖六键
+	# （crit/暴伤/异常/盾延时/roll_cd/附魔概率）→ 走 player.repair_talent_absolute_keys
+	# 成对修补（wipe→repair 不叠加）。
+	if talents != null and player != null:
+		if not _talents_applied:
+			talents.apply_to_player(player)
+			_talents_applied = true
+		else:
+			player.repair_talent_absolute_keys()
 
 
 ## boss 死亡（FloorScene.boss_defeated，boss 房清时发出）：嵌层间中转于楼层之上。
@@ -133,7 +161,7 @@ func _on_boss_defeated(_room_id: int) -> void:
 	_quiesce_floor_combat_for_inter_floor()
 	inter_floor = INTER_FLOOR_SCENE.instantiate() as Node2D
 	add_child(inter_floor)
-	inter_floor.setup(player, buffs, RunState.floor_idx)
+	inter_floor.setup(player, buffs, RunState.floor_idx, talents)   # m2-t35：注入天赋系统
 	inter_floor.flow.victory_achieved.connect(_on_victory_achieved)
 	inter_floor.next_floor_requested.connect(_on_next_floor_requested)
 	inter_floor.open()

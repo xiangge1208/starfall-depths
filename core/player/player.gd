@@ -18,6 +18,13 @@ const DEFIANCE_KNOCKBACK_PX := 8.0 # 坚守：击退距离
 const DEFIANCE_STUN_TICKS := 30    # 坚守：眩晕 0.5s
 # m2-t26 灾厄「治疗无效」meta 键单一出处（FloorScene 挂载/摘除；heal() 前置拦截一切治疗源）
 const CALAMITY_HEAL_DISABLED_META := "calamity_heal_disabled"
+# m2-t35 meta 生效接线（裁定⑨）：T12 增益键消费读数。
+# 击杀回蓝掷签独立盐（RngSvc.stream(floor_idx, salt) 接受任意盐串；常量就近声明，
+# 不改 run_state.gd 的 SALT_* 表——该文件不在本卡文件所有权内）。
+const SALT_KILL_ENERGY := "kill_energy"
+# 不死鸟「每局 1 次」消费记号（独立于 buff_phoenix_flag 聚合 meta——后者会被
+# BuffManager.apply_to_player 幂等绝对重写回 1，复活次数必须跨重 apply 存活）。
+const PHOENIX_USED_META := "m2t35_phoenix_used"
 # m2-t17 四向行走帧表：art/generated/characters/hero_<id>_sheet.png（64x64，
 # 4 行=下/上/左/右 × 4 列=idle+walk×3，16px/帧）。帧序 = 方向行*4 + 列。
 const ANIM_SHEET_COLS := 4
@@ -65,6 +72,8 @@ var _roll_cd_until := -999
 var _iframe_until := -999
 var _last_damaged_frame := -999
 var _shield_next_at := -999
+var _passive_energy_acc := 0       # m2-t35 弹药转化：被动回蓝拍累加器（interval meta 驱动）
+var _kill_rng: RandomNumberGenerator = null   # m2-t35 蓝能汲取掷签流（RunState 分盐，惰性缓存）
 # m2-t17 行走动画：帧表一次性缓存（hero_id → Texture2D/ null，非热路径）；
 # _anim_seen_tex 用于识别进房重装（ArtLookup.apply_player_sprite 写回站立像）。
 var _anim_sprite: Sprite2D = null
@@ -85,9 +94,12 @@ func _ready() -> void:
 	_anim_sprite = get_node_or_null("Sprite") as Sprite2D
 	_load_anim_sheet()
 	EventBus.shield_broken.connect(_on_shield_broken)
+	EventBus.enemy_killed.connect(_on_enemy_killed)   # m2-t35：蓝能汲取击杀挂钩
 
 func _physics_process(_delta: float) -> void:
 	var f := Engine.get_physics_frames()
+	apply_anti_ice_friction()          # m2-t35：抗冰拍内强制不打滑（IceZone 写入后覆盖）
+	passive_energy_tick(f)             # m2-t35：弹药转化被动回蓝
 	var physical_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var touch_dir := Input.get_vector("touch_move_left", "touch_move_right",
 		"touch_move_up", "touch_move_down")
@@ -109,7 +121,9 @@ func _physics_process(_delta: float) -> void:
 
 func start_roll(dir: Vector2, frame: int) -> void:
 	var d := dir.normalized()
-	_roll_vel = d * (ROLL_DIST / (float(ROLL_TICKS) / TimeConst.FPS))
+	# m2-t35 冲刺延伸：翻滚距离 ×(1+buff_roll_distance_pct)（速度同步放大，tick 数不变）。
+	var dist := ROLL_DIST * (1.0 + float(get_meta("buff_roll_distance_pct", 0.0)))
+	_roll_vel = d * (dist / (float(ROLL_TICKS) / TimeConst.FPS))
 	_roll_left = ROLL_TICKS
 	_roll_end_frame = frame + ROLL_TICKS
 	_roll_cd_until = _roll_end_frame + effective_roll_cd_ticks()
@@ -190,6 +204,67 @@ func effective_roll_cd_ticks() -> int:
 	return maxi(0, int(round(float(ROLL_CD_TICKS) * (1.0 + roll_cd_pct))) \
 		- roll_cd_reduction_ticks)
 
+## m2-t35 受击无敌帧：基线 ×(1+天赋 talent_hurt_iframe_pct) + 增益加算
+## （nerve_reflex 的 hurt_iframe_bonus_ticks）。技能侧 apply_iframes 保持绝对 tick 语义不变。
+func effective_hurt_iframe_ticks() -> int:
+	return int(round(float(HURT_IFRAME_TICKS) * (1.0 + talent_effect_value("talent_hurt_iframe_pct")))) \
+		+ int(get_meta("buff_hurt_iframe_bonus_ticks", 0))
+
+## m2-t35：天赋聚合读数（TalentSystem.apply_to_player 落的 talent_effects meta；
+## 未 apply/未购 → 0）。与 TalentSystem.effects_of 同义，但缺 meta 时不触发引擎
+## get_meta 报错上屏（训练房/测试裸玩家热路径卫生，effects_of 的 null 默认值会刷 ERROR）。
+func talent_effect_value(key: String) -> float:
+	var te: Variant = get_meta("talent_effects", {})
+	if typeof(te) == TYPE_DICTIONARY:
+		return float((te as Dictionary).get(key, 0.0))
+	return 0.0
+
+## m2-t35 抗冰：冰面打滑免疫——拍内强制摩擦系数回 1.0（IceZone 进域写 0.25 后覆盖）。
+func apply_anti_ice_friction() -> void:
+	if int(get_meta("buff_anti_ice", 0)) == 1:
+		friction_mult = 1.0
+
+## m2-t35 弹药转化：每 interval ticks 被动回 amount 蓝（meta 缺省 = 无此增益零开销；
+## 重复拾取聚合 interval/amount 各自求和——间隔变长、单次量变大，附录 C 加法语义）。
+func passive_energy_tick(frame: int) -> void:
+	var interval := int(get_meta("buff_passive_energy_interval_ticks", 0))
+	if interval <= 0:
+		_passive_energy_acc = 0
+		return
+	_passive_energy_acc += 1
+	if _passive_energy_acc >= interval:
+		_passive_energy_acc -= interval
+		add_energy(int(get_meta("buff_passive_energy_amount", 0)))
+
+## m2-t35 蓝能汲取：击杀 chance 概率回 amount 蓝（掷签走 RunState 独立盐流，可回放；
+## chance ≤ 0 不消费 RNG。EventBus.enemy_killed 订阅在 _ready 建立）。
+func _on_enemy_killed(_enemy_id: String) -> void:
+	var chance := float(get_meta("buff_kill_energy_chance", 0.0))
+	if chance <= 0.0:
+		return
+	if _kill_rng == null:
+		_kill_rng = RunState.stream(SALT_KILL_ENERGY)
+	if _kill_rng.randf() >= chance:
+		return
+	add_energy(int(get_meta("buff_kill_energy_amount", 0)))
+
+## m2-t35 ③：buff 绝对写覆盖缝修补（裁定⑨「buff 重 apply 后补天赋 apply」的落地式）。
+## BuffManager.apply_to_player/_to_rig 对六键为绝对写（只保留饮料 meta 贡献）：
+## crit_pct / crit_dmg_pct / status_rate_pct / shield_delay_reduction_ticks / roll_cd_pct /
+## element_proc_chance。每拍 buff 重 apply 后由接线点（run_root._start_floor /
+## inter_floor._on_buff_chosen）调用本方法，把 TalentSystem.effects_of 里六键的天赋
+## 贡献补回。成对语义（wipe→repair）保证不叠加；开场首拍走 talents.apply_to_player
+## （own-delta 已含六键），不走本方法（否则翻倍）。其余可加键（hp/盾/能/移速/攻速/
+## 弹速）buff 侧 own-delta 天然保留天赋贡献，无需修补。
+func repair_talent_absolute_keys() -> void:
+	crit_bonus += talent_effect_value("crit_pct")
+	crit_damage_bonus += talent_effect_value("crit_dmg_pct")
+	status_rate_bonus += talent_effect_value("status_rate_pct")
+	shield_delay_reduction_ticks += int(talent_effect_value("shield_delay_reduction_ticks"))
+	roll_cd_pct += talent_effect_value("roll_cd_pct")
+	if weapon_rig != null:
+		weapon_rig.enchant_proc_chance += talent_effect_value("element_proc_chance")
+
 func effective_move_speed(frame: int) -> float:
 	var boost := move_speed_boost_pct if frame < move_speed_boost_until else 0.0
 	var slow := incoming_slow_pct if frame < incoming_slow_until else 0.0
@@ -225,12 +300,21 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 		return
 	if is_invincible_at(frame):
 		return
+	# m2-t35 甲壳：弹幕伤害 ×(1+buff_bullet_dmg_taken_pct)（负值 = 减免；向下取整且
+	# 不低于 1，与狂潮/潮汐减伤同一 min 1 口径）。只对弹幕（source_type "projectile"）生效。
+	if String(ctx.get("source_type", "")) == "projectile":
+		var bullet_pct := float(get_meta("buff_bullet_dmg_taken_pct", 0.0))
+		if bullet_pct != 0.0:
+			dmg = maxi(1, int(floor(float(dmg) * (1.0 + bullet_pct))))
 	var slow_ticks := int(ctx.get("slow_ticks", 0))
 	var slow_pct := clampf(float(ctx.get("slow_pct", 0.0)), 0.0, 1.0)
-	if slow_ticks > 0 and slow_pct > 0.0:
+	# m2-t35 抗冰：冰系（element ICE）附带减速免疫；非冰系减速（藤蔓/孢子等）照常生效。
+	if slow_ticks > 0 and slow_pct > 0.0 \
+			and not (int(get_meta("buff_anti_ice", 0)) == 1
+				and int(ctx.get("element", Elements.Id.NONE)) == Elements.Id.ICE):
 		incoming_slow_pct = maxf(incoming_slow_pct if frame < incoming_slow_until else 0.0, slow_pct)
 		incoming_slow_until = maxi(incoming_slow_until, frame + slow_ticks)
-	_iframe_until = frame + HURT_IFRAME_TICKS
+	_iframe_until = frame + effective_hurt_iframe_ticks()
 	_last_damaged_frame = frame
 	if frame < rampage_active_until:
 		dmg = maxi(1, int(floor(float(dmg) * RAMPAGE_DR)))   # 狂潮(升级)：-30%
@@ -243,6 +327,12 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	shield = maxi(0, shield - dmg)
 	if to_hp > 0:
 		hp = maxi(0, hp - to_hp)
+	# m2-t35 不死鸟：致死伤害保留 1 HP（附录 C「每局 1 次」）——消费记号独立于聚合 meta，
+	# BuffManager 重 apply 绝对重写 flag=1 也不会第二次复活。
+	if hp <= 0 and int(get_meta("buff_phoenix_flag", 0)) == 1 \
+			and int(get_meta(PHOENIX_USED_META, 0)) == 0:
+		set_meta(PHOENIX_USED_META, 1)
+		hp = 1
 	# 事件、死亡回顾、遥测和表现均使用真实落地伤害。来伤可以超过剩余
 	# 护盾+生命，但 overkill 不能虚高本次受击或死亡窗口中的数值。
 	var actual := mini(maxi(0, dmg), effective_before)
@@ -267,6 +357,32 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	EventBus.player_damaged.emit(actual, fatal)   # 旧两参契约仍只发一次
 	Telemetry.log_row(["hurt", frame, actual, hp])   # m1-t18：hurt 行收口至玩家受击路径（原 training_room 本地行）
 	Fx.on_player_hurt(self, actual)
+	_reflect_thorns(ctx)                             # m2-t35：荆棘护甲接触反伤（命中结算后）
+
+## m2-t35 荆棘护甲：被接触（source_type "contact"）时对来敌反伤 thorns_contact_dmg。
+## 来敌以 ctx.from（接触瞬间方位）就近匹配 M0 "enemies" 分组（brain_pos 权威，同坚守被动）。
+func _reflect_thorns(ctx: Dictionary) -> void:
+	if String(ctx.get("source_type", "")) != "contact":
+		return
+	var thorns := int(get_meta("buff_thorns_contact_dmg", 0))
+	if thorns <= 0 or not is_inside_tree():
+		return
+	var from: Vector2 = ctx.get("from", global_position)
+	for node in get_tree().get_nodes_in_group("enemies"):
+		var e := node as Node2D
+		if e == null:
+			continue
+		var bp: Variant = e.get("brain_pos")
+		var e_pos: Vector2 = bp if typeof(bp) == TYPE_VECTOR2 else e.global_position
+		if e_pos.distance_to(from) > 16.0:
+			continue
+		e.take_hit({
+			"amount": thorns, "is_crit": false, "element": Elements.Id.NONE,
+			"from": global_position, "source_type": "thorns",
+			"source_id": "thorn_armor", "source_name": "荆棘护甲", "attack_name": "荆棘反伤",
+			"player_damage": true,
+		})
+		break                                    # 单接触源只结算最近一个来敌
 
 ## 被动「坚守」（GDD §6 骑士·凛）：护盾破碎瞬间对 60px 内敌人 1 伤 + 击退 8px + 眩晕 30t。
 ## 寻敌沿用 M0 分组（RoomCombat 刷怪即入 "enemies" 组），位置以 brain_pos 权威（同敌方 AI）。

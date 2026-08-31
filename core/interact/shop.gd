@@ -26,6 +26,11 @@ const ITEM_EFFECTS := {"heart": "回复 2 HP", "energy": "蓝 +20"}
 const WEAPON_SLOTS := 3
 const STOCK_STATE_KEY := "_shop_runtime_state"
 
+## m2-t35：购买成功点信号（T3 K 表同名，附录 K.1 发射点接线归本卡）。
+## kind ∈ "weapon" / "heart" / "energy" / "drink"（回收不是购买，不发）。
+## 消费方（T25 结算聚合 / T20 buy_x 计数同源口径）后续按同名对接；缺席期间无副作用。
+signal shop_purchase(kind: String)
+
 var stock: Dictionary = {}                 # ShopLogic.roll_stock 产物
 var wallet: Object = null                  # duck-typed 金币接缝
 var black := false                         # 黑市变体：标题 + 武器价 ×1.8
@@ -144,6 +149,7 @@ func _bind_stock_state() -> void:
 # ---------------------------------------------------------------- 购买路径
 
 ## 买武器卡 idx：扣款成功 → 直接装备（M1 简化）+ 已售；失败 → 价签闪红拒绝。
+## m2-t35 议价：武器价按玩家 buff_haggle_pct 折扣（价签展示同口径，见 _fill）。
 func _buy_weapon(idx: int) -> void:
 	if idx < 0 or idx >= _weapon_ids.size() or _sold[idx]:
 		return
@@ -153,7 +159,8 @@ func _buy_weapon(idx: int) -> void:
 	var row := GameDB.get_weapon(id)
 	if row.is_empty():
 		return
-	var cost := ShopLogic.price(String(row.get("rarity", "common")), _floor_idx(), black)
+	var cost := _haggled_price(ShopLogic.price(String(row.get("rarity", "common")),
+		_floor_idx(), black))
 	if wallet == null or not wallet.spend_coins(cost):
 		_flash(_weapon_price_labels[idx])
 		return
@@ -165,9 +172,11 @@ func _buy_weapon(idx: int) -> void:
 	_weapon_price_labels[idx].text = "已售"
 	_refresh_coins()
 	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
+	shop_purchase.emit("weapon")   # m2-t35：T3 K 表同名购买信号（成功点）
 
 
 ## 买道具：红心 25 → heal(2)；蓝瓶 20 → add_energy(20)；余额不足闪红。
+## 道具价为规格固定常量（附录 H 明示），不参与议价（披露，测试钉死）。
 func _buy_item(kind: String) -> void:
 	if not ITEM_PRICES.has(kind) or bool(_item_sold.get(kind, false)):
 		return
@@ -186,6 +195,7 @@ func _buy_item(kind: String) -> void:
 	(_item_price_labels[kind] as Label).text = "已售"
 	_refresh_coins()
 	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
+	shop_purchase.emit(kind)   # m2-t35：T3 K 表同名购买信号（成功点）
 
 
 ## 买商店第六饮料卡：使用 stock.drink 指向的 GameDB 行内价格与效果。
@@ -205,7 +215,7 @@ func _buy_drink() -> void:
 		concrete_ids = _concrete_drink_ids()
 		if concrete_ids.is_empty():
 			return
-	var cost := int(row.get("price", 0))
+	var cost := _haggled_price(int(row.get("price", 0)))   # m2-t35：饮料卡同议价口径
 	if wallet == null or not wallet.spend_coins(cost):
 		_flash(_drink_price_label)
 		return
@@ -218,6 +228,7 @@ func _buy_drink() -> void:
 	_drink_price_label.text = "已售"
 	_refresh_coins()
 	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
+	shop_purchase.emit("drink")   # m2-t35：T3 K 表同名购买信号（成功点）
 
 
 ## 神秘混合的候选池按 id 排序，以保证相同 RNG 状态下结果稳定。
@@ -398,8 +409,9 @@ func _fill() -> void:
 		var col: Color = RARITY_COLORS.get(String(row.get("rarity", "common")), Color.WHITE)
 		card.add_theme_stylebox_override("panel", _card_style(col))
 		name_l.text = String(row.get("name", id))
-		price_l.text = "已售" if _sold[i] else "%d 金币" % ShopLogic.price(
-			String(row.get("rarity", "common")), _floor_idx(), black)
+		# m2-t35：价签与成交价同口径（议价后）
+		price_l.text = "已售" if _sold[i] else "%d 金币" % _haggled_price(ShopLogic.price(
+			String(row.get("rarity", "common")), _floor_idx(), black))
 	# 道具卡：货单内才可购
 	var kinds := {}
 	for it: Variant in stock.get("items", []):
@@ -433,8 +445,9 @@ func _fill_drink() -> void:
 	_drink_name_label.text = String(row.get("name", _drink_id))
 	_drink_effect_label.text = DrinkMachine.effect_desc(
 		String(row.get("effect", "")), row.get("value", 0))
+	# m2-t35：价签与成交价同口径（议价后）
 	_drink_price_label.text = "已售" if _drink_sold \
-		else "%d 金币" % int(row.get("price", 0))
+		else "%d 金币" % _haggled_price(int(row.get("price", 0)))
 
 
 ## 回收卡文案：X 取玩家副手（rig 非当前槽）预览价；副手空 → 仅文案不计价。
@@ -480,6 +493,15 @@ func _refresh_coins() -> void:
 
 func _floor_idx() -> int:
 	return int(stock.get("floor_idx", 1))
+
+
+## m2-t35 议价：玩家 buff_haggle_pct 折扣（ShopLogic.haggle_price 负值 clamp 收口）。
+## 玩家缺席（测试/独立预览）= 无折扣。道具固定价不经此（规格明示）。
+func _haggled_price(price_value: int) -> int:
+	var p := _player as Player
+	if p == null:
+		return price_value
+	return ShopLogic.haggle_price(price_value, float(p.get_meta("buff_haggle_pct", 0.0)))
 
 
 func _flash(label: Label) -> void:

@@ -19,6 +19,8 @@ const ROUTES := {
 	"codex": "res://ui/codex.tscn",
 	# m2-t18：第 3 层 Boss 通关后的胜利结算面板（RunRoot 经本键切换）。
 	"victory": "res://ui/victory_summary.tscn",
+	# m2-t35 ④：天赋页（主菜单「天赋」入口 → T15 三系天赋树，SaveSystem 持久化）。
+	"talents": "res://ui/talents.tscn",
 }
 
 const FADE_TIME := 0.2   # 过场时长（brief 规格 0.2s）
