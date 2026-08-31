@@ -391,8 +391,14 @@ func test_preview_none_cases() -> void:
 
 
 func test_preview_upgrade_empty_bucket_is_none() -> void:
-	# preview 与 fuse 同源：+1 桶空（当前数据期全紫橙 locked 不入掉落池）→ 预览即 none，
-	# 不会出现「可预览、熔铸却失败」的付费陷阱
+	# preview 与 fuse 同源：+1 桶空 → 预览即 none，不会出现「可预览、熔铸却失败」的付费陷阱。
+	# 桶空前提显式构造（pristine 池 = 全表非锁定行）：无头场景跑图会经真解锁链把
+	# kill_x 武器回池并持久化（save_headless.json），全局池不再是「紫橙全锁」的机器状态。
+	var pristine: Dictionary = {}
+	for id: String in GameDB.weapons_all:
+		if not bool((GameDB.weapons_all[id] as Dictionary).get("locked", false)):
+			pristine[id] = GameDB.weapons_all[id]
+	_stub_weapons(pristine)
 	assert_str(String(ForgeLogic.preview("shuangya", "xunxiang", GameDB.weapons)
 		.get("kind", ""))).is_equal("none")
 	# 对照：全表池（T20 解锁进池后的语义）紫桶有候选 → upgrade
