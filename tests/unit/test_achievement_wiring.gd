@@ -31,24 +31,19 @@ var _fs: FloorScene = null
 var _player: Player = null
 var _save_paths: Array[String] = []
 var _iso_save: Node = null
-var _save_path0 := ""
-var _counters0: Dictionary = {}
-var _weapons0: Dictionary = {}
+var _seal: Dictionary = {}
 
 
 func before_test() -> void:
 	RunState.start_run("vanguard")
-	# 全局密封四件套：成就档 / 存档写盘 / 掉落池 / 图鉴计数器
+	# 密封（裁定㉔）：TestSaveSeal 换入隔离档 + 纯净池 + 归零计数器——boot 残留
+	# （如脏档 kills_total 已达 kill_x 目标）不会再造成 piggyback 解锁扰断言。
+	_seal = TestSaveSeal.seal("achv_wire")
+	# 成就消费方 = 全局 AchievementSystem autoload（与生产同一实例），档换临时隔离档。
 	_iso_save = auto_free(load(SAVE_SCRIPT).new())
 	_iso_save.save_path = _tmp_path("iso")
 	_iso_save.load_save()
 	AchievementSystem.save_system = _iso_save
-	_save_path0 = SaveSystem.save_path
-	SaveSystem.save_path = _tmp_path("global")
-	SaveSystem.load_save()
-	_weapons0 = GameDB.weapons
-	GameDB.weapons = GameDB.weapons.duplicate(true)
-	_counters0 = CodexSystem.counters.duplicate(true)
 
 
 func after_test() -> void:
@@ -61,12 +56,9 @@ func after_test() -> void:
 	if _player != null and is_instance_valid(_player):
 		_player.free()
 	_player = null
-	GameDB.weapons = _weapons0
-	CodexSystem.counters = _counters0
 	AchievementSystem.save_system = get_node_or_null("/root/SaveSystem")
 	AchievementSystem.reset_session()
-	SaveSystem.save_path = _save_path0
-	SaveSystem.load_save()
+	TestSaveSeal.restore(_seal)
 	for path in _save_paths:
 		DirAccess.remove_absolute(path)
 		DirAccess.remove_absolute(path + ".tmp")
