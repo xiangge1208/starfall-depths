@@ -16,11 +16,38 @@ var player: Player = null
 var canvas_modulate: CanvasModulate = null
 var light: PointLight2D = null
 var light_radius_px := LIGHT_RADIUS_PX   # 剪影判定口径（m2-t26 灾厄缩径实例与实际光圈同比，评审 Minor-1）
+## m2-t36（裁定㉑）：视野灾厄复合系数——挑战房「视野-35%」复合进本组件参数（单
+## CanvasModulate），不再二次实例（双实例后挂者胜出会把生态 0.25 暗反亮成 0.65）。
+var _vision_factor := 1.0
 
 
 ## 玩家注入（FloorScene.set_biome_a2 调用；未注入时 _process 安全 no-op）。
 func setup(p_player: Player) -> void:
 	player = p_player
+
+
+## m2-t36（裁定㉑）：复合一个视野系数（0~1 调暗）到暗视野色/光圈/剪影口径上。
+## 可叠加（多次 compound 连乘）；房清 restore_vision_factor 复位。
+func compound_vision_factor(factor: float) -> void:
+	_vision_factor *= factor
+	_apply_vision_factor()
+
+
+## m2-t36（裁定㉑）：复位复合系数（生态暗视野回基线；组件本体保留）。
+func restore_vision_factor() -> void:
+	_vision_factor = 1.0
+	_apply_vision_factor()
+
+
+## 复合系数落地：CanvasModulate 基色逐通道乘系数（alpha 不动），光圈纹理缩放与
+## 剪影判定半径同比缩径（三口径一致，同 m2-t26 评审 Minor-1 结论）。
+func _apply_vision_factor() -> void:
+	if canvas_modulate != null:
+		canvas_modulate.color = Color(DARK_COLOR.r * _vision_factor,
+			DARK_COLOR.g * _vision_factor, DARK_COLOR.b * _vision_factor, DARK_COLOR.a)
+	if light != null:
+		light.texture_scale = LIGHT_RADIUS_PX * _vision_factor * 2.0 / float(LIGHT_TEXTURE_PX)
+	light_radius_px = LIGHT_RADIUS_PX * _vision_factor
 
 
 ## 剪影亮度纯函数：玩家身边 1.0 → 光圈边 0.4 → 圈外恒 0.4（单调，公平性下限）。
@@ -51,6 +78,7 @@ func _ready() -> void:
 	light.texture_scale = LIGHT_RADIUS_PX * 2.0 / float(LIGHT_TEXTURE_PX)   # 纹理半径 → 光圈半径
 	light.energy = LIGHT_ENERGY
 	add_child(light)
+	_apply_vision_factor()   # m2-t36：挂载前已复合（理论不可达）时落地复合口径
 
 
 ## 径向渐变光斑（中心白 → 边缘透明，二次衰减 (1-d)^2 分段线性近似：中点半径处

@@ -3,7 +3,8 @@ extends BossBase
 ## 寒渊蛛母（A2 Boss，附录 E.4，HP 1800）：P0 冰面铺设（房间 40% 变冰面，复用 T4 IceZone）
 ## / 蛛网禁锢（3 张落点网，落地 24t 后仍在网心 → 伤 4 + 禁锢 1s；离开落点即网未触发）；
 ## P1（60%）+ 螺旋弹幕（双臂 180° 相位螺旋持续 4s，弹伤 5 弹速 100）+ 召唤冰蛛×3（cap 3）；
-## P2（30%）+ 冰晶牢笼（玩家周围 9 环位落 8 根冰柱留 1 缺口，短命 3s 纯视觉墙）
+## P2（30%）+ 冰晶牢笼（玩家周围 9 环位落 8 根冰柱留 1 缺口，短命 3s；m2-t36 机制化：
+## 柱环 restraint 禁锢——环内玩家越环按缺口弧段判定，缺口可通行）
 ## + 全屏冰刺阵（8 泳道中 2 条缝隙安全线，其余泳道 5 伤）。
 ## 招式序列状态机同 VineColossus/GemQueen：_engage 按 phase() 选招表，招式背靠背；
 ## 所有前摇 ≥24t（GDD §15）；预警视觉红圈（蛛网/牢笼）+ 蓝纹（冰面带/冰刺泳道）齐备。
@@ -48,13 +49,16 @@ const SUMMON_CAP := 3
 const SUMMON_OFFSET_PX := 48.0
 
 # ---- 冰晶牢笼（P2）：玩家位为心 r64 环，9 环位落 8 根冰柱留 1 缺口（80° 豁口），
-#      短命 3s 纯视觉墙；落柱点位压玩家 → 伤 6 恰一跳 ----
+#      短命 3s；落柱点位压玩家 → 伤 6 恰一跳。m2-t36（T16 移交机制化）：柱环为
+#      restraint 禁锢几何——环内玩家越环时按缺口弧段判定（缺口可通行，其余弧段夹回环缘）----
 const CAGE_SLOTS := 9
 const CAGE_PILLAR_COUNT := 8
 const CAGE_RING_RADIUS_PX := 64.0
 const CAGE_PILLAR_RADIUS_PX := 12.0
 const CAGE_PILLAR_LIFE_TICKS := 180   # 3s
 const CAGE_DMG := 6
+const CAGE_SLOT_ARC_DEG := 40.0       # 环位弧宽（360°/9 环位）
+const CAGE_GAP_ARC_DEG := CAGE_SLOT_ARC_DEG * 2.0   # 缺口豁口 = 邻柱间距（2 环位）
 const CAGE_RNG_SALT := "boss_frost_widow_cage_gap"
 
 # ---- 全屏冰刺阵（P2）：内域纵切 8 泳道，2 条缝隙安全线（分盐流确定），其余 5 伤 ----
@@ -84,6 +88,7 @@ var _cage_center := Vector2.ZERO    # 牢笼环心（前摇起始拍锁定玩家
 var _cage_gap_slot := 0
 var _cage_landed := false
 var _cage_hit_done := false
+var _cage_confine := false          # m2-t36：禁锢激活（落地拍玩家在环内才激活，防预警期越环者回拉）
 var _cage_pillars: Array[CagePillar] = []
 var _spike_lanes: Array[Rect2] = []
 var _spike_gap_indices: Array[int] = []
@@ -116,6 +121,7 @@ func _engage(frame: int) -> void:
 	_ensure_phases()
 	_restrain_tick(frame)                   # 蛛网禁锢为背景效果：跨招式持续锚定
 	_cage_expire_tick(frame)                # 冰晶牢笼短命清场为背景效果
+	_cage_confine_tick()                    # m2-t36：牢笼禁锢为背景效果（T16 移交机制化）
 	if _move == "":
 		_start_move(_pick_move(), frame)
 	_advance_move(frame)
@@ -151,6 +157,7 @@ func _on_phase_enter(_phase_idx: int) -> void:
 
 func die() -> void:
 	_despawn_cage_pillars()
+	_cage_confine = false                   # m2-t36：Boss 退场禁锢即解除
 	super()                                 # EnemyBase.die：状态门/死亡爆/信号/退场
 
 
@@ -360,6 +367,7 @@ func _summon_resolve() -> void:
 # ---- 冰晶牢笼 ----
 
 ## 9 环位落 8 根冰柱留 1 缺口（缺口位经分盐流确定）；落柱点位压玩家 → 伤 6 恰一跳。
+## m2-t36（T16 移交机制化）：落地拍玩家在环内才激活禁锢（预警期越环者不回拉）。
 func _cage_land(frame: int) -> void:
 	var until := frame + CAGE_PILLAR_LIFE_TICKS
 	for slot in CAGE_SLOTS:
@@ -374,6 +382,24 @@ func _cage_land(frame: int) -> void:
 		if not _cage_hit_done and _player_pos().distance_to(pos) <= CAGE_PILLAR_RADIUS_PX:
 			_cage_hit_done = true
 			_hit_player(CAGE_DMG, {"attack_name": "冰晶牢笼"})
+	_cage_confine = _player_pos().distance_to(_cage_center) <= CAGE_RING_RADIUS_PX
+
+
+## 冰晶牢笼禁锢（m2-t36，T16 移交机制化；restraint 同蛛网禁锢口径）：环内玩家越环时
+## 按缺口弧段判定——缺口弧段内放行并解除禁锢（合法逃脱），其余弧段夹回环缘（脑层
+## 位移披露口径，见类头注释）；柱体到期清场/Boss 死亡后自由。
+func _cage_confine_tick() -> void:
+	if not _cage_confine or _cage_pillars.is_empty() or player_ref == null:
+		return
+	var to: Vector2 = _player_pos() - _cage_center
+	var dist := to.length()
+	if dist <= CAGE_RING_RADIUS_PX or dist <= 0.01:
+		return                                  # 环内：未越环
+	var gap_ang := TAU * float(_cage_gap_slot) / float(CAGE_SLOTS)
+	if absf(angle_difference(to.angle(), gap_ang)) <= deg_to_rad(CAGE_GAP_ARC_DEG) / 2.0:
+		_cage_confine = false                   # 缺口弧段越环 = 合法逃脱，禁锢解除
+		return
+	player_ref.brain_pos = _cage_center + to.normalized() * CAGE_RING_RADIUS_PX
 
 
 ## 冰柱短命（3s）清场为背景结算：到期即退场；失效体自动出列。
@@ -477,7 +503,8 @@ func _fx_clear() -> void:
 	_fx.clear()
 
 
-## 冰晶牢笼柱（脑层轻量实体，纯视觉墙）：短命 3s 到期退场；Boss 死亡随行清场。
+## 冰晶牢笼柱（脑层轻量实体）：顶层挂载（top_level——环位锚定世界坐标，Boss 位移不
+## 拖动柱环，m2-t36 同 HivePillar/Crystal 接线口径）；短命 3s 到期退场；Boss 死亡随行清场。
 class CagePillar extends Node2D:
 	var pos_world := Vector2.ZERO
 	var until := -1
@@ -488,6 +515,7 @@ class CagePillar extends Node2D:
 		pos_world = p
 		until = until_frame
 		radius_px = pillar_radius
+		top_level = true               # m2-t36：出生位 = 世界坐标（不受 Boss 变换拖动）
 		position = p
 		var vis := Polygon2D.new()
 		var pts := PackedVector2Array()

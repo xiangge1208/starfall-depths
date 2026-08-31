@@ -80,9 +80,16 @@ const MINIBOSS_POOL: Array[String] = [
 	"shuangdao_lizardman", "zibao_wangchong", "stone_shield_monk",
 	"undead_gunner", "volt_spider", "marsh_toad",
 ]
+## m2-t36（裁定⑳）Boss 楼层池（附录 E 归属）：A1 恒 vine_colossus；A2 三选一池按层
+## 确定性取一（"boss" 盐流，同 miniboss 习语）；A3 恒 magma_tyrant；星陨先知走隐藏门
+## （既有机制，_maybe_open_starfall_gate）。波次标记恒 vine_colossus（RoomFlow 计数
+## 口径不变），真实行路由在 _spawn_real_guest 替换。
+const BOSS_POOL: Array[String] = ["gem_queen", "prism_golem", "frost_widow"]
+const BOSS_FLOOR_ROWS := {1: "vine_colossus", 3: "magma_tyrant"}
 ## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（swift+berserk 词缀，
 ## drops weapon+hearts2）、垒主=自爆王虫（armored+leech，drops weapon+hearts2）、
-## boss=藤蔓巨像（行内 boss_script → 真 3 阶段 BossBase 子类）。
+## boss=藤蔓巨像（行内 boss_script → 真 3 阶段 BossBase 子类）；m2-t36 起 Boss 行
+## 按层路由（_spawn_real_guest 里 vine_colossus 标记 → _boss_row_id，映射作 A1 缺省）。
 const REAL_GUEST_ROWS := {
 	"elite_charger": "shuangdao_lizardman",
 	"miniboss_charger": "zibao_wangchong",
@@ -145,14 +152,21 @@ var _fire_rain_vis: Array[CanvasItem] = []
 ## m2-t26 挑战房：combat 房择一承载（DungeonGraph 暂无原生 challenge 房型——房型矩阵
 ## 缺口见 docs/superpowers/reports/m2-progress.md 裁定⑭ 与 M2 计划 Task 30）；<0 = setup 自动择一。
 var challenge_room_id := -1
-## m2-t26 灾厄「视野-35%」暗视野组件（复用 A2 BiomeFx，房清/场景销毁时卸载）。
+## m2-t26 灾厄「视野-35%」暗视野组件（A1/A3 无生态组件层的单实例路径；房清/场景销毁时卸载）。
 var calamity_fx: BiomeFx = null
+## m2-t36（裁定㉑）：视野灾厄复合路径标记——A2 层复合进既有 biome_fx（单 CanvasModulate），
+## 房清 restore_vision_factor 复位；false 时走 calamity_fx 单实例路径。
+var calamity_compounded := false
 var _calamity_rng: RandomNumberGenerator
 ## m2-t26：本层小 Boss 抽取结果（MINIBOSS_POOL 按层确定性取一；setup 派生一次）。
 var _miniboss_row_id := "zibao_wangchong"
 ## m2-t26：小 Boss 抽取定向覆盖（测试/宿主接缝，同 challenge_room_id 习语）：
 ## 非空且为池内合法行时 setup 让位池抽取；非法值响亮失败回落池抽取。
 var miniboss_override := ""
+## m2-t36：本层 Boss 行 id（A2 池按层确定性取一；A1/A3 静态映射；setup 派生一次）。
+var _boss_row_id := "vine_colossus"
+## m2-t36：Boss 行定向覆盖（测试/宿主接缝，同 miniboss_override 习语）。
+var boss_override := ""
 var _ui_layer: CanvasLayer = null
 var _calamity_panel: CalamityPanel = null
 
@@ -308,6 +322,7 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	_facility_rng = RngSvc.stream(floor_idx, "facility")
 	_calamity_rng = RngSvc.stream(floor_idx, "calamity")   # m2-t26：挑战房择一独立盐（不扰动既有流）
 	_pick_miniboss_row()                                   # m2-t26：小 Boss 抽取池按层接线（独立盐）
+	_pick_boss_row()                                       # m2-t36：Boss 行按层路由（裁定⑳）
 	_resolve_challenge_room(build)
 	if player.get_parent() == null:
 		add_child(player)
@@ -1077,6 +1092,8 @@ func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2,
 	var real_id := String(REAL_GUEST_ROWS.get(wave_id, ""))
 	if wave_id == "miniboss_charger":         # m2-t26：抽取池按层（B.3 全 6 行确定性取一）
 		real_id = _miniboss_row_id
+	if wave_id == "vine_colossus":            # m2-t36（裁定⑳）：Boss 楼层路由——标记恒
+		real_id = _boss_row_id                # vine_colossus，行按层替换（A2 池/A3 暴君）
 	if real_id.is_empty():
 		return null
 	var real_row: Dictionary = GameDB.get_enemy(real_id).duplicate()
@@ -1624,6 +1641,7 @@ static func waves_for(room_id: int, room_type: String) -> Dictionary:
 			return {"waves": [trash.call(o, 2), ["miniboss_charger"]],
 				"coins": 40, "energy_orbs": 6, "hearts": 0}
 		"boss":
+			# m2-t36：单波单只，标记恒 vine_colossus（行按层路由见 _spawn_real_guest）
 			return {"waves": [["vine_colossus"]],
 				"coins": 60, "energy_orbs": 8, "hearts": 0}
 	return {}
@@ -1687,6 +1705,47 @@ func _pick_miniboss_row() -> void:
 ## 本层小 Boss 数据行 id（测试/宿主视图）。
 func miniboss_row() -> String:
 	return _miniboss_row_id
+
+
+## m2-t36（裁定⑳）楼层 → Boss 行 id（附录 E 归属）：A1 vine_colossus / A3 magma_tyrant
+## 静态映射（表外楼层 clamp 到界，同 miniboss_hp_for_floor 习语）；A2 层由 pool_roll 取
+## 字典序池内下标（实例路径经 "boss" 盐流派签，同层恒同体）。
+static func boss_row_for_floor(floor_idx: int, pool_roll := 0) -> String:
+	var fl := clampi(floor_idx, 1, 3)
+	if fl != 2:
+		return String(BOSS_FLOOR_ROWS[fl])
+	var pool: Array[String] = BOSS_POOL.duplicate()
+	pool.sort()
+	return pool[clampi(pool_roll, 0, pool.size() - 1)]
+
+
+## m2-t36：Boss 行抽取（A2 池按层确定性取一；boss_override 定向覆盖优先；行缺失
+## 响亮失败回落既有 vine_colossus 映射（fail-soft，数据校验下不可达））。
+func _pick_boss_row() -> void:
+	if not boss_override.is_empty():
+		var legal := boss_override == "vine_colossus" or boss_override == "magma_tyrant" \
+			or BOSS_POOL.has(boss_override)
+		if legal and not GameDB.get_enemy(boss_override).is_empty():
+			_boss_row_id = boss_override
+			return
+		push_error("FloorScene: boss_override '%s' not in pool — floor route" % boss_override)
+	var fl := clampi(floor_idx, 1, 3)
+	if fl != 2:
+		_boss_row_id = boss_row_for_floor(fl)
+		return
+	var pool: Array[String] = BOSS_POOL.duplicate()
+	pool.sort()
+	for id: String in pool:
+		if GameDB.get_enemy(id).is_empty():
+			push_error("FloorScene: boss pool row missing '%s' — keep default" % id)
+			return
+	var rng := RngSvc.stream(floor_idx, "boss")
+	_boss_row_id = pool[rng.randi_range(0, pool.size() - 1)]
+
+
+## 本层 Boss 数据行 id（测试/宿主视图）。
+func boss_row() -> String:
+	return _boss_row_id
 
 
 # ================================================================ m2-t26 挑战房灾厄
@@ -1772,12 +1831,16 @@ func _apply_calamity(room: FloorRoom, id: String) -> void:
 	var applied := true
 	match id:
 		"vision":
-			# 已裁定㉑：A2 层生态暗视野 + 视野灾厄并存时双 BiomeFx 实例（灾厄 0.65 灰
-			# 覆盖生态 0.25 暗、光圈同位叠加，方向偏亮）——defer 给 T36 复合进 biome_fx，
-			# 此处保持二次实例化的最小实现，不做复合。
+			# 裁定㉑（T26 评审 I-3 defer→本卡落地）：复合进既有 biome_fx（单 CanvasModulate，
+			# 基色 0.25 暗 ×0.65、光圈/剪影口径同比缩径），替换原「二次实例化」实现——
+			# 双实例后挂者胜出会把生态 0.25 暗反亮成 0.65（灾厄房反亮缺陷）。
+			# 无生态组件层（A1/A3）保持单实例 calamity_fx 路径（该层唯一暗视野，无竞争）。
 			if player == null:
 				push_error("FloorScene._apply_calamity: no player")
 				applied = false               # fx 未挂不记账（评审 Minor-3；幂等门可重选）
+			elif biome_fx != null and is_instance_valid(biome_fx):
+				biome_fx.compound_vision_factor(CALAMITY_VISION_FACTOR)
+				calamity_compounded = true
 			else:
 				calamity_fx = BiomeFx.new()
 				calamity_fx.name = "CalamityVisionFx"
@@ -1812,11 +1875,16 @@ func _calamity_row(row: Dictionary, calamity_id: String) -> Dictionary:
 	return row
 
 
-## 房清还原（灾厄仅本房生效）：状态位复位 + 暗视野组件卸载（restore_enemies 复位
-## 敌人剪影）+ 玩家 meta 摘除。幂等（未激活 no-op）。
+## 房清还原（灾厄仅本房生效）：状态位复位 + 暗视野还原（复合路径 = 复合系数复位、
+## 生态组件本体保留；单实例路径 = 组件卸载，restore_enemies 复位敌人剪影）+ 玩家
+## meta 摘除。幂等（未激活 no-op）。
 func _restore_calamity(room: FloorRoom) -> void:
 	if not room.calamity_id.is_empty():
 		room.calamity_id = ""
+	if calamity_compounded:
+		calamity_compounded = false
+		if biome_fx != null and is_instance_valid(biome_fx):
+			biome_fx.restore_vision_factor()   # m2-t36 裁定㉑：复合复位（组件保留）
 	if calamity_fx != null and is_instance_valid(calamity_fx):
 		calamity_fx.queue_free()               # BiomeFx._exit_tree 自行恢复敌人剪影
 	calamity_fx = null

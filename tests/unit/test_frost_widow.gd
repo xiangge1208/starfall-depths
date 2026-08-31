@@ -406,6 +406,9 @@ func test_widow_spike_field_two_safe_gap_lanes() -> void:
 	while gaps.has(spike_lane):
 		spike_lane += 1
 	spy.brain_pos = Vector2(BOUNDS.position.x + lane_w * (float(spike_lane) + 0.5), 0.0)
+	# m2-t36 牢笼机制化（T16 移交消费）：柱环为真实禁锢几何——本测只验冰刺泳道，
+	# 断言面外先行清柱解锢，否则环内越环会被夹回环缘（新机制语义，见 cage 测试）。
+	b._cage_pillars.clear()
 	b.brain_tick(ms + FrostWidow.SPIKES_WINDUP_TICKS)
 	assert_int(spy.hits.size()).is_equal(1)
 	assert_int(spy.hits[0]["amount"]).is_equal(5)     # E.4 冰刺阵 5 伤
@@ -416,6 +419,7 @@ func test_widow_spike_field_two_safe_gap_lanes() -> void:
 	spy.hits.clear()
 	spy.brain_pos = Vector2(
 		BOUNDS.position.x + lane_w * (float(gaps2[0]) + 0.5), 0.0)
+	b._cage_pillars.clear()                       # m2-t36：同上，第二轮驱动途中可能再落笼
 	b.brain_tick(ms2 + FrostWidow.SPIKES_WINDUP_TICKS)
 	assert_int(spy.hits.size()).is_equal(0)           # 安全线免伤
 

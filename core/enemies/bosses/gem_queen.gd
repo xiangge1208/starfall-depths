@@ -1,6 +1,7 @@
 class_name GemQueen
 extends BossBase
-## 宝石蜂后（A1 Boss，附录 E.2，HP 800）：P0 蜂群扇弹（8 发扇形×3 轮）/ 俯冲（锁定方向直冲）；
+## 宝石蜂后（附录 E.2，HP 800；E.2 行标「A1」系基准层口径——裁定⑳ 路由归 A2 Boss 池）：
+## P0 蜂群扇弹（8 发扇形×3 轮）/ 俯冲（锁定方向直冲）；
 ## P1（60%）+蜂巢柱（2 根可破坏掩体，登记折射组、吸收敌方弹）+ 环形爆蜂（16 发、每 90° 缺口）；
 ## P2（30%）+狂暴三连冲（三段俯冲连击，段间再瞄准，末段自晕 1.2s 给玩家输出窗）。
 ## 招式序列状态机同 VineColossus：_engage 按 phase() 选招表，招式背靠背；前摇 ≥24t（GDD §15）。
@@ -249,7 +250,7 @@ func _hive_resolve() -> void:
 		var side := 1.0 if (i % 2 == 0) else -1.0
 		var pos := _clamp_to_bounds(brain_pos + Vector2(HIVE_OFFSET_PX * side, 0.0))
 		var pillar := HivePillar.new()
-		pillar.setup(pos, HIVE_PILLAR_HP)
+		pillar.setup(pos, HIVE_PILLAR_HP, combat)   # m2-t36：可破坏战斗体接线（T14 移交）
 		add_child(pillar)
 		_pillars.append(pillar)
 
@@ -375,16 +376,23 @@ func _fx_clear() -> void:
 	_fx.clear()
 
 
-## 蜂巢掩体柱（脑层轻量实体）：登记 EnemyLaser 折射组（与 FloorScene 晶柱同组同语义），
-## hp 归零即失效退场；Boss 死亡随行清场。
+## 蜂巢掩体柱（脑层轻量实体）：顶层挂载（top_level——出生坐标即世界坐标，Boss 位移/
+## 俯冲不拖动掩体；修 T14 移交的空间错位）；登记 EnemyLaser 折射组（与 FloorScene 晶柱
+## 同组同语义）+ CombatSystem 战斗体（register_body/combat_radius——玩家弹/近战可拆柱，
+## 拆柱→hive 再落柱博弈环闭环）；hp 归零即失效退场并注销战斗体；Boss 死亡随行清场。
 class HivePillar extends Node2D:
 	var pos_world := Vector2.ZERO
 	var hp := 0
+	var combat: CombatSystem = null
 
-	func setup(p: Vector2, hp_value: int) -> void:
+	func setup(p: Vector2, hp_value: int, combat_system: CombatSystem = null) -> void:
 		pos_world = p
 		hp = hp_value
+		top_level = true                # m2-t36：出生位 = 世界坐标（不受 Boss 变换拖动）
 		position = p
+		combat = combat_system
+		if combat != null:
+			combat.register_body(self, Projectile.Faction.ENEMY)   # m2-t36：玩家弹可拆柱
 		add_to_group(EnemyLaser.PILLAR_GROUP)
 		var vis := Polygon2D.new()
 		var pts := PackedVector2Array()
@@ -395,6 +403,10 @@ class HivePillar extends Node2D:
 		vis.z_index = 12
 		add_child(vis)
 
+	## m2-t36：CombatSystem 战斗体半径契约（同 EnemyBase.combat_radius 口径）。
+	func combat_radius() -> float:
+		return EnemyLaser.PILLAR_RADIUS_PX
+
 	func take_hit(ctx: Dictionary) -> void:
 		if hp <= 0:
 			return
@@ -404,6 +416,9 @@ class HivePillar extends Node2D:
 
 	func despawn() -> void:
 		hp = 0
+		if combat != null:
+			combat.unregister_body(self)   # m2-t36：退场即注销战斗体（哈希不泄漏）
+			combat = null
 		if is_inside_tree():
 			remove_from_group(EnemyLaser.PILLAR_GROUP)
 		queue_free()
