@@ -40,6 +40,9 @@ func _default_data() -> Dictionary:
 		# 默认空表，无需版本迁移即可读）。T31 将以 SAVE_VERSION=2 把 purchased_talents /
 		# unlock_tasks 进度 / 成就字段一并 migration formalize，本键届时保留口径。
 		"purchased_talents": [] as Array[String],
+		# m2-t20：图鉴已解锁武器 id（T20 解锁引擎达成任务后入库；同 additive 键位，
+		# 旧档缺失回落空表。★4 把 forge_only 解锁后也记这里，掉落池过滤由 GameDB 侧排除）。
+		"unlocked_weapons": [] as Array[String],
 	}
 
 ## 读取存档到 data 并返回。缺文件→默认档（静默）；损坏/畸形→push_error+默认档；
@@ -85,6 +88,14 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 			if typeof(e) == TYPE_STRING:
 				tarr.append(e)
 		out["purchased_talents"] = tarr
+	# m2-t20：图鉴已解锁武器同口径合并（数组内非 String 元素静默丢弃）
+	var weapons_v: Variant = saved.get("unlocked_weapons")
+	if typeof(weapons_v) == TYPE_ARRAY:
+		var warr: Array[String] = []
+		for e: Variant in weapons_v:
+			if typeof(e) == TYPE_STRING:
+				warr.append(e)
+		out["unlocked_weapons"] = warr
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
 		out["achievements"] = saved["achievements"]
 	var settings_v: Variant = saved.get("settings")
@@ -169,3 +180,25 @@ func record_talent_purchase(id: String) -> void:
 		arr.append(id)
 	data["purchased_talents"] = arr
 	save_now()
+
+## 图鉴解锁武器入库（m2-t20）：幂等 append + 落盘（口径同 unlock_hero——已解锁→false
+## 不重复入库不重写盘；新解锁→true）。调用方 CodexSystem.check_unlocks 在任务达成时调。
+func unlock_weapon(id: String) -> bool:
+	var arr: Array = data.get("unlocked_weapons", [])
+	if arr.has(id):
+		return false
+	arr.append(id)
+	data["unlocked_weapons"] = arr
+	save_now()
+	return true
+
+## 已解锁武器列表（m2-t20）：防御性读取——档内非数组/脏元素一律过滤，
+## 恒返回 Array[String]（空表 = 全部 49 把 locked 仍锁定）。
+func unlocked_weapons() -> Array[String]:
+	var out: Array[String] = []
+	var saved: Variant = data.get("unlocked_weapons")
+	if typeof(saved) == TYPE_ARRAY:
+		for e: Variant in saved:
+			if typeof(e) == TYPE_STRING:
+				out.append(e)   # 非法元素静默丢弃（fail-SOFT）
+	return out

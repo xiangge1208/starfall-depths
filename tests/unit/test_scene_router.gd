@@ -40,18 +40,21 @@ func test_routes_table_complete() -> void:
 	var script: GDScript = load(ROUTER_SCRIPT)
 	assert_object(script).is_not_null()
 	var routes: Dictionary = script.get_script_constant_map()["ROUTES"]
-	assert_int(routes.size()).is_equal(4)
-	for key in ["menu", "hero_select", "game", "death"]:
+	# m2-t20：+codex（图鉴页）→ 五键
+	assert_int(routes.size()).is_equal(5)
+	for key in ["menu", "hero_select", "game", "death", "codex"]:
 		assert_bool(routes.has(key)).is_true()
 		var path := String(routes[key])
 		assert_bool(path.begins_with("res://")).is_true()
 		assert_bool(path.ends_with(".tscn")).is_true()
 	# GDD §19 流程键位钉死（改表须同步本断言）。m1-t27：game → 局根节点（真实主循环），
 	# training_room 为 M0 时代占位（仍在盘，作为独立调试场景保留）。
+	# m2-t20：codex → 图鉴页（ui/codex.tscn，主菜单入口）。
 	assert_str(String(routes["menu"])).is_equal(MENU_SCENE)
 	assert_str(String(routes["hero_select"])).is_equal(HERO_SELECT_SCENE)
 	assert_str(String(routes["game"])).is_equal("res://core/rooms/run_root.tscn")
 	assert_str(String(routes["death"])).is_equal(DEATH_SCENE)
+	assert_str(String(routes["codex"])).is_equal("res://ui/codex.tscn")
 
 
 func test_route_paths_exist_on_disk_except_death() -> void:
@@ -131,15 +134,16 @@ func test_menu_structure_and_button_wiring() -> void:
 	add_child(menu)                          # 入树 → _ready 接线（save_system 走真实 autoload 只读）
 	# 中文标题
 	assert_str((menu.get_node("Title") as Label).text).is_equal("星陨地牢")
-	# M2 占位钮灰置；流程钮可用
-	assert_bool((menu.get_node("Menu/CodexBtn") as Button).disabled).is_true()
+	# M2 占位钮灰置；流程钮可用（m2-t20：图鉴钮点亮为正式入口，不再是占位）
+	assert_bool((menu.get_node("Menu/CodexBtn") as Button).disabled).is_false()
 	assert_bool((menu.get_node("Menu/TalentsBtn") as Button).disabled).is_true()
 	assert_bool((menu.get_node("Menu/AchievementsBtn") as Button).disabled).is_true()
 	assert_bool((menu.get_node("Menu/StartBtn") as Button).disabled).is_false()
 	assert_bool((menu.get_node("Menu/SettingsBtn") as Button).disabled).is_false()
 	assert_bool((menu.get_node("Menu/QuitBtn") as Button).disabled).is_false()
-	# 按键接线（不实际按压：start 会切场景、quit 会退出进程）
+	# 按键接线（不实际按压：start/codex 会切场景、quit 会退出进程）
 	assert_bool((menu.get_node("Menu/StartBtn") as Button).pressed.is_connected(menu._on_start_pressed)).is_true()
+	assert_bool((menu.get_node("Menu/CodexBtn") as Button).pressed.is_connected(menu._on_codex_pressed)).is_true()
 	assert_bool((menu.get_node("Menu/SettingsBtn") as Button).pressed.is_connected(menu._on_settings_pressed)).is_true()
 	assert_bool((menu.get_node("Menu/QuitBtn") as Button).pressed.is_connected(menu._on_quit_pressed)).is_true()
 	# 设置内联面板默认收起，设置键开合

@@ -161,6 +161,7 @@ func _quiesce_floor_combat_for_inter_floor() -> void:
 ## 层间门（InterFloorFlow.enter_next_floor 已推层 + §14.1 蓝晶结算）：
 ## 释放层间 → 有当层数据则重建楼层；无（M1 仅 A1）→ M1 完结浮层。
 func _on_next_floor_requested(new_floor: int) -> void:
+	CodexSystem.on_floor_entered(new_floor)   # m2-t20：过层计数 + 蓝晶入账 + 解锁结算
 	if inter_floor != null and is_instance_valid(inter_floor):
 		inter_floor.queue_free()
 	inter_floor = null

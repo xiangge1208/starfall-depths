@@ -15,6 +15,8 @@ const ROUTES := {
 	# m1-t27：game 键从 M0 时代的 training_room 切到局根节点（选角 → 真实楼层主循环）。
 	"game": "res://core/rooms/run_root.tscn",
 	"death": "res://ui/death_summary.tscn",
+	# m2-t20：图鉴页（主菜单「图鉴」入口 → 115 格武器墙）
+	"codex": "res://ui/codex.tscn",
 }
 
 const FADE_TIME := 0.2   # 过场时长（brief 规格 0.2s）
