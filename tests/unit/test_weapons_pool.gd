@@ -151,26 +151,37 @@ func test_locked_matches_rarity_rule() -> void:
 func test_drop_pool_excludes_locked_but_codex_keeps_all() -> void:
 	# GameDB 载入侧两处出口：weapons = 掉落池（消费方 FloorScene._roll_weapon /
 	# ShopLogic._weapons，locked 不得出现）；weapons_all = 全量（图鉴侧，M2-T20 消费）。
+	# 契约口径（J.6）：池 = 非锁定行 ∪ 已解锁且非 forge_only 行——引导期恢复的解锁
+	# （headless 隔离档或开发者真档）合法入池，不断言「纯净引导」（T31+T32 合并后
+	# 结算落盘使引导态依赖存档，pristine 假设不再成立）。
 	assert_int(GameDB.weapons_all.size()).override_failure_message(
 		"weapons_all has %d rows, want %d" % [GameDB.weapons_all.size(), EXACT_TOTAL]) \
 		.is_equal(EXACT_TOTAL)
+	var unlocked: Array[String] = SaveSystem.unlocked_weapons()
+	var poolable_unlocked := 0
+	for id: String in unlocked:
+		if not CodexSystem.forge_only(id):
+			poolable_unlocked += 1
 	assert_int(GameDB.weapons.size()).override_failure_message(
-		"drop pool has %d rows, want %d (115 - 49 locked)"
-			% [GameDB.weapons.size(), EXACT_TOTAL - EXACT_LOCKED]) \
-		.is_equal(EXACT_TOTAL - EXACT_LOCKED)
+		"drop pool has %d rows, want %d (115 - 49 locked + %d unlocked-poolable)"
+			% [GameDB.weapons.size(), EXACT_TOTAL - EXACT_LOCKED + poolable_unlocked,
+				poolable_unlocked]) \
+		.is_equal(EXACT_TOTAL - EXACT_LOCKED + poolable_unlocked)
 	for id: String in GameDB.weapons:
-		assert_bool(bool((GameDB.weapons[id] as Dictionary).get("locked", false))) \
-			.override_failure_message("drop pool contains locked row: %s" % id) \
-			.is_false()
-	# locked 行只存在于 weapons_all；get_weapon 走掉落池表（locked 尚无获取途径，
-	# 解锁进池是 M2-T20 的职责），非 locked id 必须可查行
+		assert_bool(not bool((GameDB.weapons[id] as Dictionary).get("locked", false))
+				or unlocked.has(id)) \
+			.override_failure_message("drop pool contains locked-not-unlocked row: %s" % id) \
+			.is_true()
+	# locked 行只存在于 weapons_all；解锁后经 grant_to_pool 回池是合法路径（T20），
+	# 未解锁的 locked id 不得在池中；非 locked id 必须可查行
 	var locked_seen := 0
 	for id: String in GameDB.weapons_all:
 		if bool((GameDB.weapons_all[id] as Dictionary).get("locked", false)):
 			locked_seen += 1
-			assert_bool(GameDB.weapons.has(id)) \
-				.override_failure_message("locked row %s leaked into drop pool" % id) \
-				.is_false()
+			if not unlocked.has(id):
+				assert_bool(GameDB.weapons.has(id)) \
+					.override_failure_message("locked row %s leaked into drop pool" % id) \
+					.is_false()
 		else:
 			assert_bool(GameDB.get_weapon(id).is_empty()) \
 				.override_failure_message("get_weapon must resolve unlocked id %s" % id) \

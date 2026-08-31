@@ -27,11 +27,15 @@ const DEFAULT_SETTINGS := {
 	"touch_controls": false,
 }
 
-# save_path 可被测试覆写（临时 user:// 路径注入）；生产代码勿改
+# save_path 可被测试覆写（临时 user:// 路径注入）；生产代码勿改。
+# headless（GdUnit / 场景冒烟 / 无头工具）一律重定向到隔离档：测试驱动的真实玩法
+# 结算（层进入/解锁/死亡胜利落盘）不得污染开发者真档（T31+T32 合并后暴露）。
 var save_path := "user://save.json"
 var data: Dictionary = {}
 
 func _ready() -> void:
+	if DisplayServer.get_name() == "headless" and save_path == "user://save.json":
+		save_path = "user://save_headless.json"
 	load_save()
 
 ## 默认档：每次调用全新构造（调用方可自由改写，不与常量共享引用）。
