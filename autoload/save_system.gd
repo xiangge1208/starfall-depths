@@ -11,7 +11,9 @@ extends Node
 ## 接线说明（控制器决议）：本卡只交付服务+测试；RunState.next_floor 的蓝晶结算
 ## 不在本卡改动 run_state.gd，由 T20/T22 结算时调用 SaveSystem.add_gems 持久化。
 
-const SAVE_VERSION := 1   # 迁移钩子：将来档结构变更时递增，并在 _migrate 补 from_version 分支
+const SAVE_VERSION := 2   # m2-t32：v2 = 成就字段正式入版本化口径（achievements id→true；
+                          # v1 及更早档由 _migrate 归一）。additive 键位（purchased_talents/
+                          # unlocked_weapons 等）无需逐键迁移，缺失回落默认。
 
 const DEFAULT_SETTINGS := {
 	"screen_shake": 1.0,
@@ -97,7 +99,12 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 				warr.append(e)
 		out["unlocked_weapons"] = warr
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
-		out["achievements"] = saved["achievements"]
+		var ach_in: Dictionary = saved["achievements"]
+		var ach: Dictionary = {}
+		for k: Variant in ach_in:               # 键归一 String（id）；脏键静默丢弃
+			if typeof(k) == TYPE_STRING:
+				ach[String(k)] = true           # 值归一 true（集合语义，不存旧值）
+		out["achievements"] = ach
 	var settings_v: Variant = saved.get("settings")
 	if typeof(settings_v) == TYPE_DICTIONARY:
 		var saved_settings: Dictionary = settings_v
@@ -107,9 +114,9 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 				out["settings"][k] = sv
 	return out
 
-## 迁移桩（结构就绪）：当前 SAVE_VERSION=1，无历史版本，故为 no-op。
-## 将来加档字段时：递增 SAVE_VERSION，在此按 from_version 分支补默认值/搬移键，
-## 返回迁移后的完整档（版本戳由 load_save 统一盖）。
+## 迁移（m2-t32 起 SAVE_VERSION=2）：v2 只做成就字段版本化口径归一（id→true 集合，
+## 由 _merge_saved 完成）；from_version <= 1 的档无其他结构差异（M2 键全部 additive），
+## 故本钩子保持透传，版本戳由 load_save 统一盖 2。将来加字段时在此按 from_version 分支补。
 func _migrate(migrated: Dictionary, from_version: int) -> Dictionary:
 	return migrated
 
@@ -202,3 +209,35 @@ func unlocked_weapons() -> Array[String]:
 			if typeof(e) == TYPE_STRING:
 				out.append(e)   # 非法元素静默丢弃（fail-SOFT）
 	return out
+
+## ---- 成就（m2-t32）：持久化集合（achievements id→true）+ 幂等解锁 ----
+## 字段 m1-t17 起即在默认档骨架（"achievements": {}），本卡补访问器并随 SAVE_VERSION=2
+## 正式版本化（_merge_saved 键值归一）。附录 K.5 命名 unlocked_achievements 对齐到
+## 访问器名；档内键沿用既有 "achievements"（避免同档双键漂移）。
+
+## 成就解锁入库：已解锁→false（幂等，不重写盘）；新解锁→入集+存盘+true。
+## 蓝晶奖励由调用方 AchievementSystem._unlock 按 DEFS 表 add_gems（本层不识奖励表）。
+func unlock_achievement(id: String) -> bool:
+	var ach: Dictionary = data.get("achievements", {})
+	if typeof(ach) != TYPE_DICTIONARY:
+		ach = {}
+	if ach.has(id):
+		return false
+	ach[id] = true
+	data["achievements"] = ach
+	save_now()
+	return true
+
+## 已解锁成就 id 列表（防御性读取，恒 Array[String]）。
+func unlocked_achievements() -> Array[String]:
+	var out: Array[String] = []
+	var saved: Variant = data.get("achievements")
+	if typeof(saved) == TYPE_DICTIONARY:
+		for k: Variant in saved:
+			if typeof(k) == TYPE_STRING:
+				out.append(String(k))
+	return out
+
+func is_achievement_unlocked(id: String) -> bool:
+	var saved: Variant = data.get("achievements")
+	return typeof(saved) == TYPE_DICTIONARY and (saved as Dictionary).has(id)

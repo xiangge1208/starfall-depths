@@ -28,6 +28,7 @@ Fx="*res://autoload/fx.gd"
 Telemetry="*res://core/meta/telemetry.gd"
 DeathRecorder="*res://core/meta/death_recorder.gd"
 CodexSystem="*res://core/meta/codex_system.gd"
+AchievementSystem="*res://core/meta/achievement_system.gd"
 
 [display]
 
