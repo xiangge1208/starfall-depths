@@ -127,7 +127,7 @@ var _geyser_vis: Array[CanvasItem] = []
 var hazard_fire_rain: HazardMagma.FireRain = HazardMagma.FireRain.new()
 var _fire_rain_vis: Array[CanvasItem] = []
 ## m2-t26 挑战房：combat 房择一承载（DungeonGraph 暂无原生 challenge 房型——房型矩阵
-## 缺口移交，见 docs/superpowers/reports/m2-room-matrix.md）；<0 = setup 自动择一。
+## 缺口见 docs/superpowers/reports/m2-progress.md 裁定⑭ 与 M2 计划 Task 30）；<0 = setup 自动择一。
 var challenge_room_id := -1
 ## m2-t26 灾厄「视野-35%」暗视野组件（复用 A2 BiomeFx，房清/场景销毁时卸载）。
 var calamity_fx: BiomeFx = null
