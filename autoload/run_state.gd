@@ -109,6 +109,11 @@ func add_room_cleared() -> void:
 func add_coins(n: int) -> void:
 	coins += n
 
+## 局内蓝晶入账（m2-t24：Boss 掉落 gem 拾取路径；同 add_coins 习语。
+## 结算口径不变：死亡 50% 保留（settle_death_gems）/ 过层全额（next_floor））。
+func add_gems(n: int) -> void:
+	gems += n
+
 ## 消费金币：不足整额拒绝（false，余额不动）；足额扣减并返回 true。
 func spend_coins(n: int) -> bool:
 	if coins < n:

@@ -46,6 +46,9 @@ const BOSS_SCRIPTS := {
 	# m2-t19：D-3 熔核暴君（附录 E.5）
 	"res://core/enemies/bosses/magma_tyrant.gd": preload(
 		"res://core/enemies/bosses/magma_tyrant.gd"),
+	# m2-t24：D-4 A3 隐藏 Boss（附录 E.6；FloorScene 星陨门入场）
+	"res://core/enemies/bosses/starfall_prophet.gd": preload(
+		"res://core/enemies/bosses/starfall_prophet.gd"),
 }
 
 

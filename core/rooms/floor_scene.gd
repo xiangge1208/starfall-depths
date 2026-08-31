@@ -34,6 +34,9 @@ const GAME_CAMERA := preload("res://fx/game_camera.gd")
 const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店设施
 const BULLET_VISUAL_CAP := 500
 const BLACK_SHOP_CHANCE := 0.25
+## m2-t24 隐藏门（GDD §10/裁定）：A3 层号下界；星陨先知入场落点对门位偏移。
+const A3_FLOOR_IDX := 3
+const STARFALL_GATE_OFFSET_PX := Vector2(0, -40)
 
 ## m2-t7 危险地块视觉常量（表现，非玩法数值——周期/伤害在 HazardSpikes/RollingRock）。
 const SPIKE_WARN_COLOR := Color(1.0, 0.35, 0.3, 0.35)    # 地面红纹（预警）
@@ -83,6 +86,8 @@ const BULLET_VISUAL_SCALE := 0.75      # 8x8 弹底图 ≈ 原 5px 方块
 signal room_event(room_type: String, room_id: int)
 ## m1-t27：boss 房清（巨像死亡）——宿主 RunRoot 据此开层间中转。
 signal boss_defeated(room_id: int)
+## m2-t24：A3 隐藏门开启（星陨先知自星陨门入场）——叙事/UI 接缝。
+signal starfall_gate_opened(room_id: int)
 
 var flow := FloorFlow.new()
 var player: Player = null
@@ -131,6 +136,9 @@ var _flow_suspended := false
 var _facility_rng: RandomNumberGenerator
 var _drink_state := {"uses_left": DrinkMachine.USES_PER_FLOOR}
 var _used_shrine_kinds: Dictionary = {}
+## m2-t24 隐藏门携带判定（宽松口径）：本层任意共鸣触发计数（EventBus 订阅，
+## 楼层实例重建 = 新层自然清零；实例释放时 Godot 自动断开信号连接）。
+var _floor_resonances := 0
 
 
 # ================================================================ 生命周期
@@ -257,6 +265,8 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	_bullet_layer.z_index = 20
 	add_child(_bullet_layer)
 	flow.room_event.connect(_on_flow_room_event)
+	# m2-t24 隐藏门携带判定：本层共鸣计数（EnemyBase 共鸣结算 → EventBus 广播）
+	EventBus.resonance_triggered.connect(_on_floor_resonance_triggered)
 	Telemetry.log_row(["floor_build", Engine.get_physics_frames(), str(_rooms.size())])
 
 
@@ -1005,6 +1015,10 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	room.enemies.erase(e)
 	_spawn_frames.erase(e.get_instance_id())
 	if not e.counts_for_wave:
+		# m2-t24：星陨先知为隐藏门波次外嘉宾——死亡仍走行内 drops（3 蓝晶+头目魂），
+		# 但不消费 RoomFlow 波次（不回锁已清房）。
+		if String(killed_row.get("id", "")) == "starfall_prophet":
+			_spawn_guest_drops(room, killed_row, death_pos)
 		return
 	room.room_flow.notify_killed(notify_id, frame)
 	_spawn_guest_drops(room, killed_row, death_pos)
@@ -1016,10 +1030,12 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 			_flow_suspended = true           # 层间中转接管玩家（防进房检测抢人）
 			AudioMgr.boss_layer(false)       # m2-t22：Boss 退场 → 恢复生态曲
 			boss_defeated.emit(room.room_id)
+	_maybe_open_starfall_gate(room, death_pos)
 
 
 ## m1-t27 嘉宾死亡掉落（行内 drops 契约："weapon"=随机武器掉落台（ShopLogic.roll_weapon_id，
 ## loot 盐流确定性），"hearts2"=2 红心）。掉落台复用宝箱的 _build_loot_station（E 拾取换手）。
+## m2-t24 追加："gems3"=3 蓝晶（RunState 局内蓝晶账）+ "soul"=头目魂（纯叙事贴花，无战斗奖励数值）。
 func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> void:
 	var drops := String(row.get("drops", ""))
 	if drops.is_empty():
@@ -1034,6 +1050,80 @@ func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) ->
 	if drops.contains("hearts2"):
 		for i in 2:
 			_spawn_pickup(room, "heart", world_pos + _scatter(71 + i))
+	if drops.contains("gems3"):
+		for i in 3:
+			_spawn_gem(room, world_pos + _scatter(90 + i))
+	if drops.contains("soul"):
+		_build_boss_soul(room, world_pos)
+
+
+## 蓝晶掉落（星陨先知契约）：Pickup "gem" 拾取经 RunState.add_gems 入局内蓝晶账
+## （死亡结算 50% 保留 / 过层全额入账沿用既有口径）。
+func _spawn_gem(room: FloorRoom, world_pos: Vector2) -> void:
+	var gem := Pickup.new()
+	gem.kind = "gem"
+	gem.position = world_pos - room.position   # 房间子节点：世界落点 → 房间局部
+	gem.on_collect = func() -> void:
+		RunState.add_gems(1)
+	room.add_child(gem)
+
+
+## 头目魂（纯叙事贴花，无战斗奖励数值）：Boss 死亡处半透明星徽，随房存续。
+func _build_boss_soul(room: FloorRoom, world_pos: Vector2) -> void:
+	var soul := Node2D.new()
+	soul.name = "BossSoul"
+	soul.position = world_pos - room.position
+	var vis := Polygon2D.new()
+	var pts := PackedVector2Array()
+	for i in 12:
+		pts.append(Vector2.from_angle(TAU * float(i) / 12.0 - TAU / 4.0)
+			* (14.0 if i % 2 == 0 else 6.0))
+	vis.polygon = pts
+	vis.color = Color(0.5, 0.75, 1.0, 0.45)
+	vis.z_index = 8
+	soul.add_child(vis)
+	room.add_child(soul)
+
+
+## m2-t24 隐藏门（GDD §10 裁定）：A3 层小 Boss 死亡时若本层触发过任意共鸣
+## （携带判定宽松口径：_floor_resonances >0）→ 星陨门开启：门贴花落位 +
+## 星陨先知自门入场（波次外嘉宾 counts_for_wave=false，不回锁已清房）。
+## 幂等：门已开（重复死亡/多小 Boss 防御）则跳过。
+func _maybe_open_starfall_gate(room: FloorRoom, death_pos: Vector2) -> void:
+	if room == null or not is_instance_valid(room) or room.type != "miniboss":
+		return
+	if RunState.floor_idx < A3_FLOOR_IDX or _floor_resonances <= 0:
+		return
+	if room.has_node("StarfallGate"):
+		return
+	var gate := Node2D.new()
+	gate.name = "StarfallGate"
+	gate.position = death_pos - room.position
+	var vis := Polygon2D.new()
+	var pts := PackedVector2Array()
+	for i in 10:
+		pts.append(Vector2.from_angle(TAU * float(i) / 10.0 - TAU / 4.0)
+			* (20.0 if i % 2 == 0 else 9.0))
+	vis.polygon = pts
+	vis.color = Color(0.45, 0.65, 1.0, 0.75)
+	vis.z_index = 8
+	gate.add_child(vis)
+	room.add_child(gate)
+	# 入场落点夹进房内域（同 _spawn_summoned_enemy 习语）——门贴花仍在死亡点。
+	var radius := float(GameDB.get_enemy("starfall_prophet").get("radius", 6.0))
+	var interior := Rect2(room.outer.position + Vector2(WALL_T + radius, WALL_T + radius),
+		room.outer.size - Vector2((WALL_T + radius) * 2.0, (WALL_T + radius) * 2.0))
+	var spawn_pos := death_pos + STARFALL_GATE_OFFSET_PX
+	spawn_pos = Vector2(clampf(spawn_pos.x, interior.position.x, interior.end.x),
+		clampf(spawn_pos.y, interior.position.y, interior.end.y))
+	_spawn_enemy(room, "starfall_prophet", spawn_pos, {}, false)
+	starfall_gate_opened.emit(room.room_id)
+
+
+## m2-t24 隐藏门携带判定（宽松口径）计数：本层任意共鸣触发 +1（读少写多，只增不清；
+## 楼层实例重建 = 新层自然归零）。
+func _on_floor_resonance_triggered(_reaction: int, _at: Vector2, _payload: Dictionary) -> void:
+	_floor_resonances += 1
 
 
 ## m1-t18 kill 行来源取值：玩家当前武器 id（rig 未接线 → ""）；boss 判定复用 RoomCombat.kill_source。

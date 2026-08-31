@@ -43,6 +43,8 @@ const KEYS := [
 	"shoot_player", "shoot_enemy", "melee_swing", "hit_enemy", "crit_hit",
 	"pickup_coin", "pickup_energy", "pickup_heart", "player_hurt", "door_open", "ui_click",
 	"death",
+	# m2-t24：蓝晶拾取（Pickup "gem"）；音源经 KEY_FILE 映射 pickup_energy.wav。
+	"pickup_gem",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。
@@ -52,6 +54,7 @@ const MUSIC_KEYS := ["menu", "garden", "crystal", "magma", "boss"]
 ## key → 文件基名差异表（未列出 = 与 key 同名 .wav）。仅在缓存 miss 路径查表，热路径零开销。
 const KEY_FILE := {
 	"death": "enemy_die",
+	"pickup_gem": "pickup_energy",
 }
 
 ## 设置宿主可注入（测试用临时路径 SaveSystem 替身）；null → 全局 SaveSystem。
