@@ -323,6 +323,92 @@ func test_calamity_meta_removed_on_scene_exit() -> void:
 	assert_bool(_player.has_meta(FloorScene.CALAMITY_HEAL_META)).is_false()
 
 
+# ---------------------------------------------------------------- 真实构建体全图走查
+# （t26_manual_walk_tmp 转正：脚本驱动等价玩家入口，m1_evidence 先例。DFS 带回溯
+# 沿开门图走遍 13 房到挑战房 → 灾厄 4 选 1（视野）→ 3 波全清 → 紫武器+金币 → 灾厄还原。）
+
+func test_challenge_full_run_on_real_build() -> void:
+	RunState.start_run("vanguard")
+	var build := DungeonBuilder.build(SEED, 1)
+	assert_array(DungeonBuilder.validate_build(build)).is_empty()
+	_player = (load("res://core/player/player.tscn") as PackedScene).instantiate() as Player
+	add_child(_player)
+	_fs = FloorScene.new()
+	_fs.floor_idx = 1
+	add_child(_fs)
+	_fs.setup(build, _player)
+	var cid := _fs.challenge_room()
+	assert_int(cid).is_greater_equal(0)
+	assert_str(_fs.flow.room_type(cid)).is_equal("combat")
+	await _dfs_room(int(build["start_room_id"]), -1, cid)
+	assert_bool(_fs.flow.cleared.has(cid)).is_true()
+
+
+## DFS 走房（带回溯）：逐房进门 → 战斗房型清波 → 挑战房跑灾厄全流程 → 子房递归 →
+## 回溯重进父房（两侧清房门恒开，flow.enter_room 只许邻房移动）。
+func _dfs_room(id: int, from: int, cid: int) -> void:
+	if _fs.flow.current_room != id:
+		assert_bool(_fs.enter_room(id)).is_true()
+	if id == cid:
+		await _run_challenge_room(cid)
+	elif FloorFlow.COMBAT_TYPES.has(_fs.flow.room_type(id)):
+		await _clear_room(id)
+	for n in _fs.flow.adjacent(id):
+		if n == from:
+			continue
+		await _dfs_room(n, id, cid)
+	if from >= 0 and _fs.flow.current_room != from:
+		assert_bool(_fs.enter_room(from)).is_true()
+
+
+## 清一房波次：杀当前波 → 固定让帧等下一波刷出（让帧是必须的——零让帧自旋会
+## 饿死物理帧，波次调度永不推进）；guard 防异常挂死。
+func _clear_room(id: int) -> void:
+	if _fs.flow.cleared.has(id):
+		return
+	var room: FloorScene.FloorRoom = _fs.room_node(id)
+	var guard := 0
+	while not _fs.flow.cleared.has(id) and guard < 60:
+		guard += 1
+		_kill_all(room)
+		await _wait_frames(20)
+	assert_bool(_fs.flow.cleared.has(id)).is_true()
+
+
+func _run_challenge_room(cid: int) -> void:
+	var room: FloorScene.FloorRoom = _fs.room_node(cid)
+	# 进门：门锁 + 面板开 + 未刷怪
+	assert_bool(_fs.calamity_panel_visible()).is_true()
+	assert_int(_alive_enemies(room)).is_equal(0)
+	assert_bool(_fs.flow.is_locked()).is_true()
+	# 4 选 1：视野-35%（BiomeFx 复用路径）→ 3 波全清
+	_fs.choose_calamity("vision")
+	assert_object(_fs.calamity_fx).is_not_null()
+	var guard := 0
+	while not _fs.flow.cleared.has(cid) and guard < 60:
+		guard += 1
+		_kill_all(room)
+		await _wait_frames(20)
+	assert_bool(_fs.flow.cleared.has(cid)).is_true()
+	assert_bool(_fs.flow.is_locked()).is_false()
+	# 必得紫 + 80~120 金币；灾厄还原
+	var station := room.get_node_or_null(NodePath("LootStation")) as Interactable
+	assert_object(station).is_not_null()
+	if station != null:
+		var wid := String(station.get_meta("weapon_id", ""))
+		assert_str(String(GameDB.get_weapon(wid).get("rarity", ""))).is_equal("epic")
+	var coins := _pickups_of(room, "coin")
+	assert_int(coins).is_greater_equal(80)
+	assert_int(coins).is_less_equal(120)
+	assert_bool(_fs.calamity_fx == null).is_true()
+	assert_str(room.calamity_id).is_empty()
+
+
+func _wait_frames(n: int) -> void:
+	for _i in n:
+		await get_tree().physics_frame
+
+
 # ---------------------------------------------------------------- helpers
 
 func _alive_enemies(room: FloorScene.FloorRoom) -> int:
