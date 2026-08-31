@@ -164,6 +164,7 @@ func _buy_weapon(idx: int) -> void:
 	_stock_state["weapons_sold"] = _sold
 	_weapon_price_labels[idx].text = "已售"
 	_refresh_coins()
+	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
 
 
 ## 买道具：红心 25 → heal(2)；蓝瓶 20 → add_energy(20)；余额不足闪红。
@@ -184,6 +185,7 @@ func _buy_item(kind: String) -> void:
 	_stock_state["items_sold"] = _item_sold
 	(_item_price_labels[kind] as Label).text = "已售"
 	_refresh_coins()
+	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
 
 
 ## 买商店第六饮料卡：使用 stock.drink 指向的 GameDB 行内价格与效果。
@@ -215,6 +217,7 @@ func _buy_drink() -> void:
 	_stock_state["drink_sold"] = true
 	_drink_price_label.text = "已售"
 	_refresh_coins()
+	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
 
 
 ## 神秘混合的候选池按 id 排序，以保证相同 RNG 状态下结果稳定。
