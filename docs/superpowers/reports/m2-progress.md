@@ -62,16 +62,16 @@
 | T29 | §18.3 压测 | 7ac811c | 预算五项 PASS；**F2 draw call 超标 ~8%**（全图集前提未达成）→ 裁定㉓ T37；监视器单位毫秒实证；渲染侧留 T34 真机 |
 | T36 | Boss 楼层路由 + 柱接线 + cage 机制化 + 灾厄复合（裁定⑳㉑） | a177691 | 评审 **Approved**（5 Minor 非阻塞，去向见裁定㉖）；14 新测试钉死路由/柱生命周期/豁口几何/复合系数 |
 | T35 | meta 生效接线（裁定⑨①-⑥） | （m2-t35 merge） | 评审 **Approved**（零 C/I）；15 键接线 + 10 键所有权外合法移交；wipe→repair 解 T15 自抵消（双修复点对称性经评审独立验证）；shop_purchase 四 kind 成功点发射；T18 胜利桩 Label 已清 |
+| T30 | Windows 导出冒烟 + Android 链预通 | b4beea9 | 编排者亲审直并（2 新文件零生产代码，未派独立评审——按效率原则）；**Windows PASS**（117MB exe 30s 存活无崩溃，PowerShell 真 PID 法）；Android **SKIP 如实**（本机无 SDK，log 存档）；注意：导出模板 1.28GB 需 CI 缓存勿直下（裁定㉘） |
 
-### 待处理（3 张 + 复测 + 预检/门禁）
+### 待处理（2 张 + 复测 + 门禁）
 
 | 卡 | 内容 | 分支 | 状态 | 下一步 |
 |---|---|---|---|---|
 | **T37** | 全图集合并 + A2 剪影批处理（裁定㉓，F2 draw call 超标闭环） | m2-t37 | **第五波在飞**（base `a177691`；禁改 perf_probe.gd——retest 所有权） | 实现 → 评审 → merge |
-| **复测** | T28 胜率带复跑 + TTK 正式表 + T29 A2/A3 密房复测（T26 已合前提） | m2-retest | **第四波在飞**（perf_probe.gd 有进度） | 报告增补 |
-| **T30** | Windows 导出冒烟 + Android 链预通 | m2-t30 | **第四波在飞**（export_presets.cfg + export_smoke.cmd 有进度） | 实现 → merge |
-| **T33** | 门禁预检，范围扩张见裁定㉗：save_headless 密闭（裁定㉔）+ **17 条成就发射点审计与补线** + M1 补录 ③④ 核销 + T36 Minor ①②③⑤ 微修 + T35 Minor ④⑤⑥ 微修 + 移交表逐项复核（8 派味特技/spare_parts/echo/blessing 以 T35 评审 25 键结论为基准） | — | **已提前派出**（不必等 T37/T30/复测；其合并后 T34 终跑全量即可） | 实现 → merge |
-| **T34** | M2 门禁（双报告 + 裁定 + tag；含 T29 渲染侧真机复测 + M1 补录第 1/2 项 + 裁定㉔② 真人 Boss 房段试玩——T36 已合，具备条件） | — | 从未派发 | T33 之后 |
+| **复测** | T28 胜率带复跑 + TTK 正式表 + T29 A2/A3 密房复测（T26 已合前提） | m2-retest | **第四波在飞**（perf_probe.gd 有进度） | 报告增补 → 编排者归档 |
+| **T33** | 门禁预检，范围扩张见裁定㉗：save_headless 密闭（裁定㉔）+ **17 条成就发射点审计与补线** + M1 补录 ③④ 核销 + T36 Minor ①②③⑤ 微修 + T35 Minor ④⑤⑥ 微修 + 移交表逐项复核（8 派味特技/spare_parts/echo/blessing 以 T35 评审 25 键结论为基准） | m2-t33 | **在飞** | 实现 → 编排者核证据 → merge |
+| **T34** | M2 门禁（双报告 + 裁定 + tag；含 T29 渲染侧真机复测 + M1 补录第 1/2 项 + 裁定㉔② 真人 Boss 房段试玩——T36 已合，具备条件） | — | 从未派发 | T37 + 复测 + T33 合并后 |
 
 另有 `m3-prelude` 分支领先 main 7 提交（M3 预研，不在 M2 门禁范围内）。
 
@@ -135,6 +135,7 @@ T27 报告也侧面印证：「A2/A3 层模板 `door_local`/spawn 缺键」—�
 25. **僵尸代理 main 直提追认**：`3377a09`（test_art_pipeline 优先托管 venv Python/Pillow，环境纪律正确）+ `e6ed091`（M1 全程复查补录 4 项 + 波次表编号错位另注）——均为良性高质量，追认入线。补录 4 项去向：①藤蔓巨像 90~150s 验收 → T34 checklist；②真人试玩提前 → T36 合并后、T34 前安排真 Boss 房段试玩；③死亡确认输入锁 / ④跨局遥测留存 → T24 已合，转 **T33 预检**核对现实现是否已覆盖，未覆盖则 T35/T37 顺手或单列微卡。
 26. **T36 评审 5 Minor 处置**（2026-08-31，评审 Approved 非阻塞）：①cage 豁口 ±40° 含柱体实缘 ~10.6°（穿柱宽容，可辩护）→ 补注释披露，T33 预检顺手或微卡；②`_cage_confine` 到期不清旗（空列表守卫 no-op，纯卫生）→ 同上微卡；③`_pick_boss_row` 重复 `boss_row_for_floor` 的 duplicate+sort → 微卡；④`compound_vision_factor` 从常量重算的 brittleness 备注（单写者下安全）→ 记录不立项；⑤A2 端到端未断言 Boss hp（800/1800/1800 契约）→ **并入 T33 预检**（见待处理表）。另：T36 评审复核确认裁定⑳实施前评审曾提出的「柱体 position 世界语义/register_body 缺失」两项 Important 已由实现以 `top_level=true` + `register_body` + `combat_radius()` 完整闭环，T14 移交项相应销账。
 27. **T35 评审处置 + 「17 条成就发射点」归属澄清 + T33 范围扩张**（2026-08-31）：T35 评审 Approved 零 C/I，①-⑤ 全落地；10 个未接线键（rig 5 + 展示 3 + heart_sense + anti_poison）经评审 grep 证实无任何现有消费者、均在裁定⑨所有权清单之外，合法移交——**消费建设归 M3**（combat/resonance 侧），不在 M2 门禁路径。Minor 处置：④未用参数 frame、⑤thorns「就近」实为组序首个+致死弹仍反伤、⑥测试死调用与 rig 落地仅测 hunter → 全部 T33 顺手微修；fx 所有权授予未使用（无缺陷）。**澄清**：台账 T35 行旧备注「含 T32 的 17 条成就发射点」系表格简写与裁定⑨正文（仅 shop_purchase 发射）不一致——评审暴露此缺口属实：**17 条成就发射点从未被任何卡承接**（T32 激活 22 条中 17 条缺游戏事件→信号发射点）。裁定：**并入 T33 预检**，范围=审计 22 条成就的发射点现状 + 为缺失者在正确游戏事件处补线（signal 名以 T3 K 表/裁定⑧ 为权威）+ 测试钉死；文件所有权临时授予 floor_scene/room_combat/bosses/inter_floor/player 已合文件（与在飞 T37 的图集/剪影路径预计不重叠，若冲突以 T37 优先、T33 rebase）。
+28. **T30 直并 + 导出模板获取经验**（2026-08-31）：T30 仅 2 新文件（export_presets.cfg / tools/export_smoke.cmd）零生产代码，按「小任务不过度并行」原则由编排者亲审 diff 直并（presets 无密钥无加密、产物入 gitignored user_export/、脚本 exit-code 语义诚实），**未派独立评审代理**。Windows 冒烟 PASS（117MB exe，PowerShell Start-Process 真 PID 30s 存活检测 + 游戏日志 FATAL/CRASH 扫描，日志目录先清零防跨次误判）；Android 无 SDK 诚实 SKIP 非 FAIL。导出模板 4.7.2-stable 1.28GB 官方 CDN TLS 断连，经 gh api + Range 64MB 分块重试装入 `%APPDATA%\Godot\export_templates\4.7.2.stable\`——**CI/重装机须缓存模板，勿直下**。
 
 ## 移交/遗留项（消费卡号）
 
