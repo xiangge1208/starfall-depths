@@ -11,7 +11,7 @@ extends Node
 ## 进程退出最多丢自上次结算点后的增量，解锁结果本身已入档不丢）：
 ##   kills_total       ← EventBus.enemy_killed（每敌死亡 +1，与 Telemetry kill 行同源）
 ##   resonances_total  ← EventBus.resonance_triggered（共鸣触发 +1）
-##   crafts_total      ← count_craft()（T25 熔铸台接线占位，当前无调用方=恒 0）
+##   crafts_total      ← count_craft()（m2-t25 熔铸台已接线：ui/forge.gd 熔铸成功点 +1）
 ##   purchases_total   ← shop.gd 三个购买成功点 +1（J.2 的 shop_purchase 信号归 T35，
 ##                       本卡按控制器决议走直调 1 行）
 ##   gems_earned_total ← 过层蓝晶（on_floor_entered 按 RunState.FLOOR_GEMS 镜像）；
@@ -226,7 +226,7 @@ func count_resonate() -> void:
 	check_unlocks()
 
 
-## 熔铸计数（T25 熔铸台接线点；本卡占位接口，无调用方 = craft 线恒 0）
+## 熔铸计数（调用方：m2-t25 ui/forge.gd 的熔铸成功路径，配方熔铸与通用升级各 +1）
 func count_craft() -> void:
 	counters["crafts_total"] = int(counters.get("crafts_total", 0)) + 1
 	check_unlocks()
