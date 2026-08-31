@@ -2,16 +2,17 @@ class_name MagmaTyrant
 extends BossBase
 ## 熔核暴君（A3 Boss，附录 E.5，HP 3200）：P0 岩浆喷发（4 块岩浆区各 5s——复用 T10
 ## HazardMagma 岩浆区数据：外接方 2r 区几何 + in_magma 含心判定 + 60t DOT 脉冲语义，
-## 喷发拍区内爆发 7）+ 火拳（windup 30t 近身扇形 90° 伤 7）；
+## 喷发拍区内爆发 7）+ 火拳（windup 30t 近身扇形 90° 伤 8）；
 ## P1（60%）+ 火雨（windup 48t，12 红圈落点分 3 波伤 7——直接复用 T10 FireRain 驱动
 ## 契约：预警倒计时 48t、恰 boom 拍结算、下一拍自除）+ 怒气常驻（HP<60% 起弹幕密度
 ## ×1.5、移速 +20%）；
-## P2（30%）+ 地裂火浪（windup 42t，环形火浪从 Boss 以 2px/拍 扩散至全房 300px
+## P2（30%）+ 地裂火浪（windup 42t，环形火浪从 Boss 自中心扩散至 300px
 ## ≥战斗房半对角，伤 8；可被掩体挡——注入 cover_points 世界坐标做线段遮挡判定）。
 ## 招式序列状态机同 VineColossus/PrismGolem：_engage 按 phase() 选招表，招式背靠背；
 ## 所有前摇 ≥24t（GDD §15）；红圈/红纹预警齐备（脑层 Polygon2D，测试无树亦安全）。
-## 数值偏差披露：火拳伤按任务逐参数取 7（数据表 E.5 载 8）；怒气密度倍率在暴君
-## 无投射弹的招式面上映射为岩浆喷发区块数 4→6（火雨圈数保持 E.5 定数 12）。
+## 数值逐字附录 E.5。偏差披露：怒气密度倍率在暴君无投射弹的招式面上映射为岩浆喷发
+## 区块数 4→6（火雨圈数保持 E.5 定数 12）。区视觉自预警起持续至区过期（5s）再清，
+## 避免喷发拍后岩浆区 5s 存续期不可见（fix1：危险可视一致性）。
 
 # ---- 前摇（GDD §15 下限 24t；数值逐字附录 E.5）----
 const MIN_WINDUP_TICKS := 24
@@ -33,7 +34,7 @@ const ERUPT_BURST_DMG := 7
 # ---- 火拳（P0）：近身扇形拍，前摇起始拍锁定朝向（同藤蔓巨像拍击，侧移可躲）----
 const FIST_RANGE_PX := 70.0
 const FIST_ARC_DEG := 90
-const FIST_DMG := 7
+const FIST_DMG := 8
 
 # ---- 火雨（P1）：12 红圈分 3 波（4/波，波距 24t），落点分盐流逐轮生成夹内域；
 #      预警/落点伤/半径/自除全部复用 HazardMagma.FireRain 契约（T19 消费接口）----
@@ -42,8 +43,8 @@ const RAIN_BASE_PER_WAVE := 4
 const RAIN_WAVE_GAP_TICKS := 24
 const RAIN_RNG_SALT := "boss_magma_tyrant_rain"
 
-# ---- 地裂火浪（P2）：环形火浪从 Boss 位锚定扩散，2px/拍（120px/s）至 300px
-#      （≥ M0 战斗房半对角 257px = 全房覆盖）；前沿越过玩家位拍结算 8；
+# ---- 地裂火浪（P2）：环形火浪从 Boss 位锚定自中心扩散，2px/拍（120px/s）至 300px
+#      （≥ M0 战斗房半对角 257px，自中心覆盖全房）；前沿越过玩家位拍结算 8；
 #      掩体遮挡：cover_points 注入世界坐标，掩体心到 Boss→玩家线段 ≤ 掩体半径即挡 ----
 const WAVE_DMG := 8
 const WAVE_SPEED_PXPS := 120.0
@@ -64,6 +65,9 @@ var cover_points: Array = []        # 房间注入掩体世界坐标（可破坏
 var _magma := HazardMagma.new()
 var _erupt_centers: Array[Vector2] = []
 var _erupt_untils: Array[int] = []  # 与 _magma.zones 平行：各区到期拍（「各 5s」独立计）
+var _zone_fx: Array[Node] = []      # 与 _magma.zones 平行：区视觉（预警矩形自预警起持续至
+                                    # 区过期——喷发拍后岩浆区仍有 5s 存续期，不可视即漏披露，
+                                    # fix1 起 _end_move 不再提前释放）
 var _erupt_standing := 0            # 区内驻留拍（出域暂停不清零——T10 语义）
 
 # ---- 火拳状态 ----
@@ -77,7 +81,7 @@ var _rain_rng: RandomNumberGenerator = null
 var _rain_fx: Array[Node] = []      # 红圈预警（与 strikes FIFO 对齐，落点自除）
 
 # ---- 地裂火浪状态 ----
-var _wave_anchor := Vector2.ZERO    # 扩散心（前摇结束拍锁定 Boss 位）
+var _wave_anchor := Vector2.ZERO    # 扩散心（前摇起始拍锁定 Boss 位）
 var _wave_front := 0.0              # 当前前沿半径（px）
 var _wave_hit_done := false
 var _wave_vis: Node2D = null
@@ -108,6 +112,7 @@ func _reset_fire_state() -> void:
 	_magma = HazardMagma.new()
 	_erupt_centers = []
 	_erupt_untils = []
+	_fx_free(_zone_fx)
 	_erupt_standing = 0
 	_fire_rain = HazardMagma.FireRain.new()
 	_rain_targets = []
@@ -161,6 +166,8 @@ func _on_phase_enter(_phase_idx: int) -> void:
 
 func die() -> void:
 	_magma.zones.clear()                    # 岩浆区随 Boss 退场清空
+	_erupt_untils.clear()
+	_fx_free(_zone_fx)
 	_fx_free(_fx)
 	_fx_free(_rain_fx)
 	super()                                 # EnemyBase.die：状态门/死亡爆/信号/退场
@@ -177,9 +184,10 @@ func _start_move(m: String, frame: int) -> void:
 	match m:
 		"erupt":
 			_erupt_centers = _generate_erupt_centers()
-			for c in _erupt_centers:        # 红纹预警：落点区外接方（2r 见方，同 T10 区几何）
-				_fx_rect(c, Vector2(_erupt_zone_side_px(), _erupt_zone_side_px()),
-					Color(1.0, 0.25, 0.2, 0.3))
+			for c in _erupt_centers:        # 红纹预警：落点区外接方（2r 见方，同 T10 区几何）；
+				# 视觉入 _zone_fx——预警矩形保留至岩浆区过期（fix1：喷发拍后区仍存续 5s）
+				_zone_fx.append(_fx_rect(c, Vector2(_erupt_zone_side_px(), _erupt_zone_side_px()),
+					Color(1.0, 0.25, 0.2, 0.3)))
 		"fist":
 			_fist_facing = (_player_pos() - brain_pos).angle()   # 朝向前摇起始拍锁定
 			_fx_wedge(FIST_RANGE_PX, float(FIST_ARC_DEG), Color(1.0, 0.25, 0.2, 0.35))
@@ -248,21 +256,26 @@ func _generate_erupt_centers() -> Array[Vector2]:
 	return centers
 
 
-## 喷发拍：区入 T10 HazardMagma（各 5s 独立到期）+ 站区内玩家爆发 7（恰一跳）。
+## 喷发拍：区入 T10 HazardMagma（各 5s 独立到期）+ 站区内玩家爆发 7（恰一跳；
+## 区内判定同 T10 in_magma 口径 = 区外接方矩形 has_point，非 r 圆——角落一致，fix1）。
 func _erupt_resolve(frame: int) -> void:
 	var side := _erupt_zone_side_px()
+	var new_zones: Array[Rect2] = []
 	for c in _erupt_centers:
-		_magma.add_zone(Rect2(c - Vector2(side, side) / 2.0, Vector2(side, side)))
+		var rect := Rect2(c - Vector2(side, side) / 2.0, Vector2(side, side))
+		_magma.add_zone(rect)
+		new_zones.append(rect)
 		_erupt_untils.append(frame + ERUPT_DURATION_TICKS)
 	var pp := _player_pos()
-	for c in _erupt_centers:
-		if pp.distance_to(c) <= ERUPT_ZONE_RADIUS_PX:
+	for rect in new_zones:
+		if rect.has_point(pp):
 			_hit_player(ERUPT_BURST_DMG, {"element": Elements.Id.FIRE, "attack_name": "岩浆喷发"})
 			break                            # 喷发拍恰一跳（多区重叠不叠伤）
 
 
-## 岩浆区背景结算：过期区自清；站区内驻留满 HazardMagma.PULSE_TICKS 出一跳
-## （伤害/抗火减半均取 T10 pulse_damage 纯函数；出域暂停驻留拍不清零）。
+## 岩浆区背景结算：过期区自清（区视觉同步释放——预警矩形持续至区过期，fix1）；
+## 站区内驻留满 HazardMagma.PULSE_TICKS 出一跳（伤害/抗火减半均取 T10 pulse_damage
+## 纯函数；出域暂停驻留拍不清零）。
 func _erupt_tick(frame: int) -> void:
 	if _magma.zones.is_empty():
 		return
@@ -270,6 +283,9 @@ func _erupt_tick(frame: int) -> void:
 		if frame > _erupt_untils[i]:
 			_magma.zones.remove_at(i)
 			_erupt_untils.remove_at(i)
+			if i < _zone_fx.size() and is_instance_valid(_zone_fx[i]):
+				_zone_fx[i].queue_free()
+			_zone_fx.remove_at(i)
 	if _magma.zones.is_empty():
 		return
 	if not _magma.in_magma(_player_pos()):
@@ -397,7 +413,7 @@ func _hit_player(dmg: int, extra: Dictionary) -> void:
 
 # ---- 预警/效果视觉（脑层挂子节点，测试无树亦安全；玩家可读性归 GDD §7.5）----
 
-func _fx_rect(center: Vector2, size: Vector2, color: Color) -> void:
+func _fx_rect(center: Vector2, size: Vector2, color: Color) -> Polygon2D:
 	var half := size / 2.0
 	var vis := Polygon2D.new()
 	vis.polygon = PackedVector2Array([
@@ -408,7 +424,7 @@ func _fx_rect(center: Vector2, size: Vector2, color: Color) -> void:
 	vis.z_index = 15
 	vis.position = center - brain_pos
 	add_child(vis)
-	_fx.append(vis)
+	return vis
 
 
 func _fx_wedge(radius: float, arc_deg: float, color: Color) -> void:

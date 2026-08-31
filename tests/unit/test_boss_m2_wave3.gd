@@ -1,9 +1,10 @@
 class_name TestBossM2Wave3
 extends GdUnitTestSuite
 
-## M2-T19 D-4 熔核暴君脑层注入帧测试（沿用 test_boss_m2_wave1 手法）：
+## M2-T19 D-3 熔核暴君脑层注入帧测试（沿用 test_boss_m2_wave1 手法）：
 ## 附录 E.5（HP 3200）——阶段招式门控 / 岩浆喷发（4 块岩浆区各 5s，复用 T10 HazardMagma
-## 区数据 + DOT 脉冲语义；喷发拍爆发 7）/ 火拳（windup 30t 近身扇形 90° 伤 7）/
+## 区数据 + DOT 脉冲语义；喷发拍爆发 7；区视觉自预警起持续至区过期）/ 火拳（windup 30t
+## 近身扇形 90° 伤 8）/
 ## 火雨（windup 48t，12 红圈落点分 3 波伤 7，复用 HazardMagma.FireRain 驱动契约）/
 ## 地裂火浪（windup 42t，环形火浪 Boss 扩散全房伤 8，掩体遮挡判定）/
 ## 怒气常驻（HP<60% 起：弹幕密度 ×1.5、移速 +20%）。
@@ -93,7 +94,7 @@ func test_tyrant_every_windup_at_least_24t() -> void:
 func test_tyrant_rage_and_attack_constants() -> void:
 	assert_float(MagmaTyrant.RAGE_DENSITY_MULT).is_equal_approx(1.5, 0.001)   # 弹幕密度 ×1.5
 	assert_float(MagmaTyrant.RAGE_SPEED_MULT).is_equal_approx(1.2, 0.001)     # 移速 +20%
-	assert_int(MagmaTyrant.FIST_DMG).is_equal(7)               # 火拳伤 7（任务逐参数）
+	assert_int(MagmaTyrant.FIST_DMG).is_equal(8)               # 火拳伤 8（附录 E.5 权威）
 	assert_int(MagmaTyrant.FIST_ARC_DEG).is_equal(90)          # 近身扇形 90°
 	assert_int(MagmaTyrant.ERUPT_BURST_DMG).is_equal(7)        # 岩浆喷发爆发 7（E.5「7/跳」）
 	assert_int(MagmaTyrant.WAVE_DMG).is_equal(8)               # 地裂火浪 8
@@ -131,8 +132,9 @@ func test_tyrant_move_sets_expand_by_phase() -> void:
 
 # ================================================================ 岩浆喷发
 
-# ---- 前摇 36t 锁 4 块岩浆区（玩家为心 72px 环，T10 外接方 48×48），喷发拍爆发 7，
-#      区存续 5s：站区内每 60t 一跳 T10 岩浆 DOT（2 伤，抗火减半），过期自清 ----
+# ---- 前摇 36t 锁 4 块岩浆区（玩家为心 72px 环，T10 外接方 48×48），喷发拍爆发 7
+#      （区内判定同 T10 矩形口径），区存续 5s：站区内每 60t 一跳 T10 岩浆 DOT
+#      （2 伤，抗火减半），过期自清；区视觉自预警起持续至区过期（fix1）----
 
 func test_tyrant_erupt_four_zones_burst7_then_t10_dot_for_5s() -> void:
 	var b := _tyrant(true)
@@ -144,7 +146,7 @@ func test_tyrant_erupt_four_zones_burst7_then_t10_dot_for_5s() -> void:
 	var ms: int = _drive_to_move(b, "erupt", f)
 	var centers: Array = b._erupt_centers             # 前摇起始拍锁定（预警位即落点）
 	assert_int(centers.size()).is_equal(4)
-	assert_int(b._fx.size()).is_equal(4)              # 4 块红纹预警
+	assert_int(b._zone_fx.size()).is_equal(4)         # 4 块红纹预警（区视觉，随区存续）
 	for i in range(centers.size()):
 		assert_vector(centers[i]).is_equal_approx(
 			Vector2.from_angle(TAU * float(i) / 4.0) * 72.0, Vector2(0.01, 0.01))
@@ -158,12 +160,16 @@ func test_tyrant_erupt_four_zones_burst7_then_t10_dot_for_5s() -> void:
 	assert_int(spy.hits[0]["amount"]).is_equal(7)
 	assert_str(String(spy.hits[0]["attack_name"])).is_equal("岩浆喷发")
 	assert_int(int(spy.hits[0]["element"])).is_equal(Elements.Id.FIRE)
+	# 区视觉不随收招提前释放（喷发拍后区仍存续 5s，fix1：危险可视一致性）
+	assert_str(String(b.get("_move"))).is_equal("")
+	assert_int(b._zone_fx.size()).is_equal(4)
 	# 复用 T10：区数据落在 HazardMagma（外接方 48×48，含心判真、区外判假）
 	assert_int(b._magma.zones.size()).is_equal(4)
 	for z in b._magma.zones:
 		assert_vector(z.size).is_equal_approx(Vector2(48, 48), Vector2(0.01, 0.01))
 	assert_bool(b._magma.in_magma(centers[0])).is_true()
 	assert_bool(b._magma.in_magma(centers[0] + Vector2(48, 0))).is_false()
+	assert_bool(b._magma.in_magma(centers[0] + Vector2(23, 23))).is_true()   # 矩形角内（r24 圆判为区外）
 	# DOT：站区内每 60t 一跳 2 伤（T10 pulse_damage），5s 共 5 跳，过期即停
 	var dot_frames: Array = []
 	var resolve := ms + MagmaTyrant.ERUPT_WINDUP_TICKS
@@ -178,6 +184,35 @@ func test_tyrant_erupt_four_zones_burst7_then_t10_dot_for_5s() -> void:
 		assert_int(spy.hits[i]["amount"]).is_equal(HazardMagma.pulse_damage(false))
 		assert_str(String(spy.hits[i]["attack_name"])).is_equal("岩浆区")
 	assert_int(HazardMagma.pulse_damage(false)).is_equal(2)
+	# 窗口内后继 erupt 批次叠加：区/到期拍/区视觉三列表保持平行（fix1 不变量）
+	assert_int(b._zone_fx.size()).is_equal(b._magma.zones.size())
+	assert_int(b._erupt_untils.size()).is_equal(b._magma.zones.size())
+
+# ---- 区视觉存续（fix1）：预警矩形不随收招提前释放，持续至区过期（5s）与区同步清场 ----
+
+func test_tyrant_zone_visuals_persist_until_zone_expiry() -> void:
+	var b := _tyrant(true)
+	b.combat_bounds = BOUNDS
+	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	spy.brain_pos = Vector2(0, 0)
+	b.player_ref = spy
+	var f := _engage_ready(b)
+	var ms: int = _drive_to_move(b, "erupt", f)
+	for i in range(MagmaTyrant.ERUPT_WINDUP_TICKS):
+		b.brain_tick(ms + 1 + i)
+	var resolve := ms + MagmaTyrant.ERUPT_WINDUP_TICKS
+	assert_str(String(b.get("_move"))).is_equal("")   # 喷发拍已收招
+	assert_int(b._magma.zones.size()).is_equal(4)
+	assert_int(b._zone_fx.size()).is_equal(4)         # 区视觉存活（不随 _end_move 清）
+	# 直呼背景结算隔离后继招式：until 拍区仍在，until+1 拍区+视觉同步清场
+	for fr in range(resolve + 1, resolve + 301):
+		b._erupt_tick(fr)
+	assert_int(b._magma.zones.size()).is_equal(4)
+	assert_int(b._zone_fx.size()).is_equal(4)
+	b._erupt_tick(resolve + 301)
+	assert_int(b._magma.zones.size()).is_equal(0)
+	assert_int(b._erupt_untils.size()).is_equal(0)
+	assert_int(b._zone_fx.size()).is_equal(0)
 
 # ---- 怒气密度：P0 喷发 4 块 → P1 起 6 块（ceili(4×1.5)），环距 60° 步进 ----
 
@@ -204,9 +239,9 @@ func test_tyrant_rage_densifies_erupt_zones_four_to_six() -> void:
 
 # ================================================================ 火拳
 
-# ---- 前摇 30t，近身扇形 90° 伤 7：朝向前摇起始拍锁定，出弧/出程即落空 ----
+# ---- 前摇 30t，近身扇形 90° 伤 8：朝向前摇起始拍锁定，出弧/出程即落空 ----
 
-func test_tyrant_fist_arc90_hits_for7_once() -> void:
+func test_tyrant_fist_arc90_hits_for8_once() -> void:
 	var b := _tyrant(true)
 	var spy: SpyPlayer = auto_free(SpyPlayer.new())
 	spy.brain_pos = Vector2(50, 0)                    # 50px ≤ 70，弧心正对
@@ -222,7 +257,7 @@ func test_tyrant_fist_arc90_hits_for7_once() -> void:
 			hit_frame = ms + i
 	assert_int(hit_frame).is_equal(ms + MagmaTyrant.FIST_WINDUP_TICKS)   # 前摇 30t 恰一跳
 	assert_int(spy.hits.size()).is_equal(1)
-	assert_int(spy.hits[0]["amount"]).is_equal(7)
+	assert_int(spy.hits[0]["amount"]).is_equal(8)
 	assert_str(String(spy.hits[0]["attack_name"])).is_equal("火拳")
 
 func test_tyrant_fist_dodgeable_windup_locks_facing() -> void:
@@ -282,8 +317,8 @@ func test_tyrant_rain_twelve_circles_three_waves_fire_rain_contract() -> void:
 
 # ================================================================ 地裂火浪
 
-# ---- 前摇 42t，环形火浪从 Boss 扩散至全房（2px/拍 至 300px ≥ 战斗房半对角），
-#      火浪前沿越过玩家拍结算 8；掩体（注入世界坐标）挡线即遮挡 ----
+# ---- 前摇 42t，环形火浪从 Boss 自中心扩散至 300px（2px/拍，≥ 战斗房半对角，
+#      自中心覆盖全房），火浪前沿越过玩家拍结算 8；掩体（注入世界坐标）挡线即遮挡 ----
 
 func test_tyrant_wave_ring_expands_and_hits_for8() -> void:
 	var b := _tyrant(true)
@@ -308,8 +343,8 @@ func test_tyrant_wave_ring_expands_and_hits_for8() -> void:
 	assert_int(hit_frame).is_equal(ms + MagmaTyrant.WAVE_WINDUP_TICKS + 100)   # 2px/拍 → 200px
 	assert_int(spy.hits[0]["amount"]).is_equal(8)
 	assert_str(String(spy.hits[0]["attack_name"])).is_equal("地裂火浪")
-	assert_float(b._wave_front).is_equal_approx(300.0, 0.01)   # 扩散至全房
-	assert_str(String(b.get("_move"))).is_equal("")   # 全房覆盖后收招
+	assert_float(b._wave_front).is_equal_approx(300.0, 0.01)   # 自中心扩散满径
+	assert_str(String(b.get("_move"))).is_equal("")   # 自中心覆盖满径后收招
 
 func test_tyrant_wave_blocked_by_cover_on_line() -> void:
 	var b := _tyrant(true)
@@ -360,6 +395,24 @@ func test_tyrant_rage_move_speed_plus_20_percent() -> void:
 		b.brain_tick(f + 61 + i)
 	assert_float(b.brain_pos.x - x1).is_equal_approx(28.8, 0.01)   # ×1.2
 	assert_bool(b.rage_active()).is_true()
+
+
+# ================================================================ 抗火 meta 读路径
+
+# ---- Boss 侧 _anti_fire() 读 T12 meta（HazardMagma.ANTI_FIRE_META；T10 只测纯函数，
+#      此处钉死 boss→player_ref meta 读路径与安全退化）----
+
+func test_tyrant_anti_fire_meta_read_path() -> void:
+	var b := _tyrant(true)
+	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	b.player_ref = spy
+	assert_bool(b._anti_fire()).is_false()            # 无 meta：不抗火（默认 0）
+	spy.set_meta(HazardMagma.ANTI_FIRE_META, 1)
+	assert_bool(b._anti_fire()).is_true()             # T12 抗火 buff 落地 meta=1 → 抗火
+	spy.set_meta(HazardMagma.ANTI_FIRE_META, 0)
+	assert_bool(b._anti_fire()).is_false()            # meta 归 0 → 恢复不抗火
+	b.player_ref = null
+	assert_bool(b._anti_fire()).is_false()            # 无玩家替身：安全退化不抗火
 
 
 # ================================================================ 数据接线与死亡路径
