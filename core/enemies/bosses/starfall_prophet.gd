@@ -4,9 +4,13 @@ extends BossBase
 ## 四轮各 24t，轮回序跨施法延续）+ 星陨（3 颗追踪星体坠落——ENEMY 弹被近战反弹
 ## 窗 combat.reflect 翻面后即停追踪、可击回 Boss，教玩家「反打」）；P2（60%）
 ## 单元素领域（重施切换元素、8s 内存续招式弹/直击带领域元素——「领域内敌我伤害
-## 转化」的 Boss 侧口径）+ 共鸣斩（对已有异常玩家强制附加第二状态：搭档元素第二击
-## + StatusComponent.force_resonance，引发共鸣教玩家危险）；P3（30%）星河（滚筒
-## 弹幕墙 ×3 波横向推进，每波 12 行含 2×2 行缺口=安全通道；期间召唤 2 星髓聚合体）。
+## 转化」的 Boss 侧口径）+ 共鸣斩（对已有异常玩家强制附加第二状态：
+## StatusComponent.force_resonance 按状态契约结算，共鸣伤害载荷经
+## resonance_event.last_damage（=斩击伤 8）由状态消费方结算——本招为单一伤害
+## 实例（伤 8=附录 E.6 共鸣斩伤值；fix 评审 I-1：真实 Player 受击无敌帧下同拍
+## 无可被吞的第二击，测试替身与生产契约一致））；P3（30%）星河（滚筒
+## 弹幕墙 ×3 波横向推进，每波 12 行含 2×2 行缺口=安全通道（缺口行向内收一行：
+## g1∈[1,4]/g2∈[7,10]，fix 评审 M-4——贴边缺口自由窗过窄）；期间召唤 2 星髓聚合体）。
 ## 隐藏门接线在 FloorScene（A3 携带任意共鸣击杀小 Boss → 开门入场）。
 ## 招式序列状态机同 VineColossus/GemQueen；前摇 ≥24t（GDD §15）；数值逐字附录 E.6。
 
@@ -49,7 +53,9 @@ const FIELD_DURATION_TICKS := 480    # 8s
 const FIELD_ORDER: Array[int] = [Elements.Id.FIRE, Elements.Id.ICE,
 	Elements.Id.POISON, Elements.Id.SHOCK]
 
-# ---- 共鸣斩（P2）：近身扇形 90°/70px；对已有异常玩家强制附加第二状态（两击同伤 8）----
+# ---- 共鸣斩（P2）：近身扇形 90°/70px 伤 8（单一伤害实例，附录 E.6）；
+#      对已有异常玩家强制附加第二状态（StatusComponent.force_resonance——共鸣伤害
+#      载荷经 resonance_event.last_damage 结算，不另发第二击：评审 I-1 契约修复）----
 const SLASH_RANGE_PX := 70.0
 const SLASH_ARC_DEG := 90.0
 const SLASH_DMG := 8
@@ -82,6 +88,7 @@ var _galaxy_waves_fired := 0
 var _galaxy_base_dir := 1            # 施法首波方向（+1 左→右先行）
 var _galaxy_waves: Array = []        # 逐波记录面 [{"dir": int, "ys": Array[float]}]
 var _galaxy_rng: RandomNumberGenerator = null
+var _stars_active := false           # 星陨追踪粘性门控（施法置位/池内无星清零——评审 M-1）
 var _fx: Array[Node] = []            # 招式预警视觉（move 结束即清）
 
 
@@ -268,6 +275,7 @@ func _starfall_resolve() -> void:
 	fired_this_tick = true
 	if combat == null:
 		return
+	_stars_active = true              # 追踪粘性置位（池内无星自动清零——评审 M-1）
 	var speed := float(row.get("bullet_speed", 100))
 	var aim := _aim_at_player()
 	for i in range(STAR_COUNT):
@@ -283,13 +291,17 @@ func _starfall_resolve() -> void:
 
 
 ## 存活追踪星体（ENEMY 面 + 星陨标记——反弹后翻面自动出集）。
+## fix 评审 M-1：扫描以 _stars_active 粘性门控——星陨施法置位、扫描未见星清零；
+## 无星拍零分配零池扫描（热路径守恒，同 magma_tyrant 背景结算手法）。
 func _live_stars() -> Array:
-	if combat == null:
+	if combat == null or not _stars_active:
 		return []
 	var out: Array = []
 	for p in combat.pool.active:
 		if p.faction == Projectile.Faction.ENEMY and p.attack_name == "星陨":
 			out.append(p)
+	if out.is_empty():
+		_stars_active = false
 	return out
 
 
@@ -341,8 +353,11 @@ func _player_anomaly_element() -> int:
 	return Elements.Id.NONE
 
 
-## 本击（伤 8，扇内）+ 对已有异常玩家强制附加第二状态：搭档元素第二击（引发共鸣）
-## + StatusComponent.force_resonance（鸭子接缝，真实状态侧同步结算）。
+## 本击（伤 8 单一伤害实例，扇内）+ 对已有异常玩家强制附加第二状态：
+## StatusComponent.force_resonance（状态契约结算：清两元素激活表 + resonance_event
+## 落 reaction/last_damage/forced，共鸣伤害载荷由状态消费方按 last_damage 结算）。
+## fix 评审 I-1：不再同拍发第二击——真实 Player 受击无敌帧会吞掉同拍二击，
+## 单一伤害实例使测试替身与生产契约一致。
 func _slash_resolve(frame: int) -> void:
 	var to := _player_pos() - brain_pos
 	if to.length() > SLASH_RANGE_PX:
@@ -359,7 +374,6 @@ func _slash_resolve(frame: int) -> void:
 	var st: Node = player_ref.get("status") if player_ref != null else null
 	if st != null:
 		(st as StatusComponent).force_resonance(partner, SLASH_DMG, frame)
-	_hit_player(SLASH_DMG, {"element": partner, "attack_name": "元素共鸣"})
 
 
 # ---- 星河 ----
@@ -372,6 +386,8 @@ func _galaxy_fire_wave(wave: int, _frame: int) -> void:
 		_galaxy_summon()
 	if combat == null:
 		return
+	if _galaxy_rng == null:           # 懒初始化护栏（同 vine_colossus/magma_tyrant，评审 M-3）
+		_galaxy_rng = RngSvc.stream(RunState.floor_idx, GALAXY_RNG_SALT)
 	var wave_dir := _galaxy_base_dir if wave % 2 == 0 else -_galaxy_base_dir
 	var speed := float(row.get("bullet_speed", 100))
 	var dmg := int(row.get("bullet_dmg", 6))
@@ -379,9 +395,10 @@ func _galaxy_fire_wave(wave: int, _frame: int) -> void:
 		else Rect2(brain_pos - Vector2(240, 120), Vector2(480, 240))
 	var x0 := bounds.position.x - 8.0 if wave_dir > 0 else bounds.end.x + 8.0
 	var center_y := bounds.get_center().y
-	# 前/后半区各一缺口（首缺口 ⊆ [0,5]，次缺口 ⊆ [6,11]）——两缺口不重叠
-	var g1 := _galaxy_rng.randi_range(0, GALAXY_ROWS / 2 - GALAXY_GAP_ROWS)
-	var g2 := _galaxy_rng.randi_range(GALAXY_ROWS / 2, GALAXY_ROWS - GALAXY_GAP_ROWS)
+	# 前/后半区各一缺口（缺口行向内收一行，评审 M-4：贴边缺口自由窗过窄）——
+	# 首缺口 ⊆ [1,4]、次缺口 ⊆ [7,10]，两缺口不重叠且不贴墙带
+	var g1 := _galaxy_rng.randi_range(1, GALAXY_ROWS / 2 - GALAXY_GAP_ROWS)
+	var g2 := _galaxy_rng.randi_range(GALAXY_ROWS / 2 + 1, GALAXY_ROWS - GALAXY_GAP_ROWS)
 	var ys: Array = []
 	for r in range(GALAXY_ROWS):
 		var in_gap := (r >= g1 and r < g1 + GALAXY_GAP_ROWS) \

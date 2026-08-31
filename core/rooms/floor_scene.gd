@@ -1008,8 +1008,9 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	var enemy_id := String(e.row.get("id", ""))
 	# m2-t31 击杀蓝晶（GDD §14）：精英 +5 / 小 Boss +20 / Boss +50（Boss 首杀再 +300 入池）。
 	# 档位键 = guest_kind（A1 嘉宾三档统一标记）；真实 Boss 行（vine_colossus / gem_queen /
-	# prism_golem / frost_widow / magma_tyrant）只有 boss_script 无 guest_kind，按
-	# room_combat 同款口径等价归 boss 档；杂兵两键皆空 = 0 不入池。
+	# prism_golem / frost_widow / magma_tyrant / starfall_prophet——隐藏 Boss 同口径归
+	# boss 档；其行内 drops gems3 实体掉落与击杀入池叠加 = 裁定⑲合法口径）只有
+	# boss_script 无 guest_kind，按 room_combat 同款口径等价归 boss 档；杂兵两键皆空 = 0 不入池。
 	var kill_kind := String(e.row.get("guest_kind", ""))
 	if kill_kind.is_empty() and String(e.row.get("boss_script", "")) != "":
 		kill_kind = "boss"
@@ -1028,6 +1029,7 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 		# 但不消费 RoomFlow 波次（不回锁已清房）。
 		if String(killed_row.get("id", "")) == "starfall_prophet":
 			_spawn_guest_drops(room, killed_row, death_pos)
+			AudioMgr.boss_layer(false)   # m2-t24 fix（评审 M-5）：隐藏 Boss 退场 → 恢复生态曲
 		return
 	room.room_flow.notify_killed(notify_id, frame)
 	_spawn_guest_drops(room, killed_row, death_pos)
@@ -1039,7 +1041,9 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 			_flow_suspended = true           # 层间中转接管玩家（防进房检测抢人）
 			AudioMgr.boss_layer(false)       # m2-t22：Boss 退场 → 恢复生态曲
 			boss_defeated.emit(room.room_id)
-	_maybe_open_starfall_gate(room, death_pos)
+		# m2-t24 fix（评审 C-1）：隐藏门只在「房清拍」判定——小 Boss 为末波，房清即
+		# 小 Boss 已死；波 1 杂兵死亡（房未清）不得提前开门。
+		_maybe_open_starfall_gate(room, death_pos)
 
 
 ## m1-t27 嘉宾死亡掉落（行内 drops 契约："weapon"=随机武器掉落台（ShopLogic.roll_weapon_id，
@@ -1094,10 +1098,12 @@ func _build_boss_soul(room: FloorRoom, world_pos: Vector2) -> void:
 	room.add_child(soul)
 
 
-## m2-t24 隐藏门（GDD §10 裁定）：A3 层小 Boss 死亡时若本层触发过任意共鸣
+## m2-t24 隐藏门（GDD §10 裁定）：A3 层小 Boss 死亡且房间清空时若本层触发过任意共鸣
 ## （携带判定宽松口径：_floor_resonances >0）→ 星陨门开启：门贴花落位 +
 ## 星陨先知自门入场（波次外嘉宾 counts_for_wave=false，不回锁已清房）。
-## 幂等：门已开（重复死亡/多小 Boss 防御）则跳过。
+## 调用契约（评审 C-1 修复）：仅在 `room.room_flow.cleared` 成立的死亡拍调用
+## （_on_enemy_died 房清分支内）——小 Boss 为末波，房清即小 Boss 已死；
+## 波 1 杂兵死亡不触发。幂等：门已开（重复死亡/多小 Boss 防御）则跳过。
 func _maybe_open_starfall_gate(room: FloorRoom, death_pos: Vector2) -> void:
 	if room == null or not is_instance_valid(room) or room.type != "miniboss":
 		return
@@ -1126,6 +1132,7 @@ func _maybe_open_starfall_gate(room: FloorRoom, death_pos: Vector2) -> void:
 	spawn_pos = Vector2(clampf(spawn_pos.x, interior.position.x, interior.end.x),
 		clampf(spawn_pos.y, interior.position.y, interior.end.y))
 	_spawn_enemy(room, "starfall_prophet", spawn_pos, {}, false)
+	AudioMgr.boss_layer(true)   # m2-t24 fix（评审 M-5）：隐藏 Boss 入场 → Boss 曲层（幂等；死亡即恢复）
 	starfall_gate_opened.emit(room.room_id)
 
 

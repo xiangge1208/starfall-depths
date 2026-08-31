@@ -305,8 +305,10 @@ func test_prophet_field_lasting_8s_and_switch_on_recast() -> void:
 	b._field_tick(ms3)
 	assert_int(b._field_element).is_equal(Elements.Id.NONE)
 
-# ---- 共鸣斩：前摇 30t 扇形（90°/70px）伤 8；对已有异常玩家强制附加第二状态
-#      （第二击带可共鸣搭档元素——引发共鸣，教玩家危险）；无异常仅一击 ----
+# ---- 共鸣斩：前摇 30t 扇形（90°/70px）伤 8 单一伤害实例（评审 I-1 契约：真实
+#      Player 受击无敌帧下同拍二击会被吞——强制附加走 StatusComponent.force_resonance
+#      状态契约，共鸣伤害载荷经 resonance_event.last_damage 结算，不另发第二击）；
+#      对已有异常玩家强制附加第二状态（搭档元素引发共鸣）；无异常仅一击 ----
 
 func test_prophet_resonance_slash_forces_second_status_on_anomaly() -> void:
 	var b := _prophet()
@@ -320,15 +322,14 @@ func test_prophet_resonance_slash_forces_second_status_on_anomaly() -> void:
 	var ms: int = _drive_to_move(b, "slash", f)
 	for i in range(30):
 		b.brain_tick(ms + 1 + i)                      # 前摇 30t 结算
-	assert_int(spy.hits.size()).is_equal(2)           # 本击 + 强制第二状态
+	assert_int(spy.hits.size()).is_equal(1)           # 单一伤害实例（附录 E.6 共鸣斩伤 8）
 	assert_int(spy.hits[0]["amount"]).is_equal(8)
 	assert_str(String(spy.hits[0]["attack_name"])).is_equal("共鸣斩")
-	assert_int(spy.hits[1]["amount"]).is_equal(8)
-	assert_str(String(spy.hits[1]["attack_name"])).is_equal("元素共鸣")
-	# 第二状态：与已有异常可共鸣的搭档元素（火 → 冰：淬爆组合）
-	assert_int(int(spy.hits[1]["element"])).is_equal(Elements.Id.ICE)
-	# 强制共鸣已按 StatusComponent 契约结算（forced 标记落表）
-	assert_bool(bool(spy.status.resonance_event.get("forced", false))).is_true()
+	# 强制共鸣已按 StatusComponent 契约结算（forced 标记落表）：火 → 冰（淬爆组合）
+	var ev: Dictionary = spy.status.resonance_event
+	assert_bool(bool(ev.get("forced", false))).is_true()
+	assert_int(int(ev["reaction"])).is_equal(Resonance.resolve(Elements.Id.FIRE, Elements.Id.ICE))
+	assert_int(int(ev["last_damage"])).is_equal(8)    # 共鸣伤害载荷 = 斩击伤 8
 
 func test_prophet_resonance_slash_single_hit_without_anomaly() -> void:
 	var b := _prophet()
@@ -351,7 +352,7 @@ func test_prophet_resonance_slash_single_hit_without_anomaly() -> void:
 
 func test_prophet_resonance_slash_treats_field_as_player_anomaly() -> void:
 	var b := _prophet()
-	var spy: SpyPlayer = auto_free(SpyPlayer.new())
+	var spy: StatusedPlayer = auto_free(StatusedPlayer.new())
 	spy.brain_pos = Vector2(40, 0)
 	b.player_ref = spy
 	b._take_hit_at(_ctx(1280), FRAME - 100)           # → P2
@@ -363,9 +364,11 @@ func test_prophet_resonance_slash_treats_field_as_player_anomaly() -> void:
 	var ms: int = _drive_to_move(b, "slash", ms_field + 61)
 	for i in range(30):
 		b.brain_tick(ms + 1 + i)
-	assert_int(spy.hits.size()).is_equal(2)           # 领域元素视作已有异常 → 强制第二状态
+	assert_int(spy.hits.size()).is_equal(1)           # 单一伤害实例（附录 E.6 共鸣斩伤 8）
 	assert_int(int(spy.hits[0]["element"])).is_equal(Elements.Id.FIRE)   # 领域内直击转化
-	assert_int(int(spy.hits[1]["element"])).is_equal(Elements.Id.ICE)   # 火 → 冰搭档
+	# 边界：领域幻影异常（status.active 为空）不满足 force_resonance「至少一个激活
+	# 状态」契约 → 不落共鸣事件；真实激活状态的强制附加覆盖见上一测试。
+	assert_bool(spy.status.resonance_event.is_empty()).is_true()
 
 # ---- 星河：前摇 72t，滚筒弹幕墙 ×3 波（各隔 48t）横向推进，每波 12 行其中
 #      2 缺口×2 行（缺口罩间=安全通道）；期间召唤 2 星髓聚合体 ----
@@ -610,6 +613,24 @@ func test_hidden_gate_stays_closed_below_a3() -> void:
 	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
 	assert_object(_find_enemy(fs.room_node(1), "starfall_prophet")).is_null()
 	assert_object(fs.room_node(1).get_node_or_null("StarfallGate")).is_null()
+
+## 评审 C-1 回归（时序负向）：共鸣先于一切击杀（生产常见时序）——击杀波 1 杂兵
+## （房未清）不得提前开门/入场；小 Boss（末波）死亡房清拍才开门。
+
+func test_hidden_gate_not_opened_by_minion_death_before_room_clear() -> void:
+	RunState.floor_idx = 3
+	var fs := _make_scene(_typed_chain(["miniboss"]))
+	assert_bool(fs.enter_room(1)).is_true()
+	EventBus.resonance_triggered.emit(Resonance.R.SHATTER, Vector2.ZERO, {})   # 共鸣先于击杀
+	_kill_all(fs.room_node(1))                        # 仅波 1 杂兵死亡 → 房未清
+	await _await_until(func() -> bool: return _find_enemy(fs.room_node(1), "zibao_wangchong") != null)
+	assert_object(fs.room_node(1).get_node_or_null("StarfallGate")).is_null()
+	assert_object(_find_enemy(fs.room_node(1), "starfall_prophet")).is_null()
+	# 小 Boss 死亡 → 房清拍 → 门开（携带判定在，唯时序门控生效）
+	_kill_all(fs.room_node(1))
+	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
+	assert_object(fs.room_node(1).get_node_or_null("StarfallGate")).is_not_null()
+	assert_object(_find_enemy(fs.room_node(1), "starfall_prophet")).is_not_null()
 
 
 # ================================================================ 掉落支持（蓝晶/头目魂）
