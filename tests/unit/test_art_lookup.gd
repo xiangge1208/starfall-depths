@@ -111,25 +111,28 @@ func test_biome_set_floor1_cave_kit() -> void:
 	assert_str(String(set1["floor"])).is_equal("res://art/generated/tiles/floor_cave.png")
 	assert_str(String(set1["wall"])).is_equal("res://art/generated/tiles/wall_cave.png")
 	assert_str(String(set1["door"])).is_equal("res://art/generated/tiles/door_closed.png")
+	assert_str(String(set1["corridor"])).is_equal("res://art/generated/tiles/corridor_floor.png")
 
 func test_biome_set_floor2_crystal_kit() -> void:
 	var set2 := ArtLookup.biome_set(2)
 	assert_str(String(set2["floor"])).is_equal("res://art/generated/tiles/floor_crystal.png")
 	assert_str(String(set2["wall"])).is_equal("res://art/generated/tiles/wall_crystal.png")
 	assert_str(String(set2["door"])).is_equal("res://art/generated/tiles/door_closed.png")
+	assert_str(String(set2["corridor"])).is_equal("res://art/generated/tiles/corridor_crystal.png")
 
 func test_biome_set_floor3_magma_kit() -> void:
 	var set3 := ArtLookup.biome_set(3)
 	assert_str(String(set3["floor"])).is_equal("res://art/generated/tiles/floor_magma.png")
 	assert_str(String(set3["wall"])).is_equal("res://art/generated/tiles/wall_magma.png")
 	assert_str(String(set3["door"])).is_equal("res://art/generated/tiles/door_closed.png")
+	assert_str(String(set3["corridor"])).is_equal("res://art/generated/tiles/corridor_magma.png")
 
 func test_biome_set_all_paths_exist_for_three_floors() -> void:
-	# 映射完备性契约：1/2/3 层套件（地板/墙/门）每条路径都真实存在（防表腐坏塞坏路径）
+	# 映射完备性契约：1/2/3 层套件（地板/墙/门/走廊）每条路径都真实存在（防表腐坏塞坏路径）
 	for floor_idx: int in [1, 2, 3]:
 		var kit := ArtLookup.biome_set(floor_idx)
-		assert_int(kit.size()).is_equal(3)
-		for key: String in ["floor", "wall", "door"]:
+		assert_int(kit.size()).is_equal(4)
+		for key: String in ["floor", "wall", "door", "corridor"]:
 			var path := String(kit[key])
 			assert_bool(path.is_empty()).is_false()
 			assert_bool(FileAccess.file_exists(path)).is_true()
@@ -140,11 +143,13 @@ func test_biome_set_unknown_floor_returns_empty() -> void:
 	assert_int(ArtLookup.biome_set(4).size()).is_equal(0)
 
 func test_corridor_tiles_for_crystal_magma_kits_exist() -> void:
-	# 套件走廊瓦片（走廊不随层变色时仍统一 corridor_floor；crystal/magma 变体已在表内可寻址）
-	assert_str(ArtLookup.tile_path("corridor_crystal")) \
-		.is_equal("res://art/generated/tiles/corridor_crystal.png")
-	assert_str(ArtLookup.tile_path("corridor_magma")) \
-		.is_equal("res://art/generated/tiles/corridor_magma.png")
+	# 套件走廊瓦片（fix：corridor 经 biome_set 第 4 键随层分化；cave 层即通用 corridor_floor）
+	assert_str(ArtLookup.biome_set(1)["corridor"]) \
+		.is_equal(ArtLookup.tile_path("corridor_floor"))
+	assert_str(ArtLookup.biome_set(2)["corridor"]) \
+		.is_equal(ArtLookup.tile_path("corridor_crystal"))
+	assert_str(ArtLookup.biome_set(3)["corridor"]) \
+		.is_equal(ArtLookup.tile_path("corridor_magma"))
 	assert_bool(FileAccess.file_exists(ArtLookup.tile_path("corridor_crystal"))).is_true()
 	assert_bool(FileAccess.file_exists(ArtLookup.tile_path("corridor_magma"))).is_true()
 

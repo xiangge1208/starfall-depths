@@ -176,26 +176,30 @@ static func tile_path(tile_name: String) -> String:
 		return BASE + String(TILES[tile_name])
 	return ""
 
-## 层生物群系套件（m2-t27 I-3 A2/A3 瓦片接线验证）：floor_idx 1→cave/garden 套、
-## 2→crystal 套、3→magma 套。返回 {floor, wall, door} 三键全路径（门各层共用
-## door_closed——生成器无 per-biome 门图）；套件走廊变体 corridor_*/crystal/magma
-## 经 TILES 寻址。未知层（<1 或 >3）返回空表，由调用方回落。
+## 层生物群系套件（m2-t27 I-3 A2/A3 瓦片接线验证 + fix 渲染接线）：floor_idx
+## 1→cave/garden 套、2→crystal 套、3→magma 套。返回 {floor, wall, door, corridor}
+## 四键全路径：door 各层共用 door_closed（生成器无 per-biome 门图）；corridor 为
+## 套件走廊瓦片（cave 层即通用 corridor_floor）。未知层（<1 或 >3）返回空表，由调用方回落。
 ## floor 1 主体取 cave（普通房）；start 庭院 garden 特例仍由 floor_scene 按房型选。
 static func biome_set(floor_idx: int) -> Dictionary:
 	var kit := ""
+	var corridor := "corridor_floor"
 	match floor_idx:
 		1:
 			kit = "cave"
 		2:
 			kit = "crystal"
+			corridor = "corridor_crystal"
 		3:
 			kit = "magma"
+			corridor = "corridor_magma"
 		_:
 			return {}
 	return {
 		"floor": tile_path("floor_%s" % kit),
 		"wall": tile_path("wall_%s" % kit),
 		"door": tile_path("door_closed"),
+		"corridor": tile_path(corridor),
 	}
 
 ## 武器图标（ui/weapons/<id>.png，115 张全名录按 id 约定寻址）。
