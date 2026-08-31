@@ -58,7 +58,8 @@ func _tmp_settings() -> Node:
 func _players(mgr: Node) -> Array:
 	var out := []
 	for c in mgr.get_children():
-		if c is AudioStreamPlayer:
+		# m2-t22：排除 music 通道（名为 "Music" 的常驻单实例），本文件只测 sfx 池。
+		if c is AudioStreamPlayer and c.name != "Music":
 			out.append(c)
 	return out
 

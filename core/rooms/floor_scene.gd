@@ -1002,6 +1002,7 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 		refresh_gates()
 		if room.type == "boss":
 			_flow_suspended = true           # 层间中转接管玩家（防进房检测抢人）
+			AudioMgr.boss_layer(false)       # m2-t22：Boss 退场 → 恢复生态曲
 			boss_defeated.emit(room.room_id)
 
 
@@ -1087,6 +1088,8 @@ func _detect_room_enter() -> void:
 
 func _on_flow_room_event(room_type: String, room_id: int) -> void:
 	room_event.emit(room_type, room_id)
+	if room_type == "boss":
+		AudioMgr.boss_layer(true)   # m2-t22：Boss 房首进 → Boss 曲层（AudioMgr 幂等）
 	_open_facility(room_type, _rooms.get(room_id))
 
 

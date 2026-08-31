@@ -5,7 +5,8 @@ extends Node
 ## `Telemetry.log_row(...)` 经 autoload 全局名解析保持不改（披露：静态类 → 单例，语义等价）。
 ## 列契约：event,ts_frame,v1,v2,v3,source（m1-t18 追加 source 列；kill 行由房间发射点
 ## 显式传入 boss 标记 / 玩家武器 id，缺省 ""）。会话计数 kills/hurt_count/rooms
-## 供 T22 死亡结算经 session_summary() 读取。
+## 供 T22 死亡结算经 session_summary() 读取；floor_build 行另记基准帧供
+## m2-t24 死亡回放键换算层内帧（floor_build_frame()）。
 
 const PATH := "user://telemetry.csv"
 const HEADER := "event,ts_frame,v1,v2,v3,source"
@@ -23,6 +24,10 @@ var _start_frame := 0
 var _damage_window: Array[Dictionary] = []   # {frame, amount}；最近 60t 玩家实际伤害
 var _damage_window_total := 0
 var _peak_dps := 0
+## m2-t24 死亡回放：最近一次 floor_build 行的全局帧（FloorScene.setup 落行）。
+## 死亡回放键据此把致死全局帧换算为层内帧（death_frame = 致死帧 - 构建帧）；
+## -1 = 本会话未见楼层构建（headless/异常注入路径）。
+var _floor_build_frame := -1
 ## 文件系统接缝仅用于确定性模拟 Windows 瞬时打开失败；生产默认走 FileAccess。
 ## 注意：已有文件的 READ_WRITE 打开失败时绝不能降级为 WRITE，后者会截断历史。
 var _file_exists_override: Callable = Callable()
@@ -43,8 +48,15 @@ func log_row(cols: Array, source: String = "") -> void:
 		return
 	_buf.append(",".join(cols.map(func(c) -> String: return str(c))) + "," + source)
 	_count_row(String(cols[0]))
+	if String(cols[0]) == "floor_build" and cols.size() > 1:
+		_floor_build_frame = int(cols[1])    # m2-t24：回放层内帧换算基准
 	if _buf.size() >= FLUSH_ROWS:
 		flush()
+
+
+## 最近一次楼层构建的全局帧（-1 = 本会话未见 floor_build 行）。
+func floor_build_frame() -> int:
+	return _floor_build_frame
 
 ## 落盘（文件首建写表头；已有文件只按追加语义打开）。
 ## 磁盘暂时不可写 → fail-soft 保留内存批次，下一 flush 周期重试；绝不截断历史。
@@ -106,6 +118,7 @@ func reset_session() -> void:
 	_damage_window.clear()
 	_damage_window_total = 0
 	_peak_dps = 0
+	_floor_build_frame = -1
 	_start_frame = Engine.get_physics_frames()
 
 func _count_row(event: String) -> void:
