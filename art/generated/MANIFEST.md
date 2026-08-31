@@ -16,8 +16,8 @@
 | `characters/hero_ranger_sheet.png` | 64x64 | 英雄「游侠·苇」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
 | `characters/hero_engineer_sheet.png` | 64x64 | 英雄「工程师·铆」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
 | `characters/hero_mage_sheet.png` | 64x64 | 英雄「法师·烬」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
-| `characters/hero_assassin_sheet.png` | 64x64 | 英雄「刺客·蝉」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
 | `characters/hero_guardian_sheet.png` | 64x64 | 英雄「守护者·萄」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_assassin_sheet.png` | 64x64 | 英雄「刺客·蝉」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
 | `enemies/kuli_bug.png` | 16x16 | 敌人「苦力虫（自爆虫）」 | data/enemies.json id=kuli_bug; 现为 room_combat.gd:191-197 按 ARCHETYPE_COLORS.suicide 0.4,0.8,0.35 纯色块 | 原型:绿色圆虫+引信触角+大眼；死亡闪烁接 fuse_ticks |
 | `enemies/cave_bat.png` | 16x16 | 敌人「穴蝠」 | 同上, archetype=orbiter 0.45,0.42,0.55 | 原型:灰紫蝙蝠,展开双翼,红眼獠牙；飞行做 2 帧扑翼 |
 | `enemies/crossbowman.png` | 16x16 | 敌人「弩兵」 | 同上, archetype=shooter 0.5,0.6,0.85 | 原型:蓝衣弩手+弩；蓄力(windup 30t)需抬弩帧 |
@@ -98,6 +98,26 @@
 | `ui/buffs/roll_master.png` | 12x12 | Buff 图标「翻滚大师」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
 | `ui/buffs/extra_projectiles.png` | 12x12 | Buff 图标「散弹扩张」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
 | `ui/buffs/crit_detonate.png` | 12x12 | Buff 图标「暴虐回响」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/hunter.png` | 12x12 | Buff 图标「猎杀者」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/resonance_amp.png` | 12x12 | Buff 图标「共鸣增幅」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/avenger.png` | 12x12 | Buff 图标「复仇者」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/anti_fire.png` | 12x12 | Buff 图标「抗火」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/anti_ice.png` | 12x12 | Buff 图标「抗冰」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/anti_poison.png` | 12x12 | Buff 图标「抗毒」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/nerve_reflex.png` | 12x12 | Buff 图标「神经反射」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/carapace.png` | 12x12 | Buff 图标「甲壳」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/thorn_armor.png` | 12x12 | Buff 图标「荆棘护甲」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/dash_extend.png` | 12x12 | Buff 图标「冲刺延伸」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/phoenix.png` | 12x12 | Buff 图标「不死鸟」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/wealth.png` | 12x12 | Buff 图标「财富」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/glutton.png` | 12x12 | Buff 图标「大胃王」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/pickup_magnet.png` | 12x12 | Buff 图标「捡拾磁铁」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/energy_siphon.png` | 12x12 | Buff 图标「蓝能汲取」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/heart_sense.png` | 12x12 | Buff 图标「红心感应」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/ammo_convert.png` | 12x12 | Buff 图标「弹药转化」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/haggle.png` | 12x12 | Buff 图标「议价」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/element_vision.png` | 12x12 | Buff 图标「元素视界」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
+| `ui/buffs/resonance_vision.png` | 12x12 | Buff 图标「共鸣视界」 | hud.gd:329 buff 芯片按稀有度着色（无图标）; ui/buff_pick.gd 卡片纯文字 | 12x12 显示, 24x24 网格可后期重绘 |
 | `ui/drinks/shengming_soda.png` | 12x12 | 饮料图标「生命苏打」 | core/interact/drink_machine.gd 卡片纯文字（PANEL_BG/ACCENT） | 瓶身色=效果色，重绘时保留辨识度 |
 | `ui/drinks/nengliang_qishui.png` | 12x12 | 饮料图标「蓝能汽水」 | core/interact/drink_machine.gd 卡片纯文字（PANEL_BG/ACCENT） | 瓶身色=效果色，重绘时保留辨识度 |
 | `ui/drinks/jifeng_bohe.png` | 12x12 | 饮料图标「疾风薄荷」 | core/interact/drink_machine.gd 卡片纯文字（PANEL_BG/ACCENT） | 瓶身色=效果色，重绘时保留辨识度 |
@@ -106,86 +126,6 @@
 | `ui/drinks/qingyu_qipao.png` | 12x12 | 饮料图标「轻羽气泡」 | core/interact/drink_machine.gd 卡片纯文字（PANEL_BG/ACCENT） | 瓶身色=效果色，重绘时保留辨识度 |
 | `ui/drinks/xingsui_tete.png` | 12x12 | 饮料图标「星髓特调」 | core/interact/drink_machine.gd 卡片纯文字（PANEL_BG/ACCENT） | 瓶身色=效果色，重绘时保留辨识度 |
 | `ui/drinks/shenmi_hunhe.png` | 12x12 | 饮料图标「神秘混合」 | core/interact/drink_machine.gd 卡片纯文字（PANEL_BG/ACCENT） | 瓶身色=效果色，重绘时保留辨识度 |
-| `ui/weapons/laohuoji.png` | 16x16 | 武器图标「老伙计」(pistol/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/maodingqiang.png` | 16x16 | 武器图标「铆钉枪」(pistol/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/duangong.png` | 16x16 | 武器图标「短弓」(bow/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/xuetufazhang.png` | 16x16 | 武器图标「学徒法杖」(staff/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/tiejian.png` | 16x16 | 武器图标「铁剑」(melee/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/shuangbi.png` | 16x16 | 武器图标「双匕」(melee/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/zhishibuqiang.png` | 16x16 | 武器图标「制式步枪」(rifle/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/qianguan.png` | 16x16 | 武器图标「铅管」(shotgun/common) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/shuangzixing.png` | 16x16 | 武器图标「双子星」(pistol/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/fengci.png` | 16x16 | 武器图标「蜂刺」(pistol/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/fengqun.png` | 16x16 | 武器图标「蜂群」(smg/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/jiaoju.png` | 16x16 | 武器图标「角锯」(smg/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/sandianjungui.png` | 16x16 | 武器图标「三点军规」(rifle/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/lieluren.png` | 16x16 | 武器图标「猎鹿人」(rifle/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/wulianbao.png` | 16x16 | 武器图标「五连爆」(shotgun/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/huoqiuzhang.png` | 16x16 | 武器图标「火球杖」(staff/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/bingzhuizhang.png` | 16x16 | 武器图标「冰锥杖」(staff/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/duyunzhang.png` | 16x16 | 武器图标「毒云杖」(staff/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/dujian.png` | 16x16 | 武器图标「毒箭」(bow/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/bingjian.png` | 16x16 | 武器图标「冰箭」(bow/uncommon) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/ronghuoshouqiang.png` | 16x16 | 武器图标「熔火手枪」(pistol/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/shuangya.png` | 16x16 | 武器图标「霜牙」(pistol/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/xunxiang.png` | 16x16 | 武器图标「讯响」(pistol/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/shenpanzhe.png` | 16x16 | 武器图标「审判者」(pistol/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/xingxie.png` | 16x16 | 武器图标「星屑」(pistol/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/lanshan.png` | 16x16 | 武器图标「蓝闪」(smg/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/shuangchixuanfeng.png` | 16x16 | 武器图标「双持旋风」(smg/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/guanchuanzhe.png` | 16x16 | 武器图标「贯穿者」(rifle/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/shenkong.png` | 16x16 | 武器图标「深空」(rifle/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/zhanhaoqingxiao.png` | 16x16 | 武器图标「战壕清扫」(shotgun/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/liexiong.png` | 16x16 | 武器图标「猎熊」(shotgun/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/rongduanjiguang.png` | 16x16 | 武器图标「熔断激光」(laser/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/bingjingshexian.png` | 16x16 | 武器图标「冰晶射线」(laser/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/leilianzhang.png` | 16x16 | 武器图标「雷链杖」(staff/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/liefengchanggong.png` | 16x16 | 武器图标「猎风长弓」(bow/rare) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/dianque.png` | 16x16 | 武器图标「电雀」(pistol/epic) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/ranshaodanlian.png` | 16x16 | 武器图标「燃烧弹链」(rifle/epic) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/donghehe.png` | 16x16 | 武器图标「冻结核」(rifle/epic) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/longxi.png` | 16x16 | 武器图标「龙息」(shotgun/epic) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `ui/weapons/liuhuang.png` | 16x16 | 武器图标「硫磺」(shotgun/epic) | hud.gd:264-268 武器槽/商店卡片均为纯文字 | 左上角标为稀有度色, 右下角标为元素色 |
-| `weapons/laohuoji.png` | 16x16 | 手持武器「老伙计」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/maodingqiang.png` | 16x16 | 手持武器「铆钉枪」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/duangong.png` | 16x16 | 手持武器「短弓」(bow) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/xuetufazhang.png` | 16x16 | 手持武器「学徒法杖」(staff) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/tiejian.png` | 16x16 | 手持武器「铁剑」(melee) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/shuangbi.png` | 16x16 | 手持武器「双匕」(melee) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/zhishibuqiang.png` | 16x16 | 手持武器「制式步枪」(rifle) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/qianguan.png` | 16x16 | 手持武器「铅管」(shotgun) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/shuangzixing.png` | 16x16 | 手持武器「双子星」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/fengci.png` | 16x16 | 手持武器「蜂刺」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/fengqun.png` | 16x16 | 手持武器「蜂群」(smg) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/jiaoju.png` | 16x16 | 手持武器「角锯」(smg) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/sandianjungui.png` | 16x16 | 手持武器「三点军规」(rifle) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/lieluren.png` | 16x16 | 手持武器「猎鹿人」(rifle) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/wulianbao.png` | 16x16 | 手持武器「五连爆」(shotgun) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/huoqiuzhang.png` | 16x16 | 手持武器「火球杖」(staff) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/bingzhuizhang.png` | 16x16 | 手持武器「冰锥杖」(staff) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/duyunzhang.png` | 16x16 | 手持武器「毒云杖」(staff) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/dujian.png` | 16x16 | 手持武器「毒箭」(bow) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/bingjian.png` | 16x16 | 手持武器「冰箭」(bow) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/ronghuoshouqiang.png` | 16x16 | 手持武器「熔火手枪」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/shuangya.png` | 16x16 | 手持武器「霜牙」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/xunxiang.png` | 16x16 | 手持武器「讯响」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/shenpanzhe.png` | 16x16 | 手持武器「审判者」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/xingxie.png` | 16x16 | 手持武器「星屑」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/lanshan.png` | 16x16 | 手持武器「蓝闪」(smg) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/shuangchixuanfeng.png` | 16x16 | 手持武器「双持旋风」(smg) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/guanchuanzhe.png` | 16x16 | 手持武器「贯穿者」(rifle) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/shenkong.png` | 16x16 | 手持武器「深空」(rifle) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/zhanhaoqingxiao.png` | 16x16 | 手持武器「战壕清扫」(shotgun) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/liexiong.png` | 16x16 | 手持武器「猎熊」(shotgun) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/rongduanjiguang.png` | 16x16 | 手持武器「熔断激光」(laser) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/bingjingshexian.png` | 16x16 | 手持武器「冰晶射线」(laser) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/leilianzhang.png` | 16x16 | 手持武器「雷链杖」(staff) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/liefengchanggong.png` | 16x16 | 手持武器「猎风长弓」(bow) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/dianque.png` | 16x16 | 手持武器「电雀」(pistol) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/ranshaodanlian.png` | 16x16 | 手持武器「燃烧弹链」(rifle) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/donghehe.png` | 16x16 | 手持武器「冻结核」(rifle) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/longxi.png` | 16x16 | 手持武器「龙息」(shotgun) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
-| `weapons/liuhuang.png` | 16x16 | 手持武器「硫磺」(shotgun) | weapon_rig.gd 无武器外观（仅 muzzle=8px 弹口数据）; 弹口从玩家中心沿瞄准向偏移 | 朝右0°, 持握点(4,8): rotation=aim.angle(), 朝左半球 flip_v=true; 中线色=元素色, 左上1px=稀有度 |
 | `ui/joystick_base.png` | 48x48 | 虚拟摇杆底盘 | ui/virtual_joystick.gd:97-101 draw_circle a0.12 + arc a0.35 | — |
 | `ui/joystick_nub.png` | 24x24 | 虚拟摇杆摇杆头 | virtual_joystick.gd:101 a0.55 圆 | — |
 | `ui/vignette_lowhp.png` | 96x96 | 低血红屏 vignette（中心透明） | hud.gd:184 vignette 0.75,0.05,0.05 a0.12 色块 | 全屏拉伸, modulate 控制强度 |
@@ -232,236 +172,236 @@
 | `ui/icon_blackmarket.png` | 16x16 | 黑市标识（武器价 ×1.8, UI 标题旁） | core/interact/shop.gd:14/30 BLACK_TITLE 黑市商人(纯文字), floor_scene.gd BLACK_SHOP_CHANCE | — |
 | `tiles/shopkeeper.png` | 16x18 | 商人 NPC（商店房形象预留; 现商店仅弹 UI 面板） | core/interact/shop.gd + shop.tscn（无世界内形象） | 黑市款换紫袍+兜帽 |
 | `tiles/shopkeeper_black.png` | 16x18 | 黑市商人 NPC（兜帽遮面） | shop.gd black 变体（标题/价格区分, 无形象） | — |
-| `ui/weapons/laohuoji.png` | 16x16 | 武器图标「老伙计」(pistol/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/laohuoji.png` | 16x16 | 武器图标「老伙计」(pistol/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/laohuoji.png` | 16x16 | 手持武器「老伙计」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/maodingqiang.png` | 16x16 | 武器图标「铆钉枪」(pistol/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/maodingqiang.png` | 16x16 | 武器图标「铆钉枪」(pistol/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/maodingqiang.png` | 16x16 | 手持武器「铆钉枪」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/duangong.png` | 16x16 | 武器图标「短弓」(bow/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/duangong.png` | 16x16 | 武器图标「短弓」(bow/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/duangong.png` | 16x16 | 手持武器「短弓」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xuetufazhang.png` | 16x16 | 武器图标「学徒法杖」(staff/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xuetufazhang.png` | 16x16 | 武器图标「学徒法杖」(staff/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/xuetufazhang.png` | 16x16 | 手持武器「学徒法杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/tiejian.png` | 16x16 | 武器图标「铁剑」(melee/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/tiejian.png` | 16x16 | 武器图标「铁剑」(melee/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/tiejian.png` | 16x16 | 手持武器「铁剑」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shuangbi.png` | 16x16 | 武器图标「双匕」(melee/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shuangbi.png` | 16x16 | 武器图标「双匕」(melee/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shuangbi.png` | 16x16 | 手持武器「双匕」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhishibuqiang.png` | 16x16 | 武器图标「制式步枪」(rifle/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/zhishibuqiang.png` | 16x16 | 武器图标「制式步枪」(rifle/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/zhishibuqiang.png` | 16x16 | 手持武器「制式步枪」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/qianguan.png` | 16x16 | 武器图标「铅管」(shotgun/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/qianguan.png` | 16x16 | 武器图标「铅管」(shotgun/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/qianguan.png` | 16x16 | 手持武器「铅管」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shuangzixing.png` | 16x16 | 武器图标「双子星」(pistol/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shuangzixing.png` | 16x16 | 武器图标「双子星」(pistol/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shuangzixing.png` | 16x16 | 手持武器「双子星」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/fengci.png` | 16x16 | 武器图标「蜂刺」(pistol/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/fengci.png` | 16x16 | 武器图标「蜂刺」(pistol/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/fengci.png` | 16x16 | 手持武器「蜂刺」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/fengqun.png` | 16x16 | 武器图标「蜂群」(smg/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/fengqun.png` | 16x16 | 武器图标「蜂群」(smg/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/fengqun.png` | 16x16 | 手持武器「蜂群」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/jiaoju.png` | 16x16 | 武器图标「角锯」(smg/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/jiaoju.png` | 16x16 | 武器图标「角锯」(smg/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/jiaoju.png` | 16x16 | 手持武器「角锯」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/sandianjungui.png` | 16x16 | 武器图标「三点军规」(rifle/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/sandianjungui.png` | 16x16 | 武器图标「三点军规」(rifle/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/sandianjungui.png` | 16x16 | 手持武器「三点军规」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/lieluren.png` | 16x16 | 武器图标「猎鹿人」(rifle/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/lieluren.png` | 16x16 | 武器图标「猎鹿人」(rifle/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/lieluren.png` | 16x16 | 手持武器「猎鹿人」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/wulianbao.png` | 16x16 | 武器图标「五连爆」(shotgun/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/wulianbao.png` | 16x16 | 武器图标「五连爆」(shotgun/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/wulianbao.png` | 16x16 | 手持武器「五连爆」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/huoqiuzhang.png` | 16x16 | 武器图标「火球杖」(staff/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/huoqiuzhang.png` | 16x16 | 武器图标「火球杖」(staff/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/huoqiuzhang.png` | 16x16 | 手持武器「火球杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/bingzhuizhang.png` | 16x16 | 武器图标「冰锥杖」(staff/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/bingzhuizhang.png` | 16x16 | 武器图标「冰锥杖」(staff/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/bingzhuizhang.png` | 16x16 | 手持武器「冰锥杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/duyunzhang.png` | 16x16 | 武器图标「毒云杖」(staff/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/duyunzhang.png` | 16x16 | 武器图标「毒云杖」(staff/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/duyunzhang.png` | 16x16 | 手持武器「毒云杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/dujian.png` | 16x16 | 武器图标「毒箭」(bow/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/dujian.png` | 16x16 | 武器图标「毒箭」(bow/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/dujian.png` | 16x16 | 手持武器「毒箭」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/bingjian.png` | 16x16 | 武器图标「冰箭」(bow/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/bingjian.png` | 16x16 | 武器图标「冰箭」(bow/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/bingjian.png` | 16x16 | 手持武器「冰箭」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/ronghuoshouqiang.png` | 16x16 | 武器图标「熔火手枪」(pistol/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/ronghuoshouqiang.png` | 16x16 | 武器图标「熔火手枪」(pistol/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/ronghuoshouqiang.png` | 16x16 | 手持武器「熔火手枪」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shuangya.png` | 16x16 | 武器图标「霜牙」(pistol/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shuangya.png` | 16x16 | 武器图标「霜牙」(pistol/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shuangya.png` | 16x16 | 手持武器「霜牙」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xunxiang.png` | 16x16 | 武器图标「讯响」(pistol/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xunxiang.png` | 16x16 | 武器图标「讯响」(pistol/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/xunxiang.png` | 16x16 | 手持武器「讯响」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shenpanzhe.png` | 16x16 | 武器图标「审判者」(pistol/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shenpanzhe.png` | 16x16 | 武器图标「审判者」(pistol/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shenpanzhe.png` | 16x16 | 手持武器「审判者」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xingxie.png` | 16x16 | 武器图标「星屑」(pistol/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xingxie.png` | 16x16 | 武器图标「星屑」(pistol/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/xingxie.png` | 16x16 | 手持武器「星屑」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/lanshan.png` | 16x16 | 武器图标「蓝闪」(smg/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/lanshan.png` | 16x16 | 武器图标「蓝闪」(smg/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/lanshan.png` | 16x16 | 手持武器「蓝闪」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shuangchixuanfeng.png` | 16x16 | 武器图标「双持旋风」(smg/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shuangchixuanfeng.png` | 16x16 | 武器图标「双持旋风」(smg/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shuangchixuanfeng.png` | 16x16 | 手持武器「双持旋风」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/guanchuanzhe.png` | 16x16 | 武器图标「贯穿者」(rifle/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/guanchuanzhe.png` | 16x16 | 武器图标「贯穿者」(rifle/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/guanchuanzhe.png` | 16x16 | 手持武器「贯穿者」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shenkong.png` | 16x16 | 武器图标「深空」(rifle/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shenkong.png` | 16x16 | 武器图标「深空」(rifle/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shenkong.png` | 16x16 | 手持武器「深空」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhanhaoqingxiao.png` | 16x16 | 武器图标「战壕清扫」(shotgun/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/zhanhaoqingxiao.png` | 16x16 | 武器图标「战壕清扫」(shotgun/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/zhanhaoqingxiao.png` | 16x16 | 手持武器「战壕清扫」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/liexiong.png` | 16x16 | 武器图标「猎熊」(shotgun/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/liexiong.png` | 16x16 | 武器图标「猎熊」(shotgun/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/liexiong.png` | 16x16 | 手持武器「猎熊」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/rongduanjiguang.png` | 16x16 | 武器图标「熔断激光」(laser/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/rongduanjiguang.png` | 16x16 | 武器图标「熔断激光」(laser/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/rongduanjiguang.png` | 16x16 | 手持武器「熔断激光」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/bingjingshexian.png` | 16x16 | 武器图标「冰晶射线」(laser/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/bingjingshexian.png` | 16x16 | 武器图标「冰晶射线」(laser/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/bingjingshexian.png` | 16x16 | 手持武器「冰晶射线」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/leilianzhang.png` | 16x16 | 武器图标「雷链杖」(staff/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/leilianzhang.png` | 16x16 | 武器图标「雷链杖」(staff/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/leilianzhang.png` | 16x16 | 手持武器「雷链杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/liefengchanggong.png` | 16x16 | 武器图标「猎风长弓」(bow/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/liefengchanggong.png` | 16x16 | 武器图标「猎风长弓」(bow/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/liefengchanggong.png` | 16x16 | 手持武器「猎风长弓」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/dianque.png` | 16x16 | 武器图标「电雀」(pistol/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/dianque.png` | 16x16 | 武器图标「电雀」(pistol/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/dianque.png` | 16x16 | 手持武器「电雀」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/ranshaodanlian.png` | 16x16 | 武器图标「燃烧弹链」(rifle/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/ranshaodanlian.png` | 16x16 | 武器图标「燃烧弹链」(rifle/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/ranshaodanlian.png` | 16x16 | 手持武器「燃烧弹链」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/donghehe.png` | 16x16 | 武器图标「冻结核」(rifle/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/donghehe.png` | 16x16 | 武器图标「冻结核」(rifle/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/donghehe.png` | 16x16 | 手持武器「冻结核」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/longxi.png` | 16x16 | 武器图标「龙息」(shotgun/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/longxi.png` | 16x16 | 武器图标「龙息」(shotgun/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/longxi.png` | 16x16 | 手持武器「龙息」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/liuhuang.png` | 16x16 | 武器图标「硫磺」(shotgun/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/liuhuang.png` | 16x16 | 武器图标「硫磺」(shotgun/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/liuhuang.png` | 16x16 | 手持武器「硫磺」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhulun_zhengwu.png` | 16x16 | 武器图标「左轮·正午」(pistol/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/zhulun_zhengwu.png` | 16x16 | 手持武器「左轮·正午」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/yahuo_zhe.png` | 16x16 | 武器图标「哑火者」(pistol/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/yahuo_zhe.png` | 16x16 | 手持武器「哑火者」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/yingwan.png` | 16x16 | 武器图标「影丸」(pistol/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/zuolunzhengwu.png` | 16x16 | 武器图标「左轮·正午」(pistol/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/zuolunzhengwu.png` | 16x16 | 手持武器「左轮·正午」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/yahuozhe.png` | 16x16 | 武器图标「哑火者」(pistol/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/yahuozhe.png` | 16x16 | 手持武器「哑火者」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/yingwan.png` | 16x16 | 武器图标「影丸」(pistol/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/yingwan.png` | 16x16 | 手持武器「影丸」(pistol) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhusi.png` | 16x16 | 武器图标「蛛丝」(smg/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/zhusi.png` | 16x16 | 武器图标「蛛丝」(smg/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/zhusi.png` | 16x16 | 手持武器「蛛丝」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zheshe_zhe.png` | 16x16 | 武器图标「折射者」(smg/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/zheshe_zhe.png` | 16x16 | 手持武器「折射者」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/bingzhuiji.png` | 16x16 | 武器图标「冰锥机」(smg/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shezhezhe.png` | 16x16 | 武器图标「折射者」(smg/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/shezhezhe.png` | 16x16 | 手持武器「折射者」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/bingzhuiji.png` | 16x16 | 武器图标「冰锥机」(smg/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/bingzhuiji.png` | 16x16 | 手持武器「冰锥机」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/duyepensa.png` | 16x16 | 武器图标「毒液喷洒」(smg/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/duyepensa.png` | 16x16 | 武器图标「毒液喷洒」(smg/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/duyepensa.png` | 16x16 | 手持武器「毒液喷洒」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/cibao.png` | 16x16 | 武器图标「磁暴」(smg/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/cibao.png` | 16x16 | 武器图标「磁暴」(smg/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/cibao.png` | 16x16 | 手持武器「磁暴」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhongyanjicu.png` | 16x16 | 武器图标「终焉急促」(smg/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/zhongyanjicu.png` | 16x16 | 武器图标「终焉急促」(smg/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/zhongyanjicu.png` | 16x16 | 手持武器「终焉急促」(smg) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xinggui.png` | 16x16 | 武器图标「星轨」(rifle/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xinggui.png` | 16x16 | 武器图标「星轨」(rifle/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/xinggui.png` | 16x16 | 手持武器「星轨」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/laobing.png` | 16x16 | 武器图标「老兵」(rifle/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/laobing.png` | 16x16 | 武器图标「老兵」(rifle/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/laobing.png` | 16x16 | 手持武器「老兵」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/caijue.png` | 16x16 | 武器图标「裁决」(rifle/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/caijue.png` | 16x16 | 武器图标「裁决」(rifle/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/caijue.png` | 16x16 | 手持武器「裁决」(rifle) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shuangguanliyi.png` | 16x16 | 武器图标「双管礼仪」(shotgun/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shuangguanliyi.png` | 16x16 | 武器图标「双管礼仪」(shotgun/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shuangguanliyi.png` | 16x16 | 手持武器「双管礼仪」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/tanshexian.png` | 16x16 | 武器图标「弹射霰」(shotgun/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/tanshexian.png` | 16x16 | 武器图标「弹射霰」(shotgun/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/tanshexian.png` | 16x16 | 手持武器「弹射霰」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/suijingpao.png` | 16x16 | 武器图标「碎晶炮」(shotgun/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/suijingpao.png` | 16x16 | 武器图标「碎晶炮」(shotgun/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/suijingpao.png` | 16x16 | 手持武器「碎晶炮」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xiaomiehaojiao.png` | 16x16 | 武器图标「湮灭号角」(shotgun/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/xiaomiehaojiao.png` | 16x16 | 手持武器「湮灭号角」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/pojixuanding.png` | 16x16 | 武器图标「迫击·悬顶」(sniper/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/yaniemhaojiao.png` | 16x16 | 武器图标「湮灭号角」(shotgun/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/yaniemhaojiao.png` | 16x16 | 手持武器「湮灭号角」(shotgun) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/pojixuanding.png` | 16x16 | 武器图标「迫击·悬顶」(sniper/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/pojixuanding.png` | 16x16 | 手持武器「迫击·悬顶」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/yinsuzhui.png` | 16x16 | 武器图标「音速锥」(sniper/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/yinsuzhui.png` | 16x16 | 手持武器「音速锥」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/changfeng.png` | 16x16 | 武器图标「长风」(sniper/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/yinsuizhui.png` | 16x16 | 武器图标「音速锥」(sniper/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/yinsuizhui.png` | 16x16 | 手持武器「音速锥」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/changfeng.png` | 16x16 | 武器图标「长风」(sniper/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/changfeng.png` | 16x16 | 手持武器「长风」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/huoshenzhongpao.png` | 16x16 | 武器图标「火神重炮」(sniper/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/huoshenzhongpao.png` | 16x16 | 武器图标「火神重炮」(sniper/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/huoshenzhongpao.png` | 16x16 | 手持武器「火神重炮」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/duantoutai.png` | 16x16 | 武器图标「断头台」(sniper/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/duantoutai.png` | 16x16 | 武器图标「断头台」(sniper/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/duantoutai.png` | 16x16 | 手持武器「断头台」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/guanri.png` | 16x16 | 武器图标「贯日」(sniper/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/guanri.png` | 16x16 | 武器图标「贯日」(sniper/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/guanri.png` | 16x16 | 手持武器「贯日」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/liedizhe.png` | 16x16 | 武器图标「裂地者」(sniper/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/liedizhe.png` | 16x16 | 武器图标「裂地者」(sniper/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/liedizhe.png` | 16x16 | 手持武器「裂地者」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xingyunpao.png` | 16x16 | 武器图标「星陨炮」(sniper/legend)（熔铸限定★） | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/xingyunpao.png` | 16x16 | 手持武器「星陨炮」(sniper)（熔铸限定★） | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/dianciguidao.png` | 16x16 | 武器图标「电磁轨道」(sniper/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xingyunpao.png` | 16x16 | 武器图标「星陨炮」(sniper/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/xingyunpao.png` | 16x16 | 手持武器「星陨炮」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/dianciguidao.png` | 16x16 | 武器图标「电磁轨道」(sniper/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/dianciguidao.png` | 16x16 | 手持武器「电磁轨道」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shenpanzhiri.png` | 16x16 | 武器图标「审判之日」(sniper/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shenpanzhiri.png` | 16x16 | 武器图标「审判之日」(sniper/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shenpanzhiri.png` | 16x16 | 手持武器「审判之日」(sniper) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/guanglengshoudian.png` | 16x16 | 武器图标「光棱手电」(laser/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/guanglengshoudian.png` | 16x16 | 武器图标「光棱手电」(laser/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/guanglengshoudian.png` | 16x16 | 手持武器「光棱手电」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xiangweirenguang.png` | 16x16 | 武器图标「相位刃光」(laser/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xiangweirenguang.png` | 16x16 | 武器图标「相位刃光」(laser/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/xiangweirenguang.png` | 16x16 | 手持武器「相位刃光」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/qiegezhe.png` | 16x16 | 武器图标「切割者」(laser/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/qiegezhe.png` | 16x16 | 武器图标「切割者」(laser/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/qiegezhe.png` | 16x16 | 手持武器「切割者」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/lengjingquanzhang.png` | 16x16 | 武器图标「棱镜权杖」(laser/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/lengjingquanzhang.png` | 16x16 | 武器图标「棱镜权杖」(laser/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/lengjingquanzhang.png` | 16x16 | 手持武器「棱镜权杖」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/dianhubian.png` | 16x16 | 武器图标「电弧鞭」(laser/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/dianhubian.png` | 16x16 | 武器图标「电弧鞭」(laser/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/dianhubian.png` | 16x16 | 手持武器「电弧鞭」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/chuanlengjing.png` | 16x16 | 武器图标「穿棱镜」(laser/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/chuanlengjing.png` | 16x16 | 武器图标「穿棱镜」(laser/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/chuanlengjing.png` | 16x16 | 手持武器「穿棱镜」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/caihongfashengqi.png` | 16x16 | 武器图标「彩虹发生器」(laser/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/caihongfashengqi.png` | 16x16 | 武器图标「彩虹发生器」(laser/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/caihongfashengqi.png` | 16x16 | 手持武器「彩虹发生器」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/guidaobiaojiqi.png` | 16x16 | 武器图标「轨道标记器」(laser/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/guidaobiaojiqi.png` | 16x16 | 武器图标「轨道标记器」(laser/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/guidaobiaojiqi.png` | 16x16 | 手持武器「轨道标记器」(laser) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/jingjizhang.png` | 16x16 | 武器图标「荆棘杖」(staff/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/jingjizhang.png` | 16x16 | 武器图标「荆棘杖」(staff/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/jingjizhang.png` | 16x16 | 手持武器「荆棘杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/yunshizhang.png` | 16x16 | 武器图标「陨石杖」(staff/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/yunshizhang.png` | 16x16 | 武器图标「陨石杖」(staff/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/yunshizhang.png` | 16x16 | 手持武器「陨石杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xinghuizhang.png` | 16x16 | 武器图标「星辉杖」(staff/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xinghuizhang.png` | 16x16 | 武器图标「星辉杖」(staff/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/xinghuizhang.png` | 16x16 | 手持武器「星辉杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/jingmianzhang.png` | 16x16 | 武器图标「镜面杖」(staff/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/jingmianzhang.png` | 16x16 | 武器图标「镜面杖」(staff/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/jingmianzhang.png` | 16x16 | 手持武器「镜面杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhongyanzhizhang.png` | 16x16 | 武器图标「终焉之杖」(staff/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/zhongyanzhizhang.png` | 16x16 | 武器图标「终焉之杖」(staff/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/zhongyanzhizhang.png` | 16x16 | 手持武器「终焉之杖」(staff) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/liannu.png` | 16x16 | 武器图标「连弩」(bow/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/liannu.png` | 16x16 | 武器图标「连弩」(bow/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/liannu.png` | 16x16 | 手持武器「连弩」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/baoliejian.png` | 16x16 | 武器图标「爆裂箭」(bow/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/baoliejian.png` | 16x16 | 武器图标「爆裂箭」(bow/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/baoliejian.png` | 16x16 | 手持武器「爆裂箭」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/huixuanrengong.png` | 16x16 | 武器图标「回旋刃弓」(bow/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/huixuanrengong.png` | 16x16 | 武器图标「回旋刃弓」(bow/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/huixuanrengong.png` | 16x16 | 手持武器「回旋刃弓」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/leimingnu.png` | 16x16 | 武器图标「雷鸣弩」(bow/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/leimingnu.png` | 16x16 | 武器图标「雷鸣弩」(bow/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/leimingnu.png` | 16x16 | 手持武器「雷鸣弩」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/fenliejian.png` | 16x16 | 武器图标「分裂箭」(bow/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/fenliejian.png` | 16x16 | 武器图标「分裂箭」(bow/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/fenliejian.png` | 16x16 | 手持武器「分裂箭」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/guanxinggong.png` | 16x16 | 武器图标「贯星弓」(bow/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/guanxinggong.png` | 16x16 | 武器图标「贯星弓」(bow/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/guanxinggong.png` | 16x16 | 手持武器「贯星弓」(bow) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shoulei.png` | 16x16 | 武器图标「手雷」(throwable/common) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/shoulei.png` | 16x16 | 手持武器「手雷」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/ranshaoping.png` | 16x16 | 武器图标「燃烧瓶」(throwable/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/ranshaoping.png` | 16x16 | 手持武器「燃烧瓶」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/duqiguan.png` | 16x16 | 武器图标「毒气罐」(throwable/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/duqiguan.png` | 16x16 | 手持武器「毒气罐」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/jishulei.png` | 16x16 | 武器图标「集束雷」(throwable/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/jishulei.png` | 16x16 | 手持武器「集束雷」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/bingdinglei.png` | 16x16 | 武器图标「冰冻雷」(throwable/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/bingdinglei.png` | 16x16 | 手持武器「冰冻雷」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/huixuanbiao.png` | 16x16 | 武器图标「回旋镖」(throwable/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/huixuanbiao.png` | 16x16 | 手持武器「回旋镖」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/tantiaokunwu.png` | 16x16 | 武器图标「弹跳苦无」(throwable/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/tantiaokunwu.png` | 16x16 | 手持武器「弹跳苦无」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/diancimaichonglei.png` | 16x16 | 武器图标「电磁脉冲雷」(throwable/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/diancimaichonglei.png` | 16x16 | 手持武器「电磁脉冲雷」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/heidongfashengqi.png` | 16x16 | 武器图标「黑洞发生器」(throwable/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/heidongfashengqi.png` | 16x16 | 手持武器「黑洞发生器」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xingheliudan.png` | 16x16 | 武器图标「星核榴弹」(throwable/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/xingheliudan.png` | 16x16 | 手持武器「星核榴弹」(throwable) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/duyaduaren.png` | 16x16 | 武器图标「毒牙短刃」(melee/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/duyaduaren.png` | 16x16 | 手持武器「毒牙短刃」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/changqiang.png` | 16x16 | 武器图标「长枪」(melee/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shoulei.png` | 16x16 | 武器图标「手雷」(throw/common) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/shoulei.png` | 16x16 | 手持武器「手雷」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/ranshaoping.png` | 16x16 | 武器图标「燃烧瓶」(throw/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/ranshaoping.png` | 16x16 | 手持武器「燃烧瓶」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/duqiguan.png` | 16x16 | 武器图标「毒气罐」(throw/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/duqiguan.png` | 16x16 | 手持武器「毒气罐」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/jishulei.png` | 16x16 | 武器图标「集束雷」(throw/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/jishulei.png` | 16x16 | 手持武器「集束雷」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/bingdonglei.png` | 16x16 | 武器图标「冰冻雷」(throw/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/bingdonglei.png` | 16x16 | 手持武器「冰冻雷」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/huixuanbiao.png` | 16x16 | 武器图标「回旋镖」(throw/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/huixuanbiao.png` | 16x16 | 手持武器「回旋镖」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/tantiaokuwu.png` | 16x16 | 武器图标「弹跳苦无」(throw/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/tantiaokuwu.png` | 16x16 | 手持武器「弹跳苦无」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/diancimaichonglei.png` | 16x16 | 武器图标「电磁脉冲雷」(throw/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/diancimaichonglei.png` | 16x16 | 手持武器「电磁脉冲雷」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/heidongfashengqi.png` | 16x16 | 武器图标「黑洞发生器」(throw/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/heidongfashengqi.png` | 16x16 | 手持武器「黑洞发生器」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/xingheliudan.png` | 16x16 | 武器图标「星核榴弹」(throw/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/xingheliudan.png` | 16x16 | 手持武器「星核榴弹」(throw) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/duyaduanren.png` | 16x16 | 武器图标「毒牙短刃」(melee/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/duyaduanren.png` | 16x16 | 手持武器「毒牙短刃」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/changqiang.png` | 16x16 | 武器图标「长枪」(melee/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/changqiang.png` | 16x16 | 手持武器「长枪」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/lieyanjian.png` | 16x16 | 武器图标「烈焰剑」(melee/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/lieyanjian.png` | 16x16 | 武器图标「烈焰剑」(melee/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/lieyanjian.png` | 16x16 | 手持武器「烈焰剑」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/bingshuangjujian.png` | 16x16 | 武器图标「冰霜巨剑」(melee/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/bingshuangjujian.png` | 16x16 | 武器图标「冰霜巨剑」(melee/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/bingshuangjujian.png` | 16x16 | 手持武器「冰霜巨剑」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/lianchui.png` | 16x16 | 武器图标「链锤」(melee/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/lianchui.png` | 16x16 | 武器图标「链锤」(melee/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/lianchui.png` | 16x16 | 手持武器「链锤」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xuewenci.png` | 16x16 | 武器图标「血蚊刺」(melee/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/xuewenci.png` | 16x16 | 武器图标「血蚊刺」(melee/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/xuewenci.png` | 16x16 | 手持武器「血蚊刺」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhuixingdajian.png` | 16x16 | 武器图标「坠星大剑」(melee/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/zhuixingdajian.png` | 16x16 | 武器图标「坠星大剑」(melee/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/zhuixingdajian.png` | 16x16 | 手持武器「坠星大剑」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/guangjian.png` | 16x16 | 武器图标「光剑」(melee/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/guangjian.png` | 16x16 | 武器图标「光剑」(melee/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/guangjian.png` | 16x16 | 手持武器「光剑」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/leishenzhichui.png` | 16x16 | 武器图标「雷神之锤」(melee/legend)（熔铸限定★） | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/leishenzhichui.png` | 16x16 | 手持武器「雷神之锤」(melee)（熔铸限定★） | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/zhanjiandao.png` | 16x16 | 武器图标「斩舰刀」(melee/legend)（熔铸限定★） | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/zhanjiandao.png` | 16x16 | 手持武器「斩舰刀」(melee)（熔铸限定★） | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/cilishoutao.png` | 16x16 | 武器图标「磁力手套」(special/uncommon) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/leishenzhichui.png` | 16x16 | 武器图标「雷神之锤」(melee/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/leishenzhichui.png` | 16x16 | 手持武器「雷神之锤」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/zhanjiandao.png` | 16x16 | 武器图标「斩舰刀」(melee/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/zhanjiandao.png` | 16x16 | 手持武器「斩舰刀」(melee) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/cilishoutao.png` | 16x16 | 武器图标「磁力手套」(special/uncommon) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/cilishoutao.png` | 16x16 | 手持武器「磁力手套」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/hudunfashengqi.png` | 16x16 | 武器图标「护盾发生器」(special/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/hudunfashengqi.png` | 16x16 | 武器图标「护盾发生器」(special/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/hudunfashengqi.png` | 16x16 | 手持武器「护盾发生器」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/kuileiling.png` | 16x16 | 武器图标「傀儡铃」(special/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/kuileiling.png` | 16x16 | 武器图标「傀儡铃」(special/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/kuileiling.png` | 16x16 | 手持武器「傀儡铃」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/weixiubi.png` | 16x16 | 武器图标「维修臂」(special/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/weixiubi.png` | 16x16 | 武器图标「维修臂」(special/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/weixiubi.png` | 16x16 | 手持武器「维修臂」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/lantuhanqiang.png` | 16x16 | 武器图标「蓝图焊枪」(special/rare) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/lantuhanqiang.png` | 16x16 | 武器图标「蓝图焊枪」(special/rare) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/lantuhanqiang.png` | 16x16 | 手持武器「蓝图焊枪」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/fenshenxinhaodan.png` | 16x16 | 武器图标「分身信号弹」(special/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/fenshenxinhaodan.png` | 16x16 | 手持武器「分身信号弹」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/chuansongbiaoqiang.png` | 16x16 | 武器图标「传送标枪」(special/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/fenshenxinhaotan.png` | 16x16 | 武器图标「分身信号弹」(special/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/fenshenxinhaotan.png` | 16x16 | 手持武器「分身信号弹」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/chuansongbiaoqiang.png` | 16x16 | 武器图标「传送标枪」(special/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/chuansongbiaoqiang.png` | 16x16 | 手持武器「传送标枪」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/wurenjimujian.png` | 16x16 | 武器图标「无人机母舰」(special/epic) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/wurenjimujian.png` | 16x16 | 武器图标「无人机母舰」(special/epic) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/wurenjimujian.png` | 16x16 | 手持武器「无人机母舰」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/shijianshalou.png` | 16x16 | 武器图标「时间沙漏」(special/legend) | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `ui/weapons/shijianshalou.png` | 16x16 | 武器图标「时间沙漏」(special/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
 | `weapons/shijianshalou.png` | 16x16 | 手持武器「时间沙漏」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
-| `ui/weapons/xiaomiehexin.png` | 16x16 | 武器图标「湮灭核心」(special/legend)（熔铸限定★） | 附录 A 全表; M2 新增 75 把为暂定 slug | 左上角标=稀有度, 刀身/弹头色=元素 |
-| `weapons/xiaomiehexin.png` | 16x16 | 手持武器「湮灭核心」(special)（熔铸限定★） | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
+| `ui/weapons/yamiehexin.png` | 16x16 | 武器图标「湮灭核心」(special/legend) | 附录 A = data/weapons.json 115 行（m2-t21 数据驱动收编） | 左上角标=稀有度, 刀身/弹头色=元素 |
+| `weapons/yamiehexin.png` | 16x16 | 手持武器「湮灭核心」(special) | weapon_rig.gd 无武器外观; muzzle=8px | 朝右0°, 持握点(4,8), 朝左 flip_v |
 | `enemies/mud_slime.png` | 16x16 | 敌人「泥浆史莱姆」(通用/splitter) | 附录 B（通用）暂无 data 行; M1 为 ARCHETYPE_COLORS 纯色块 | 附录 B.1 分裂原型；死亡裂 2 小体; slug 暂定待 data 落地对齐 |
 | `enemies/hardshell_turtle.png` | 16x16 | 敌人「硬壳龟」(A1/tank) | 附录 B（A1）暂无 data 行; M1 为 ARCHETYPE_COLORS 纯色块 | 正面减伤 80%, 龟缩免疫; slug 暂定待 data 落地对齐 |
 | `enemies/wing_lizard.png` | 16x16 | 敌人「飞行翼蜥」(A1/wanderer) | 附录 B（A1）暂无 data 行; M1 为 ARCHETYPE_COLORS 纯色块 | 低空绕行+切线俯冲; slug 暂定待 data 落地对齐 |
@@ -506,6 +446,46 @@
 | `enemies/frost_spider_mother.png` | 48x48 | Boss「寒渊蛛母（A2-②）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 铺冰面+蛛网禁锢; P3 冰晶牢笼 |
 | `enemies/magma_tyrant.png` | 48x48 | Boss「熔核暴君（A3-①）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 岩浆喷区+火雨; P3 地裂火浪 |
 | `enemies/starfall_prophet.png` | 48x48 | Boss「星陨先知（A3-②隐藏）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 全元素轮回+共鸣攻击 |
+| `enemies/kuli_bug_sheet.png` | 32x16 | 敌人「苦力虫」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/cave_bat_sheet.png` | 32x16 | 敌人「穴蝠」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crossbowman_sheet.png` | 32x16 | 敌人「弩兵」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/mud_slime_sheet.png` | 32x16 | 敌人「泥浆史莱姆」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/vine_charger_sheet.png` | 32x16 | 敌人「藤蔓冲锋者」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/mushroom_spore_sheet.png` | 32x16 | 敌人「蘑菇孢子手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/hardshell_turtle_sheet.png` | 32x16 | 敌人「硬壳龟」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/wing_lizard_sheet.png` | 32x16 | 敌人「飞行翼蜥」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/thorn_turret_sheet.png` | 32x16 | 敌人「荆棘炮台」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/spore_flower_sheet.png` | 32x16 | 敌人「孢子召唤花」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/stone_boar_sheet.png` | 32x16 | 敌人「石皮野猪」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ruin_archer_sheet.png` | 32x16 | 敌人「遗迹弓手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/moss_slime_sheet.png` | 32x16 | 敌人「苔藓史莱姆」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/glowbug_swarm_sheet.png` | 32x16 | 敌人「萤光虫群」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/old_tree_guard_sheet.png` | 32x16 | 敌人「老树守卫」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/seed_pitcher_sheet.png` | 32x16 | 敌人「种子投手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_bat_sheet.png` | 32x16 | 敌人「晶簇蝙蝠」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ice_mage_sheet.png` | 32x16 | 敌人「冰晶法师」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/magnet_golem_sheet.png` | 32x16 | 敌人「磁石傀儡」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ghost_jelly_sheet.png` | 32x16 | 敌人「幽光水母」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/frost_crab_sheet.png` | 32x16 | 敌人「冻土巨蟹」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_rat_sheet.png` | 32x16 | 敌人「窃晶鼠群」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/rock_crystal_turret_sheet.png` | 32x16 | 敌人「岩晶炮台」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_summoner_sheet.png` | 32x16 | 敌人「晶核召唤师」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/prism_ranger_sheet.png` | 32x16 | 敌人「棱镜游侠」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ice_spider_sheet.png` | 32x16 | 敌人「冰蛛」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/echo_lurker_sheet.png` | 32x16 | 敌人「深窟回响者」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_dragon_sheet.png` | 32x16 | 敌人「晶背龙蜥」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/lava_hound_sheet.png` | 32x16 | 敌人「熔岩犬」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ash_shooter_sheet.png` | 32x16 | 敌人「灰烬射手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/firerain_priest_sheet.png` | 32x16 | 敌人「火雨祭司」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/magma_slime_sheet.png` | 32x16 | 敌人「熔核史莱姆」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/obsidian_guard_sheet.png` | 32x16 | 敌人「黑曜卫」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/sulfur_moth_sheet.png` | 32x16 | 敌人「硫磺蛾群」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/lava_turret_sheet.png` | 32x16 | 敌人「岩浆喷吐炮台」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ember_summoner_sheet.png` | 32x16 | 敌人「余烬召唤师」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/scorch_stomper_sheet.png` | 32x16 | 敌人「焦土践踏者」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/flame_lich_sheet.png` | 32x16 | 敌人「烈焰巫妖」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/magma_wyvern_sheet.png` | 32x16 | 敌人「熔火飞龙」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/starmarrow_blob_sheet.png` | 32x16 | 敌人「星髓聚合体」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
 | `characters/hero_mage.png` | 16x16 | 英雄「法师·烬」站立像（正面） | GDD §6 角色表; data/heroes.json M2 待加行 | 回响: 法杖/激光伤 +15% |
 | `ui/portrait_mage.png` | 32x32 | 法师·烬 选人头像 32x32 | ui/hero_select.gd 卡片 | — |
 | `ui/skill_arcane_nova.png` | 16x16 | 技能图标「奥术新星」(烬) | GDD §6 技能表 | 奥术新星(CD10s/蓝20): 120px 冰霜新星+冻结 |
@@ -582,7 +562,7 @@
 | 项 | 说明 | 建议 |
 |---|---|---|
 | 像素中文字体 | 全 UI 伤害数字/菜单/对话用默认字体，无像素风格 | 开源可选：缝合怪像素字体 Fusion Pixel Font（OFL）、Zpix（个人免费）；落位 `art/fonts/` |
-| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画见 T21 |
+| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画亦已交付（m2-t21 `enemies/<id>_sheet.png`） |
 | 敌人受击/死亡动画 | 目前仅白闪+爆粒子 | 每敌 2-4 帧即可显著提升手感 |
 | 雕像四 kinds 精绘 | 通用底 + 4 属性变体已备（shrine_*.png），披肩/徽记方案区分 | 正式素材按变体配色委托精绘即可 |
 | 地图整块背景装饰 | 墙沿/悬挂物/裂纹大图 | 可后置，优先级低 |
@@ -612,7 +592,7 @@
 ## 生成参数
 
 - 脚本：`tools/gen_placeholder_art.py`（M1 批次+公共库，自动串联 `tools/gen_placeholder_art_m2.py`）
-- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。
-- **M2 新内容 slug 为暂定拼音**（附录只有中文名无 id），待 `data/*.json` M2 行落地后如需改名，改脚本表 slug 重跑即可。
-- Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；重跑只覆盖本目录。
+- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40 单帧+2 帧动画表/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。
+- **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；仅 M2 Boss 5 种 slug 为附录 E 暂定名（data 行未落地）。
+- Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；全量再生=先生成后按本清单清理陈旧（失败不毁库）。
 - 联络表：`_preview.png`（4x 放大，人工检查用，勿在游戏内引用）。
