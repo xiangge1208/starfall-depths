@@ -70,14 +70,88 @@ func test_projectile_texture_by_faction() -> void:
 		.is_equal("res://art/generated/projectiles/bullet_enemy.png")
 
 func test_projectile_texture_element_overrides_faction() -> void:
+	# m2-t27 元素弹阵营分化：玩家保持基础图，敌方走 _enemy 暗边框变体
 	assert_str(ArtLookup.projectile_texture_path(true, Elements.Id.FIRE)) \
 		.is_equal("res://art/generated/projectiles/elem_fire.png")
-	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.ICE)) \
-		.is_equal("res://art/generated/projectiles/elem_ice.png")
-	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.POISON)) \
-		.is_equal("res://art/generated/projectiles/elem_poison.png")
 	assert_str(ArtLookup.projectile_texture_path(true, Elements.Id.SHOCK)) \
 		.is_equal("res://art/generated/projectiles/elem_shock.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.FIRE)) \
+		.is_equal("res://art/generated/projectiles/elem_fire_enemy.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.ICE)) \
+		.is_equal("res://art/generated/projectiles/elem_ice_enemy.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.POISON)) \
+		.is_equal("res://art/generated/projectiles/elem_poison_enemy.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.SHOCK)) \
+		.is_equal("res://art/generated/projectiles/elem_shock_enemy.png")
+
+func test_enemy_element_variant_files_exist_on_disk() -> void:
+	# 表驱动承诺：敌方元素弹变体 4 张必须真实存在（缺图 = tex() 回落 null 触发告警）
+	for name: String in ["elem_fire_enemy", "elem_ice_enemy", "elem_poison_enemy", "elem_shock_enemy"]:
+		assert_bool(FileAccess.file_exists("res://art/generated/projectiles/%s.png" % name)).is_true()
+
+func test_enemy_element_bullet_memo_distinct_and_stable() -> void:
+	# 缓存命中不变式保持（M2-T1 契约）：敌方 FIRE 与玩家 FIRE 不同纹理实例，
+	# 同参重复查询零新增 miss（热路径零分配契约不变）。
+	ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.FIRE)   # 预热
+	ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.FIRE)  # 预热（对照键）
+	var warm: int = ArtLookup._path_cache_size
+	var enemy_fire := ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.FIRE)
+	var player_fire := ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.FIRE)
+	assert_object(enemy_fire).is_not_null()
+	assert_bool(enemy_fire == player_fire).is_false()     # 阵营分化 → 不同贴图实例
+	for _i in 100:
+		ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.FIRE)
+	assert_int(ArtLookup._path_cache_size).is_equal(warm) # 零新增 miss
+
+# ---------- 层生物群系套件映射（m2-t27 I-3：A2/A3 瓦片接线验证） ----------
+
+func test_biome_set_floor1_cave_kit() -> void:
+	# 第 1 层 = cave/garden 套（biome_set 取主体 cave；start 庭院 garden 特例留在 floor_scene）
+	var set1 := ArtLookup.biome_set(1)
+	assert_str(String(set1["floor"])).is_equal("res://art/generated/tiles/floor_cave.png")
+	assert_str(String(set1["wall"])).is_equal("res://art/generated/tiles/wall_cave.png")
+	assert_str(String(set1["door"])).is_equal("res://art/generated/tiles/door_closed.png")
+	assert_str(String(set1["corridor"])).is_equal("res://art/generated/tiles/corridor_floor.png")
+
+func test_biome_set_floor2_crystal_kit() -> void:
+	var set2 := ArtLookup.biome_set(2)
+	assert_str(String(set2["floor"])).is_equal("res://art/generated/tiles/floor_crystal.png")
+	assert_str(String(set2["wall"])).is_equal("res://art/generated/tiles/wall_crystal.png")
+	assert_str(String(set2["door"])).is_equal("res://art/generated/tiles/door_closed.png")
+	assert_str(String(set2["corridor"])).is_equal("res://art/generated/tiles/corridor_crystal.png")
+
+func test_biome_set_floor3_magma_kit() -> void:
+	var set3 := ArtLookup.biome_set(3)
+	assert_str(String(set3["floor"])).is_equal("res://art/generated/tiles/floor_magma.png")
+	assert_str(String(set3["wall"])).is_equal("res://art/generated/tiles/wall_magma.png")
+	assert_str(String(set3["door"])).is_equal("res://art/generated/tiles/door_closed.png")
+	assert_str(String(set3["corridor"])).is_equal("res://art/generated/tiles/corridor_magma.png")
+
+func test_biome_set_all_paths_exist_for_three_floors() -> void:
+	# 映射完备性契约：1/2/3 层套件（地板/墙/门/走廊）每条路径都真实存在（防表腐坏塞坏路径）
+	for floor_idx: int in [1, 2, 3]:
+		var kit := ArtLookup.biome_set(floor_idx)
+		assert_int(kit.size()).is_equal(4)
+		for key: String in ["floor", "wall", "door", "corridor"]:
+			var path := String(kit[key])
+			assert_bool(path.is_empty()).is_false()
+			assert_bool(FileAccess.file_exists(path)).is_true()
+
+func test_biome_set_unknown_floor_returns_empty() -> void:
+	assert_int(ArtLookup.biome_set(0).size()).is_equal(0)
+	assert_int(ArtLookup.biome_set(-1).size()).is_equal(0)
+	assert_int(ArtLookup.biome_set(4).size()).is_equal(0)
+
+func test_corridor_tiles_for_crystal_magma_kits_exist() -> void:
+	# 套件走廊瓦片（fix：corridor 经 biome_set 第 4 键随层分化；cave 层即通用 corridor_floor）
+	assert_str(ArtLookup.biome_set(1)["corridor"]) \
+		.is_equal(ArtLookup.tile_path("corridor_floor"))
+	assert_str(ArtLookup.biome_set(2)["corridor"]) \
+		.is_equal(ArtLookup.tile_path("corridor_crystal"))
+	assert_str(ArtLookup.biome_set(3)["corridor"]) \
+		.is_equal(ArtLookup.tile_path("corridor_magma"))
+	assert_bool(FileAccess.file_exists(ArtLookup.tile_path("corridor_crystal"))).is_true()
+	assert_bool(FileAccess.file_exists(ArtLookup.tile_path("corridor_magma"))).is_true()
 
 # ---------- 弹丸热路径备忘（M2-T1：bullet_texture 静态字典缓存） ----------
 
