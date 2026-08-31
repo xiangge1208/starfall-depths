@@ -225,7 +225,7 @@ func test_tide_cooldown_840_and_energy_gate() -> void:
 func test_five_heroes_loaded() -> void:
 	assert_bool(GameDB.load_ok).is_true()
 	assert_dict(GameDB.heroes).contains_keys("vanguard", "ranger", "engineer", "mage", "guardian")
-	assert_int(GameDB.heroes.size()).is_equal(5)       # M2-T11：+mage/+guardian
+	assert_int(GameDB.heroes.size()).is_equal(6)       # M2-T11：+mage/+guardian；M2-T13：+assassin（总数口径同步）
 
 func test_mage_row_values() -> void:
 	var h := GameDB.get_hero("mage")
