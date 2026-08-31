@@ -315,6 +315,9 @@ func test_roll_stock_shape() -> void:
 	assert_str(String(stock.get("drink", ""))).is_equal("shenmi_hunhe")
 
 func test_black_stock_prefers_epic_then_rare() -> void:
+	# 密封化（df9691a 先例）：无头共享档 save_headless.json 的图鉴解锁会经
+	# CodexSystem.grant_to_pool 回池，破坏「紫全锁」前提——桩表固定池保证确定性。
+	_stub_weapons(_stub_pool(4, 4, 4, 2, 0))
 	var stock := ShopLogic.roll_stock(_rng(SEED), 1, [], true)
 	assert_int((stock["weapons"] as Array).size()).is_equal(3)
 	for id: String in stock["weapons"]:
