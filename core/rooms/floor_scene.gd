@@ -43,6 +43,13 @@ const SPIKE_TILE_PX := 16.0                              # 地刺判定/视觉�
 const ROCK_SIDE_DIRS := {
 	"W": Vector2.RIGHT, "E": Vector2.LEFT, "N": Vector2.DOWN, "S": Vector2.UP,
 }
+## m2-t10 A3 岩浆系视觉常量（表现，非玩法数值——周期/伤害在 HazardMagma 三组件）。
+const GEYSER_TILE_PX := 16.0                                # 喷口判定/视觉一格瓦片
+const GEYSER_WARN_COLOR := Color(1.0, 0.45, 0.2, 0.35)       # 喷口预警（地面橙纹）
+const GEYSER_ERUPT_COLOR := Color(1.0, 0.25, 0.1, 1.0)       # 喷发（伤害窗）
+const MAGMA_POOL_COLOR := Color(0.9, 0.35, 0.1, 0.55)        # 岩浆池缺图回落染色
+const FIRE_RAIN_WARN_COLOR := Color(1.0, 0.3, 0.2, 0.35)     # 火雨红圈（预警）
+const FIRE_RAIN_BOOM_COLOR := Color(1.0, 0.5, 0.15, 0.8)     # 火雨落点爆发拍
 
 ## A1 名录（data/enemies.json）：楼层垃圾怪池，波次按房号确定性轮转组合。
 const A1_TRASH := ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"]
@@ -99,6 +106,13 @@ var _spikes_vis: Array[CanvasItem] = []
 var _rocks: Array[RollingRock] = []
 var _rock_vis: Array[CanvasItem] = []
 var _rock_line_vis: Array[CanvasItem] = []
+## m2-t10 A3 岩浆系（同注册表扩展）：岩浆 DOT 域（整层单实例多 zone）+ 喷口逐 hazard
+## 实例 + 火雨组件（常驻空载，Boss/事件经 schedule_fire_rain 驱动——T19/T24 契约）。
+var hazard_magma: HazardMagma = null
+var _geysers: Array[HazardMagma.MagmaGeyser] = []
+var _geyser_vis: Array[CanvasItem] = []
+var hazard_fire_rain: HazardMagma.FireRain = HazardMagma.FireRain.new()
+var _fire_rain_vis: Array[CanvasItem] = []
 
 var _rooms: Dictionary = {}           # int id -> FloorRoom
 var _gates: Dictionary = {}           # "min|max" -> {shape, panel, a, b, open}
@@ -370,9 +384,10 @@ func _build_props(room: FloorRoom, tpl: Dictionary) -> void:
 				_vis_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_bush")
 
 
-## m2-t7 危险地块实例化（模板 hazards 字段驱动，GDD §10）：vine=藤蔓减速带（A1）
-## / spikes=周期地刺（A2）/ rock=滚石发射口（A1）。未知 kind 告警跳过（fail-soft；
-## 当前 GameDB hazards 白名单仅 vine，spikes/rock 行待 A2/A3 模板卡扩展 schema 落库）。
+## m2-t7/m2-t10 危险地块实例化（模板 hazards 字段驱动，GDD §10）：vine=藤蔓减速带（A1）
+## / spikes=周期地刺（A2）/ rock=滚石发射口（A1）/ magma=岩浆 DOT 池（A3）/
+## geyser=间歇喷口（A3）。未知 kind 告警跳过（fail-soft；GameDB hazards 白名单
+## = vine + magma/geyser，spikes/rock 行待 A2/A3 模板卡扩展 schema 落库）。
 func _build_hazards(room: FloorRoom, tpl: Dictionary) -> void:
 	for hz: Dictionary in tpl.get("hazards", []):
 		var grid: Array = hz.get("grid", [0, 0])
@@ -385,6 +400,10 @@ func _build_hazards(room: FloorRoom, tpl: Dictionary) -> void:
 				_build_spikes(room, grid, world)
 			"rock":
 				_build_rock(room, hz, world)
+			"magma":
+				_build_magma(room, local, float(hz.get("radius", 24)))
+			"geyser":
+				_build_geyser(room, grid, world)
 			_:
 				push_warning("FloorScene: unknown hazard kind '%s'" % String(hz.get("kind", "")))
 
@@ -462,19 +481,82 @@ func _build_rock(room: FloorRoom, hz: Dictionary, world: Vector2) -> void:
 	_rock_vis.append(rock)
 
 
+## m2-t10 岩浆 DOT 池（A3）：HazardMagma 域（世界坐标外接方，同 vine 几何）+ 视觉
+## （hazard_lava.png 贴图缩放至 2r，缺图回落暖色半透明圆）。DOT 结算在 _tick_hazards。
+func _build_magma(room: FloorRoom, local: Vector2, radius: float) -> void:
+	if hazard_magma == null:
+		hazard_magma = HazardMagma.new()
+	hazard_magma.add_zone(Rect2(local - Vector2(radius, radius) + room.position,
+		Vector2(radius * 2.0, radius * 2.0)))
+	var vis: Node2D = ArtLookup.make_sprite(ArtLookup.tile_path("hazard_lava"))
+	if vis == null:
+		var poly := Polygon2D.new()
+		poly.polygon = _circle_poly(radius)
+		poly.color = MAGMA_POOL_COLOR
+		vis = poly
+		vis.position = local
+	else:
+		(vis as Sprite2D).scale = Vector2.ONE * (radius * 2.0 / (vis as Sprite2D).texture.get_size().x)
+		vis.position = local
+	vis.z_index = -5
+	room.add_child(vis)
+
+
+## m2-t10 间歇喷口（A3）：一瓦片判定域；错峰偏移 = 网格确定性散列（同地刺习语）。
+func _build_geyser(room: FloorRoom, grid: Array, world: Vector2) -> void:
+	var zone := Rect2(world - Vector2(GEYSER_TILE_PX / 2.0, GEYSER_TILE_PX / 2.0),
+		Vector2(GEYSER_TILE_PX, GEYSER_TILE_PX))
+	var stagger := (int(grid[0]) * 7 + int(grid[1]) * 13) % HazardMagma.MagmaGeyser.CYCLE_TICKS
+	var g := HazardMagma.MagmaGeyser.new()
+	g.setup(zone, stagger)
+	_geysers.append(g)
+	var vis := Polygon2D.new()
+	vis.polygon = _rect_poly(Rect2(-GEYSER_TILE_PX / 2.0, -GEYSER_TILE_PX / 2.0,
+		GEYSER_TILE_PX, GEYSER_TILE_PX))
+	vis.position = world - room.position
+	vis.z_index = -4
+	vis.visible = false
+	room.add_child(vis)
+	_geyser_vis.append(vis)
+
+
+## m2-t10 火雨驱动入口（Boss/事件驱动契约，T19 熔核暴君/T24 星陨先知消费）：
+## 注入一个世界坐标红圈落点（预警 48t 后恰一拍落点结算，见 HazardMagma.FireRain）。
+## 视觉 = 楼层级红圈节点（Boss 驱动不限于单房），落点后随 strike 过期自除。
+func schedule_fire_rain(world_pos: Vector2) -> void:
+	hazard_fire_rain.schedule(world_pos)
+	var circle := Polygon2D.new()
+	circle.polygon = _circle_poly(HazardMagma.FireRain.RADIUS_PX)
+	circle.position = world_pos
+	circle.z_index = 6
+	circle.modulate = FIRE_RAIN_WARN_COLOR
+	add_child(circle)
+	_fire_rain_vis.append(circle)
+
+
 ## 房间可玩内域（世界坐标）——滚石撞墙判定 / 敌方激光飞行界共用几何。
 func _room_interior(room: FloorRoom) -> Rect2:
 	return Rect2(room.outer.position + Vector2(WALL_T, WALL_T),
 		room.outer.size - Vector2(WALL_T * 2.0, WALL_T * 2.0))
 
 
-## m2-t7 危险地块帧驱动：藤蔓减速（进出接缝）+ 地刺相位推进/伤害 + 滚石生命周期/
-## 伤害。伤害经 player.take_hit（玩家 0.8s 受击无敌帧天然节流同源连击）；伤害 ctx
-## 仅命中拍构建（事件频率，同敌方接触伤害口径）；视觉仅翻可见性/引用常量色。
+## m2-t7/m2-t10 危险地块帧驱动：藤蔓减速（进出接缝）+ 地刺相位推进/伤害 + 滚石生命
+## 周期/伤害 + 岩浆 DOT 脉冲（抗火 meta 减半）+ 喷口相位推进/伤害 + 火雨落点推进/伤害。
+## 伤害经 player.take_hit（玩家 0.8s 受击无敌帧天然节流同源连击；岩浆脉冲 60t > 48t
+## 不被节流）；伤害 ctx 仅命中拍构建（事件频率）；视觉仅翻可见性/引用常量色。
 func _tick_hazards(frame: int) -> void:
 	if hazard_vines != null:
 		hazard_vines.tick(player, frame)
 	var player_pos := player.global_position
+	if hazard_magma != null:
+		var magma_dmg := hazard_magma.tick(player)
+		if magma_dmg > 0:
+			player.take_hit({
+				"amount": magma_dmg, "is_crit": false,
+				"element": Elements.Id.FIRE, "from": player_pos,
+				"source_type": "hazard", "source_id": "magma",
+				"source_name": "岩浆", "attack_name": "岩浆灼烧",
+			})
 	for i in _spikes.size():
 		var s := _spikes[i]
 		s.advance()
@@ -510,6 +592,42 @@ func _tick_hazards(frame: int) -> void:
 				"source_type": "hazard", "source_id": "rock",
 				"source_name": "滚石", "attack_name": "滚石碾压",
 			})
+	for i in _geysers.size():
+		var g := _geysers[i]
+		g.advance()
+		var gvis: CanvasItem = _geyser_vis[i]
+		match g.phase():
+			HazardMagma.MagmaGeyser.Phase.WARN:
+				gvis.visible = true
+				gvis.modulate = GEYSER_WARN_COLOR
+			HazardMagma.MagmaGeyser.Phase.ERUPT:
+				gvis.visible = true
+				gvis.modulate = GEYSER_ERUPT_COLOR
+			_:
+				gvis.visible = false
+		if g.damage_at(player_pos) > 0:
+			player.take_hit({
+				"amount": HazardMagma.MagmaGeyser.DAMAGE, "is_crit": false,
+				"element": Elements.Id.FIRE, "from": g.zone.get_center(),
+				"source_type": "hazard", "source_id": "geyser",
+				"source_name": "间歇喷口", "attack_name": "间歇喷口喷发",
+			})
+	# 火雨：常驻组件逐帧推进；落点拍命中半径即伤，下一拍 strike 过期（视觉 FIFO 对齐）。
+	hazard_fire_rain.tick()
+	while _fire_rain_vis.size() > hazard_fire_rain.strikes.size():
+		(_fire_rain_vis.pop_front() as CanvasItem).queue_free()
+	for i in _fire_rain_vis.size():
+		var fvis: CanvasItem = _fire_rain_vis[i]
+		fvis.modulate = FIRE_RAIN_BOOM_COLOR \
+			if bool(hazard_fire_rain.strikes[i]["boom"]) else FIRE_RAIN_WARN_COLOR
+	var rain_dmg := hazard_fire_rain.striking_at(player_pos)
+	if rain_dmg > 0:
+		player.take_hit({
+			"amount": rain_dmg, "is_crit": false,
+			"element": Elements.Id.FIRE, "from": player_pos,
+			"source_type": "hazard", "source_id": "fire_rain",
+			"source_name": "火雨", "attack_name": "天降火雨",
+		})
 
 
 func _init_spawn_points(room: FloorRoom, tpl: Dictionary) -> void:
@@ -1331,6 +1449,16 @@ func hazard_rock(i: int) -> RollingRock:
 	return _rocks[i] if i >= 0 and i < _rocks.size() else null
 
 
+# ---- m2-t10 A3 岩浆系查询面（测试/HUD；越界返回 null 不崩） ----
+
+func hazard_geyser_count() -> int:
+	return _geysers.size()
+
+
+func hazard_geyser(i: int) -> HazardMagma.MagmaGeyser:
+	return _geysers[i] if i >= 0 and i < _geysers.size() else null
+
+
 func gate_count() -> int:
 	return _gates.size()
 
@@ -1493,6 +1621,14 @@ func _rect_poly(rect: Rect2) -> PackedVector2Array:
 		rect.position, Vector2(rect.end.x, rect.position.y),
 		rect.end, Vector2(rect.position.x, rect.end.y),
 	])
+
+
+## 12 边圆多边形（岩浆池/火雨红圈缺图回落与红圈视觉用；构建时一次性分配）。
+func _circle_poly(radius: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in 12:
+		pts.append(Vector2.from_angle(TAU * i / 12.0) * radius)
+	return pts
 
 
 func _opp(dir: String) -> String:

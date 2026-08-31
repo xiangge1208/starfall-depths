@@ -30,6 +30,10 @@ const ROOM_SCHEMA := {
 	"spawn_points": TYPE_ARRAY, "props": TYPE_ARRAY, "hazards": TYPE_ARRAY,
 }
 const ROOM_OPTIONAL := {}
+# hazards kind 白名单（validate_room_row 形状校验）：vine=A1 藤蔓（t7 前库内唯一）；
+# magma/geyser=A3 岩浆系（m2-t10：岩浆 DOT 池需 radius、喷口仅 grid）。
+# spikes/rock 已有 FloorScene 组件分派但行未入白名单（A2/A3 真实模板卡 T26 落库时扩展）。
+const HAZARD_KINDS: Array[String] = ["vine", "magma", "geyser"]
 # 增益（t9）：5 键必填；稀有度与 effects 键白名单由 validate_buff_row 语义校验（同 rooms fail-closed 路径）
 const BUFF_SCHEMA := {
 	"id": TYPE_STRING, "name": TYPE_STRING, "rarity": TYPE_STRING,
@@ -41,8 +45,9 @@ const BUFF_RARITIES: Array[String] = ["common", "uncommon", "rare"]
 # 百分比键取数值，整型键取 int（_normalize_row 已还原）。
 # m2-t12 新增 25 键【消费方待接线 → T35】（编排者已立卡：meta 生效接线，含
 # player/pickup/shop_logic/drink_machine/weapon_rig/fx 的 get_meta("buff_<key>") 读取）。
-# 【评审 Major 修复① 注记改真】逐键核实：截至本 commit，下列键在代码库中零消费
-# （无任何 get_meta("buff_*") 调用；T4 ice_floor/biome_fx 不读 meta，T10 岩浆未交付，
+# 【评审 Major 修复① 注记改真】逐键核实：截至 m2-t10，下列键仅 anti_fire 有消费方
+# （HazardMagma 岩浆 DOT 减半读 meta buff_anti_fire，m2-t10 交付）；其余仍零消费
+# （无 get_meta("buff_*") 调用；T4 ice_floor/biome_fx 不读 meta，
 # Player.take_hit_ctx 用固定 HURT_IFRAME_TICKS 常量、Pickup/ShopLogic 均常量结算）。
 # 各键原注记声称的「M1 既有消费方」均为失实，改为目标消费模块 + T35 待接线状态：
 #   攻击侧（rig meta；目标消费 = CombatSystem 命中/共鸣结算路径）：
@@ -50,7 +55,8 @@ const BUFF_RARITIES: Array[String] = ["common", "uncommon", "rare"]
 #                    resonance_duration_ticks / avenger vengeance_pct + vengeance_ticks
 #   防御侧（player meta）：
 #     抗性三键       anti_fire / anti_ice / anti_poison（目标 = StatusComponent 免疫 +
-#                    岩浆/冰面抗性；T4 冰面、T10 岩浆在 T35 一并接 meta）
+#                    岩浆/冰面抗性；anti_fire 已由 m2-t10 HazardMagma 消费，
+#                    anti_ice/anti_poison 及冰面抗性在 T35 接线）
 #     nerve_reflex   hurt_iframe_bonus_ticks（目标 = Player 受击无敌帧加算）
 #     carapace       bullet_dmg_taken_pct（目标 = Player 弹幕来伤乘区 1+pct）
 #     thorn_armor    thorns_contact_dmg（目标 = 接触伤路径反伤）
@@ -376,22 +382,25 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 			for dg: Array in door_grids:
 				if int(grid[0]) == int(dg[0]) and int(grid[1]) == int(dg[1]):
 					errors.append("props[%d] on door tile: %s" % [i, str(grid)])
-	# hazards（本任务 data-only，仅校验形状）
+	# hazards（data-only 形状校验；kind 白名单 = HAZARD_KINDS：vine/magma 需 radius，
+	# geyser 仅 grid——喷口判定为组件内一瓦片常量）
 	var hazards: Variant = row.get("hazards", [])
 	if typeof(hazards) != TYPE_ARRAY:
 		errors.append("hazards must be array")
 	else:
 		for i: int in hazards.size():
 			var h: Variant = hazards[i]
-			if typeof(h) != TYPE_DICTIONARY or h.get("kind") != "vine":
-				errors.append("hazards[%d] kind must be vine" % i)
+			var kind: Variant = h.get("kind") if typeof(h) == TYPE_DICTIONARY else null
+			if not HAZARD_KINDS.has(kind):
+				errors.append("hazards[%d] bad kind: %s" % [i, str(kind)])
 				continue
 			var hg: Variant = h.get("grid")
 			if not _is_grid(hg) or not _in_bounds(hg):
 				errors.append("hazards[%d] grid out of bounds" % i)
-			var radius: Variant = h.get("radius")
-			if typeof(radius) != TYPE_INT and typeof(radius) != TYPE_FLOAT:
-				errors.append("hazards[%d] radius must be number" % i)
+			if kind == "vine" or kind == "magma":
+				var radius: Variant = h.get("radius")
+				if typeof(radius) != TYPE_INT and typeof(radius) != TYPE_FLOAT:
+					errors.append("hazards[%d] radius must be number" % i)
 	return errors
 
 ## 增益行语义校验（t9），作为 buffs 表 _load_table 的 extra_check。
