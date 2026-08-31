@@ -1721,7 +1721,7 @@ def write_manifest():
         "| 项 | 说明 | 建议 |",
         "|---|---|---|",
         "| 像素中文字体 | 全 UI 伤害数字/菜单/对话用默认字体，无像素风格 | 开源可选：缝合怪像素字体 Fusion Pixel Font（OFL）、Zpix（个人免费）；落位 `art/fonts/` |",
-        "| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画见 T21 |",
+        "| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画亦已交付（m2-t21 `enemies/<id>_sheet.png`） |",
         "| 敌人受击/死亡动画 | 目前仅白闪+爆粒子 | 每敌 2-4 帧即可显著提升手感 |",
         "| 雕像四 kinds 精绘 | 通用底 + 4 属性变体已备（shrine_*.png），披肩/徽记方案区分 | 正式素材按变体配色委托精绘即可 |",
         "| 地图整块背景装饰 | 墙沿/悬挂物/裂纹大图 | 可后置，优先级低 |",
@@ -1751,7 +1751,7 @@ def write_manifest():
         "## 生成参数",
         "",
         "- 脚本：`tools/gen_placeholder_art.py`（M1 批次+公共库，自动串联 `tools/gen_placeholder_art_m2.py`）",
-        "- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。",
+        "- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40 单帧+2 帧动画表/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。",
         "- **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；仅 M2 Boss 5 种 slug 为附录 E 暂定名（data 行未落地）。",
         "- Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；全量再生=先生成后按本清单清理陈旧（失败不毁库）。",
         "- 联络表：`_preview.png`（4x 放大，人工检查用，勿在游戏内引用）。",
@@ -1790,15 +1790,30 @@ def _prune_stale():
     - 全量成功后按 SPEC 清单清除陈旧残留（如 m2-t21 废除的 75 武器暂定 slug），
       终态与"清空重建"逐字节等价（每个 SPEC 条目每轮都被覆盖重写）。
     保留项：MANIFEST.md/_preview.png（本轮末统一重写）与 .gitkeep。"""
-    keep = {"MANIFEST.md", "_preview.png", ".gitkeep"}
+    keep = {"MANIFEST.md", "_preview.png"}
     for rel, *_rest in SPEC:
         keep.add(rel)
     removed = []
     for p in OUT.rglob("*"):
-        if p.is_file() and p.relative_to(OUT).as_posix() not in keep:
+        # .gitkeep 按 p.name 匹配（任意嵌套层级都保留，m2-t21），不在 keep 集里按路径比对
+        if p.is_file() and p.name != ".gitkeep" \
+                and p.relative_to(OUT).as_posix() not in keep:
             removed.append(p.relative_to(OUT).as_posix())
             p.unlink()
     return removed
+
+
+def _prune_after_m2(m2_joined: bool):
+    """m2-t21 防回归闸门：仅当 M2 批次实际参与生成后才允许陈旧清理。
+
+    若 M2 导入失败被静默吞掉（旧实现 `except ImportError: pass`）而照常 prune，
+    M1 SPEC 之外的整棵 M2 子树（数百文件：武器/敌人帧表/增益图标等）会被当
+    "陈旧残留"静默删除——这里 fail-loud 拒绝执行。"""
+    if not m2_joined:
+        raise RuntimeError(
+            "M2 批次未参与生成（gen_placeholder_art_m2 导入失败）"
+            "——拒绝执行陈旧清理，防止误删 M2 子树")
+    return _prune_stale()
 
 
 def main():
@@ -1837,17 +1852,17 @@ def main():
     gen_batch2()
     gen_batch3()
     # M2 批次自动串联（脚本存在即生成；清单与联络表在 M2 追加后统一重写）
+    m2_joined = False
     try:
         import sys as _sys
         import gen_placeholder_art_m2 as _m2
         _m2.generate(_sys.modules[__name__])
-    except ImportError:
-        pass
+        m2_joined = True
     except Exception:
         import traceback
-        traceback.print_exc()   # M2 批次失败可见，但不妨碍 M1 产物落地
-        raise                    # m2-t21：失败即中止——陈旧清理绝不能在半量库上执行
-    removed = _prune_stale()
+        traceback.print_exc()   # M2 批次失败可见（含 ImportError）
+        raise                    # m2-t21：失败即中止——绝不能带着半量库去 prune
+    removed = _prune_after_m2(m2_joined)
     write_manifest()
     write_preview()
     print(f"生成 {len(SPEC)} 个素材 -> {OUT}（清理陈旧残留 {len(removed)} 项）")

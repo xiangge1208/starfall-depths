@@ -40,6 +40,11 @@ const TILE_FLOOR := "floor_cave"
 const TILE_WALL := "wall_cave"
 const TILE_DOOR := "door_closed"
 const BULLET_VISUAL_SCALE := 0.75      # 8x8 弹底图 ≈ 原 5px 方块
+## m2-t21 敌人 2 帧动画：art/generated/enemies/<id>_sheet.png（2 列=idle+walk × 1 行）。
+## 帧节拍与玩家 T17 ANIM_WALK_TICKS 同为 8t/帧；缺表敌种（精英/小Boss/Boss/嘉宾）回落单帧。
+const ENEMY_SHEET_FMT := "res://art/generated/enemies/%s_sheet.png"
+const ENEMY_ANIM_TICKS := 8           # 移动中 (物理帧/8) % 2 两帧交替
+const ENEMY_ANIM_MOVE_EPS := 0.25     # 位移²阈值（<0.5px/拍 视为静止，覆盖贴墙抖动）
 
 ## 训练房并入时置 false：复用外部玩家/相机/HUD，不自带操控
 @export var spawn_player := true
@@ -60,6 +65,12 @@ var _spawned_wave := -1                    # 已刷的最高波索引（波推�
 var _coins_collected := 0
 var _bullet_layer: Node2D
 var _bullet_sprites: Array[Sprite2D] = []
+## m2-t21 敌人 2 帧动画热路径状态（持久字典 + int 实例键：零字符串/零字典新建）。
+var _anim_sprites: Dictionary = {}     # instance_id -> Sprite2D（仅帧表化敌种）
+var _anim_prev: Dictionary = {}        # instance_id -> 上一拍 brain_pos
+
+## 帧表一次性解析缓存（id -> Texture2D / null 负缓存，同 T17 player._anim_sheet_cache）。
+static var _enemy_sheet_cache: Dictionary = {}
 
 func _ready() -> void:
 	if _cfg.is_empty():
@@ -111,6 +122,7 @@ func _physics_process(_delta: float) -> void:
 	for e in _enemies:
 		if is_instance_valid(e) and e.state != EnemyBase.State.DEAD:
 			e.brain_tick(frame)
+			_tick_enemy_anim(e, frame)
 	# 波推进：前一波全灭后 flow 已进下一波，此处补刷（含后续任意波数）
 	if flow.locked and not flow.cleared and flow.wave_index() > _spawned_wave:
 		_spawn_wave()
@@ -205,8 +217,60 @@ func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 		])
 		vis.color = ARCHETYPE_COLORS.get(String(row.get("archetype", "")), Color.WHITE)
 		e.add_child(vis)
+	_apply_enemy_anim_sheet(e, row)
+
+# ---- m2-t21 敌人 2 帧动画（帧表驱动，纯整数运算零分配；参照 T17 player 模式） ----
+
+## 2 帧步态纯函数：静止恒列 0（idle）；移动中以 8t/帧在列 0/1 交替（同玩家节拍）。
+static func enemy_anim_frame(moving: bool, frame: int) -> int:
+	if not moving:
+		return 0
+	return int(floor(float(frame) / ENEMY_ANIM_TICKS)) % 2
+
+## 帧表查询（一次性解析 + 负缓存；ArtLookup.tex 缺图告警一次后缓存 null）。
+static func enemy_sheet(id: String) -> Texture2D:
+	if not _enemy_sheet_cache.has(id):
+		_enemy_sheet_cache[id] = ArtLookup.tex(ENEMY_SHEET_FMT % id)
+	return _enemy_sheet_cache[id]
+
+## 有帧表的常规敌换装 2 列网格：帧尺寸 = 表宽/2（缩放按帧尺寸重算，保持原 footprint）；
+## 缺表（精英/小Boss/Boss/嘉宾）保留 dress_enemy_sprite 的单帧外观不动。
+func _apply_enemy_anim_sheet(e: EnemyBase, row: Dictionary) -> void:
+	var spr := e.get_node_or_null("Sprite") as Sprite2D
+	if spr == null:
+		return
+	var sheet := enemy_sheet(String(row.get("id", "")))
+	if sheet == null:
+		return
+	var frame_px := Vector2(sheet.get_width() / 2.0, float(sheet.get_height()))
+	var radius := maxf(float(row.get("radius", 6.0)), 5.0)
+	var s := (radius * 2.0) / maxf(frame_px.x, frame_px.y)
+	spr.texture = sheet
+	spr.hframes = 2
+	spr.vframes = 1
+	spr.frame = 0
+	spr.scale = Vector2(s, s)
+	_anim_sprites[e.get_instance_id()] = spr
+	_anim_prev[e.get_instance_id()] = e.brain_pos
+
+## 动画拍（零分配热路径：int 键查持久字典、位移²阈值判移动、帧变化才写 Sprite）。
+func _tick_enemy_anim(e: EnemyBase, frame: int) -> void:
+	var id := e.get_instance_id()
+	if not _anim_sprites.has(id):
+		return
+	var pos := e.brain_pos
+	var prev: Vector2 = _anim_prev.get(id, pos)
+	_anim_prev[id] = pos
+	var spr := _anim_sprites[id] as Sprite2D
+	if spr == null or not is_instance_valid(spr):
+		return
+	var idx := enemy_anim_frame(pos.distance_squared_to(prev) > ENEMY_ANIM_MOVE_EPS, frame)
+	if spr.frame != idx:
+		spr.frame = idx
 
 func _on_enemy_died(e: EnemyBase) -> void:
+	_anim_sprites.erase(e.get_instance_id())   # m2-t21：实例 id 可复用，死亡即清动画跟踪（先于注册守卫）
+	_anim_prev.erase(e.get_instance_id())
 	if not _enemies.has(e):
 		return
 	var frame := Engine.get_physics_frames()

@@ -84,7 +84,9 @@ def gen_weapons_m2():
         if fn is not None:
             fn(img, elem_c)
         else:  # M2 新类别: 狙击/投掷/特殊
-            HH_TEMPLATES_M2[key](img, elem_c, acc)
+            hh = HH_TEMPLATES_M2.get(key)
+            assert hh is not None, f"武器类别 {cat}({key}) 无图标画笔（ICON_TEMPLATES/HH_TEMPLATES_M2 均缺行）"
+            hh(img, elem_c, acc)
         rect(img, 13, 0, 15, 2, acc)   # 稀有度角标
         outline(img)
         save(img, f"ui/weapons/{wid}.png", f"武器图标「{name.strip('★')}」({cat}/{rar}){star}",
@@ -121,6 +123,7 @@ def generate(caller=None):
     g["METAL"], g["DARK"], g["WOOD"], g["WOOD_L"] =         base.C("#c8d0dc"), base.C("#7a8496"), base.C("#8a6a3c"), base.C("#a8854e")
     gen_weapons_m2()
     gen_enemies_m2()
+    gen_enemy_sheets_m2()
     gen_heroes_m2()
     gen_buffs_m2()
     gen_tiles_m2()
@@ -360,6 +363,72 @@ def gen_enemies_m2():
         img = fn()
         outline(img)
         save(img, f"enemies/{slug}.png", f"Boss「{name}」48x48", f"附录 E 招式规格; 现无 data 行/脚本", theme)
+
+
+# ---------------------------------------------------------------- 敌人 2 帧动画表 (m2-t21)
+# enemies/<id>_sheet.png = 2 列(idle|walk) × 1 行，帧尺寸与单帧图一致（常规怪 16x16 → 32x16）。
+# 契约（消费端 core/rooms/room_combat.gd）：Sprite hframes=2 vframes=1；
+#   frame=0 idle；移动中 frame = (物理帧/8) % 2 两帧交替（与 T17 玩家 8t/帧同拍）。
+# 纪律：本节**零共享 RNG**（walk 帧 = idle 帧像素整体下移 1px 的确定性变换）——
+# 插入主流程不扰动其它子树字节（T17 英雄帧表同款纪律）。
+_M2_MOBS_BY_SLUG = {m[0]: m for m in MOBS_M2}
+
+
+def _regular_enemy_rows():
+    """data/enemies.json 常规行（m2-t21 数据驱动口径）：剔除 elite_affixes 行
+    （精英×2/小 Boss×4 —— 复用单帧基图 + 运行时染色/金环，不出帧表）与
+    archetype=boss 行（48px 多阶段 Boss 另有规格）→ 附录 B 常规 40 种。"""
+    enemies = json.load(open(OUT.parent.parent / "data" / "enemies.json", encoding="utf-8"))
+    out = []
+    for eid, row in enemies.items():
+        if "elite_affixes" in row or str(row.get("archetype", "")) == "boss":
+            continue
+        out.append((eid, str(row.get("name", eid))))
+    return out
+
+
+def _enemy_idle_painter(eid):
+    """常规敌 id → 单帧画笔：M2 附录 B 表驱动 _mob；M1 五种沿用 M1 画笔。
+    返回 None = 两表均缺该行（roster 漂移，调用方 fail-loud）。"""
+    if eid in _M2_MOBS_BY_SLUG:
+        _slug, _name, _act, arch, biome, feats, _note = _M2_MOBS_BY_SLUG[eid]
+        return lambda: _mob(arch, BIOME_PAL[biome], feats)
+    m1_painters = {
+        "kuli_bug": base.paint_kuli, "cave_bat": base.paint_bat,
+        "crossbowman": base.paint_crossbow, "vine_charger": base.paint_charger,
+        "mushroom_spore": base.paint_mushroom,
+    }
+    return m1_painters.get(eid)
+
+
+def _walk_bob(img):
+    """walk 帧 = idle 整体下移 1px（两帧步态的通用占位节拍；原底行裁出画布=迈步落足）。"""
+    out = canvas(img.width, img.height)
+    src = img.load()
+    dst = out.load()
+    for y in range(1, img.height):
+        for x in range(img.width):
+            if src[x, y - 1][3] != 0:
+                dst[x, y] = src[x, y - 1]
+    return out
+
+
+def gen_enemy_sheets_m2():
+    roster = _regular_enemy_rows()
+    assert len(roster) == 40, f"附录 B 常规敌人应为 40 种, data/enemies.json 实际 {len(roster)} 行"
+    for eid, name in roster:
+        painter = _enemy_idle_painter(eid)
+        assert painter is not None, f"敌人 {eid} 无单帧画笔（M1/M2 画笔表缺行）"
+        idle = painter()
+        outline(idle)
+        w, h = idle.size
+        sheet = base.Image.new("RGBA", (w * 2, h), (0, 0, 0, 0))
+        sheet.paste(idle, (0, 0))
+        sheet.paste(_walk_bob(idle), (w, 0))
+        save(sheet, f"enemies/{eid}_sheet.png",
+             f"敌人「{name}」2 帧动画表（列=idle+walk, {w}px/帧）",
+             "room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1",
+             "m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图")
 
 
 # ---------------------------------------------------------------- 新英雄 4 + 技能/被动

@@ -446,6 +446,46 @@
 | `enemies/frost_spider_mother.png` | 48x48 | Boss「寒渊蛛母（A2-②）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 铺冰面+蛛网禁锢; P3 冰晶牢笼 |
 | `enemies/magma_tyrant.png` | 48x48 | Boss「熔核暴君（A3-①）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 岩浆喷区+火雨; P3 地裂火浪 |
 | `enemies/starfall_prophet.png` | 48x48 | Boss「星陨先知（A3-②隐藏）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 全元素轮回+共鸣攻击 |
+| `enemies/kuli_bug_sheet.png` | 32x16 | 敌人「苦力虫」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/cave_bat_sheet.png` | 32x16 | 敌人「穴蝠」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crossbowman_sheet.png` | 32x16 | 敌人「弩兵」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/mud_slime_sheet.png` | 32x16 | 敌人「泥浆史莱姆」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/vine_charger_sheet.png` | 32x16 | 敌人「藤蔓冲锋者」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/mushroom_spore_sheet.png` | 32x16 | 敌人「蘑菇孢子手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/hardshell_turtle_sheet.png` | 32x16 | 敌人「硬壳龟」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/wing_lizard_sheet.png` | 32x16 | 敌人「飞行翼蜥」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/thorn_turret_sheet.png` | 32x16 | 敌人「荆棘炮台」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/spore_flower_sheet.png` | 32x16 | 敌人「孢子召唤花」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/stone_boar_sheet.png` | 32x16 | 敌人「石皮野猪」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ruin_archer_sheet.png` | 32x16 | 敌人「遗迹弓手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/moss_slime_sheet.png` | 32x16 | 敌人「苔藓史莱姆」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/glowbug_swarm_sheet.png` | 32x16 | 敌人「萤光虫群」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/old_tree_guard_sheet.png` | 32x16 | 敌人「老树守卫」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/seed_pitcher_sheet.png` | 32x16 | 敌人「种子投手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_bat_sheet.png` | 32x16 | 敌人「晶簇蝙蝠」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ice_mage_sheet.png` | 32x16 | 敌人「冰晶法师」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/magnet_golem_sheet.png` | 32x16 | 敌人「磁石傀儡」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ghost_jelly_sheet.png` | 32x16 | 敌人「幽光水母」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/frost_crab_sheet.png` | 32x16 | 敌人「冻土巨蟹」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_rat_sheet.png` | 32x16 | 敌人「窃晶鼠群」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/rock_crystal_turret_sheet.png` | 32x16 | 敌人「岩晶炮台」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_summoner_sheet.png` | 32x16 | 敌人「晶核召唤师」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/prism_ranger_sheet.png` | 32x16 | 敌人「棱镜游侠」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ice_spider_sheet.png` | 32x16 | 敌人「冰蛛」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/echo_lurker_sheet.png` | 32x16 | 敌人「深窟回响者」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/crystal_dragon_sheet.png` | 32x16 | 敌人「晶背龙蜥」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/lava_hound_sheet.png` | 32x16 | 敌人「熔岩犬」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ash_shooter_sheet.png` | 32x16 | 敌人「灰烬射手」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/firerain_priest_sheet.png` | 32x16 | 敌人「火雨祭司」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/magma_slime_sheet.png` | 32x16 | 敌人「熔核史莱姆」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/obsidian_guard_sheet.png` | 32x16 | 敌人「黑曜卫」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/sulfur_moth_sheet.png` | 32x16 | 敌人「硫磺蛾群」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/lava_turret_sheet.png` | 32x16 | 敌人「岩浆喷吐炮台」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/ember_summoner_sheet.png` | 32x16 | 敌人「余烬召唤师」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/scorch_stomper_sheet.png` | 32x16 | 敌人「焦土践踏者」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/flame_lich_sheet.png` | 32x16 | 敌人「烈焰巫妖」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/magma_wyvern_sheet.png` | 32x16 | 敌人「熔火飞龙」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
+| `enemies/starmarrow_blob_sheet.png` | 32x16 | 敌人「星髓聚合体」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
 | `characters/hero_mage.png` | 16x16 | 英雄「法师·烬」站立像（正面） | GDD §6 角色表; data/heroes.json M2 待加行 | 回响: 法杖/激光伤 +15% |
 | `ui/portrait_mage.png` | 32x32 | 法师·烬 选人头像 32x32 | ui/hero_select.gd 卡片 | — |
 | `ui/skill_arcane_nova.png` | 16x16 | 技能图标「奥术新星」(烬) | GDD §6 技能表 | 奥术新星(CD10s/蓝20): 120px 冰霜新星+冻结 |
@@ -522,7 +562,7 @@
 | 项 | 说明 | 建议 |
 |---|---|---|
 | 像素中文字体 | 全 UI 伤害数字/菜单/对话用默认字体，无像素风格 | 开源可选：缝合怪像素字体 Fusion Pixel Font（OFL）、Zpix（个人免费）；落位 `art/fonts/` |
-| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画见 T21 |
+| 四向行走动画 | **m2-t17 已程序化交付**：`characters/hero_<id>_sheet.png`（4 向 x idle+walk×3, 16px/帧），player.gd 移动方向自动切换 | 正式素材可按此帧表布局连锁重绘；敌人 2 帧动画亦已交付（m2-t21 `enemies/<id>_sheet.png`） |
 | 敌人受击/死亡动画 | 目前仅白闪+爆粒子 | 每敌 2-4 帧即可显著提升手感 |
 | 雕像四 kinds 精绘 | 通用底 + 4 属性变体已备（shrine_*.png），披肩/徽记方案区分 | 正式素材按变体配色委托精绘即可 |
 | 地图整块背景装饰 | 墙沿/悬挂物/裂纹大图 | 可后置，优先级低 |
@@ -552,7 +592,7 @@
 ## 生成参数
 
 - 脚本：`tools/gen_placeholder_art.py`（M1 批次+公共库，自动串联 `tools/gen_placeholder_art_m2.py`）
-- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。
+- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40 单帧+2 帧动画表/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。
 - **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；仅 M2 Boss 5 种 slug 为附录 E 暂定名（data 行未落地）。
 - Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；全量再生=先生成后按本清单清理陈旧（失败不毁库）。
 - 联络表：`_preview.png`（4x 放大，人工检查用，勿在游戏内引用）。
