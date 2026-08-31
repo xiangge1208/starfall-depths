@@ -30,6 +30,7 @@ func before_test() -> void:
 		"coins": RunState.coins,
 		"floor_idx": RunState.floor_idx,
 		"gems": RunState.gems,
+		"run_seed": RunState.run_seed,   # m2-t24 移交（T31 补）：种子也入快照
 	}
 	_saved_save_path = SaveSystem.save_path
 	# 全套件用临时档：确认入账路径绝不写真实 user://save.json
@@ -47,6 +48,7 @@ func after_test() -> void:
 	RunState.coins = int(_saved_run["coins"])
 	RunState.floor_idx = int(_saved_run["floor_idx"])
 	RunState.gems = int(_saved_run["gems"])
+	RunState.run_seed = int(_saved_run["run_seed"])
 	DeathRecorder.reset()
 	DeathRecorder.suppressed = false
 	DeathRecorder.open_summary_override = Callable()
