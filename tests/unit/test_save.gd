@@ -63,7 +63,7 @@ func test_defaults_shape() -> void:
 	var path := _tmp_path("shape")
 	_wipe(path)
 	var s: Variant = _fresh(path)
-	assert_int(s.data["version"]).is_equal(2)
+	assert_int(s.data["version"]).is_equal(2)   # m2-t32 起 v2：成就字段版本化（K.5）
 	assert_int(s.data["gems"]).is_equal(0)
 	assert_array(s.data["unlocked_heroes"]).is_equal(["vanguard"])
 	assert_dict(s.data["achievements"]).is_empty()
@@ -124,7 +124,7 @@ func test_roundtrip_persists_all_fields() -> void:
 	assert_bool(fresh.data["achievements"].get("first_kill", false)).is_true()
 	assert_float(fresh.get_setting("screen_shake", 9.9)).is_equal(0.5)
 	assert_bool(fresh.get_setting("damage_numbers", true)).is_false()
-	assert_int(fresh.data["version"]).is_equal(2)
+	assert_int(fresh.data["version"]).is_equal(2)   # m2-t32 起 v2
 	_wipe(path)
 
 
@@ -187,7 +187,7 @@ func test_migration_stub_called_with_from_version() -> void:
 	spy.load_save()
 	assert_int(spy.migrate_call_count).is_equal(1)
 	assert_int(spy.migrate_called_from).is_equal(0)
-	assert_int(spy.data["version"]).is_equal(2)   # 迁移后盖当前版本戳
+	assert_int(spy.data["version"]).is_equal(2)   # 迁移后盖当前版本戳（m2-t32 起 v2）
 	assert_int(spy.gems()).is_equal(7)
 	_wipe(path)
 
@@ -196,7 +196,7 @@ func test_no_migration_for_current_version() -> void:
 	# m2-t31 起 SAVE_VERSION=2：当前版本档不再迁移（v1 档迁移见 v2 用例组）
 	var path := _tmp_path("nomigrate")
 	_wipe(path)
-	_write_json(path, '{"version": 2, "gems": 5}')
+	_write_json(path, '{"version": 2, "gems": 5}')   # m2-t32 起当前版本=2（v1 会走迁移）
 	var spy := SpySaver.new()
 	auto_free(spy)
 	spy.save_path = path

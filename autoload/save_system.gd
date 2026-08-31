@@ -11,11 +11,12 @@ extends Node
 ## 接线说明（控制器决议）：本卡只交付服务+测试；RunState.next_floor 的蓝晶结算
 ## 不在本卡改动 run_state.gd，由 T20/T22 结算时调用 SaveSystem.add_gems 持久化。
 
-## m2-t31 存档 v2：SAVE_VERSION 1→2。v2 相对 v1 纯增量（additive）——新增
-## unlock_tasks 进度（CodexSystem 计数器快照）与 boss_first_kills 名录，全部由
-## _merge_saved 的默认骨架回落，无键搬移/改形；版本戳是正式化（此后新字段按
-## 版本分支演进，不再靠 additive 默认值隐式兜底）。purchased_talents（m2-t15）/
-## unlocked_weapons（m2-t20）/成就字段自 v1 起已存在，v2 保留口径不变。
+## m2-t31+m2-t32 存档 v2：SAVE_VERSION 1→2。v2 相对 v1 纯增量（additive）——新增
+## unlock_tasks 进度（CodexSystem 计数器快照）与 boss_first_kills 名录（m2-t31），
+## 成就字段正式入版本化口径（achievements id→true，v1 及更早档由 _migrate 归一，
+## m2-t32）。全部由 _merge_saved 的默认骨架回落，无键搬移/改形；版本戳是正式化
+## （此后新字段按版本分支演进，不再靠 additive 默认值隐式兜底）。
+## purchased_talents（m2-t15）/unlocked_weapons（m2-t20）/成就字段自 v1 起已存在。
 const SAVE_VERSION := 2   # 迁移钩子：档结构变更时递增，并在 _migrate 补 from_version 分支
 
 const DEFAULT_SETTINGS := {
@@ -120,7 +121,12 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 	# 键归一化回 int——CodexSystem 按整型层号查桶；非数字/非字典该键回落默认）
 	out["unlock_tasks"] = _normalize_unlock_tasks(saved.get("unlock_tasks"))
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
-		out["achievements"] = saved["achievements"]
+		var ach_in: Dictionary = saved["achievements"]
+		var ach: Dictionary = {}
+		for k: Variant in ach_in:               # 键归一 String（id）；脏键静默丢弃
+			if typeof(k) == TYPE_STRING:
+				ach[String(k)] = true           # 值归一 true（集合语义，不存旧值）
+		out["achievements"] = ach
 	var settings_v: Variant = saved.get("settings")
 	if typeof(settings_v) == TYPE_DICTIONARY:
 		var saved_settings: Dictionary = settings_v
@@ -130,13 +136,14 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 				out["settings"][k] = sv
 	return out
 
-## 迁移钩子（结构就绪）。v1→v2（m2-t31）：纯 additive——unlock_tasks 进度 /
-## boss_first_kills 名录等 v2 新键 v1 写档器从不写入，_merge_saved 默认骨架已回落，
-## v1 既有键（gems/unlocked_heroes/purchased_talents/unlocked_weapons/achievements/
-## settings）原样保留，故本分支无搬移动作，仅作正式化记录。幂等由 load_save 保证：
-## from_version == SAVE_VERSION 时不进本函数（重复载入 v2 档零迁移）。
-## 将来 v3：在此按 from_version 分支补默认值/搬移键，返回迁移后的完整档
-## （版本戳由 load_save 统一盖）。
+## 迁移钩子（结构就绪；m2-t31+m2-t32 双口径合并）。v1→v2：纯 additive——
+## unlock_tasks 进度 / boss_first_kills 名录（m2-t31）与成就字段版本化归一
+## （m2-t32，id→true 集合由 _merge_saved 完成）等 v2 新键 v1 写档器从不写入，
+## _merge_saved 默认骨架已回落，v1 既有键（gems/unlocked_heroes/purchased_talents/
+## unlocked_weapons/achievements/settings）原样保留，故本分支无搬移动作，仅作正式化
+## 记录。幂等由 load_save 保证：from_version == SAVE_VERSION 时不进本函数（重复载入
+## v2 档零迁移）。将来 v3：在此按 from_version 分支补默认值/搬移键，返回迁移后的
+## 完整档（版本戳由 load_save 统一盖）。
 func _migrate(migrated: Dictionary, from_version: int) -> Dictionary:
 	if from_version < 2:
 		pass   # v1→v2 additive-only：见上注，无键搬移
@@ -294,3 +301,35 @@ func unlock_tasks() -> Dictionary:
 func record_unlock_tasks(progress: Dictionary) -> void:
 	data["unlock_tasks"] = _normalize_unlock_tasks(progress)
 	save_now()
+
+## ---- 成就（m2-t32）：持久化集合（achievements id→true）+ 幂等解锁 ----
+## 字段 m1-t17 起即在默认档骨架（"achievements": {}），本卡补访问器并随 SAVE_VERSION=2
+## 正式版本化（_merge_saved 键值归一）。附录 K.5 命名 unlocked_achievements 对齐到
+## 访问器名；档内键沿用既有 "achievements"（避免同档双键漂移）。
+
+## 成就解锁入库：已解锁→false（幂等，不重写盘）；新解锁→入集+存盘+true。
+## 蓝晶奖励由调用方 AchievementSystem._unlock 按 DEFS 表 add_gems（本层不识奖励表）。
+func unlock_achievement(id: String) -> bool:
+	var ach: Dictionary = data.get("achievements", {})
+	if typeof(ach) != TYPE_DICTIONARY:
+		ach = {}
+	if ach.has(id):
+		return false
+	ach[id] = true
+	data["achievements"] = ach
+	save_now()
+	return true
+
+## 已解锁成就 id 列表（防御性读取，恒 Array[String]）。
+func unlocked_achievements() -> Array[String]:
+	var out: Array[String] = []
+	var saved: Variant = data.get("achievements")
+	if typeof(saved) == TYPE_DICTIONARY:
+		for k: Variant in saved:
+			if typeof(k) == TYPE_STRING:
+				out.append(String(k))
+	return out
+
+func is_achievement_unlocked(id: String) -> bool:
+	var saved: Variant = data.get("achievements")
+	return typeof(saved) == TYPE_DICTIONARY and (saved as Dictionary).has(id)
