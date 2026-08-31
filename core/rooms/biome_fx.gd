@@ -11,6 +11,12 @@ const LIGHT_RADIUS_PX := 140.0                # 玩家光圈半径（px）
 const LIGHT_ENERGY := 1.2                     # 光圈能量
 const LIGHT_TEXTURE_PX := 256                 # 径向渐变光斑纹理边长
 const SILHOUETTE_FLOOR := 0.4                 # 光圈外敌人 modulate 下限（公平性剪影）
+## m2-t37 A2 光圈批处理（§18.3 F2 draw call 超标修复）：光圈收口到专属可见位——
+## 只有 opt-in 本位的世界条目（ArtLookup 工厂产出的静态地形面/陈设 + 敌人剪影 +
+## 玩家外观）参与光照重渲；高计数瞬态条目（弹幕/伤害数字/FX 粒子）留在默认位 1，
+## 不再被逐项重渲。实测（40 敌满压，task-37 报告）：全量参与 ~150 draw → opt-in
+## 配置 ~110-119（= 无光圈基线），批处理沿 lit/unlit 翻转的碎裂增量归零。
+const LIT_ITEM_MASK := 2
 
 var player: Player = null
 var canvas_modulate: CanvasModulate = null
@@ -22,8 +28,14 @@ var _vision_factor := 1.0
 
 
 ## 玩家注入（FloorScene.set_biome_a2 调用；未注入时 _process 安全 no-op）。
+## m2-t37：玩家外观 opt-in 光照专属位（光圈中心玩家亮度与既往行为一致）；
+## 缺 Sprite 节点静默跳过（纯逻辑宿主无外观）。
 func setup(p_player: Player) -> void:
 	player = p_player
+	if player != null and is_instance_valid(player):
+		var spr := player.get_node_or_null("Sprite") as CanvasItem
+		if spr != null:
+			spr.light_mask = LIT_ITEM_MASK
 
 
 ## m2-t36（裁定㉑）：复合一个视野系数（0~1 调暗）到暗视野色/光圈/剪影口径上。
@@ -77,6 +89,7 @@ func _ready() -> void:
 	light.texture = _aura_texture()
 	light.texture_scale = LIGHT_RADIUS_PX * 2.0 / float(LIGHT_TEXTURE_PX)   # 纹理半径 → 光圈半径
 	light.energy = LIGHT_ENERGY
+	light.range_item_cull_mask = LIT_ITEM_MASK   # m2-t37 批处理：仅 opt-in 条目参与
 	add_child(light)
 	_apply_vision_factor()   # m2-t36：挂载前已复合（理论不可达）时落地复合口径
 

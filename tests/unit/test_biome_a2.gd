@@ -317,3 +317,59 @@ func test_floor_free_without_disable_restores_player_friction() -> void:
 	assert_float(player.friction_mult).is_equal(0.25)
 	fs.free()                            # 直接销毁（不走 set_biome_a2(false)）
 	assert_float(player.friction_mult).is_equal(1.0)
+
+
+# ---------------------------------------------------------------- m2-t37 光圈批处理（lit-mask 收口）
+## §18.3 F2 draw call 超标根因（m2-t37 实测归因，见 task-37 报告）：光圈默认
+## cull_mask=1 使画布上全部条目（弹幕/伤害数字/FX 粒子…）参与逐项光照重渲，
+## 批处理沿 lit/unlit 状态翻转碎裂 → O(穿越次数) 增量（40 敌满压下 ~+33~+45）。
+## 修复：光圈收口到专属位 LIT_ITEM_MASK=2——只有 opt-in 的世界条目（静态地形面/
+## 陈设 + 敌人剪影 + 玩家外观）被照亮；高计数瞬态条目（弹幕/伤害数字/粒子）不再
+## 参与。实测 opt-in 配置回到无光圈基线（~110-119 vs 全亮 ~150+，探针证据见报告）。
+
+func test_light_cull_mask_is_dedicated_bit_not_default() -> void:
+	# 专属位 2（默认可见位 1 不再有光圈参与）：弹幕/伤害数字/FX 走默认位 → 零逐项重渲
+	assert_int(BiomeFx.LIT_ITEM_MASK).is_equal(2)
+	assert_int(BiomeFx.LIT_ITEM_MASK).is_not_equal(1)
+	var fx := _fx()
+	var light := _light_of(fx)
+	assert_object(light).is_not_null()
+	if light != null:
+		assert_int(light.range_item_cull_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+func test_dressed_enemy_sprite_opts_into_lit_mask() -> void:
+	# 敌人剪影仍被光圈真实照亮（opt-in）：dress_enemy_sprite 产出的精灵在专属位上
+	var e := EnemyBase.new()
+	auto_free(e)
+	add_child(e)
+	assert_bool(ArtLookup.dress_enemy_sprite(e, {"id": "kuli_bug", "radius": 6.0})).is_true()
+	var spr := e.get_node("Sprite") as Sprite2D
+	assert_object(spr).is_not_null()
+	if spr != null:
+		assert_int(spr.light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+func test_world_tile_and_prop_sprites_opt_into_lit_mask() -> void:
+	# 静态世界面（平铺地板/墙 + 单图陈设/门/危险地块）opt-in——lit-tiles 配置
+	# 实测零增量（回无光圈基线）；走 ArtLookup 工厂统一落位
+	var tiled := ArtLookup.make_tiled(ArtLookup.tile_path("floor_cave"), Rect2(0, 0, 64, 64))
+	auto_free(tiled)
+	assert_object(tiled).is_not_null()
+	if tiled != null:
+		assert_int(tiled.light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+	var prop := ArtLookup.make_sprite(ArtLookup.tile_path("prop_crate"))
+	auto_free(prop)
+	assert_object(prop).is_not_null()
+	if prop != null:
+		assert_int(prop.light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
+
+
+func test_setup_opts_player_sprite_into_lit_mask() -> void:
+	# 玩家外观同样 opt-in（光圈中心玩家亮度与既往行为一致）；缺 Sprite 节点静默跳过
+	var p := _player()
+	assert_int(p.get_node("Sprite").light_mask).is_equal(1)   # 场景默认位
+	var fx := BiomeFx.new()
+	auto_free(fx)
+	fx.setup(p)
+	assert_int(p.get_node("Sprite").light_mask).is_equal(BiomeFx.LIT_ITEM_MASK)
