@@ -24,8 +24,9 @@ extends Node
 ## - boss_layer(on)：进 Boss 房切 boss 曲（记忆进层前生态曲），退场恢复；无曲可
 ##   恢复（进 boss 层前静默）→ 停。幂等：已在/不在 boss 层时重复调用 no-op。
 ## - 循环：运行时对 AudioStreamWAV 启用 LOOP_FORWARD 全长循环
-##   （loop_end=帧数；不依赖 .import 的 edit/loop_mode——生成的 WAV 无 smpl
-##   chunk，导入器默认不循环，代码启用对正式替换素材同样生效）。
+##   （loop_end=帧数：PCM 按帧宽换算、QOA 用 get_length()*mix_rate；不依赖
+##   .import 的 edit/loop_mode——生成的 WAV 无 smpl chunk 且导入器 compress/mode=2
+##   默认 QOA，代码启用对正式替换素材同样生效）。
 ## - 未知 music key：同 sfx 约定 push_warning 一次 + 静默 no-op（_warned 以
 ##   "music:" 前缀与 sfx 键隔离）。
 
@@ -172,24 +173,35 @@ func _music_stream_for(key: String) -> AudioStream:
 	_music_streams[key] = stream          # 负结果缓存（同 sfx 池约定）
 	return stream
 
-## 运行时启用 WAV 全长前向循环（loop_end=帧数；16/8bit PCM 按帧宽换算，
-## 压缩格式帧宽不同 → 不启用，靠素材侧导入设置）。幂等：重复调用无害。
+## 运行时启用 WAV 全长前向循环。幂等：重复调用无害。
+## 帧数口径（loop_end 单位=帧，非字节）：
+## - PCM（8/16bit）：data.size() / 帧宽（8bit=1、16bit=2；stereo ×2）。
+## - QOA（导入器 compress/mode=2 默认，data.size() 为压缩字节数，不可当帧数）：
+##   int(get_length() * mix_rate)（评审 Critical① 回归修复；无此分支则 QOA 曲
+##   播一遍即停，无缝循环失效）。
+## - 其它/未来格式：不启用（靠素材侧导入设置 edit/loop_mode）。
 func _enable_wav_loop(stream: AudioStream) -> void:
 	var wav := stream as AudioStreamWAV
 	if wav == null:
 		return
-	var bytes_per_frame := 0
 	match wav.format:
-		AudioStreamWAV.FORMAT_8_BITS: bytes_per_frame = 1
-		AudioStreamWAV.FORMAT_16_BITS: bytes_per_frame = 2
-		_: return
-	if wav.stereo:
-		bytes_per_frame *= 2
-	if bytes_per_frame <= 0 or wav.data.size() < bytes_per_frame:
+		AudioStreamWAV.FORMAT_8_BITS, AudioStreamWAV.FORMAT_16_BITS:
+			var bytes_per_sample := 1 if wav.format == AudioStreamWAV.FORMAT_8_BITS else 2
+			var bytes_per_frame := bytes_per_sample * (2 if wav.stereo else 1)
+			if bytes_per_frame <= 0 or wav.data.size() < bytes_per_frame:
+				return
+			_set_full_loop(wav, wav.data.size() / bytes_per_frame)
+		AudioStreamWAV.FORMAT_QOA:
+			_set_full_loop(wav, int(wav.get_length() * wav.mix_rate))
+		_:
+			pass                              # 未知格式：静默不循环（同既定约定）
+
+func _set_full_loop(wav: AudioStreamWAV, frames: int) -> void:
+	if frames <= 0:
 		return
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	wav.loop_begin = 0
-	wav.loop_end = wav.data.size() / bytes_per_frame
+	wav.loop_end = frames
 
 func _music_target_db() -> float:
 	return MUTE_DB if music_volume <= 0.0 else linear_to_db(music_volume)

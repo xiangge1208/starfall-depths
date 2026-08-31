@@ -127,6 +127,20 @@ func test_stop_music_resets_channel() -> void:
 	mgr.stop_music()              # 幂等：再停不崩
 
 
+func test_play_music_enables_forward_loop_on_imported_qoa_stream() -> void:
+	# 回归钉（评审 Critical）：.import 默认 compress/mode=2 → 导入资源 format=QOA，
+	# data.size() 是压缩字节数。_enable_wav_loop 必须仍启用全长前向循环
+	# （QOA 帧数走 get_length()*mix_rate），否则每曲播一遍 120s 后停、无缝循环死。
+	# （断言循环行为本身；导入前提 QOA 见文件头注释，若未来导入参数变更按行为重钉。）
+	var wav := load(MUSIC_DIR + "music_garden.wav") as AudioStreamWAV
+	assert_that(wav).is_not_null()
+	var mgr := _fresh()
+	mgr.play_music("garden")
+	assert_int(wav.loop_mode).is_equal(AudioStreamWAV.LOOP_FORWARD)
+	assert_int(wav.loop_begin).is_equal(0)
+	assert_int(wav.loop_end).is_greater(0)
+
+
 func test_set_music_volume_applies_to_music_channel_not_sfx_pool() -> void:
 	var mgr := _fresh()
 	mgr.set_music_volume(0.5)
