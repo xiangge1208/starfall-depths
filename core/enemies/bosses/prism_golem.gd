@@ -317,7 +317,7 @@ func _spawn_crystals() -> void:
 		var side := 1.0 if (i % 2 == 0) else -1.0
 		var pos := _clamp_to_bounds(brain_pos + Vector2(CRYSTAL_OFFSET_PX * side, 0.0))
 		var crystal := Crystal.new()
-		crystal.setup(pos, CRYSTAL_HP)
+		crystal.setup(pos, CRYSTAL_HP, combat)   # m2-t36：可破坏战斗体接线（T14 移交）
 		add_child(crystal)
 		_crystals.append(crystal)
 
@@ -478,16 +478,23 @@ func _fx_clear() -> void:
 	_sweep_fx.clear()
 
 
-## 晶柱（脑层轻量实体）：登记 EnemyLaser 折射组（与 FloorScene 晶柱同组同语义），
-## hp 归零即失效退场；regen 补满；Boss 死亡随行清场。
+## 晶柱（脑层轻量实体）：顶层挂载（top_level——出生坐标即世界坐标，魔像瞬移/位移不
+## 拖动晶柱；修 T14 移交的空间错位）；登记 EnemyLaser 折射组（与 FloorScene 晶柱同组
+## 同语义）+ CombatSystem 战斗体（register_body/combat_radius——玩家弹/近战可拆柱，
+## 拆柱→regen 补柱博弈环闭环）；hp 归零即失效退场并注销战斗体；Boss 死亡随行清场。
 class Crystal extends Node2D:
 	var pos_world := Vector2.ZERO
 	var hp := 0
+	var combat: CombatSystem = null
 
-	func setup(p: Vector2, hp_value: int) -> void:
+	func setup(p: Vector2, hp_value: int, combat_system: CombatSystem = null) -> void:
 		pos_world = p
 		hp = hp_value
+		top_level = true                # m2-t36：出生位 = 世界坐标（不受 Boss 变换拖动）
 		position = p
+		combat = combat_system
+		if combat != null:
+			combat.register_body(self, Projectile.Faction.ENEMY)   # m2-t36：玩家弹可拆柱
 		add_to_group(EnemyLaser.PILLAR_GROUP)
 		var vis := Polygon2D.new()
 		var pts := PackedVector2Array()
@@ -499,6 +506,10 @@ class Crystal extends Node2D:
 		vis.z_index = 12
 		add_child(vis)
 
+	## m2-t36：CombatSystem 战斗体半径契约（同 EnemyBase.combat_radius 口径）。
+	func combat_radius() -> float:
+		return EnemyLaser.PILLAR_RADIUS_PX
+
 	func take_hit(ctx: Dictionary) -> void:
 		if hp <= 0:
 			return
@@ -508,6 +519,9 @@ class Crystal extends Node2D:
 
 	func despawn() -> void:
 		hp = 0
+		if combat != null:
+			combat.unregister_body(self)   # m2-t36：退场即注销战斗体（哈希不泄漏）
+			combat = null
 		if is_inside_tree():
 			remove_from_group(EnemyLaser.PILLAR_GROUP)
 		queue_free()
