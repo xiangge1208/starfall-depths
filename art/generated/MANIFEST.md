@@ -32,6 +32,10 @@
 | `projectiles/elem_ice.png` | 8x8 | ice 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/elem_poison.png` | 8x8 | poison 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/elem_shock.png` | 8x8 | shock 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
+| `projectiles/elem_fire_enemy.png` | 8x8 | fire 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
+| `projectiles/elem_ice_enemy.png` | 8x8 | ice 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
+| `projectiles/elem_poison_enemy.png` | 8x8 | poison 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
+| `projectiles/elem_shock_enemy.png` | 8x8 | shock 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/laser_seg.png` | 16x6 | 激光束段（16x6 可平铺） | data/weapons.json category=laser（熔断激光/冰晶射线）暂无表现 | 水平旋转 90° 得竖直束 |
 | `pickups/coin.png` | 8x8 | 金币掉落 | core/rooms/pickup.gd:7-23 coin 色块 Polygon2D | — |
 | `pickups/energy.png` | 8x8 | 蓝能拾取 | pickup.gd energy 0.3,0.6,1.0 色块 | — |
