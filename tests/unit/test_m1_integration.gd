@@ -397,10 +397,14 @@ func test_boss_death_opens_inter_floor_and_door_enters_floor_two() -> void:
 	assert_bool(inter.flow.use_fountain(_root.player)).is_true()
 	assert_int(_root.player.hp).is_equal(mini(hp0 + 2, _root.player.hp_max))
 	var gems0 := RunState.gems
+	var save0 := SaveSystem.gems()
 	inter._on_door_interact(_root.player)
-	# 门侧效：InterFloorFlow.enter_next_floor 已推层 + §14.1 蓝晶结算（1→2 给 60）
+	# 门侧效：InterFloorFlow.enter_next_floor 已推层 + §14.1 蓝晶结算（1→2 给 60）。
+	# m2-t31 层间入账：门先把 gems0 累积池（含本层击杀蓝晶/首杀）全额入档并清空，
+	# 门后池内恒 = 过层奖励 60，累积部分已落袋，胜利/死亡不再重复结算。
 	assert_int(RunState.floor_idx).is_equal(2)
-	assert_int(RunState.gems).is_equal(gems0 + 60)
+	assert_int(SaveSystem.gems()).is_equal(save0 + gems0)
+	assert_int(RunState.gems).is_equal(60)
 	assert_bool(_root.a2_entry_active()).is_true()
 	assert_bool(_root.m1_overlay_visible()).is_true()
 	assert_str(_root.overlay_text()).contains("已进入第 2 层")

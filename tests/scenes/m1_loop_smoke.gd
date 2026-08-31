@@ -143,7 +143,10 @@ func _run() -> void:
 		var gems0 := RunState.gems
 		inter._on_door_interact(player)
 		_check(RunState.floor_idx == 2, "RunState advanced to floor 2")
-		_check(RunState.gems == gems0 + 60, "floor clear gems +60 (GDD 14.1)")
+		# m2-t31 层间入账：门把 gems0 累积池（含击杀蓝晶/首杀）全额入档并清空，
+		# 门后池内恒 = 过层奖励 60（GDD 14.1）。
+		_check(SaveSystem.gems() >= gems0, "door banks pending gems (m2-t31)")
+		_check(RunState.gems == 60, "floor clear gems +60 pending after door bank (GDD 14.1)")
 		await _until(func() -> bool: return run_root.a2_entry_active(),
 			"player entered the real floor 2 milestone scene")
 		_check(run_root.floor_scene == null, "floor 1 scene released on floor transition")

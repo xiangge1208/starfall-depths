@@ -981,6 +981,7 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	# counts_for_wave=false 与原始波次生态隔离，仍是玩家本局的一次真实击杀；
 	# room.enemies.has(e) 是重复 died 回调的幂等门，确保每个实例只计一次。
 	RunState.add_kill()
+	RunState.settle_kill_gems(String(e.row.get("guest_kind", "")), enemy_id)   # m2-t31 击杀蓝晶：精英5/小B20/Boss50+首杀300
 	var frame := Engine.get_physics_frames()
 	var enemy_id := String(e.row.get("id", ""))
 	var notify_id := String(e.row.get("wave_id", enemy_id))

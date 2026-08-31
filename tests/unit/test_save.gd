@@ -218,3 +218,48 @@ func test_missing_version_migrates_from_zero() -> void:
 	assert_int(spy.gems()).is_equal(3)
 	assert_int(spy.data["version"]).is_equal(1)
 	_wipe(path)
+
+
+# ================================================================ m2-t31 Boss 首杀名录
+
+func test_boss_first_kills_default_empty() -> void:
+	# additive 键位：旧档缺失由 _merge_saved 回落默认空表（同 purchased_talents 口径）。
+	var path := _tmp_path("bosskills_default")
+	_wipe(path)
+	var s: Variant = _fresh(path)
+	assert_array(s.boss_first_kills()).is_empty()
+	_wipe(path)
+
+
+func test_record_boss_first_kill_appends_persists_idempotent() -> void:
+	var path := _tmp_path("bosskills_record")
+	_wipe(path)
+	var s: Variant = _fresh(path)
+	assert_bool(s.record_boss_first_kill("vine_colossus")).is_true()
+	assert_array(s.boss_first_kills()).is_equal(["vine_colossus"])
+	assert_bool(s.record_boss_first_kill("vine_colossus")).is_false()   # 幂等：不重复入库
+	assert_array(s.boss_first_kills()).is_equal(["vine_colossus"])
+	assert_bool(s.record_boss_first_kill("frost_widow")).is_true()
+	# 全新实例从盘上重读 → 名录完整（跨局防首杀重刷）。
+	var fresh: Variant = _fresh(path)
+	assert_array(fresh.boss_first_kills()).is_equal(["vine_colossus", "frost_widow"])
+	_wipe(path)
+
+
+func test_boss_first_kills_merge_filters_dirty_elements() -> void:
+	# 档内非数组/脏元素防御性过滤（同 unlocked_weapons 口径），非法元素静默丢弃。
+	var path := _tmp_path("bosskills_merge")
+	_wipe(path)
+	_write_json(path, '{"version": 1, "boss_first_kills": ["vine_colossus", 3, "frost_widow"]}')
+	var s: Variant = _fresh(path)
+	assert_array(s.boss_first_kills()).is_equal(["vine_colossus", "frost_widow"])
+	_wipe(path)
+
+
+func test_boss_first_kills_wrong_typed_key_backfills_default() -> void:
+	var path := _tmp_path("bosskills_badtype")
+	_wipe(path)
+	_write_json(path, '{"version": 1, "boss_first_kills": "vine_colossus"}')
+	var s: Variant = _fresh(path)
+	assert_array(s.boss_first_kills()).is_empty()   # 类型错回落空表（fail-SOFT）
+	_wipe(path)

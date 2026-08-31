@@ -43,6 +43,9 @@ func _default_data() -> Dictionary:
 		# m2-t20：图鉴已解锁武器 id（T20 解锁引擎达成任务后入库；同 additive 键位，
 		# 旧档缺失回落空表。★4 把 forge_only 解锁后也记这里，掉落池过滤由 GameDB 侧排除）。
 		"unlocked_weapons": [] as Array[String],
+		# m2-t31：Boss 首杀名录（击杀蓝晶 +300 的防重刷标记；同 additive 键位，旧档
+		# 缺失由 _merge_saved 回落默认空表，无需版本迁移即可读——正式 v2 migration 归 T25）。
+		"boss_first_kills": [] as Array[String],
 	}
 
 ## 读取存档到 data 并返回。缺文件→默认档（静默）；损坏/畸形→push_error+默认档；
@@ -96,6 +99,14 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 			if typeof(e) == TYPE_STRING:
 				warr.append(e)
 		out["unlocked_weapons"] = warr
+	# m2-t31：Boss 首杀名录同口径合并（数组内非 String 元素静默丢弃）
+	var boss_kills_v: Variant = saved.get("boss_first_kills")
+	if typeof(boss_kills_v) == TYPE_ARRAY:
+		var barr: Array[String] = []
+		for e: Variant in boss_kills_v:
+			if typeof(e) == TYPE_STRING:
+				barr.append(e)
+		out["boss_first_kills"] = barr
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
 		out["achievements"] = saved["achievements"]
 	var settings_v: Variant = saved.get("settings")
@@ -202,3 +213,26 @@ func unlocked_weapons() -> Array[String]:
 			if typeof(e) == TYPE_STRING:
 				out.append(e)   # 非法元素静默丢弃（fail-SOFT）
 	return out
+
+## Boss 首杀名录（m2-t31）：防御性读取——档内非数组/脏元素一律过滤，
+## 恒返回 Array[String]（空表 = 尚无任何 Boss 被首杀）。
+func boss_first_kills() -> Array[String]:
+	var out: Array[String] = []
+	var saved: Variant = data.get("boss_first_kills")
+	if typeof(saved) == TYPE_ARRAY:
+		for e: Variant in saved:
+			if typeof(e) == TYPE_STRING:
+				out.append(e)   # 非法元素静默丢弃（fail-SOFT）
+	return out
+
+## Boss 首杀标记入库（m2-t31）：幂等 append + 落盘（口径同 unlock_weapon——
+## 已记录 → false 不重复入库不重写盘；新记录 → true）。调用方 RunState.settle_kill_gems
+## 在 Boss 死亡结算时查询并标记，防死亡重试/跨局重刷首杀 +300。
+func record_boss_first_kill(id: String) -> bool:
+	var arr: Array = data.get("boss_first_kills", [])
+	if arr.has(id):
+		return false
+	arr.append(id)
+	data["boss_first_kills"] = arr
+	save_now()
+	return true

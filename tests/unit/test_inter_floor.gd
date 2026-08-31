@@ -81,10 +81,14 @@ func test_phase_order_buff_fountain_door_done() -> void:
 	assert_int(f.phase).is_equal(InterFloorFlow.Phase.DOOR)
 
 	var gems0 := RunState.gems
+	var save0 := SaveSystem.gems()
 	assert_int(f.enter_next_floor()).is_equal(2)     # 真实 RunState.next_floor
 	assert_int(f.phase).is_equal(InterFloorFlow.Phase.DONE)
 	assert_int(RunState.floor_idx).is_equal(2)
-	assert_int(RunState.gems).is_equal(gems0 + 60)   # §14.1 过层蓝晶结算
+	# m2-t31 层间入账：门先把 gems0 累积池全额入档并清空，再发过层奖励——
+	# 门后池内恒 = 本门过层奖励 60（§14.1），累积部分已落袋，胜利/死亡不再重复结算。
+	assert_int(SaveSystem.gems()).is_equal(save0 + gems0)
+	assert_int(RunState.gems).is_equal(60)
 
 func test_advance_outside_door_is_noop() -> void:
 	var f := _flow(1)

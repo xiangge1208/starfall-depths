@@ -30,6 +30,11 @@ const SALT_DRINK := "drink"
 const SALT_INTER_FLOOR := "inter_floor"
 const SALT_EVENT := "event"
 const FLOOR_GEMS := [60, 120, 200]   # GDD §14.1 每层通过蓝晶结算
+## m2-t31 击杀蓝晶档位（GDD §14 允许口径）：精英 +5 / 小 Boss +20 / Boss +50；
+## Boss 首杀再 +300（SaveSystem.boss_first_kills 无该 boss 记录时，击杀即标记入档
+## 防死亡重试/跨局重刷）。键 = 敌行 guest_kind（嘉宾三档统一标记，见 FloorScene.GUEST_SPECS）。
+const KILL_GEMS := {"elite": 5, "miniboss": 20, "boss": 50}
+const BOSS_FIRST_KILL_GEMS := 300
 const WEAPON_SLOTS := 2              # 双武器位（同 WeaponRig.slots 契约）
 
 var run_seed: int = 0                # 0 = 未开局（各盐流退化为种子 0 的确定序列）
@@ -84,10 +89,20 @@ func select_hero(id: String) -> void:
 ## 楼层推进：floor_idx+1 并按 GDD §14.1 结算蓝晶（过第 N 层在进入 N+1 层时给
 ## FLOOR_GEMS[min(N-1,2)]：1→2 给 60，2→3 给 120，其后封顶 200）。
 ## floor_idx 变化即隐式重置各盐流（stream 派生链含楼层）。
+## m2-t31 层间入账（DOOR 阶段，经 InterFloorFlow.enter_next_floor 单点到达）：
+## 进门先把累积池全额经 SaveSystem.add_gems 入档并清空（含本层击杀蓝晶），
+## 再发过层奖励留池——胜利/死亡只结算其后新累积的部分，每颗蓝晶恰入档一次不双计。
 func next_floor() -> int:
+	_bank_pending_gems()
 	floor_idx += 1
 	gems += FLOOR_GEMS[clampi(floor_idx - 2, 0, FLOOR_GEMS.size() - 1)]
 	return floor_idx
+
+## m2-t31 层间入账：池 >0 才写盘（防空门无谓 IO），随后池必清零。
+func _bank_pending_gems() -> void:
+	if gems > 0:
+		SaveSystem.add_gems(gems)
+	gems = 0
 
 ## 死亡结算一次性消费：本局待结算蓝晶按 50% 向下取整入账，随后立即归零。
 ## 把防重放在 RunState 而非单个 DeathSummary 节点，重复面板/重复确认均只能领取一次。
@@ -102,6 +117,23 @@ func stream(salt: String) -> RandomNumberGenerator:
 
 func add_kill() -> void:
 	kills += 1
+
+## m2-t31 击杀蓝晶便捷入池（FloorScene 死亡路由单点调用）：直接 gems += n，
+## 不走层结算；入档时机统一在层间门 / 终局结算（胜利全额 / 死亡减半）。
+func add_gems(n: int) -> void:
+	gems += n
+
+## m2-t31 击杀蓝晶档位结算：guest_kind ∈ elite/miniboss/boss 按 KILL_GEMS 档位入池；
+## boss 再查首杀——SaveSystem.boss_first_kills 无该 boss（按数据行 id，空 id 不标记）
+## 记录时 +300 入池并立即标记入档。返回本次实际入池额（无档位/杂兵 = 0）。
+func settle_kill_gems(guest_kind: String, row_id: String) -> int:
+	var amount := int(KILL_GEMS.get(guest_kind, 0))
+	if guest_kind == "boss" and not row_id.is_empty() \
+			and SaveSystem.record_boss_first_kill(row_id):
+		amount += BOSS_FIRST_KILL_GEMS
+	if amount > 0:
+		add_gems(amount)
+	return amount
 
 func add_room_cleared() -> void:
 	rooms_cleared += 1
