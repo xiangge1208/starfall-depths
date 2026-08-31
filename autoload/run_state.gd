@@ -14,6 +14,7 @@ extends Node
 ##   SALT_DRINK("drink")          饮料机神秘混合
 ##   SALT_INTER_FLOOR("inter_floor") 层间三选一增益
 ##   SALT_EVENT("event")          楼层事件/房间抽取（宝箱、事件选项等）
+##   SALT_FORGE("forge")          熔铸台通用升级随机产物（m2-t25）
 ##
 ## 调用时序契约：**RunState.start_run() 必须先于本局任何地牢构建 / 战斗发生**。
 ## T7 的 DungeonBuilder.build(seed, floor_idx) 仍是纯函数（rng 内部自派生，签名不变）：
@@ -29,6 +30,7 @@ const SALT_SHRINE := "shrine"
 const SALT_DRINK := "drink"
 const SALT_INTER_FLOOR := "inter_floor"
 const SALT_EVENT := "event"
+const SALT_FORGE := "forge"                # m2-t25 熔铸台（通用升级掷签独立盐）
 const FLOOR_GEMS := [60, 120, 200]   # GDD §14.1 每层通过蓝晶结算
 const WEAPON_SLOTS := 2              # 双武器位（同 WeaponRig.slots 契约）
 
@@ -52,6 +54,7 @@ var run_time_frames: int = 0         # 物理帧计（60/s）
 var pending_investment: int = 0      # 乞丐事件接缝（T19 规格）
 var beggar_paid_floor: int = 0       # 乞丐付款层号（T19 declare-only；0 = 未付；返还消费归 T20 跨层）
 var star_spring_used: bool = false   # 星髓泉每局一次守卫（T19 declare-only；start_run 重置在整合任务接线）
+var forge_upgrades: int = 0          # 本局熔铸通用升级已用次数（m2-t25；上限 ForgeLogic.UPGRADE_LIMIT_PER_RUN）
 var last_chosen_hero: String = ""    # 与 HeroSelect.last_chosen 静态暂存同口径（T11 接缝）
 
 func start_run(hero: String) -> void:
@@ -74,6 +77,7 @@ func start_run(hero: String) -> void:
 	pending_investment = 0
 	beggar_paid_floor = 0
 	star_spring_used = false
+	forge_upgrades = 0
 
 ## 选角钩子（T11 守卫契约：HeroSelect 探测 /root/RunState 后调用）= start_run 的别名：
 ## 选角即开局——玩家点击选卡时刻就是 GDD §9.1 的种子激活时刻，故此处直接全程启动；
