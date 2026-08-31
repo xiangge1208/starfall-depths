@@ -68,7 +68,7 @@
 
 | 卡 | 内容 | 分支 | 状态 | 下一步 |
 |---|---|---|---|---|
-| **T37** | 全图集合并 + A2 剪影批处理（裁定㉓，F2 draw call 超标闭环） | m2-t37 | **实现完成 `a70305d`**（1351/1351 自报；F2 平均 157.2→105.6 转 PASS；根因修正=PointLight2D cull mask 而非剪影 modulate；披露：弹幕/伤害数字不再受光环提亮），评审在飞 | 评审 → 修复轮（如有）→ merge |
+| **T37** | 全图集合并 + A2 剪影批处理（裁定㉓，F2 draw call 超标闭环） | m2-t37 | 实现 `a70305d` 评审 **Approved**（1 Important + 7 Minor，见裁定㉙）；**修复轮在飞**（弹幕/红纹可读性兜底带探针实测 + Minor 3/4/5/7/8 修复 + 报告勘误） | 修复轮 → 范围复评 → merge |
 | **复测** | T28 胜率带复跑 + TTK 正式表 + T29 A2/A3 密房复测（T26 已合前提） | m2-retest | **第四波在飞**（perf_probe.gd 有进度） | 报告增补 → 编排者归档 |
 | **T33** | 门禁预检，范围扩张见裁定㉗：save_headless 密闭（裁定㉔）+ **17 条成就发射点审计与补线** + M1 补录 ③④ 核销 + T36 Minor ①②③⑤ 微修 + T35 Minor ④⑤⑥ 微修 + 移交表逐项复核（8 派味特技/spare_parts/echo/blessing 以 T35 评审 25 键结论为基准） | m2-t33 | **在飞** | 实现 → 编排者核证据 → merge |
 | **T34** | M2 门禁（双报告 + 裁定 + tag；含 T29 渲染侧真机复测 + M1 补录第 1/2 项 + 裁定㉔② 真人 Boss 房段试玩——T36 已合，具备条件） | — | 从未派发 | T37 + 复测 + T33 合并后 |
@@ -136,6 +136,7 @@ T27 报告也侧面印证：「A2/A3 层模板 `door_local`/spawn 缺键」—�
 26. **T36 评审 5 Minor 处置**（2026-08-31，评审 Approved 非阻塞）：①cage 豁口 ±40° 含柱体实缘 ~10.6°（穿柱宽容，可辩护）→ 补注释披露，T33 预检顺手或微卡；②`_cage_confine` 到期不清旗（空列表守卫 no-op，纯卫生）→ 同上微卡；③`_pick_boss_row` 重复 `boss_row_for_floor` 的 duplicate+sort → 微卡；④`compound_vision_factor` 从常量重算的 brittleness 备注（单写者下安全）→ 记录不立项；⑤A2 端到端未断言 Boss hp（800/1800/1800 契约）→ **并入 T33 预检**（见待处理表）。另：T36 评审复核确认裁定⑳实施前评审曾提出的「柱体 position 世界语义/register_body 缺失」两项 Important 已由实现以 `top_level=true` + `register_body` + `combat_radius()` 完整闭环，T14 移交项相应销账。
 27. **T35 评审处置 + 「17 条成就发射点」归属澄清 + T33 范围扩张**（2026-08-31）：T35 评审 Approved 零 C/I，①-⑤ 全落地；10 个未接线键（rig 5 + 展示 3 + heart_sense + anti_poison）经评审 grep 证实无任何现有消费者、均在裁定⑨所有权清单之外，合法移交——**消费建设归 M3**（combat/resonance 侧），不在 M2 门禁路径。Minor 处置：④未用参数 frame、⑤thorns「就近」实为组序首个+致死弹仍反伤、⑥测试死调用与 rig 落地仅测 hunter → 全部 T33 顺手微修；fx 所有权授予未使用（无缺陷）。**澄清**：台账 T35 行旧备注「含 T32 的 17 条成就发射点」系表格简写与裁定⑨正文（仅 shop_purchase 发射）不一致——评审暴露此缺口属实：**17 条成就发射点从未被任何卡承接**（T32 激活 22 条中 17 条缺游戏事件→信号发射点）。裁定：**并入 T33 预检**，范围=审计 22 条成就的发射点现状 + 为缺失者在正确游戏事件处补线（signal 名以 T3 K 表/裁定⑧ 为权威）+ 测试钉死；文件所有权临时授予 floor_scene/room_combat/bosses/inter_floor/player 已合文件（与在飞 T37 的图集/剪影路径预计不重叠，若冲突以 T37 优先、T33 rebase）。
 28. **T30 直并 + 导出模板获取经验**（2026-08-31）：T30 仅 2 新文件（export_presets.cfg / tools/export_smoke.cmd）零生产代码，按「小任务不过度并行」原则由编排者亲审 diff 直并（presets 无密钥无加密、产物入 gitignored user_export/、脚本 exit-code 语义诚实），**未派独立评审代理**。Windows 冒烟 PASS（117MB exe，PowerShell Start-Process 真 PID 30s 存活检测 + 游戏日志 FATAL/CRASH 扫描，日志目录先清零防跨次误判）；Android 无 SDK 诚实 SKIP 非 FAIL。导出模板 4.7.2-stable 1.28GB 官方 CDN TLS 断连，经 gh api + Range 64MB 分块重试装入 `%APPDATA%\Godot\export_templates\4.7.2.stable\`——**CI/重装机须缓存模板，勿直下**。
+29. **T37 评审处置**（2026-08-31，Approved 1I+7m）：✅ 预算门达委员 29.6% 余量、六约束全守、归因矩阵推翻 T29 判为「正当修正」非越权（F2 改善 51.6 = 图集 ~20 + 光照剔除 ~30，机制与数字互洽）。**Important-1**：A2 光环内子弹/伤害数字/地面红纹失去唯一提亮 aids，而像素 diff 证据是无弹幕截图未覆盖此场景——修复轮方案：(a) 子弹 self_modulate 按 `_vision_factor` 提亮（先测，破 ≤150 均值门则弃）→(b) 红纹入 LIT_ITEM_MASK（同门槛），全破则保持披露行为并携实测数字进 T34 真人核验。Minor：③恒真断言 ④个人 venv 绝对路径 ⑤无负缓存+先建后检 ⑦归因脚本未入库 ⑧traceback 未包装 → 代码修复；②max 句失真 ⑥「逐位恒等」过述 → 报告勘误增补。T34 handoff 需增补：光环内弹幕可读性真人核验（修复轮落地则验落地效果）。
 
 ## 移交/遗留项（消费卡号）
 
