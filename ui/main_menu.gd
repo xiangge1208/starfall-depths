@@ -2,7 +2,8 @@ class_name MainMenu
 extends Control
 ## 主菜单（m1-t23）：GDD §19 流程入口。
 ## 开始 → SceneRouter.goto("hero_select")（接续 T11 选角卡）；m2-t20 起图鉴 = 正式入口
-## （SceneRouter.goto("codex")）；天赋/成就 = M2 占位灰钮；
+## （SceneRouter.goto("codex")）；m2-t35 起天赋 = 正式入口（SceneRouter.goto("talents")，
+## T15 天赋页）；成就 = M2 占位灰钮；
 ## 设置 = 内联面板（屏震强度 0-1 滑条 + 伤害数字/色弱形状/自动瞄准/触屏控件开关），经 SaveSystem
 ## get_setting/set_setting 读写即时落盘（键位与 SaveSystem.DEFAULT_SETTINGS 对齐）；
 ## 退出 = quit。main_scene 归整合卡改（本卡不动 project.godot），
@@ -30,6 +31,11 @@ func _ready() -> void:
 	codex_btn.disabled = false
 	codex_btn.text = "图 鉴"
 	codex_btn.pressed.connect(_on_codex_pressed)
+	# m2-t35 ④：天赋入口点亮（T15 天赋页 ui/talents.tscn 已在盘 → SceneRouter "talents" 键）
+	var talents_btn: Button = $Menu/TalentsBtn
+	talents_btn.disabled = false
+	talents_btn.text = "天 赋"
+	talents_btn.pressed.connect(_on_talents_pressed)
 	var slider: HSlider = $SettingsPanel/Rows/ScreenShakeSlider
 	slider.value_changed.connect(_on_shake_changed)
 	$SettingsPanel/Rows/DamageNumbersToggle.toggled.connect(_on_damage_numbers_toggled)
@@ -63,6 +69,10 @@ func _on_start_pressed() -> void:
 func _on_codex_pressed() -> void:
 	if _router != null:
 		_router.goto("codex")
+
+func _on_talents_pressed() -> void:
+	if _router != null:
+		_router.goto("talents")
 
 func _on_settings_pressed() -> void:
 	$SettingsPanel.visible = not $SettingsPanel.visible

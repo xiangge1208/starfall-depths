@@ -111,6 +111,8 @@
 
 测试锁定「白名单零死键」：每个声明的键都至少被一个节点使用；表内出现的所有键都在白名单内。
 
+**消费语义注（m2-t35 接线时补记）：** `roll_cd_pct` 为负值约定——生效式 `1.0 + pct` 乘 `ROLL_CD_TICKS`（-0.15 = 翻滚 CD 缩短 15%，`Player.effective_roll_cd_ticks`）。`element_proc_chance` 双侧语义不同：**buff 侧 override-not-add**——它与 `element_enchant` 成对，聚合取最后一条附魔的概率（`BuffManager.aggregate` 覆盖语义，重复拾取附魔不叠概率）；**天赋侧加法叠加**——`red_conduit` 经 `TalentSystem` own-delta 加算到 `rig.enchant_proc_chance`（可与 buff 附魔概率共存累加）。
+
 ## I.5 分支累计效果（满系上限）
 
 | 系 | 累计效果 |

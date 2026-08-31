@@ -16,6 +16,11 @@ func _ready() -> void:
 	)
 	RunState.start_run("vanguard")
 	run_root = (load("res://core/rooms/run_root.tscn") as PackedScene).instantiate()
+	# m2-t35 密封（裁定㉔/df9691a 先例）：中性天赋系统注入，共享档已购天赋不污染 hp_max==8 断言
+	var ts := TalentSystem.new()
+	ts.save_system = null
+	ts.purchased = []
+	run_root.talents = ts
 	add_child(run_root)
 	run_root._begin()
 	_run()

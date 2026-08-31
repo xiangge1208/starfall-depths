@@ -457,7 +457,9 @@ func test_beggar_accept_settles_on_a1_inter_floor_before_a2_entry() -> void:
 
 func test_boss_death_flow_victory_stub_at_floor_three() -> void:
 	# 第 3 层胜利桩（InterFloorFlow.VICTORY_FLOOR=3 契约）：M1 数据到不了第 3 层，
-	# 流程级验证：floor_idx=3 开层间 → victory 直显结算桩；DONE 阶段推层 fail-closed。
+	# 流程级验证：floor_idx=3 开层间 → victory 分支禁用喷泉/门（结算面板由 RunRoot
+	# 经 SceneRouter 路由 VictorySummary，m2-t18；胜利桩 Label 已按 T18 移交清理，m2-t35 ⑥）；
+	# DONE 阶段推层 fail-closed。
 	_root = _make_root()
 	add_child(_root)
 	_root._begin()
@@ -468,7 +470,8 @@ func test_boss_death_flow_victory_stub_at_floor_three() -> void:
 	inter.open()
 	assert_bool(inter.flow.victory).is_true()
 	assert_int(inter.flow.phase).is_equal(InterFloorFlow.Phase.DONE)
-	assert_bool(inter._victory_label.visible).is_true()
+	assert_bool(inter._fountain.enabled).is_false()          # 喷泉/门禁用（原胜利桩 Label 已删）
+	assert_bool(inter._door.enabled).is_false()
 	var f0 := RunState.floor_idx
 	assert_int(inter.flow.enter_next_floor()).is_equal(-1)   # DONE 阶段拒绝推层
 	assert_int(RunState.floor_idx).is_equal(f0)
@@ -477,7 +480,14 @@ func test_boss_death_flow_victory_stub_at_floor_three() -> void:
 # ================================================================ helpers
 
 func _make_root() -> Node2D:
-	return (load(RUN_ROOT_SCENE) as PackedScene).instantiate() as Node2D
+	var root: Node2D = (load(RUN_ROOT_SCENE) as PackedScene).instantiate() as Node2D
+	# m2-t35 密封（裁定㉔/df9691a 先例）：注入中性天赋系统（不读真实档 purchased_talents），
+	# hp_max==8 等精确面板断言不被共享档已购天赋漂移污染。
+	var ts := TalentSystem.new()
+	ts.save_system = null
+	ts.purchased = []
+	root.talents = ts
+	return root
 
 
 func _player_instance() -> Player:

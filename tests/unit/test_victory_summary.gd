@@ -202,7 +202,13 @@ func test_victory_full_amount_contrasts_death_half() -> void:
 # ================================================================ helpers
 
 func _make_root() -> Node2D:
-	return (load(RUN_ROOT_SCENE) as PackedScene).instantiate() as Node2D
+	var root: Node2D = (load(RUN_ROOT_SCENE) as PackedScene).instantiate() as Node2D
+	# m2-t35 密封（裁定㉔/df9691a 先例）：中性天赋系统注入，不读真实档 purchased_talents。
+	var ts := TalentSystem.new()
+	ts.save_system = null
+	ts.purchased = []
+	root.talents = ts
+	return root
 
 
 func _summary() -> Control:

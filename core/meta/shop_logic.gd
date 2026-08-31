@@ -36,6 +36,14 @@ static func price(rarity: String, floor_idx: int, black: bool) -> int:
 	return _round5(float(base) * _floor_mult(floor_idx) * (BLACK_MULT if black else 1.0))
 
 
+## 议价（m2-t35）：商店售价 ×(1+haggle_pct)（buff_haggle_pct 负值 = 折扣，附录 C 约定），
+## 取整到 5，下限 RECYCLE_MIN（负值 clamp：任何折扣深度都不为负/为零）。正值不乘（不加价）。
+static func haggle_price(price_value: int, haggle_pct: float) -> int:
+	if haggle_pct >= 0.0:
+		return price_value
+	return maxi(RECYCLE_MIN, _round5(float(price_value) * (1.0 + haggle_pct)))
+
+
 ## 回收价：基准 × 0.3 × floor 系数，取整到 5，下限 5。
 static func recycle_price(rarity: String, floor_idx: int) -> int:
 	var base := int(BASE_PRICES.get(rarity, BASE_PRICES["common"]))

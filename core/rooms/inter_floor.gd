@@ -9,7 +9,8 @@ extends Node2D
 ## 楼层场景重建是 T23 路由职责：本场景只发 next_floor_requested(new_floor) 即止
 ## （floor_scene.tscn 的实例化范式 = FloorScene.new + DungeonBuilder.build(seed, new_floor)
 ## + setup(build, player)，重建须换到新楼层场景，不在本卡范围）。
-## 第 3 层 Boss 后 flow.victory → 只显示胜利结算桩（M2 接完整结算）。
+## 第 3 层 Boss 后 flow.victory → 禁用喷泉/门；结算面板由 RunRoot 经 SceneRouter
+## 路由 VictorySummary（m2-t18；原胜利桩 Label 已按 T18 移交清单清理，m2-t35 ⑥）。
 ##
 ## 乞丐 payout 接缝在 flow.advance()（DOOR 阶段，见 inter_floor_flow.gd）。
 
@@ -27,12 +28,14 @@ const GAME_CAMERA := preload("res://fx/game_camera.gd")
 var flow := InterFloorFlow.new()
 var buffs_manager := BuffManager.new()
 var player: Player = null
+## m2-t35 ③：宿主（RunRoot）注入的局内天赋系统；层间三选一 pick → buffs 重 apply 后
+## 走 player.repair_talent_absolute_keys 成对修补（固定顺序 Hero→Buffs→Talents）。
+var talents_system: TalentSystem = null
 
 var _buff_pick: BuffPick = null
 var _fountain: FlowFixture = null
 var _door: FlowFixture = null
 var _fountain_vis: Polygon2D = null
-var _victory_label: Label = null
 var _built := false
 
 
@@ -49,14 +52,17 @@ func _ready() -> void:
 
 
 ## 宿主接线（T23 路由）：注入玩家与增益管理器（局内同一实例，跨层保留已取增益）。
+## m2-t35：第 4 参注入局内天赋系统（缺省 null = 只跳过天赋补 apply，不崩）。
 ## p_floor_idx < 0 时读 RunState.floor_idx。玩家无父节点时收养为子节点。
-func setup(p_player: Player, p_buffs: BuffManager, p_floor_idx: int = -1) -> void:
+func setup(p_player: Player, p_buffs: BuffManager, p_floor_idx: int = -1,
+		p_talents: TalentSystem = null) -> void:
 	if _built:
 		push_error("InterFloor.setup: already built")
 		return
 	_built = true
 	player = p_player
 	buffs_manager = p_buffs if p_buffs != null else BuffManager.new()
+	talents_system = p_talents
 	flow.setup(p_floor_idx if p_floor_idx >= 0 else RunState.floor_idx, buffs_manager)
 	_build_chamber()
 	_wire_player()
@@ -129,16 +135,9 @@ func _build_chamber() -> void:
 	_buff_pick = BUFF_PICK_SCENE.instantiate() as BuffPick
 	_buff_pick.buff_chosen.connect(_on_buff_chosen)
 	ui_layer.add_child(_buff_pick)
-	var hud := CanvasLayer.new()
-	hud.layer = 20
-	_victory_label = Label.new()
-	_victory_label.set_anchors_preset(Control.PRESET_CENTER)
-	_victory_label.add_theme_font_size_override("font_size", 24)
-	_victory_label.text = "胜 利（M2 接完整结算）"
-	_victory_label.visible = false
-	hud.add_child(_victory_label)
-	add_child(hud)
 	add_child(ui_layer)   # m1-t27 修复：ui_layer 漏挂树——三选一浮层不上树即不可见（孤儿泄漏）
+	# m2-t35 ⑥：T18 移交清理——原「胜 利（M2 接完整结算）」胜利桩 Label 已删；
+	# 胜利结算由 RunRoot._on_victory_achieved 经 SceneRouter 路由 VictorySummary（m2-t18）。
 
 	var cam: Camera2D = GAME_CAMERA.new()
 	cam.set("target", player)
@@ -174,6 +173,10 @@ func _on_buff_chosen(id: String) -> void:
 	buffs_manager.apply_to_player(player)
 	if player.weapon_rig != null:
 		buffs_manager.apply_to_rig(player.weapon_rig)
+	# m2-t35 ③：固定顺序第 3 拍——buff 重 apply 绝对写覆盖六键天赋贡献，
+	# 成对修补（wipe→repair；可加键 buff 侧 own-delta 天然保留，无需重复落地）。
+	if talents_system != null:
+		player.repair_talent_absolute_keys()
 
 
 func _on_fountain_interact(_p: Node2D) -> void:
@@ -192,8 +195,10 @@ func _on_door_interact(_p: Node2D) -> void:
 	next_floor_requested.emit(new_floor)
 
 
+## 第 3 层胜利分支：只禁用喷泉与门（层间不再流转）。
+## 胜利结算面板由 RunRoot 监听 flow.victory_achieved → SceneRouter 路由（m2-t18）；
+## 原「胜利桩 Label」按 T18 移交清单清理（m2-t35 ⑥）。
 func _show_victory_stub() -> void:
-	_victory_label.visible = true
 	_fountain.enabled = false
 	_door.enabled = false
 

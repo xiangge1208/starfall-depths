@@ -124,7 +124,8 @@ func _fire_slot(w: Dictionary, aim: Vector2, mirrored: bool, frame: int) -> void
 		var element_profile := element_hit_profile(w, frame)
 		_spawn({
 			"pos": origin, "vel": Vector2.RIGHT.rotated(ang) * speed,
-			"damage": int(w["damage"]), "faction": Projectile.Faction.PLAYER,
+			"damage": talent_scaled_damage(int(w["damage"]), player),
+			"faction": Projectile.Faction.PLAYER,
 			"element": element_profile["element"], "pierce": int(w["pierce"]),
 			"enchant_element": element_profile["proc_element"],
 			"enchant_proc_chance": element_profile["proc_chance"],
@@ -134,6 +135,12 @@ func _fire_slot(w: Dictionary, aim: Vector2, mirrored: bool, frame: int) -> void
 			"source_type": "weapon", "source_id": String(w.get("id", "")),
 			"source_name": String(w.get("name", w.get("id", ""))), "attack_name": "射击",
 		})
+
+## m2-t35 天赋伤害乘区（talent_dmg_pct，附录 I.4「同 rate_mult 模式」）：远程落弹伤害
+## ×(1+pct)，四舍五入取整。meta 缺省（未 apply/未购）= 原伤害。
+## 披露：近战路径（core/player/melee.gd 直读 w["damage"]）不在本卡文件所有权内 → 未接。
+func talent_scaled_damage(base_damage: int, player: Player) -> int:
+	return int(round(float(base_damage) * (1.0 + player.talent_effect_value("talent_dmg_pct"))))
 
 func _spawn(cfg: Dictionary) -> void:
 	combat.spawn_projectile(cfg)         # 测试以子类覆写 _spawn 捕获参数
