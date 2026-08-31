@@ -334,7 +334,8 @@ static func _rng_svc() -> Object:
 
 
 ## GameDB 解析：游戏内取 autoload（rooms 已 fail-closed 加载）；--script 模式回退
-## 手动实例化并仅加载 rooms 表（同一加载器/校验路径，坏数据同样不入库）。
+## 手动实例化并加载全部房间表（A1/A2/A3，m2-t26 起多文件合并；同一加载器/校验
+## 路径，坏数据同样不入库）。
 static func _game_db() -> Object:
 	var loop := Engine.get_main_loop()
 	if loop is SceneTree:
@@ -344,7 +345,6 @@ static func _game_db() -> Object:
 	if _fallback_game_db == null:
 		var script: GDScript = load("res://autoload/game_db.gd")
 		var db: Object = script.new()
-		db.rooms = db._load_table(script.TABLES["rooms"], script.ROOM_SCHEMA,
-			script.ROOM_OPTIONAL, Callable(db, "validate_room_row"))
+		db.rooms = db._load_room_tables()
 		_fallback_game_db = db
 	return _fallback_game_db

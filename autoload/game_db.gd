@@ -24,16 +24,20 @@ const ENEMY_OPTIONAL := {
 	"walk_speed": 0, "dash_speed": 0.0, "dash_ticks": 0, "dash_cooldown_ticks": 0,
 	"orbit_radius": 0.0,
 }
-# 房间模板（t4）：6 键全部必填，无 optional
+# 房间模板（t4）：6 键全部必填；biome optional（m2-t26：模板生物群系标记，
+# 缺省 "" = 无群系特效——A2 crystal / A3 magma，FloorScene 按字段挂生态组件）
 const ROOM_SCHEMA := {
 	"id": TYPE_STRING, "size": TYPE_ARRAY, "doors": TYPE_ARRAY,
 	"spawn_points": TYPE_ARRAY, "props": TYPE_ARRAY, "hazards": TYPE_ARRAY,
 }
-const ROOM_OPTIONAL := {}
-# hazards kind 白名单（validate_room_row 形状校验）：vine=A1 藤蔓（t7 前库内唯一）；
-# magma/geyser=A3 岩浆系（m2-t10：岩浆 DOT 池需 radius、喷口仅 grid）。
-# spikes/rock 已有 FloorScene 组件分派但行未入白名单（A2/A3 真实模板卡 T26 落库时扩展）。
-const HAZARD_KINDS: Array[String] = ["vine", "magma", "geyser"]
+const ROOM_OPTIONAL := {"biome": ""}
+# biome 值白名单（validate_room_row 语义校验）：A1 行缺省 ""（无群系特效）；
+# A2 crystal（暗视野 + 冰面）/ A3 magma（岩浆基调，瓦片套件仍按 floor_idx）。
+const BIOME_TAGS: Array[String] = ["", "crystal", "magma"]
+# hazards kind 白名单（validate_room_row 形状校验）：vine=A1 藤蔓 / magma·geyser=A3
+# 岩浆系（m2-t10）/ ice=A2 冰面（m2-t26，同 vine/magma 需 radius）/ spikes=A2 地刺、
+# rock=A1 滚石（FloorScene 组件分派 m2-t7 已有，白名单 m2-t26 随 A2/A3 模板落库扩展）。
+const HAZARD_KINDS: Array[String] = ["vine", "magma", "geyser", "ice", "spikes", "rock"]
 # 增益（t9）：5 键必填；稀有度与 effects 键白名单由 validate_buff_row 语义校验（同 rooms fail-closed 路径）
 const BUFF_SCHEMA := {
 	"id": TYPE_STRING, "name": TYPE_STRING, "rarity": TYPE_STRING,
@@ -170,13 +174,17 @@ const ROOM_SIZE := [22, 14]   # A1 标准房间 22x14 格（x 0..21, y 0..13）
 const DOOR_TILES := {"N": [11, 0], "S": [11, 13], "E": [21, 7], "W": [0, 7]}
 const ROOM_TILE_PX := 16        # 格坐标转像素
 const SPAWN_DOOR_MIN_PX := 64.0 # 刷怪点距任一门 >= 64px（GDD §9.3：4 瓦片）
-const PROP_KINDS: Array[String] = ["pillar", "crate", "bush"]
+const PROP_KINDS: Array[String] = ["pillar", "crate", "bush", "crystal_pillar"]
 # 行为契约（t4 仅数据，碰撞/挡弹由后续 RoomCombat 按 kind 实现）：
-# 柱 hp20 挡弹 / 箱 hp8 挡弹 / 灌木 hp4 不挡弹（视觉+危险区）
-const PROP_BLOCKS_BULLETS := {"pillar": true, "crate": true, "bush": false}
+# 柱 hp20 挡弹 / 箱 hp8 挡弹 / 灌木 hp4 不挡弹（视觉+危险区）；
+# m2-t26 晶柱（A2 混排 kind 拆分，T7 评审移交）：挡弹 + 登记折射组（石柱不折射），
+# 贴图 prop_crystal_pillar.png（生成器已产出，M4 接线）
+const PROP_BLOCKS_BULLETS := {"pillar": true, "crate": true, "bush": false, "crystal_pillar": true}
 const TABLES := {
 	"weapons": "res://data/weapons.json", "enemies": "res://data/enemies.json",
 	"rooms": "res://data/rooms/a1_templates.json",
+	"rooms_a2": "res://data/rooms/a2_templates.json",
+	"rooms_a3": "res://data/rooms/a3_templates.json",
 	"buffs": "res://data/buffs.json", "heroes": "res://data/heroes.json",
 	"drinks": "res://data/drinks.json", "talents": "res://data/talents.json",
 }
@@ -202,7 +210,7 @@ func _ready() -> void:
 		if bool((weapons_all[id] as Dictionary).get("locked", false)):
 			weapons.erase(id)
 	enemies = _load_table("res://data/enemies.json", ENEMY_SCHEMA, ENEMY_OPTIONAL)
-	rooms = _load_table(TABLES["rooms"], ROOM_SCHEMA, ROOM_OPTIONAL, validate_room_row)
+	rooms = _load_room_tables()
 	buffs = _load_table(TABLES["buffs"], BUFF_SCHEMA, BUFF_OPTIONAL, validate_buff_row)
 	heroes = _load_table(TABLES["heroes"], HERO_SCHEMA, HERO_OPTIONAL, validate_hero_row)
 	drinks = _load_table(TABLES["drinks"], DRINK_SCHEMA, DRINK_OPTIONAL, validate_drink_row)
@@ -295,6 +303,23 @@ func _load_table(path: String, schema: Dictionary, optional: Dictionary,
 		out[id] = row
 	return out
 
+
+## m2-t26 房间模板多文件装载（A1/A2/A3 各一文件，共 30 行 = 每生态 8 战斗 + 起始/Boss）：
+## 逐文件同 schema + validate_room_row 语义校验 fail-closed；跨文件行 id 冲突整表拒收
+## （行 id 命名空间全局唯一：combat_a<f>_NN / start_a<f> / boss_a<f>，
+## DungeonBuilder.combat_pool 与 RoomTemplate.combat_ids 按前缀消费合并表）。
+func _load_room_tables() -> Dictionary:
+	var out: Dictionary = {}
+	for key: String in ["rooms", "rooms_a2", "rooms_a3"]:
+		var table := _load_table(TABLES[key], ROOM_SCHEMA, ROOM_OPTIONAL, validate_room_row)
+		for id: String in table:
+			if out.has(id):
+				load_ok = false
+				push_error("GameDB rooms: duplicate id across files: %s" % id)
+				continue
+			out[id] = table[id]
+	return out
+
 ## Godot 4.7.2 的 JSON.parse_string 把所有数字（含整数字面量）都解析为 float。
 ## 按 schema 与 optional 默认值声明的类型，把无小数部分的 float 还原为 int，
 ## 保证行内 Variant 类型与 schema 契约一致（后续任务按此读表）。
@@ -333,7 +358,8 @@ func _deep_int_restore(value: Variant) -> Variant:
 
 ## 房间模板语义校验（几何/布局约束），作为 rooms 表 _load_table 的 extra_check。
 ## 约束：size 固定 [22,14]；doors 为 N/S/E/W 无重复非空子集（起始房允许仅 1 门）；
-## 刷怪点界内且距任一门 >= 64px；props 界内且不得压门格；hazards 形状合法（data-only）。
+## 刷怪点界内且距任一门 >= 64px；props 界内且不得压门格；hazards 形状合法（data-only）；
+## biome（m2-t26 optional）值 ∈ BIOME_TAGS 白名单。
 func validate_room_row(row: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	# size
@@ -341,6 +367,10 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 	if typeof(size) != TYPE_ARRAY or size.size() != 2 \
 			or int(size[0]) != ROOM_SIZE[0] or int(size[1]) != ROOM_SIZE[1]:
 		errors.append("size must be %s" % str(ROOM_SIZE))
+	# biome（optional，缺省 ""）
+	var biome: Variant = row.get("biome", "")
+	if typeof(biome) != TYPE_STRING or not BIOME_TAGS.has(biome):
+		errors.append("bad biome: %s" % str(biome))
 	# doors
 	var doors: Variant = row.get("doors")
 	var door_px: Array[Vector2] = []
@@ -398,8 +428,8 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 			for dg: Array in door_grids:
 				if int(grid[0]) == int(dg[0]) and int(grid[1]) == int(dg[1]):
 					errors.append("props[%d] on door tile: %s" % [i, str(grid)])
-	# hazards（data-only 形状校验；kind 白名单 = HAZARD_KINDS：vine/magma 需 radius，
-	# geyser 仅 grid——喷口判定为组件内一瓦片常量）
+	# hazards（data-only 形状校验；kind 白名单 = HAZARD_KINDS）：vine/magma/ice 需 radius，
+	# geyser/spikes/rock 仅 grid（喷口/地刺/滚石判定为组件内一瓦片常量）
 	var hazards: Variant = row.get("hazards", [])
 	if typeof(hazards) != TYPE_ARRAY:
 		errors.append("hazards must be array")
@@ -413,7 +443,7 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 			var hg: Variant = h.get("grid")
 			if not _is_grid(hg) or not _in_bounds(hg):
 				errors.append("hazards[%d] grid out of bounds" % i)
-			if kind == "vine" or kind == "magma":
+			if kind == "vine" or kind == "magma" or kind == "ice":
 				var radius: Variant = h.get("radius")
 				if typeof(radius) != TYPE_INT and typeof(radius) != TYPE_FLOAT:
 					errors.append("hazards[%d] radius must be number" % i)

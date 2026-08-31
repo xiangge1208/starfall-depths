@@ -401,13 +401,20 @@ func test_boss_death_opens_inter_floor_and_door_enters_floor_two() -> void:
 	# 门侧效：InterFloorFlow.enter_next_floor 已推层 + §14.1 蓝晶结算（1→2 给 60）
 	assert_int(RunState.floor_idx).is_equal(2)
 	assert_int(RunState.gems).is_equal(gems0 + 60)
-	assert_bool(_root.a2_entry_active()).is_true()
-	assert_bool(_root.m1_overlay_visible()).is_true()
-	assert_str(_root.overlay_text()).contains("已进入第 2 层")
+	# m2-t26 前提反转：A2 模板已落库 → 层数据门放行，真建第 2 层
+	#（A2 入口里程碑存根自此退役，仅在表外楼层兜底）
+	assert_bool(_root.a2_entry_active()).is_false()
+	assert_bool(_root.m1_overlay_visible()).is_false()
 	assert_bool(inter.is_queued_for_deletion()).is_true()
-	assert_object(_root.floor_scene).is_null()          # 已离开 A1，不以覆盖层冒充跨层
+	assert_object(_root.floor_scene).is_not_null()       # 真 floor 2（A2 模板装配）
+	if _root.floor_scene != null:
+		assert_int(_root.floor_scene.floor_idx).is_equal(2)
+		assert_int(_root.floor_scene.room_count()).is_equal(13)
+		for i in _root.floor_scene.room_count():
+			var room: FloorScene.FloorRoom = _root.floor_scene.room_node(i)
+			if room != null and room.template_id.begins_with("combat_"):
+				assert_bool(room.template_id.begins_with("combat_a2_")).is_true()
 	assert_object(_root.player.get_parent()).is_same(_root)
-	assert_int(int(_root._a2_entry.get_meta("floor_idx"))).is_equal(2)
 
 
 func test_beggar_accept_settles_on_a1_inter_floor_before_a2_entry() -> void:
@@ -439,11 +446,13 @@ func test_beggar_accept_settles_on_a1_inter_floor_before_a2_entry() -> void:
 
 	inter._on_door_interact(_root.player)
 	assert_int(RunState.floor_idx).is_equal(2)
-	assert_bool(_root.a2_entry_active()).is_true()
-	var settled_coins := RunState.coins
-	inter.flow.advance()
-	inter._on_door_interact(_root.player)
-	assert_int(RunState.coins).is_equal(settled_coins) # 重复泵/门不二次返还
+	# m2-t26：A2 数据落库 → 真 floor 2（里程碑存根退役）；乞讨结清在进门前已完成，
+	# 门侧不二次返还（coins 保持 PAYOUT、无新挂账投资）
+	assert_bool(_root.a2_entry_active()).is_false()
+	assert_object(_root.floor_scene).is_not_null()
+	assert_int(RunState.coins).is_equal(EventRoom.BEGGAR_PAYOUT)
+	assert_int(RunState.pending_investment).is_equal(0)
+	assert_int(RunState.beggar_paid_floor).is_equal(0)
 
 
 func test_boss_death_flow_victory_stub_at_floor_three() -> void:
@@ -483,6 +492,7 @@ func _rng(seed_value: int) -> RandomNumberGenerator:
 
 func _make_floor(types: Array) -> FloorScene:
 	var fs := FloorScene.new()
+	fs.miniboss_override = "zibao_wangchong"   # m2-t26：抽取池化后定向钉自爆王虫（armored+leech 断言）
 	add_child(fs)
 	fs.setup(_typed_chain(types), _player_instance())    # setup 收养无父玩家
 	_fs = fs

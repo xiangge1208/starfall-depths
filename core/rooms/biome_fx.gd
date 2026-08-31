@@ -15,6 +15,7 @@ const SILHOUETTE_FLOOR := 0.4                 # 光圈外敌人 modulate 下限�
 var player: Player = null
 var canvas_modulate: CanvasModulate = null
 var light: PointLight2D = null
+var light_radius_px := LIGHT_RADIUS_PX   # 剪影判定口径（m2-t26 灾厄缩径实例与实际光圈同比，评审 Minor-1）
 
 
 ## 玩家注入（FloorScene.set_biome_a2 调用；未注入时 _process 安全 no-op）。
@@ -82,7 +83,7 @@ func _process(_delta: float) -> void:
 		if e == null or not is_instance_valid(e):
 			continue
 		var dist := e.global_position.distance_to(player.global_position)
-		var m := silhouette_modulate(dist)
+		var m := silhouette_modulate(dist, light_radius_px)
 		e.modulate = Color(m, m, m)
 
 
