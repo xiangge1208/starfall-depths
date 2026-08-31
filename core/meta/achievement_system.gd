@@ -15,7 +15,7 @@ extends Node
 ##                   （bare_hands/deadeye/slum_king/flawless_elite/speedrunner/moneybags/
 ##                   nitpicker/no_heal/nightmare_dawn）
 ##
-## 接线说明（附录 K.1/K.2 + 裁定⑧⑨）：
+## 接线说明（附录 K.1/K.2 + 台账裁定⑧）：
 ## - 既有信号直连（不动发射侧文件）：EventBus.resonance_triggered / enemy_damaged /
 ##   enemy_killed / player_hit_resolved / room_cleared + CodexSystem.weapon_unlocked。
 ## - K.2 新声明信号（boss_slain/floor_reached/floor_cleared/victory_achieved/item_forged/
@@ -23,18 +23,28 @@ extends Node
 ##   shop_purchase）发射点不在本卡文件所有权内 → 走 notify_* 直调 API（同 T20
 ##   count_buy 直调先例），由发射责任卡（T35 meta 接线 / BossBase/InterFloor/Player
 ##   等死亡与流转点）各 1 行接入；缺席期间对应成就判定自然休眠，不误解锁。
-## - 裁定⑨：T25 v2 counters 缺席键（crafts_total/challenge_rooms_total）按占位 0
-##   处理，对应成就（熔铸匠/挑战者）暂不可达，列入移交。
+##   注：24 条成就无一消费 shop_purchase（该信号是 T20 buy_x 计数源，归 T35 发射），
+##   故本卡无需为其做就绪检测。
+## - fail-safe 占位（本卡设计）：T25 v2 counters 缺席键（crafts_total/
+##   challenge_rooms_total）按占位 0，对应成就（熔铸匠/挑战者）在 v2 落地前不可达，
+##   列入移交；codex_seen 同为 T25 v2 字段，缺席时回落 unlocked_weapons 子集口径
+##   （保守低估不误解锁，见 _state_value）。
+## - 计数源与 T20 图鉴共享（计划卡明文）：单局会话计数订阅与 CodexSystem 同一批
+##   EventBus 遥测信号（上述既有 5 路），累计口径一律读 SaveSystem 持久字段
+##   （counters.* / unlocked_* / purchased_talents，K.5 的 T25 v2 消费位）——不造第二套
+##   事件源。T20 无单局概念（其 counters 为 autoload 生命周期累计），而 K.1/K.4 单局
+##   条件要求 reset_session 口径，故会话簿记由本卡自持。
 ## - 会话计数（单局口径）与 DeathRecorder.reset / T35 生命周期同点清零（reset_session）；
 ##   解锁集合跨局持久（SaveSystem.achievements），不随会话复位。
 ##
 ## 解锁路径（附录 K.1）：判定达成 → SaveSystem.unlock_achievement(id)（幂等持久化）
 ## → add_gems(附录 G.1 蓝晶原值) → achievement_unlocked(id) 信号 → toast
-## 「成就解锁：xxx +N 蓝晶」（右下角 3s 淡出，同屏最多 3 条）。
+## 「成就解锁：xxx +N 蓝晶」（ui/toast.tscn 场景装配；右下角 3s 淡出，同屏最多 3 条）。
 
 signal achievement_unlocked(id: String)
 
-const TOAST_SCRIPT := "res://ui/toast.gd"
+const TOAST_SCENE := "res://ui/toast.tscn"   # 计划卡 ui/toast.gd(+tscn) 场景装配面
+const TOAST_SCRIPT := "res://ui/toast.gd"    # 场景缺席兜底（headless/未导入环境）
 
 ## 判定器表（附录 K 全表 24 条；active=false = 试炼 M3，判定器不接线且拒绝解锁）。
 ## 字段：id / name(中文) / gems(蓝晶, 附录 G.1 原值) / active / type / trigger /
@@ -63,9 +73,9 @@ const DEFS: Array[Dictionary] = [
 	{"id": "forge_smith", "name": "熔铸匠", "gems": 100, "active": true,
 		"type": "state_threshold", "source": "counter:crafts_total", "goal": 10},
 	{"id": "collector", "name": "藏品家", "gems": 150, "active": true,
-		"type": "state_threshold", "source": "save:unlocked_weapons", "goal": 50},
+		"type": "state_threshold", "source": "save:codex_seen", "goal": 50},
 	{"id": "grand_collector", "name": "大收藏家", "gems": 500, "active": true,
-		"type": "state_threshold", "source": "save:unlocked_weapons", "goal": 115},
+		"type": "state_threshold", "source": "save:codex_seen", "goal": 115},
 	{"id": "full_roster", "name": "全员集合", "gems": 400, "active": true,
 		"type": "state_threshold", "source": "save:unlocked_heroes", "goal": 6},
 	{"id": "challenger", "name": "挑战者", "gems": 100, "active": true,
@@ -145,7 +155,8 @@ func _ready() -> void:
 	if save_system == null:
 		save_system = get_node_or_null("/root/SaveSystem")
 	if toast == null:
-		toast = load(TOAST_SCRIPT).new()
+		var packed: Variant = load(TOAST_SCENE)
+		toast = packed.instantiate() if packed is PackedScene else load(TOAST_SCRIPT).new()
 		add_child(toast)
 	# 既有信号直连（K.2 既有 4 + player_hit_resolved/room_cleared 会话窗口源）
 	EventBus.resonance_triggered.connect(
@@ -291,15 +302,20 @@ func _conds_met(conds: Array, sig: Dictionary) -> bool:
 func _cond_met(cond: Dictionary, sig: Dictionary) -> bool:
 	var src := String(cond.get("src", ""))
 	var op := String(cond.get("op", ""))
-	var value := int(cond.get("value", 0))
 	if op == "ratio_gt":                     # a/b 比值 > value%：交叉乘整型（无截断误差）
 		var parts := src.substr(6).split(",")
 		var a := int(session.get(parts[0], 0))
 		var b := int(session.get(parts[1], 0))
-		return a * 100 > value * maxi(b, 1)
+		return a * 100 > int(cond.get("value", 0)) * maxi(b, 1)
 	if not COND_OPS.has(op):
 		return false                         # 未知 op fail-closed
-	return _cmp(_src_value(src, sig), op, value)
+	var value: Variant = cond.get("value")
+	if typeof(value) == TYPE_STRING:         # 字符串条件（如 sig:weapon_category=="throw"）：
+		if op != "==" and op != "!=":        # 仅等/不等；其余 op 对字符串无定义 → fail-closed
+			return false
+		var cur := _src_text(src, sig)
+		return cur == String(value) if op == "==" else cur != String(value)
+	return _cmp(_src_value(src, sig), op, int(value))
 
 
 func _src_value(src: String, sig: Dictionary) -> int:
@@ -310,6 +326,20 @@ func _src_value(src: String, sig: Dictionary) -> int:
 	if src.begins_with("sig:"):
 		return int(sig.get(src.substr(4), 0))
 	return 0   # 未知源 fail-closed
+
+
+## 字符串版取值（type-strict：仅 TYPE_STRING 通过，类型不符/源缺席 → "" fail-closed）。
+func _src_text(src: String, sig: Dictionary) -> String:
+	if src.begins_with("session:"):
+		var sv: Variant = session.get(src.substr(8))
+		return String(sv) if typeof(sv) == TYPE_STRING else ""
+	if src.begins_with("run:"):
+		var rv: Variant = RunState.get(src.substr(4))
+		return String(rv) if typeof(rv) == TYPE_STRING else ""
+	if src.begins_with("sig:"):
+		var gv: Variant = sig.get(src.substr(4))
+		return String(gv) if typeof(gv) == TYPE_STRING else ""
+	return ""
 
 
 func _cmp(cur: int, op: String, value: int) -> bool:
@@ -360,22 +390,34 @@ func recheck() -> Array[String]:
 
 
 ## 状态源解析：save:xxx → SaveSystem 防御性集合大小；counter:xxx → T25 v2
-## counters.*（缺席键占位 0，裁定⑨——熔铸匠/挑战者/试炼×2 在 v2 落地前不可达）。
+## counters.*（缺席键占位 0——熔铸匠/挑战者/试炼×2 在 v2 落地前不可达，fail-safe）。
+## codex_seen（K.3/K.5 藏品家/大收藏家权威源）当前无写入方（T20 只写 unlocked_weapons，
+## 持久化归 T25 v2）：键缺席期间回落 unlocked_weapons().size()——它是 codex_seen 的
+## 真子集（任务解锁必已见过），保守低估、绝不误解锁；T25 落键后自动切换为权威口径。
 func _state_value(source: String) -> int:
 	if source.begins_with("save:"):
 		match source.substr(5):
 			"unlocked_weapons":
 				return save_system.unlocked_weapons().size()
+			"codex_seen":
+				var seen: Variant = save_system.data.get("codex_seen")
+				if typeof(seen) == TYPE_ARRAY:
+					var n := 0
+					for e: Variant in seen:
+						if typeof(e) == TYPE_STRING:
+							n += 1
+					return n
+				return save_system.unlocked_weapons().size()   # 键缺席回落（见上）
 			"purchased_talents":
 				return save_system.purchased_talents().size()
 			"unlocked_heroes":
 				var arr: Variant = save_system.data.get("unlocked_heroes", [])
-				var n := 0
+				var h := 0
 				if typeof(arr) == TYPE_ARRAY:
 					for e: Variant in arr:
 						if typeof(e) == TYPE_STRING:
-							n += 1
-				return n
+							h += 1
+				return h
 		return 0
 	if source.begins_with("counter:"):
 		var counters: Variant = save_system.data.get("counters", {})
@@ -450,26 +492,26 @@ func notify_weapon_used(weapon_id: String) -> bool:
 
 
 ## —— EventBus 既有信号闭包直调入口（_ready 订阅 → 这里；测试亦可直驱） ——
-func notify_resonance() -> void:
-	_notify("resonance")
+func notify_resonance() -> bool:
+	return _notify_and_report("resonance", {})
 
 
-func notify_enemy_damaged(amount: int, is_crit: bool) -> void:
-	_notify("enemy_damaged", {"amount": amount, "is_crit": is_crit})
+func notify_enemy_damaged(amount: int, is_crit: bool) -> bool:
+	return _notify_and_report("enemy_damaged", {"amount": amount, "is_crit": is_crit})
 
 
-func notify_enemy_killed(enemy_id: String) -> void:
+func notify_enemy_killed(enemy_id: String) -> bool:
 	var row: Dictionary = GameDB.enemies.get(enemy_id, {})
 	var is_elite := not ((row.get("elite_affixes", []) as Array).is_empty())
-	_notify("enemy_killed", {"enemy_id": enemy_id, "is_elite": 1 if is_elite else 0})
+	return _notify_and_report("enemy_killed", {"enemy_id": enemy_id, "is_elite": 1 if is_elite else 0})
 
 
-func notify_player_hit(amount: int, fatal: bool) -> void:
-	_notify("player_hit", {"amount": amount, "fatal": fatal})
+func notify_player_hit(amount: int, fatal: bool) -> bool:
+	return _notify_and_report("player_hit", {"amount": amount, "fatal": fatal})
 
 
-func notify_room_cleared() -> void:
-	_notify("room_cleared")
+func notify_room_cleared() -> bool:
+	return _notify_and_report("room_cleared", {})
 
 
 # ---- 内部路由 / 播报 ----

@@ -1,6 +1,8 @@
 extends CanvasLayer
 ## 右下角 toast 队列（m2-t32）：成就/解锁播报层，GDD §17「解锁即时提示，右下角
-## toast 不打断战斗」。代码构建（无 tscn）：CanvasLayer + 纯 Label 行，无需场景装配。
+## toast 不打断战斗」。行节点纯代码构建（Label 动态增删重排）；场景装配面
+## ui/toast.tscn（CanvasLayer 根挂本脚本，AchievementSystem autoload 经 TOAST_SCENE
+## 实例化，亦可被任意 HUD/菜单场景直接 instance）。
 ##
 ## 队列口径：同屏最多 TOAST_MAX 3 条，超出立即挤掉最老一条（bounded 屏显）；
 ## 每条驻留 lifetime（3s 口径）末尾 FADE_SECS 淡出后释放并重排。

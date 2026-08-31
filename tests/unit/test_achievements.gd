@@ -124,7 +124,10 @@ func test_event_once_pred_blocks_wrong_floor() -> void:
 
 
 func test_event_once_night_watcher_on_victory() -> void:
+	# 隔离守夜人：victory 复合判定（拒绝治疗/速通者）同时求值，先破掉另两条
 	var cs: Variant = _as("watcher")
+	cs.notify_heart_pickup()               # 拒绝治疗：本局拾过红心 → 不解锁
+	RunState.run_time_frames = 72000       # 速通者：20min 边界（严格 <）→ 不解锁
 	assert_bool(cs.notify_victory()).is_true()
 	assert_int(cs.save_system.gems()).is_equal(300)
 
@@ -147,10 +150,12 @@ func test_event_count_demolition_30_props_and_dodge_master_100() -> void:
 		cs.notify_prop_destroyed()
 	assert_bool(cs.is_unlocked("demolition")).is_true()
 	assert_int(cs.save_system.gems()).is_equal(50)
-	for i in range(70):
+	for i in range(99):
 		cs.notify_roll_dodge()
-	assert_bool(cs.is_unlocked("dodge_master")).is_true()       # 30+70=100
-	assert_int(cs.save_system.gems()).is_equal(150)
+	assert_bool(cs.is_unlocked("dodge_master")).is_false()      # 99 次未达
+	cs.notify_roll_dodge()
+	assert_bool(cs.is_unlocked("dodge_master")).is_true()       # 第 100 次达成
+	assert_int(cs.save_system.gems()).is_equal(150)             # 50 + 100
 
 
 # ---- state_threshold：轮询 SaveSystem 字段达阈值 ----
@@ -184,6 +189,7 @@ func test_state_threshold_talents_12_and_24() -> void:
 
 
 func test_state_threshold_collector_50_grand_115() -> void:
+	# codex_seen 键缺席（T25 v2 前）：回落 unlocked_weapons 口径（其子集，保守低估）
 	var cs: Variant = _as("collector")
 	var names: Array = GameDB.weapons_all.keys()
 	for i in range(50):
@@ -195,6 +201,23 @@ func test_state_threshold_collector_50_grand_115() -> void:
 		cs.save_system.unlock_weapon(String(names[i]))
 	assert_array(cs.recheck()).contains("grand_collector")
 	assert_int(cs.save_system.gems()).is_equal(650)
+
+
+func test_state_threshold_collector_prefers_codex_seen_when_present() -> void:
+	# T25 v2 落地形态：codex_seen 键在场即为权威（K.4：默认池获取 ∪ 任务解锁），
+	# 不再回落 unlocked_weapons——空表计 0，解锁 115 把任务武器也不点亮藏品家
+	var cs: Variant = _as("seen")
+	cs.save_system.data["codex_seen"] = [] as Array[String]
+	var names: Array = GameDB.weapons_all.keys()
+	for i in range(115):
+		cs.save_system.unlock_weapon(String(names[i]))
+	assert_array(cs.recheck()).not_contains("collector")
+	assert_int(cs.save_system.gems()).is_equal(0)
+	cs.save_system.data["codex_seen"] = (names.slice(0, 50) as Array).map(
+		func(n: Variant) -> String: return String(n))
+	assert_array(cs.recheck()).contains("collector")       # 恰 50 见过
+	assert_array(cs.recheck()).not_contains("grand_collector")
+	assert_int(cs.save_system.gems()).is_equal(150)
 
 
 func test_state_threshold_missing_counters_key_is_placeholder_zero() -> void:
@@ -213,16 +236,28 @@ func test_state_threshold_missing_counters_key_is_placeholder_zero() -> void:
 # ---- composite：多条件与 ----
 
 func test_composite_deadeye_crit_ratio_over_35pct_needs_50_shots() -> void:
+	# K.3 判定式 crits/shots > 0.35 且 shots >= 50（shots = 每次命中计 1，含暴击本尊）
 	var cs: Variant = _as("deadeye")
-	for i in range(50):
+	for i in range(32):
 		cs.notify_enemy_damaged(4, false)
-	assert_bool(cs.is_unlocked("deadeye")).is_false()     # 50 发 0 暴击
 	for i in range(17):
 		cs.notify_enemy_damaged(6, true)
-	assert_bool(cs.is_unlocked("deadeye")).is_false()     # 17/50 = 34% 未达
+	assert_bool(cs.is_unlocked("deadeye")).is_false()     # 49 发 17 暴击：发数不足且 34.7% 未达
 	cs.notify_enemy_damaged(6, true)
-	assert_bool(cs.is_unlocked("deadeye")).is_true()      # 18/50 = 36% > 35%
+	assert_bool(cs.is_unlocked("deadeye")).is_true()      # 50 发 18 暴击 = 36% > 35%
 	assert_int(cs.save_system.gems()).is_equal(100)
+
+
+func test_composite_deadeye_35pct_boundary_is_strict() -> void:
+	# 恰 50 发 17 暴击 = 34%（交叉乘 1700 vs 1750）：严格大于，不解锁
+	var cs: Variant = _as("deadeye3")
+	for i in range(33):
+		cs.notify_enemy_damaged(4, false)
+	for i in range(17):
+		cs.notify_enemy_damaged(6, true)
+	assert_int(int(cs.session["shots"])).is_equal(50)
+	assert_int(int(cs.session["crits"])).is_equal(17)
+	assert_bool(cs.is_unlocked("deadeye")).is_false()
 
 
 func test_composite_deadeye_ratio_alone_insufficient() -> void:
@@ -235,18 +270,22 @@ func test_composite_deadeye_ratio_alone_insufficient() -> void:
 
 func test_composite_slum_king_floor1_clear_zero_deaths() -> void:
 	var cs: Variant = _as("slum")
+	RunState.coins = 0                     # 隔离：财神同 floor_cleared 触发
 	assert_bool(cs.notify_floor_cleared(1)).is_true()
 	assert_int(cs.save_system.gems()).is_equal(100)
 	var cs2: Variant = _as("slum2")
+	RunState.coins = 0
 	cs2.notify_player_hit(4, false)        # 受击不破（口径=death 非 hurt）
 	assert_bool(cs2.notify_floor_cleared(1)).is_true()
 	var cs3: Variant = _as("slum3")
+	RunState.coins = 0
 	cs3.notify_player_hit(99, true)        # 死亡一次 → 破
 	assert_bool(cs3.notify_floor_cleared(1)).is_false()
 
 
 func test_composite_moneybags_500_coins_on_floor1_clear() -> void:
 	var cs: Variant = _as("money")
+	cs.notify_player_hit(99, true)        # 隔离：破贫民窟之王（同 floor_cleared 触发）
 	RunState.coins = 400
 	assert_bool(cs.notify_floor_cleared(1)).is_false()
 	RunState.coins = 501
@@ -255,22 +294,33 @@ func test_composite_moneybags_500_coins_on_floor1_clear() -> void:
 
 
 func test_composite_speedrunner_victory_under_20min() -> void:
+	# 隔离口径：拾红心破拒绝治疗；守夜人随首次 victory 必然解锁（K.3 到达即 true），
+	# 计入 gems 断言；速通者边界 72000 = 20min 整（严格 <）
 	var cs: Variant = _as("speed")
-	RunState.run_time_frames = 72000     # 20min 整 → 不达（严格 <）
-	assert_bool(cs.notify_victory()).is_false()
+	cs.notify_heart_pickup()
+	RunState.run_time_frames = 72000
+	cs.notify_victory()
+	assert_bool(cs.is_unlocked("speedrunner")).is_false()
+	assert_int(cs.save_system.gems()).is_equal(300)     # 仅守夜人
 	RunState.run_time_frames = 71999
-	var cs2: Variant = _as("speed2")
-	assert_bool(cs2.notify_victory()).is_true()
-	assert_int(cs2.save_system.gems()).is_equal(150)
+	assert_bool(cs.notify_victory()).is_true()          # 第二次 victory 只剩速通者可解
+	assert_bool(cs.is_unlocked("speedrunner")).is_true()
+	assert_int(cs.save_system.gems()).is_equal(450)
 
 
 func test_composite_no_heal_victory_without_heart_pickup() -> void:
+	# 同上隔离：速通者钉边界外；守夜人计入 gems
 	var cs: Variant = _as("noheal")
+	RunState.run_time_frames = 72000
 	cs.notify_heart_pickup()
-	assert_bool(cs.notify_victory()).is_false()
+	cs.notify_victory()
+	assert_bool(cs.is_unlocked("no_heal")).is_false()   # 拾过红心 → 破
+	assert_int(cs.save_system.gems()).is_equal(300)     # 仅守夜人
 	var cs2: Variant = _as("noheal2")
+	RunState.run_time_frames = 72000
 	assert_bool(cs2.notify_victory()).is_true()
-	assert_int(cs2.save_system.gems()).is_equal(200)
+	assert_bool(cs2.is_unlocked("no_heal")).is_true()
+	assert_int(cs2.save_system.gems()).is_equal(500)    # 守夜人 300 + 拒绝治疗 200
 
 
 func test_composite_nightmare_dawn_a3_boss_zero_deaths() -> void:
@@ -283,11 +333,16 @@ func test_composite_nightmare_dawn_a3_boss_zero_deaths() -> void:
 
 
 func test_composite_bare_hands_melee_only_floor_window() -> void:
+	# 隔离口径：A1 通过点同时求值贫民窟之王/财神——死亡一次破前者，金币钉 0 破后者
 	var cs: Variant = _as("bare")
+	cs.notify_player_hit(99, true)
+	RunState.coins = 0
 	cs.notify_weapon_used(MELEE_ID)
 	assert_bool(cs.notify_floor_cleared(1)).is_true()   # 本层仅近战挥击
 	assert_int(cs.save_system.gems()).is_equal(200)
 	var cs2: Variant = _as("bare2")
+	cs2.notify_player_hit(99, true)
+	RunState.coins = 0
 	cs2.notify_weapon_used(REMOTE_ID)                   # 远程开火 → 破
 	cs2.notify_weapon_used(MELEE_ID)
 	assert_bool(cs2.notify_floor_cleared(1)).is_false()
@@ -295,18 +350,22 @@ func test_composite_bare_hands_melee_only_floor_window() -> void:
 	cs3.notify_weapon_used(MELEE_ID)
 	cs3.notify_floor_reached(2)                         # 新层窗口重置
 	cs3.notify_weapon_used(REMOTE_ID)
-	assert_bool(cs3.notify_floor_cleared(2)).is_false()
+	assert_bool(cs3.notify_floor_cleared(2)).is_false() # A2 无同触发邻居（pred 层号隔离）
 
 
 func test_composite_nitpicker_throw_weapon_a1_boss_kill() -> void:
+	# 隔离口径：A1 boss_slain 同时求值初次点灯——受测实例预解锁 first_lamp 排除干扰
 	var cs: Variant = _as("nitpick")
+	cs.save_system.unlock_achievement("first_lamp")   # 预解锁：隔离初次点灯
 	assert_bool(cs.notify_boss_slain("vine_colossus", 1, REMOTE_ID)).is_false()   # 非投掷
 	var cs2: Variant = _as("nitpick2")
 	assert_bool(cs2.notify_boss_slain("vine_colossus", 2, THROW_ID)).is_false()   # 非 A1
 	var cs3: Variant = _as("nitpick3")
+	cs3.save_system.unlock_achievement("first_lamp")   # 预解锁：隔离初次点灯
 	assert_bool(cs3.notify_boss_slain("vine_colossus", 1, THROW_ID)).is_true()
 	assert_int(cs3.save_system.gems()).is_equal(100)
 	var cs4: Variant = _as("nitpick4")
+	cs4.save_system.unlock_achievement("first_lamp")
 	assert_bool(cs4.notify_boss_slain("vine_colossus", 1)).is_false()   # 未知武器 id（占位 ""）不误解锁
 
 
@@ -327,7 +386,10 @@ func test_composite_flawless_elite_no_hurt_in_room_window() -> void:
 # ---- 蓝晶入账 / 信号 / toast ----
 
 func test_unlock_emits_signal_toast_and_gems_once() -> void:
+	# 隔离口径：拾红心破拒绝治疗、20min 边界破速通者——victory 只解守夜人
 	var cs: Variant = _as("emit")
+	cs.notify_heart_pickup()
+	RunState.run_time_frames = 72000
 	var fired: Array = []
 	cs.achievement_unlocked.connect(func(id: String) -> void: fired.append(id))
 	cs.notify_boss_slain("vine_colossus", 1)
@@ -458,3 +520,17 @@ func test_toast_expire_after_lifetime() -> void:
 	assert_int(t.visible_texts().size()).is_equal(1)
 	await get_tree().create_timer(0.6).timeout
 	assert_int(t.visible_texts().size()).is_equal(0)   # 3s 口径的缩短注入版：过期即淡出清位
+
+
+func test_toast_scene_instantiates_script_layer() -> void:
+	# 计划卡交付面 ui/toast.gd(+tscn)：场景实例 = 挂 toast.gd 的 CanvasLayer，
+	# 与 autoload 生产路径（TOAST_SCENE）同一资源
+	var packed: Variant = load("res://ui/toast.tscn")
+	assert_object(packed).is_not_null()
+	assert_bool(packed is PackedScene).is_true()
+	var t: Variant = auto_free(packed.instantiate())
+	assert_bool(t is CanvasLayer).is_true()
+	t.lifetime = 60.0
+	add_child(t)
+	t.show_toast("场景装配路径")
+	assert_array(t.visible_texts()).contains("场景装配路径")
