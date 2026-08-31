@@ -104,6 +104,10 @@ func _on_fuse_pressed() -> void:
 	if kind == "upgrade" and run_state != null:
 		run_state.set("forge_upgrades", _upgrades_used() + 1)
 	_apply_result(out)
+	# 图鉴 craft_x 计数（评审 5b1061b Important-1）：熔铸成功即上报，取代 CodexSystem 的
+	# 「T25 占位、无调用方」接口。5 条 craft_x 任务（含 4 把★图鉴项）此前进度恒 0、永不解锁。
+	# 配方熔铸与通用升级都算一次熔铸；先例见 Core/interact/shop.gd 的 CodexSystem.count_buy()。
+	CodexSystem.count_craft()
 	_flash(_preview, OK_FLASH)
 
 

@@ -14,6 +14,7 @@ extends GdUnitTestSuite
 const SEED := 20260828
 
 var _saved_weapons: Variant = null
+var _saved_crafts: Variant = null
 
 
 # ---------------------------------------------------------------- 替身与桩
@@ -41,10 +42,19 @@ func _stub_weapons(rows: Dictionary) -> void:
 	GameDB.weapons = rows
 
 
+## 熔铸会上报 CodexSystem 的 craft_x 计数器（autoload 全局），逐例还原避免跨套件污染：
+## 一旦累计到 craft_x 最小 goal（10，湮灭号角非★）会真的触发解锁并回池、改全局掉落池。
+func before_test() -> void:
+	_saved_crafts = CodexSystem.counters.get("crafts_total", 0)
+
+
 func after_test() -> void:
 	if _saved_weapons != null:
 		GameDB.weapons = _saved_weapons
 		_saved_weapons = null
+	if _saved_crafts != null:
+		CodexSystem.counters["crafts_total"] = _saved_crafts
+		_saved_crafts = null
 
 
 func _rng(seed_value := SEED) -> RandomNumberGenerator:
@@ -456,6 +466,28 @@ func test_ui_recipe_fuse_applies_inherited_stats_to_equipped_slot() -> void:
 	assert_str(String(rig.slots[0].get("element", ""))).is_equal("fire")
 	# 槽位行必须是全表行的副本：改实例不得污染全局（slots 存的是共享行引用）
 	assert_int(int(GameDB.get_weapon("lieyanjian").get("energy_cost", -1))).is_equal(0)
+
+
+## Important-1（评审 5b1061b）：熔铸成功必须上报图鉴 craft_x 计数。
+## 此前 CodexSystem.count_craft() 无调用方，5 条 craft_x 任务（含 4 把★图鉴项）进度恒 0。
+func test_ui_fuse_reports_craft_to_codex_system() -> void:
+	var before := int(CodexSystem.counters.get("crafts_total", 0))
+	var h := _open_forge(["tiejian", "ranshaoping"])
+	h["forge"]._on_fuse_pressed()
+	assert_int(int(CodexSystem.counters.get("crafts_total", 0))).is_equal(before + 1)
+
+
+## Important-1 对照：被拒绝的熔铸（金币不足）不得计数。
+func test_ui_rejected_fuse_does_not_report_craft() -> void:
+	var before := int(CodexSystem.counters.get("crafts_total", 0))
+	var h := _open_forge(["tiejian", "ranshaoping"], 50)   # 费用 65 > 50
+	h["forge"]._on_fuse_pressed()
+	assert_int(int(CodexSystem.counters.get("crafts_total", 0))).is_equal(before)
+
+
+## Minor-3：兜底路径的盐字面量必须与 RunState.SALT_FORGE 常量一致（防改一处忘一处）。
+func test_forge_fallback_salt_matches_run_state_constant() -> void:
+	assert_str(ForgeLogic.SALT_FORGE).is_equal(RunState.SALT_FORGE)
 
 
 func test_ui_generic_upgrade_fuse_spends_and_counts() -> void:

@@ -33,6 +33,11 @@ const BASE_PRICES := ShopLogic.BASE_PRICES
 ## 该表可读时一律走数据，本常量仅在数据缺失/不可解析/零命中时生效。二者由
 ## test_fusion_only_matches_unlock_tasks_forge_only_data 双向钉死，改数据不改常量会立刻 RED。
 const FUSION_ONLY: Array[String] = ["leishenzhichui", "zhanjiandao", "xingyunpao", "yamiehexin"]
+## 兜底随机源用的熔铸盐（Minor-3）：正式局由 floor_scene 注入 rng，此路径不可达。
+## static 上下文不能裸引用 autoload 常量（Object.get 读不到脚本 const，实测返回 null），
+## 故留字面量并抽常量，由 test_forge_fallback_salt_matches_run_state_constant 钉死
+## 与 RunState.SALT_FORGE 一致——改一处忘另一处立刻 RED。
+const SALT_FORGE := "forge"
 
 # 缓存 + 「已尝试装载」哨兵（M-1）：哨兵而非 is_empty()，否则缺文件/空表会每次调用
 # 重读一遍并刷一条 error；reset_caches() 供测试重置。
@@ -225,7 +230,7 @@ static func _default_rng(a: String, b: String) -> RandomNumberGenerator:
 	if loop is SceneTree:
 		var found: Node = (loop as SceneTree).root.get_node_or_null("RunState")
 		if found != null and found.has_method("stream"):
-			return found.call("stream", "forge")
+			return found.call("stream", SALT_FORGE)
 	rng.seed = hash("%s|%s" % [a, b])
 	return rng
 
