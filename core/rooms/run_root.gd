@@ -29,6 +29,8 @@ const PLAYER_SCENE := preload("res://core/player/player.tscn")
 const A2_ENTRY_FLOOR := 2
 const OVERLAY_TEXT := "已进入第 2 层 · 晶核洞穴入口"
 const OVERLAY_HINT := "M1 垂直切片完成（A2 战斗内容将在 M2 接入）"
+## m2-t22：层数 → 生态 BGM 键（GDD §17 生态三曲；越界 clamp 到 A3）。
+const FLOOR_MUSIC := ["garden", "crystal", "magma"]
 
 var player: Player = null
 var floor_scene: FloorScene = null
@@ -105,6 +107,7 @@ func _spawn_hero_player() -> void:
 func _start_floor(idx: int) -> void:
 	if floor_scene != null and is_instance_valid(floor_scene):
 		floor_scene.queue_free()
+	AudioMgr.play_music(FLOOR_MUSIC[clampi(idx - 1, 0, FLOOR_MUSIC.size() - 1)])   # m2-t22：生态曲 1→garden 2→crystal 3→magma
 	var build := DungeonBuilder.build(RunState.run_seed, idx)
 	floor_scene = FloorScene.new()
 	floor_scene.floor_idx = idx
