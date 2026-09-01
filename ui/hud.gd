@@ -282,7 +282,7 @@ func _build_bottom_center() -> void:
 		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		panel.add_theme_stylebox_override("panel", _style_normal)
 		var name_label := Label.new()
-		name_label.add_theme_font_size_override("font_size", 8)
+		name_label.add_theme_font_size_override("font_size", 12)
 		panel.add_child(name_label)
 		row.add_child(panel)
 		_slot_panels.append(panel)
@@ -300,7 +300,7 @@ func _hud_label(parent: Control, text: String) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	l.add_theme_font_size_override("font_size", 8)
+	l.add_theme_font_size_override("font_size", 12)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
 	return l
@@ -341,13 +341,14 @@ func _apply_buffs(snap: Dictionary) -> void:
 
 func _make_chip(id: String) -> ColorRect:
 	var chip := ColorRect.new()
-	chip.custom_minimum_size = Vector2(18, 12)
+	# 12px 基准：2 字中文缩写 24px 宽 + 2px 内距（原 18×12 为 8px 字号配套，随字号归一放大）
+	chip.custom_minimum_size = Vector2(26, 14)
 	var row: Dictionary = GameDB.get_buff(id)
 	chip.color = RARITY_COLORS.get(String(row.get("rarity", "")), Color(0.4, 0.42, 0.45, 0.9))
 	chip.tooltip_text = String(row.get("name", id))
 	var l := Label.new()
 	l.text = buff_abbrev(id)
-	l.add_theme_font_size_override("font_size", 8)
+	l.add_theme_font_size_override("font_size", 12)
 	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

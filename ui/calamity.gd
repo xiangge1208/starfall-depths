@@ -18,7 +18,9 @@ const CALAMITIES: Array[Dictionary] = [
 const CALAMITY_IDS: Array[String] = ["enemy_speed", "vision", "heal_disable", "bullet_speed"]
 const TITLE_TEXT := "挑战房·灾厄 4 选 1（仅本房生效）"
 const HOTKEYS: Array[Key] = [KEY_1, KEY_2, KEY_3, KEY_4]
-const CARD_MIN := Vector2(136, 116)
+# 布局兜底（M3-S-C 冒烟实测）：4 卡 ×136 + 间距 24 + 面板边距 24 = 592px 超 480 视口
+# （固定卡宽预存超界，与字号无关）；108×4 + 24 + 24 = 480 恰好收下，12px 文案 3 行内可容。
+const CARD_MIN := Vector2(108, 116)
 const CARD_BG := Color(0.09, 0.06, 0.07, 0.95)
 const BORDER := Color(0.85, 0.3, 0.25)
 
@@ -96,7 +98,7 @@ func _build_ui() -> void:
 	panel.add_child(box)
 	_title = Label.new()
 	_title.text = TITLE_TEXT
-	_title.add_theme_font_size_override("font_size", 13)
+	_title.add_theme_font_size_override("font_size", 12)
 	box.add_child(_title)
 	var row: HBoxContainer = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -120,8 +122,8 @@ func _fill_cards() -> void:
 		var item := VBoxContainer.new()
 		item.add_theme_constant_override("separation", 2)
 		card.add_child(item)
-		item.add_child(_make_label("[%d] %s" % [i + 1, String(info["label"])], 10, "CardTitle"))
-		var desc := _make_label(String(info["desc"]), 8)
+		item.add_child(_make_label("[%d] %s" % [i + 1, String(info["label"])], 12, "CardTitle"))
+		var desc := _make_label(String(info["desc"]), 12)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.custom_minimum_size = Vector2(CARD_MIN.x - 12.0, 0)
 		desc.size_flags_vertical = Control.SIZE_EXPAND_FILL

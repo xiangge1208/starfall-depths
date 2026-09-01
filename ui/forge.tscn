@@ -48,13 +48,13 @@ theme_override_constants/separation = 6
 
 [node name="Title" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 12
 text = "熔铸台"
 horizontal_alignment = 1
 
 [node name="Coins" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = ""
 horizontal_alignment = 1
 
@@ -65,22 +65,22 @@ alignment = 1
 
 [node name="Preview" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = ""
 horizontal_alignment = 1
 
 [node name="Cost" type="Label" parent="UILayer/UI/Center/Panel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = ""
 horizontal_alignment = 1
 
 [node name="FuseBtn" type="Button" parent="UILayer/UI/Center/Panel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "熔铸"
 
 [node name="CloseBtn" type="Button" parent="UILayer/UI/Center/Panel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 text = "关闭 (Esc)"

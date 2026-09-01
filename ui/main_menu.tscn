@@ -30,7 +30,7 @@ offset_top = 12.0
 offset_right = 120.0
 offset_bottom = 42.0
 grow_horizontal = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 24
 text = "星陨地牢"
 horizontal_alignment = 1
 
@@ -45,7 +45,7 @@ offset_right = 120.0
 offset_bottom = 56.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.6, 0.62, 0.68, 1)
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "M1 垂直切片 · 星尘坠落地牢"
 horizontal_alignment = 1
 
@@ -64,39 +64,39 @@ theme_override_constants/separation = 5
 [node name="StartBtn" type="Button" parent="Menu"]
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "开 始"
 
 [node name="CodexBtn" type="Button" parent="Menu"]
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "图 鉴"
 
 [node name="TalentsBtn" type="Button" parent="Menu"]
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "天赋 · M2"
 disabled = true
 
 [node name="AchievementsBtn" type="Button" parent="Menu"]
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "成就 · M2"
 disabled = true
 
 [node name="SettingsBtn" type="Button" parent="Menu"]
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "设 置"
 
 [node name="QuitBtn" type="Button" parent="Menu"]
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "退 出"
 
 [node name="SettingsPanel" type="PanelContainer" parent="."]

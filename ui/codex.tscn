@@ -44,7 +44,7 @@ horizontal_alignment = 1
 [node name="Summary" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.62, 0.68, 1)
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "已解锁 0 / 115"
 horizontal_alignment = 1
 
@@ -54,7 +54,7 @@ layout_mode = 2
 
 [node name="Grid" type="GridContainer" parent="Center/Panel/VBox/Scroll"]
 layout_mode = 2
-columns = 10
+columns = 7
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
 
@@ -62,5 +62,5 @@ theme_override_constants/v_separation = 4
 custom_minimum_size = Vector2(120, 20)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "关 闭"

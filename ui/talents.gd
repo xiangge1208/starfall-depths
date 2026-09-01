@@ -53,14 +53,14 @@ func _build_columns() -> void:
 		box.add_theme_constant_override("separation", 2)
 		panel.add_child(box)
 		_columns[branch] = box
-		var header := _label(String(BRANCH_TITLES[branch]), 10, BRANCH_COLORS[branch])
+		var header := _label(String(BRANCH_TITLES[branch]), 12, BRANCH_COLORS[branch])
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(header)
 		var ids := _branch_ids_sorted(branch)
 		for id in ids:
 			var btn := Button.new()
 			btn.custom_minimum_size = NODE_MIN
-			btn.add_theme_font_size_override("font_size", 8)
+			btn.add_theme_font_size_override("font_size", 12)
 			btn.pressed.connect(_on_node_pressed.bind(String(id)))
 			box.add_child(btn)
 			_nodes[String(id)] = btn

@@ -7,8 +7,8 @@ extends Control
 ## 纯展示：进度/解锁状态每次 open/入树时由 CodexSystem 现读，不持有持久状态。
 ## 手动验证：godot --path . res://ui/codex.tscn（或主菜单「图鉴」按钮进入）。
 
-const GRID_COLUMNS := 10
-const CELL_MIN := Vector2(40, 62)
+const GRID_COLUMNS := 7
+const CELL_MIN := Vector2(60, 104)   # 12px 基准：4 字名 48px + 条件 5 行；115 把 / 7 列 = 纵向滚动
 const CARD_BG := Color(0.07, 0.08, 0.1, 0.96)
 const LOCKED_COLOR := Color(0.45, 0.47, 0.52)
 const RARITY_COLORS := {
@@ -60,12 +60,13 @@ func _make_cell(weapon_id: String) -> PanelContainer:
 	cell.add_child(box)
 	box.add_child(_make_icon(weapon_id, unlocked))
 	# 名称：已解锁亮真名；未解锁灰 + "???"（附录 A 解锁规则口径）
-	var name_l := _label("???" if not unlocked else String(row.get("name", weapon_id)), 7,
+	var name_l := _label("???" if not unlocked else String(row.get("name", weapon_id)), 12,
 		Color.WHITE if unlocked else LOCKED_COLOR)
 	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_l.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY   # 5 字名（左轮·正午）断行防破格
 	box.add_child(name_l)
 	# 条件行：未解锁 = unlock_tasks.desc 直读 + cur/goal 进度；已解锁 = 类别小字
-	var cond := _label(_cond_text(weapon_id, unlocked), 6, LOCKED_COLOR)
+	var cond := _label(_cond_text(weapon_id, unlocked), 12, LOCKED_COLOR)
 	cond.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cond.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	cond.custom_minimum_size = Vector2(CELL_MIN.x - 8.0, 0)

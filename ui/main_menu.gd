@@ -57,7 +57,7 @@ func _ready() -> void:
 	var trial_btn := Button.new()
 	trial_btn.text = "试 炼"
 	trial_btn.custom_minimum_size = Vector2(140, 18)
-	trial_btn.add_theme_font_size_override("font_size", 11)
+	trial_btn.add_theme_font_size_override("font_size", 12)
 	$Menu.add_child(trial_btn)
 	$Menu.move_child(trial_btn, 1)
 	trial_btn.pressed.connect(_on_trial_pressed)

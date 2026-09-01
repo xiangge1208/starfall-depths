@@ -95,17 +95,18 @@ func _build_cards() -> void:
 		box.add_child(_label(String(hero.get("name", _ids[i])), 12))
 		box.add_child(_label("HP %d  盾 %d  蓝 %d\n速 %.0f  暴击 %d%%" % [
 			int(hero.get("hp", 0)), int(hero.get("shield", 0)), int(hero.get("energy", 0)),
-			float(hero.get("speed", 0.0)), roundi(float(hero.get("crit_chance", 0.0)) * 100.0)], 8))
-		var passive := _label("被动 %s" % str(PASSIVES.get(hero.get("passive_id", ""), hero.get("passive_id", "?"))), 8)
+			float(hero.get("speed", 0.0)), roundi(float(hero.get("crit_chance", 0.0)) * 100.0)], 12))
+		var passive := _label("被动 %s" % str(PASSIVES.get(hero.get("passive_id", ""), hero.get("passive_id", "?"))), 12)
 		passive.add_theme_color_override("font_color", Color(0.55, 0.85, 0.55))
+		passive.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # 12px 下长被动断行（防横向破卡）
 		box.add_child(passive)
-		var skill := _label("%s %s" % [str(hero.get("skill_name", "?")), str(hero.get("skill_desc", ""))], 8)
+		var skill := _label("%s %s" % [str(hero.get("skill_name", "?")), str(hero.get("skill_desc", ""))], 12)
 		skill.add_theme_color_override("font_color", Color(0.55, 0.75, 0.95))
 		skill.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		skill.custom_minimum_size = Vector2(CARD_MIN.x - 14.0, 0)
 		skill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		box.add_child(skill)
-		box.add_child(_label("初始 %s" % _weapon_names(hero.get("start_weapons", [])), 8, Color(0.85, 0.8, 0.6)))
+		box.add_child(_label("初始 %s" % _weapon_names(hero.get("start_weapons", [])), 12, Color(0.85, 0.8, 0.6)))
 
 ## 高亮刷新：选中卡描边金字，其余灰（样式整体重建，与 BuffPick 同手法）
 func _refresh() -> void:

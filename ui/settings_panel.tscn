@@ -45,7 +45,7 @@ theme_override_constants/separation = 3
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/Rows"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "设 置"
 horizontal_alignment = 1
 
@@ -58,7 +58,7 @@ columns = 2
 [node name="ShakeLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "屏震强度"
 vertical_alignment = 1
 
@@ -72,7 +72,7 @@ value = 1.0
 [node name="DamageLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "伤害数字"
 vertical_alignment = 1
 
@@ -80,13 +80,13 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(120, 16)
 layout_mode = 2
 toggle_mode = true
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "开"
 
 [node name="ColorblindLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "色弱形状"
 vertical_alignment = 1
 
@@ -94,13 +94,13 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(120, 16)
 layout_mode = 2
 toggle_mode = true
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "关"
 
 [node name="AutoAimLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "自动瞄准"
 vertical_alignment = 1
 
@@ -108,14 +108,14 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(120, 16)
 layout_mode = 2
 toggle_mode = true
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 button_pressed = true
 text = "开"
 
 [node name="TouchLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "触屏控件"
 vertical_alignment = 1
 
@@ -123,13 +123,13 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(120, 16)
 layout_mode = 2
 toggle_mode = true
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "关"
 
 [node name="HitstopLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "打击停顿"
 vertical_alignment = 1
 
@@ -137,14 +137,14 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(120, 16)
 layout_mode = 2
 toggle_mode = true
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 button_pressed = true
 text = "开"
 
 [node name="VibrationLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "振　动"
 vertical_alignment = 1
 
@@ -152,14 +152,14 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(120, 16)
 layout_mode = 2
 toggle_mode = true
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 button_pressed = true
 text = "开"
 
 [node name="MasterLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "主音量"
 vertical_alignment = 1
 
@@ -173,7 +173,7 @@ value = 80.0
 [node name="MusicLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "音乐音量"
 vertical_alignment = 1
 
@@ -187,7 +187,7 @@ value = 80.0
 [node name="SfxLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 12
 text = "音效音量"
 vertical_alignment = 1
 
@@ -202,5 +202,5 @@ value = 80.0
 custom_minimum_size = Vector2(140, 18)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "返 回"
