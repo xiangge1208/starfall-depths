@@ -39,11 +39,14 @@
 
 - 真人试玩十项（playtest checklist，常设）
 - 平衡三行动项（bot 门槛震荡修复 / 自爆虫死因真人复核 / laohuoji TTK 校准）
-- T33 移交清单：8 项派味特技 0/8 + 英雄被动 5 条 data-only（spare_parts/echo/blessing/hawk_eye/shadow_reap）+ collector/grand_collector 数据源写入方（codex_seen）+ demolition 待可破坏物机制
+- T33 移交清单：8 项派味特技 0/8 + 英雄被动 4 条 data-only（spare_parts/echo/blessing/shadow_reap；2026-09-01 复核更正：原记 5 条中的 hawk_eye 实自 M1-T5 已完整实现含测试，非 data-only）+ collector/grand_collector 数据源写入方（codex_seen）+ demolition 待可破坏物机制
 - T35 移交：10 个无消费者增益键（rig 5 + 展示 3 + heart_sense + anti_poison）→ M3 combat/resonance 侧
 - T37 披露：A2 光圈内伤害数字/FX 粒子无增亮（弹幕已折叠补偿、预警纹已回真实光照）——真人核验若不足再议
 - 双平台 60fps（GDD §M2 行注：归 M3）；m3-prelude 分支 7 提交待本门禁后合并
 - 导出模板缓存（裁定㉘）适用于任何 CI/重装机
+- **（2026-09-01 全程复审补录）** 美术 I 束两项未随 M2 计划落卡：暴击/元素弹专用帧、美术 QA 三重校验（对比度/剪影/接缝）——显式转 M3 美术补课卡
+- **（2026-09-01 全程复审补录）** §14.3 缺数据项随 M3 补：蓝晶节奏三点抽样（经济模拟卡）+ 单层 8~12min / 单局 25~35min 计时（真人 checklist 增项）
+- **（2026-09-01 审计收口，随 `fix(m2-audit)` 系列提交落地）**：①A2/A3 波次名录分层（附录 B.2）；②精英词缀 §12.3 楼层递进（A1 无/A2 一/A3 二）；③掉落权重 §8.2 分源修复（宝箱/精英行 + 绿档直抽恢复）；④ShopLogic --script 回退过滤 locked；⑤EnemyLaser 弹幕预算重估结论入档（不入 400 上限，冷却 ≥ 束寿命不变量测试钉死）；⑥熔铸台位置改模板行驱动（combat 行 forge 字段）；⑦附录 I.4 第三例外（翻滚 CD 0.12）补注
 
 ## 6. 门禁结论
 
