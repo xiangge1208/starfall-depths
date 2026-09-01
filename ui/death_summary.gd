@@ -82,7 +82,8 @@ func label_texts() -> Array[String]:
 
 func _fill() -> void:
 	var stats: Dictionary = _report.get("stats", {})
-	$Panel/Box/Title.text = "守夜人陨落"
+	$Panel/Box/Title.text = TrialPanelUI.trial_title_text("守夜人陨落")   # M3-R-B 试炼局冠「每日试炼」
+	TrialPanelUI.add_settlement_medal($Panel/Box)   # M3-R-B：试炼局标题徽标（倍率明细行归 R-C）
 	$Panel/Box/Stats.text = "房数 %d　　击杀 %d　　金币 %d　　层数 %d\n时长 %s　　受击 %d 次　　DPS 峰值 %d" % [
 		int(stats.get("rooms", 0)), int(stats.get("kills", 0)),
 		int(stats.get("coins", 0)), int(stats.get("floor", 0)),

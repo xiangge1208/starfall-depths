@@ -38,7 +38,8 @@ func _fill() -> void:
 	var hero_row := GameDB.get_hero(RunState.hero_id)
 	var hero_name := RunState.hero_id if hero_row.is_empty() \
 		else String(hero_row.get("name", RunState.hero_id))
-	$Panel/Box/Title.text = "守夜人凯旋"
+	$Panel/Box/Title.text = TrialPanelUI.trial_title_text("守夜人凯旋")   # M3-R-B 试炼局冠「每日试炼」
+	TrialPanelUI.add_settlement_medal($Panel/Box)   # M3-R-B：试炼局标题徽标（倍率明细行归 R-C）
 	$Panel/Box/Hero.text = "英雄：%s　　通关层数 %d / %d" % [
 		hero_name, RunState.floor_idx, InterFloorFlow.VICTORY_FLOOR,
 	]

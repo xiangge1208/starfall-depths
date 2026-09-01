@@ -1,0 +1,95 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/trial_panel.gd" id="1_trialpanelui"]
+
+[node name="TrialPanelUI" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_trialpanelui")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="Rows" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "每 日 试 炼"
+horizontal_alignment = 1
+
+[node name="Date" type="Label" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "日期 ----/--/--（每日 05:00 刷新）"
+horizontal_alignment = 1
+
+[node name="Factors" type="VBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Best" type="Label" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "今日最佳：暂无记录"
+
+[node name="History" type="Label" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "历史：暂无记录"
+
+[node name="HistoryGrid" type="GridContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 0
+columns = 2
+
+[node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="StartBtn" type="Button" parent="Center/Panel/Margin/Rows/Buttons"]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 11
+text = "开 始"
+
+[node name="BackBtn" type="Button" parent="Center/Panel/Margin/Rows/Buttons"]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 11
+text = "返 回"
