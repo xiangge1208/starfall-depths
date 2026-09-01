@@ -12,8 +12,8 @@ extends Control
 ## main_menu.tscn 是否存在回落（同 DeathSummary 手法）。测试经 exit_override 接缝
 ## 注入，不真跳场景。
 ##
-## 【蓝晶口径】RunState 只读消费（本卡不改 run_state.gd）：胜利全额 = RunState.gems
-## 整额，消费后写零防重复领取；T32 蓝晶结算收口时如增 settle_victory_gems() 可平移。
+## 【蓝晶口径】胜利一次性消费经 RunState.settle_victory_gems()（M3-R-C 已平移于此：
+## 普通局全额，试炼局 ×1.5 向下取整；消费即归零防重复领取）。
 
 signal dismissed
 

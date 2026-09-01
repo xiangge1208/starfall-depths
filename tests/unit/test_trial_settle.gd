@@ -213,6 +213,13 @@ func test_hud_abandon_settles_records_and_routes() -> void:
 	var expected: Array[String] = TrialSystem.new().pick_factors(DATE)
 	assert_array(records[0]["factors"]).contains_exactly(expected)
 	assert_int(routed.size()).is_equal(1)                      # 回面板路由（守卫注入不真跳）
+	# 防重入（评审 A）：SceneRouter 0.2s 淡入窗内黑场不挡输入，双击第二击不得
+	# 再走 settlement_record → 不得产生第 2 条 0 蓝晶幽灵 records 行
+	btn.pressed.emit()
+	assert_int(SaveSystem.gems()).is_equal(97)                 # 不重复入档
+	assert_int(_trial_sig_count).is_equal(1)                   # trial_completed 仍恰一次
+	assert_int((_recs.load_records()["records"] as Array).size()).is_equal(1)
+	assert_int(routed.size()).is_equal(1)                      # 路由也只走一次
 
 
 func test_hud_abandon_button_hidden_on_normal_run() -> void:

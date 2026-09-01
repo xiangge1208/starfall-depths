@@ -154,6 +154,9 @@ var _skill_ring: CdRing
 var _roll_dot: ColorRect
 var _trial_badges: TrialPanelUI.FactorBadges = null   # M3-R-B 试炼因子角标（层数旁）
 var _abandon_btn: Button = null              # M3-R-C 放弃试炼按钮（仅试炼局显示）
+var _abandon_fired := false                  # M3-R-C 防重入：淡入窗内双击只结一次
+                                             # （同 VictorySummary._confirmed 模式——SceneRouter
+                                             # 0.2s 淡入 + 黑场不挡输入，按钮仍可点）
 ## 回试炼面板路由接缝（M3-R-C 测试注入口，同 DeathSummary.exit_override 模式）：
 ## 有效时替代真实路由（生产 = SceneRouter.goto("menu")，试炼面板在主菜单）。
 var abandon_route_override: Callable = Callable()
@@ -378,6 +381,9 @@ func _apply_bottom(snap: Dictionary) -> void:
 ## 回主菜单（试炼面板在主菜单覆盖层，与死亡/胜利结算回菜单口径一致；规格字面
 ## 「回试炼面板」的偏离随 G-1 走查统一勘误）。
 func _on_abandon_pressed() -> void:
+	if _abandon_fired:
+		return                                 # 防重入：二次点击零副作用（无幽灵 records 行）
+	_abandon_fired = true
 	var awarded := RunState.settle_victory_gems()
 	if awarded > 0:
 		SaveSystem.add_gems(awarded)

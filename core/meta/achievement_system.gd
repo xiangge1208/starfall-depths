@@ -6,7 +6,7 @@ extends Node
 ## （_ready 订阅其 weapon_unlocked 信号）。
 ##
 ## 判定规格权威 = 数据表附录 K（docs/superpowers/specs/数据表附录-K-成就接线.md，
-## T3 定稿 24 条：22 条 M2 激活 + 试炼 2 条 M3 不激活）。判定类型白名单：
+## T3 定稿 24 条：22 条 M2 激活 + 试炼 2 条 M3-R-C 随试炼结算激活）。判定类型白名单：
 ##   event_once      订阅源信号到达且参数谓词满足 → 一次即得（first_lamp/delver/night_watcher）
 ##   event_count     源信号会话计数达阈值（element_scholar/demolition/dodge_master）
 ##   state_threshold 轮询 SaveSystem 字段达阈值（forge_smith/collector/grand_collector/
@@ -52,7 +52,9 @@ signal achievement_unlocked(id: String)
 const TOAST_SCENE := "res://ui/toast.tscn"   # 计划卡 ui/toast.gd(+tscn) 场景装配面
 const TOAST_SCRIPT := "res://ui/toast.gd"    # 场景缺席兜底（headless/未导入环境）
 
-## 判定器表（附录 K 全表 24 条；active=false = 试炼 M3，判定器不接线且拒绝解锁）。
+## 判定器表（附录 K 全表 24 条，M3-R-C 起全表 active=true；active=false 机制位保留
+## ——置 false 即拒绝路由/解锁，当前无人使用）。试炼 2 条判定源 = counter:trials_total
+## （notify_trial_completed，见 _persist_trials_total）。
 ## 字段：id / name(中文) / gems(蓝晶, 附录 G.1 原值) / active / type / trigger /
 ##   pred(触发信号参数谓词) / counter+goal(event_count) / source+goal(state_threshold) /
 ##   conds(composite 条件数组)。
