@@ -1001,6 +1001,13 @@ func _push_back() -> void:
 		player.position = room.outer.get_center()
 
 
+## m3-fix1：落位测试缝（bot/无头宿主用，等价生产 _push_back 语义）——把玩家放到
+## flow 当前房中心。bot 无走廊徒步（头注 5），flow 经 enter_room 前进而玩家物理位
+## 滞留旧房时，锁房战斗会「玩家不在场」；本缝提供与生产失败路径相同的落位能力。
+func push_player_back() -> void:
+	_push_back()
+
+
 func _start_room_combat(room: FloorRoom) -> void:
 	room.room_flow.setup(room.waves_cfg)
 	room.room_flow.on_entered(room.entry_frame)

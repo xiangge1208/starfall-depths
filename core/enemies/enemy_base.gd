@@ -31,6 +31,32 @@ var body_scale := 1.0              # 体型：行 body_scale（小 Boss 1.25）�
 var has_berserk := false           # 狂暴门控：仅带词缀者 berserk_active() 才可能为真
 var _seen_frame := -1
 var _slow_action_credit := 0.0     # 冰缓以 0.7 行动频率推进，不永久改写敌人行数据
+var _nan_reset_done := false       # fix1：非有限坐标重置只告警/留痕一次（防警告洪水重现）
+
+## fix1（m3-b1 报告 69/100 停滞的下游症状防御）：brain_pos 是权威位置，一旦非有限
+## （NaN/inf）即经表现层 `velocity = (brain_pos - global_position) * FPS` 传播到
+## global_position，再经拍末 `brain_pos = global_position` 回写永久污染——敌人成为
+## 「冻结的不可伤幽灵」，房间永不可清，且引擎 normalize 每帧告警（B-1 实测 20min
+## 259 万行可拖垮进程）。本守卫在每物理帧表现层入口跑（房间 brain_tick 之后同拍）：
+## 检测 → 重置到 combat_bounds 内域中心（生产路径必注入；脑测空 bounds 回原点）
+## → push_warning + Telemetry 各留痕一次。返回 false 时本拍跳过表现层，NaN 不跨拍存活。
+func ensure_finite_position() -> bool:
+	if brain_pos.is_finite() and global_position.is_finite():
+		return true
+	var target := Vector2.ZERO
+	if combat_bounds.size != Vector2.ZERO:
+		target = combat_bounds.get_center()
+	if not brain_pos.is_finite():
+		brain_pos = target
+	if not global_position.is_finite():
+		global_position = target
+	velocity = Vector2.ZERO
+	if not _nan_reset_done:
+		_nan_reset_done = true
+		push_warning("EnemyBase: non-finite position detected and reset to %s (id=%s, bounds=%s)"
+				% [target, String(row.get("id", "?")), combat_bounds])
+		Telemetry.log_row(["enemy_nan_reset", Engine.get_physics_frames(), String(row.get("id", ""))])
+	return false
 
 func _test_init(r: Dictionary) -> void:
 	# 原型选择已由 EnemyFactory 在构造前完成；本方法只初始化当前正确子类实例。
@@ -251,6 +277,10 @@ func _player_pos() -> Vector2:
 # ---- 物理表现层（手动验证；测试直接驱动 brain，不经此处） ----
 func _physics_process(_delta: float) -> void:
 	if state == State.DEAD:
+		return
+	# fix1：非有限坐标守卫（见 ensure_finite_position）——重置拍跳过表现层，
+	# 权威位与实际位同拍归正，NaN/inf 不跨拍存活。
+	if not ensure_finite_position():
 		return
 	if player_ref != null and state == State.IDLE \
 			and global_position.distance_to(player_ref.brain_pos) <= VISION_PX:
