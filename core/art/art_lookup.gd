@@ -86,6 +86,31 @@ const GUEST_FALLBACK := {
 	"boss": "enemies/vine_colossus.png",
 }
 
+## M3 J-C 粒子条带（Juice v2 §2 J3；路径/帧数唯一出处 art/generated/fx/MANIFEST_M3.md）。
+## 条带为 16px 槽位横向帧序列（帧宽一律 16px），池化播放器（fx/particles_pool.gd）按
+## FX_STRIP_FRAMES 切帧；条带未入 m2-t37 全图集（gen_art_atlas 未收录），tex() 走逐文件路径。
+const FX_STRIPS := {
+	"spark_hit": "fx/spark_hit_strip4.png",
+	"spark_crit": "fx/spark_crit_strip4.png",
+	"spark_fire": "fx/spark_fire_strip4.png",
+	"spark_ice": "fx/spark_ice_strip4.png",
+	"spark_poison": "fx/spark_poison_strip4.png",
+	"spark_shock": "fx/spark_shock_strip4.png",
+	"muzzle_v2": "fx/muzzle_v2_strip3.png",
+	"kill_shard": "fx/kill_shard_strip6.png",
+}
+## 条带帧数（MANIFEST_M3.md QA 总表；与 FX_STRIPS 同键集）。
+const FX_STRIP_FRAMES := {
+	"spark_hit": 4,
+	"spark_crit": 4,
+	"spark_fire": 4,
+	"spark_ice": 4,
+	"spark_poison": 4,
+	"spark_shock": 4,
+	"muzzle_v2": 3,
+	"kill_shard": 6,
+}
+
 const BULLET_PLAYER := "projectiles/bullet_player.png"
 const BULLET_ENEMY := "projectiles/bullet_enemy.png"
 ## 元素弹（Elements.NAMES → projectiles/elem_<name>.png；NONE 走阵营底图）。
@@ -172,6 +197,16 @@ static func pickup_texture_path(kind: String) -> String:
 	if PICKUP_TEXTURES.has(kind):
 		return BASE + String(PICKUP_TEXTURES[kind])
 	return ""
+
+## fx 粒子条带路径（M3 J-C）：未知 id 返回 ""（池端 fail-closed 跳过，同其他表契约）。
+static func fx_strip_path(strip_id: String) -> String:
+	if FX_STRIPS.has(strip_id):
+		return BASE + String(FX_STRIPS[strip_id])
+	return ""
+
+## fx 粒子条带帧数：未知 id 返回 0（调用方不播放）。
+static func fx_strip_frames(strip_id: String) -> int:
+	return int(FX_STRIP_FRAMES.get(strip_id, 0))
 
 static func tile_path(tile_name: String) -> String:
 	if TILES.has(tile_name):

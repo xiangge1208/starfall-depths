@@ -116,6 +116,7 @@ func _fire_slot(w: Dictionary, aim: Vector2, mirrored: bool, frame: int) -> void
 	var side := -1.0 if mirrored else 1.0
 	var muzzle := Vector2(float(w.get("muzzle", _muzzle.x)), 0.0)
 	var origin: Vector2 = player.global_position + side * muzzle.rotated(aim.angle())
+	Fx.spawn_muzzle_flash(origin, aim.angle(), String(w.get("category", "")))   # J3 枪口焰（M3 J-C，池化）
 	var speed := float(w["bullet_speed"]) * bullet_speed_mult
 	if frame < speed_boost_until:
 		speed *= 1.2

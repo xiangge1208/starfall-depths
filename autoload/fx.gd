@@ -29,10 +29,16 @@ var trauma := 0.0                     # 震屏强度，相机每渲染帧调 dec
 var _restore_timer: SceneTreeTimer = null   # 当前"权威"恢复定时器（最长剩余者）
 var _flash: Dictionary = {}           # instance_id -> {item, mat, amount, speed}（键用 id：宿主释放后不悬垂）
 var _director: Object = null          # HitstopDirector（J-A v2；缺席 → v1 常量回退）
+## M3 J-C：池化条带播放器（火花/枪口焰/碎片环）。启动建满常驻，热路径零分配；
+## 挂本节点下继承 PROCESS_MODE_ALWAYS（hitstop 冻结期表现照常）。
+var particles: ParticlesPool = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_init_director()
+	particles = ParticlesPool.new()       # J-C：粒子池在启动时建满（同 AudioMgr POOL 先例）
+	particles.name = "ParticlesPool"
+	add_child(particles)
 	if not EventBus.status_applied.is_connected(_on_status_applied):
 		EventBus.status_applied.connect(_on_status_applied)
 
@@ -139,7 +145,8 @@ func on_enemy_hit(enemy: Node2D, ctx: Dictionary) -> void:
 	var amount := int(ctx.get("amount", 0))
 	var is_crit := bool(ctx.get("is_crit", false))
 	_flash_item(_find_sprite(enemy), Color.WHITE, FLASH_DECAY_PER_SEC)
-	spawn_damage_number(enemy.global_position, amount, is_crit)
+	spawn_damage_number(enemy.global_position, amount, is_crit, _tick_element_of(ctx))
+	particles.play_spark(enemy.global_position, is_crit, int(ctx.get("element", Elements.Id.NONE)))   # J3：池化火花三态
 	spawn_element_shape(enemy.global_position, int(ctx.get("element", Elements.Id.NONE)))
 	var proc_element := int(ctx.get("proc_element", Elements.Id.NONE))
 	if proc_element != int(ctx.get("element", Elements.Id.NONE)):
@@ -157,6 +164,7 @@ func on_enemy_killed(at: Vector2) -> void:
 		hitstop(HITSTOP_KILL_MS)                        # v1 回退：60ms 冻结
 	shake(1.0, 0.1)
 	_puff(at, Color(1.0, 0.55, 0.25), 12)
+	particles.play_kill_shard(at)         # J3：v1 爆散之上叠加 6 帧碎片环（掉落吸附保持 v1）
 
 
 # ---- J-A v2 请求入口（导演缺席时回退 v1 等价行为；no-op 门控在导演内） ----
@@ -186,29 +194,84 @@ func request_skip() -> void:
 	if _director != null:
 		_director.skip()
 
+# ---- J4 伤害数字 v2 常量与视野裁剪缝（Juice v2 §2 J4；表现参数为规格直译，收口归 J-D） ----
+
+const CRIT_BOUNCE_SEC := 0.18          # 暴击弹跳总时长：1.0 → 1.6 → 1.3
+const CRIT_BOUNCE_PEAK := 1.6
+const CRIT_BOUNCE_SETTLE := 1.3
+const TICK_NUMBER_SCALE := 0.8         # 元素 tick 小号 0.8×
+
+## 视野裁剪注入缝（J4 屏外目标不生成跳字）：测试注入返回世界矩形的 Callable；
+## 未注入（生产默认）→ 视口 + 相机推导，无相机（脑测/工具场景）→ 不裁剪。
+var visible_world_rect_provider := Callable()
+
+func _pos_on_screen(pos: Vector2) -> bool:
+	var r := Rect2()
+	if visible_world_rect_provider.is_valid():
+		r = visible_world_rect_provider.call() as Rect2
+	else:
+		var vp := get_viewport()
+		var cam := vp.get_camera_2d() if vp != null else null
+		if cam == null:
+			return true                   # 无相机：不裁剪（纯逻辑测试零相机依赖）
+		var size := vp.get_visible_rect().size
+		r = Rect2(cam.get_screen_center_position() - size * 0.5, size)
+	return r.size == Vector2.ZERO or r.has_point(pos)
+
+## 元素 tick 跳字判定（J4）：DOT（燃烧/中毒）与燎原毒火云结算以 source_type="status"
+## 标记；色取结算点注入的 tick_element（DOT 结算点各 +1 行，判定无关——
+## StatusComponent.apply_hit_context 不读该键）。无注入退化为白色小号 tick。
+func _tick_element_of(ctx: Dictionary) -> int:
+	if String(ctx.get("source_type", "")) != "status":
+		return Elements.Id.NONE
+	return int(ctx.get("tick_element", Elements.Id.NONE))
+
 ## 伤害数字：简单 spawn + tween 上飘淡出 + 自毁（M0 命中频率下短命对象分配有界，
-## 池化收益低——控制器允许二选一，此处取简单方案）。暴击放大 1.5×。
-func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool) -> Label:
+## 池化收益低——控制器允许二选一，此处取简单方案）。
+## J4 v2：暴击弹跳缓动（scale 1.0→1.6→1.3，0.18s，tween；既有上飘/淡出保留）；
+## tick_element 非 NONE 时为元素 tick：元素色、0.8× 小号、不弹跳。既有三参调用零破坏。
+func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool,
+		tick_element: int = Elements.Id.NONE) -> Label:
 	if not bool(SaveSystem.get_setting("damage_numbers", true)):
 		return null
+	if not _pos_on_screen(pos):
+		return null                       # J4 视野裁剪：屏外目标不生成跳字
 	var label := Label.new()
 	label.name = "DamageNumber"
 	label.text = str(amount)
 	label.position = pos + Vector2(-4.0, -14.0)
 	label.z_index = 50
 	label.add_theme_font_size_override("font_size", 8)
-	label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2) if is_crit else Color.WHITE)
 	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.9))
 	label.add_theme_constant_override("outline_size", 2)
-	if is_crit:
-		label.scale = Vector2(1.5, 1.5)
+	var is_tick := tick_element != Elements.Id.NONE
+	if is_tick:
+		# 元素 tick：元素色小号，不弹跳（白色兜底 = 结算点未注入元素色）
+		label.add_theme_color_override("font_color",
+			ELEMENT_COLORS.get(tick_element, Color.WHITE) as Color)
+		label.scale = Vector2(TICK_NUMBER_SCALE, TICK_NUMBER_SCALE)
+	elif is_crit:
+		label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+	else:
+		label.add_theme_color_override("font_color", Color.WHITE)
 	add_child(label)
+	if is_crit and not is_tick:
+		# J4 暴击弹跳：1.0 → 1.6 → 1.3 共 0.18s（替代 v1 定值 1.5×；金描边既有保留）
+		var bounce := label.create_tween()
+		bounce.tween_property(label, "scale",
+			Vector2(CRIT_BOUNCE_PEAK, CRIT_BOUNCE_PEAK), CRIT_BOUNCE_SEC * 0.5)
+		bounce.tween_property(label, "scale",
+			Vector2(CRIT_BOUNCE_SETTLE, CRIT_BOUNCE_SETTLE), CRIT_BOUNCE_SEC * 0.5)
 	var tw := label.create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(label, "position:y", label.position.y - 10.0, 0.5)
 	tw.tween_property(label, "modulate:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
 	tw.tween_callback(label.queue_free).set_delay(0.55)
 	return label
+
+## 枪口焰消费入口（J3）：weapon_rig._fire_slot 开火缝调用；条带与类别 tint 预设在池内。
+func spawn_muzzle_flash(pos: Vector2, angle: float, weapon_category: String) -> void:
+	particles.play_muzzle(pos, angle, weapon_category)
 
 ## 色弱形状编码是颜色以外的第二视觉通道。M1 在每次元素命中位置短暂显示编码：
 ## 火=三角、冰=菱形、毒=圆、电=闪电折线；关闭设置时完全不创建表现节点。

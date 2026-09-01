@@ -249,6 +249,7 @@ func _tick_blaze_clouds(now: int) -> void:
 					"source_type": "status", "source_id": "blaze", "source_name": "燎原",
 					"attack_name": "毒火云",
 					"player_damage": true,
+					"tick_element": Elements.Id.FIRE,   # J4 tick 跳字色（M3 J-C 上报：表现层附加键，判定不读）
 				})
 			cloud["next_tick"] = int(cloud["next_tick"]) + TimeConst.ticks(1.0)
 		if now >= int(cloud["until"]):

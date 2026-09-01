@@ -244,6 +244,10 @@ func _start_seq(kind: int, freeze_ms: int, recover_ms: int, slow_ms: int, loot_m
 		return
 	if _seq_kind != SeqKind.NONE and _start_ms + _total_ms - at_ms >= total:
 		return                 # 已有更长演出在跑：忽略
+	# J-C 必跟②：接管补偿——被替换链若有待发 loot（Boss 死亡链未走完 loot 段）立即补发
+	# 一次（与 skip 的「快进不吞事件」对称；普通链 _loot_ms=0 无此段，天然跳过）。
+	if _seq_kind != SeqKind.NONE and not _fired_loot and _loot_ms > 0:
+		_fire_loot()
 	_serial += 1              # 换代号：被替换链的链尾保险回调失效
 	_seq_kind = kind
 	_start_ms = at_ms
