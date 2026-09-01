@@ -1187,6 +1187,8 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	if kill_kind.is_empty() and String(e.row.get("boss_script", "")) != "":
 		kill_kind = "boss"
 	RunState.settle_kill_gems(kill_kind, enemy_id)
+	if kill_kind == "boss":
+		Fx.request_boss_death()   # J7：Boss 死亡定格链（表现层；总开关/前台门在 Fx/导演内）
 	var notify_id := String(e.row.get("wave_id", enemy_id))
 	var killed_row: Dictionary = (e.row as Dictionary).duplicate(true)
 	var death_pos := e.global_position

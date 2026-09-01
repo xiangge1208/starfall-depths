@@ -1,7 +1,11 @@
 extends Node
 ## 打击感服务（m0-t12 完整实现）：hitstop / 震屏 trauma / 白闪 / 伤害数字 / 粒子。
 ## _ready 置 PROCESS_MODE_ALWAYS：hitstop 暂停树后，本节点（及挂其下的表现物）仍照常处理。
+## J-A：hitstop v2——冻结/慢速时序由 HitstopDirector（纯逻辑状态机）驱动，本类只提供
+## apply_state/schedule 生产实现并逐帧注入真实毫秒；导演缺席（脚本缺失）时回退 v1
+## 常量路径，导演在位但 hitstop_enabled=false 或 balance 加载失败时请求全部 no-op。
 
+const DIRECTOR_SCRIPT_PATH := "res://fx/hitstop_director.gd"
 const FLASH_SHADER := preload("res://fx/white_flash.gdshader")
 const FLASH_DECAY_PER_SEC := 6.0      # 命中白闪 1→0 约 0.17s
 const TELEGRAPH_DECAY_PER_SEC := 2.0  # 蓄力/引信红闪更持久（约 0.5s）
@@ -24,11 +28,40 @@ const ELEMENT_COLORS := {
 var trauma := 0.0                     # 震屏强度，相机每渲染帧调 decay_step() 衰减
 var _restore_timer: SceneTreeTimer = null   # 当前"权威"恢复定时器（最长剩余者）
 var _flash: Dictionary = {}           # instance_id -> {item, mat, amount, speed}（键用 id：宿主释放后不悬垂）
+var _director: Object = null          # HitstopDirector（J-A v2；缺席 → v1 常量回退）
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_init_director()
 	if not EventBus.status_applied.is_connected(_on_status_applied):
 		EventBus.status_applied.connect(_on_status_applied)
+
+## 懒构造 v2 导演（脚本缺失/解析失败 → null → v1 回退；balance 加载失败由导演
+## load_ok=false 门控全部请求 no-op，fail-closed 不崩游戏）。
+func _init_director() -> void:
+	var script: Variant = load(DIRECTOR_SCRIPT_PATH)
+	if script == null or not (script as Script).can_instantiate():
+		return
+	var d = (script as Script).new()
+	d.apply_state = _apply_time_state
+	d.schedule = _schedule_real_ms
+	d.load_balance_file("res://data/balance.json")   # 失败 → load_ok=false → 请求全部 no-op
+	_director = d
+
+## 导演 apply_state 生产实现：冻结=树暂停；恢复/慢速=Engine.time_scale
+## （判定在请求前已完成，此处只是表现层时间包裹）。
+func _apply_time_state(paused: bool, time_scale: float) -> void:
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = paused
+	Engine.time_scale = time_scale
+
+## 导演 schedule 生产实现：ignore_time_scale 定时器（v1 hitstop 同款），暂停中照走。
+func _schedule_real_ms(delay_ms: int, callback: Callable) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	tree.create_timer(float(delay_ms) / 1000.0, true, false, true).timeout.connect(callback)
 
 ## 帧冻结：暂停树，真实毫秒后恢复（create_timer ignore_time_scale，brief 契约）。
 ## 并发调用取更长：只认剩余时间最长的"权威"定时器恢复；换权威时**断开旧定时器**的
@@ -36,6 +69,11 @@ func _ready() -> void:
 ## 注：期限比较用 SceneTreeTimer.time_left（同一时钟域），不与 Time.get_ticks_msec 混比
 ## （本机 headless 实测 process delta 与墙钟可偏差 ~20%）。
 func hitstop(ms: int) -> void:
+	if _director != null:
+		_director.request_freeze(ms, Time.get_ticks_msec())   # 总开关/加载门控在导演内
+		return
+	if not bool(SaveSystem.get_setting("hitstop_enabled", true)):
+		return                          # v1 回退路径同样遵守总开关
 	if ms <= 0:
 		return                          # 0/负值：不冻结（也不占用恢复定时器）
 	var tree := get_tree()
@@ -56,6 +94,8 @@ func _on_hitstop_elapsed() -> void:
 ## 立即结束仍在生效的 hitstop。场景/测试边界可用它清理 Autoload 持有的权威
 ## 定时器；必须先断开回调，避免旧定时器稍后再次改写新一轮冻结状态。
 func cancel_hitstop() -> void:
+	if _director != null:
+		_director.cancel()      # J-A：同时结束慢速链并恢复时计（幂等）
 	if _restore_timer != null and is_instance_valid(_restore_timer) \
 			and _restore_timer.timeout.is_connected(_on_hitstop_elapsed):
 		_restore_timer.timeout.disconnect(_on_hitstop_elapsed)
@@ -108,12 +148,43 @@ func on_enemy_hit(enemy: Node2D, ctx: Dictionary) -> void:
 	if is_crit:
 		hitstop(HITSTOP_CRIT_MS)        # 暴击 hitstop（brief：40ms + 数字放大 1.5×）
 
-## 击杀 juice：hitstop 60ms + 粒子爆散。EventBus.enemy_killed 只有 id 无位置，
-## 故由房间层（持有敌人节点）在击杀缝处调用。
+## 击杀 juice v2（J1）：80ms 缓出（20ms 冻结 + 60ms 线性恢复）+ 多杀窗口，经导演。
+## EventBus.enemy_killed 只有 id 无位置，故由房间层（持有敌人节点）在击杀缝处调用。
 func on_enemy_killed(at: Vector2) -> void:
-	hitstop(HITSTOP_KILL_MS)
+	if _director != null:
+		_director.request_kill(Time.get_ticks_msec())   # 表现层墙钟（多杀窗口基准，判定无关）
+	else:
+		hitstop(HITSTOP_KILL_MS)                        # v1 回退：60ms 冻结
 	shake(1.0, 0.1)
 	_puff(at, Color(1.0, 0.55, 0.25), 12)
+
+
+# ---- J-A v2 请求入口（导演缺席时回退 v1 等价行为；no-op 门控在导演内） ----
+
+## Boss 阶段切换（J1）：120ms 冻结 + 0.3× 慢速 240ms。
+func request_boss_phase() -> void:
+	if _director != null:
+		_director.request_boss_phase(Time.get_ticks_msec())
+	else:
+		hitstop(BossBase.PHASE_HITSTOP_MS)   # v1 回退：仅冻结（与阶段常量同源）
+
+## Boss 死亡定格链（J7）。前台为工具/测试场景时不接管（同 DeathRecorder
+## 前台门模式）：脑测/套件里 Boss 死亡不会冻结 GdUnit 树。
+func request_boss_death() -> void:
+	if _director == null or not DeathRecorder.is_gameplay_scene_active():
+		return
+	_director.request_boss_death(Time.get_ticks_msec())
+
+## 玩家死亡慢速（J1）。前台门同上（测试致死路径不污染套件时序）。
+func request_player_death() -> void:
+	if _director == null or not DeathRecorder.is_gameplay_scene_active():
+		return
+	_director.request_player_death(Time.get_ticks_msec())
+
+## Boss 死亡链快进（J7 连按攻击键；输入接线在 J-C/J-D 收口）。
+func request_skip() -> void:
+	if _director != null:
+		_director.skip()
 
 ## 伤害数字：简单 spawn + tween 上飘淡出 + 自毁（M0 命中频率下短命对象分配有界，
 ## 池化收益低——控制器允许二选一，此处取简单方案）。暴击放大 1.5×。
@@ -177,6 +248,8 @@ static func element_shape(element: int) -> String:
 # ---- 内部：白闪 / 粒子 ----
 
 func _process(delta: float) -> void:
+	if _director != null:
+		_director.tick(Time.get_ticks_msec())   # J-A：逐帧注入真实毫秒（热路径空闲即 O(1) 早退）
 	if _flash.is_empty():
 		return
 	var done: Array[int] = []

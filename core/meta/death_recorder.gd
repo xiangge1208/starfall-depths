@@ -158,6 +158,7 @@ func _on_player_hit_resolved(amount: int, fatal: bool, ctx: Dictionary) -> void:
 	if not fatal or suppressed or _fatal_handled:
 		return
 	_fatal_handled = true                   # once-per-fatal：同局只开一次
+	Fx.request_player_death()               # J-A：0.3× 慢速 600ms 演出（判定已完成，前台门在 Fx）
 	record_replay_key(RunState.run_seed, RunState.floor_idx, floor_local_death_tick(frame))
 	current_report = build_report(collect_run_stats())
 	if open_summary_override.is_valid():    # 测试/整合注入口（不受前台场景门限制）
