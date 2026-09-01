@@ -50,6 +50,10 @@ var _topup_room: FloorScene.FloorRoom = null
 var _topup_rng := RandomNumberGenerator.new()
 var _topup_active := false
 var _uncapped := false                 # m3-jd：--uncapped 诊断档（见 _probe_floor 内注释）
+var _drill_particles := false          # m3-xb：降级演练 T1——采样期逐拍强制粒子单帧降级
+var _drill_enemies := -1               # m3-xb：降级演练 T2——注入敌数覆盖（<40 演示降实体档）
+var _step_trace := false               # m3-xb：会话慢速诊断的阶段性时间戳（--step-trace 开启）
+var _orbit_player := false             # m3-xb：玩家每 120 帧沿小圆轨道换位（防 40 敌单点堆叠饱和）
 
 
 func _ready() -> void:
@@ -62,11 +66,44 @@ func _ready() -> void:
 	)
 	RunState.start_run("vanguard")
 	_uncapped = "--uncapped" in OS.get_cmdline_user_args()
+	# m3-xb：降级演练档（§18.3「超预算先降粒子再降实体」预案可用性验证，全过也补采一档）
+	_drill_particles = "--drill-particles" in OS.get_cmdline_user_args()
+	_step_trace = "--step-trace" in OS.get_cmdline_user_args()
+	_orbit_player = "--orbit-player" in OS.get_cmdline_user_args()
+	if _orbit_player:
+		print("PERF WARN: --orbit-player 堆叠去饱和档：玩家每 120 帧沿半径 64 圆轨道换位。"
+			+ "背景： immortal 注入敌终态全部堆叠到静止玩家单点，CharacterBody2D "
+			+ "move_and_slide 堆叠碰撞恢复成本随密度非线性爆炸（真实局玩家数秒内即死亡、"
+			+ "堆叠不可持续，属压测探针专属病理终态；M2/J-D 有效数据均取自饱和前窗口）。"
+			+ "仅改玩家坐标（探针既有机能），负荷构成（40 敌/500 弹/特效）与判定不变")
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--drill-enemies="):
+			_drill_enemies = int(a.get_slice("=", 1))
+	if _drill_particles:
+		print("PERF WARN: --drill-particles 演练 T1：采样期逐拍强制 Fx.particles._degrade=true"
+			+ "（单帧退化语义，juice_matrix_run particles_degraded 组同路径）")
+	if _drill_enemies > 0:
+		print("PERF WARN: --drill-enemies=%d 演练 T2：注入敌数覆盖（预算线不变，降实体档效果对比）"
+			% _drill_enemies)
+	if "--anomaly-check" in OS.get_cmdline_user_args():
+		# m3-xb：OBS-3 异常量化档（见 _run_anomaly_check）——采完即退，不进压测/JSON
+		await _run_anomaly_check()
+		return
 	if _uncapped:
 		print("PERF WARN: --uncapped 诊断档（Engine.max_fps 节流本会话异常）："
 			+ "整帧墙钟与 60fps 合成线不判定，仅逻辑帧/渲染 CPU/draw call/实体/弹幕/粒子观测有效")
 	# 关 vsync：节流/吞吐由 max_fps 控制，墙钟反映真实工作而非刷新率钳制
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	# m3-xb：测量期抑制引擎 warning/error 的控制台/日志打印。根因（OBS-3 爬行定位）：
+	# 压测下 40 敌全部堆叠到玩家位置后，enemy_base._physics_process 的
+	# velocity=(brain_pos-global_position)*FPS 归零，move_and_slide 内部对零向量
+	# normalize 逐敌逐帧发 WARNING（含 GDScript backtrace，stdout+godot.log 双写同步刷盘）
+	# ——本会话实测 ~900 条/帧 × ~1.5ms/条 ≈ 1.4s/帧，为「压测内容+任何节流档」爬行的
+	# 主源（空场景无内容时不复现，故 --anomaly-check 看不到）。堆叠静止是压测注入的
+	# 预期终态（敌不死、玩家抬血），warning 为引擎对合法零速移动的噪音；生产导出包
+	# release 模板不含该日志开销。抑制只关日志面，不触碰任何游戏逻辑/判定；
+	# 探针自身的 PERF 结果打印（print 路径）不受影响。
+	Engine.print_error_messages = false
 	var headless := DisplayServer.get_name() == "headless"
 	if headless:
 		print("PERF WARN: headless run — render metrics invalid (Dummy RenderingServer); "
@@ -85,6 +122,10 @@ func _physics_process(_delta: float) -> void:
 	# 弹幕补充满额（生产同侧：物理 tick 内补弹，enemy 射击节奏的等价物）
 	if _topup_active and _topup_room != null and is_instance_valid(_topup_fs):
 		_top_up_bullets(_topup_fs, _topup_room, _topup_rng)
+	# m3-xb：降级演练 T1——逐拍强制降级标记（step() 会在活跃回落预算内时清除，
+	# 等效「全程超预算」口径，juice_matrix_run driver 同路径同语义）
+	if _drill_particles:
+		Fx.particles._degrade = true
 
 
 # ================================================================ 压测主流程
@@ -98,10 +139,20 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 	if floor_idx == 2:
 		fs.set_biome_a2(true)             # A2 全特效：暗视野+敌人剪影+冰面（观察项：剪影 O(n)）
 	fs.enter_room(1)
+	if _step_trace:
+		print("PERF TRACE t=%.2fs: floor %d built+entered" % [
+			float(Time.get_ticks_msec()) / 1000.0, floor_idx])
 	# 玩家落位战斗房中心（m1_evidence 习语：位置检测器据此维持当前房）
 	fs.player.position = fs.room_rect(1).get_center()
 	await _physics_frames(5)             # 波次落地（enter 同拍 + 余量）
-	var injected := _inject_enemies(fs, room, stress_enemy_ids(ENEMY_TARGET))
+	if _step_trace:
+		print("PERF TRACE t=%.2fs: physics frames + waves done" % [
+			float(Time.get_ticks_msec()) / 1000.0])
+	var enemy_target := ENEMY_TARGET if _drill_enemies <= 0 else _drill_enemies  # m3-xb 演练 T2
+	var injected := _inject_enemies(fs, room, stress_enemy_ids(enemy_target))
+	if _step_trace:
+		print("PERF TRACE t=%.2fs: %d enemies injected" % [
+			float(Time.get_ticks_msec()) / 1000.0, injected])
 	_top_up_bullets(fs, room, _topup_rng)
 
 	# ---- 节流窗（生产节奏 60fps）：逻辑帧 / 渲染 CPU / draw call ----
@@ -125,8 +176,26 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 	var objects_peak := 0
 	var orphans_peak := 0
 	var pf0 := Engine.get_physics_frames()
+	var orbit_center: Vector2 = fs.room_rect(1).get_center()
 	for i in SAMPLE_FRAMES:
 		await get_tree().process_frame
+		if _orbit_player and i % 30 == 15:
+			# m3-xb：堆叠去饱和——沿房间中心半径 96 圆轨道每 30 帧换位（0.5s@60fps），
+			# 追逐目标持续移动，阻断「40 敌单点重合」的探针专属病理终态
+			var ang := TAU * float(i % 720) / 720.0
+			fs.player.position = orbit_center + Vector2(cos(ang), sin(ang)) * 96.0
+		if _step_trace and i % 60 == 0:
+			print(("PERF TRACE t=%.2fs: sample i=%d fps=%.1f phys=%.2fms proc=%.2fms pf=%d"
+				+ " | phys2d_active=%s objects=%s enemies=%d bullets=%d particles=%d") % [
+				float(Time.get_ticks_msec()) / 1000.0, i,
+				Performance.get_monitor(Performance.TIME_FPS),
+				Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS),
+				Performance.get_monitor(Performance.TIME_PROCESS),
+				Engine.get_physics_frames(),
+				Performance.get_monitor(Performance.PHYSICS_2D_ACTIVE_OBJECTS),
+				Performance.get_monitor(Performance.OBJECT_COUNT),
+				_alive_enemies(room), room.combat.pool.active_count(),
+				Fx.particles.active_units()])
 		if floor_idx == 3 and i % 120 == 0:   # 火雨（2s 周期，8s 窗 4 落）
 			fs.schedule_fire_rain(room.global_position
 				+ room.outer.size * 0.5 + Vector2(60.0 * (i / 120 - 1.5), 0))
@@ -438,6 +507,8 @@ func _emit_summary(results: Array[Dictionary], headless: bool) -> void:
 		"capacity_window": {"max_fps": 0, "warmup": CAP_WARMUP_FRAMES, "sample": CAP_SAMPLE_FRAMES},
 		"enemy_target": ENEMY_TARGET,
 		"bullet_target": BULLET_TARGET,
+		"drill_particles": _drill_particles,      # m3-xb：降级演练 T1 标记
+		"drill_enemies": _drill_enemies,          # m3-xb：降级演练 T2 注入敌数（-1=默认 40）
 		"engine": Engine.get_version_info().get("string", ""),
 	}
 	var file := FileAccess.open(OUT_PATH, FileAccess.WRITE)
@@ -453,3 +524,31 @@ func _emit_summary(results: Array[Dictionary], headless: bool) -> void:
 func _physics_frames(n: int) -> void:
 	for _i in n:
 		await get_tree().physics_frame
+
+
+# ================================================================ OBS-3 异常量化档（m3-xb）
+
+## m3-xb：`-- --anomaly-check`——J-D 移交的 OBS-3 环境异常（Engine.max_fps=60 节流劣化为
+## 0.2~2.5s/帧）在本会话的量化复现采集：同场景下 max_fps=0 与 max_fps=60 各采 12 帧墙钟
+## 对照。不建层、不进判定/JSON（mainline 压测路径零接触）；需窗口化运行（异常与显示
+## 会话相关，无头下节流异常另见 m3-juice-checklist §4.1）。
+func _run_anomaly_check() -> void:
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	print("PERF ANOMALY CHECK: display=%s vsync=off" % DisplayServer.get_name())
+	var uncapped_ms := await _anomaly_window(0)
+	Engine.set("max_fps", 60)
+	var capped_ms := await _anomaly_window(60)
+	print(("PERF ANOMALY RESULT: max_fps=0 avg %.3f ms/frame | max_fps=60 avg %.1f ms/frame"
+		+ "（期望 ~16.7）| TIME_FPS=%.1f") % [uncapped_ms, capped_ms,
+		Performance.get_monitor(Performance.TIME_FPS)])
+	get_tree().quit(0)
+
+
+func _anomaly_window(max_fps: int) -> float:
+	Engine.set("max_fps", max_fps)
+	for _i in 8:
+		await get_tree().process_frame      # 档位稳定
+	var t0 := Time.get_ticks_usec()
+	for _i in 12:
+		await get_tree().process_frame
+	return float(Time.get_ticks_usec() - t0) / 1000.0 / 12.0
