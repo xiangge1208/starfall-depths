@@ -8,6 +8,7 @@ extends Node
 const DIRECTOR_SCRIPT_PATH := "res://fx/hitstop_director.gd"
 const BALANCE_PATH := "res://data/balance.json"
 const FLASH_SHADER := preload("res://fx/white_flash.gdshader")
+const DESAT_SHADER := preload("res://fx/desat.gdshader")   # J1/D-3a：玩家死亡去饱和
 const FLASH_DECAY_PER_SEC := 6.0      # 命中白闪 1→0 约 0.17s
 const TELEGRAPH_DECAY_PER_SEC := 2.0  # 蓄力/引信红闪更持久（约 0.5s）
 const HITSTOP_CRIT_MS := 40
@@ -42,6 +43,20 @@ var _combo: ComboCounter = ComboCounter.new()
 ## M3 J-C：池化条带播放器（火花/枪口焰/碎片环）。启动建满常驻，热路径零分配；
 ## 挂本节点下继承 PROCESS_MODE_ALWAYS（hitstop 冻结期表现照常）。
 var particles: ParticlesPool = null
+## J6 振动消费端（D-1 补课）：设置键 vibration 的运行时读取方（消费模式同
+## screen_shake——消费方运行时 get_setting）。平台门控：规格「仅 Android 生效」，
+## 桌面/无头不裸调 Input.vibrate_handheld；测试注入口有效时视为具备能力
+## （headless 冒烟经此机检调用链）。
+var vibrate_api: Callable = Callable()
+## J1/D-3a：玩家死亡去饱和渐入层（挂 current_scene → 死亡结算换场景自动回收）。
+var _death_desat: CanvasLayer = null
+var _desat_mat: ShaderMaterial = null
+var _desat_start_ms := -1             # 真实毫秒起点（Time.get_ticks_msec，与导演链同钟）
+## J7/D-3c：Boss 战利品延迟喷出挂起队列——导演 loot 段开始（或快进/接管补发）统一 flush。
+var _loot_pending: Array[Callable] = []
+## 前台门注入缝（D-3a 机检用，同 visible_world_rect_provider 模式）：有效时替代
+## DeathRecorder.is_gameplay_scene_active——无头冒烟经此走 request_player_death 全路径。
+var gameplay_scene_gate: Callable = Callable()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -64,6 +79,7 @@ func _init_director() -> void:
 	var d = (script as Script).new()
 	d.apply_state = _apply_time_state
 	d.schedule = _schedule_real_ms
+	d.on_loot_delay_started = _flush_boss_loot   # J7/D-3c：loot 段开始（或快进/接管补发）时喷出挂起掉落
 	d.load_balance_file("res://data/balance.json")   # 失败 → load_ok=false → 请求全部 no-op
 	_director = d
 
@@ -122,6 +138,7 @@ func cancel_hitstop() -> void:
 	var tree := get_tree()
 	if tree != null:
 		tree.paused = false
+	_cancel_death_desat()       # J1/D-3a：演出整体取消时去饱和层一并回收（边界卫生）
 
 ## J2 v2 注入口：按 balance.json juice 来源表命名注入（trauma += 表值后 clamp [0,1]）。
 ## 「单事件注入 ≤0.5」由来源表数据保证（shake_boss_death 1.0 为 J7 唯一例外）；
@@ -169,6 +186,8 @@ static func _default_juice_params() -> Dictionary:
 		"combo_window_ms": 1200.0,
 		"combo_pitch_step": 0.02,
 		"combo_pitch_max_steps": 6.0,
+		"vibration_hurt_ms": 30.0,
+		"vibration_boss_death_ms": 80.0,
 	}
 
 ## 只对本卡新增键做「已知即校验类型」（数值型否则回落默认）；J-A 导演加载器对
@@ -216,6 +235,33 @@ func combo_pitch_step() -> float:
 func combo_pitch_max_steps() -> float:
 	return float(_params.get("combo_pitch_max_steps", 6.0))
 
+func vibration_hurt_ms() -> float:
+	return float(_params.get("vibration_hurt_ms", 30.0))
+
+func vibration_boss_death_ms() -> float:
+	return float(_params.get("vibration_boss_death_ms", 80.0))
+
+# ---- J6 振动消费端（D-1 补课；规格 §2 J6「受击 30ms / Boss 死亡 80ms，仅 Android 生效」）----
+
+## 平台能力：Android 特性在位才允许触真 API；测试注入口有效视为具备能力。
+## 桌面/无头在此早退——不裸调 Input.vibrate_handheld（无害 no-op 也不调，零噪音）。
+func vibration_supported() -> bool:
+	if vibrate_api.is_valid():
+		return true
+	return OS.has_feature("android")
+
+## 振动请求原语：开关（设置键 vibration，默认开）→ 平台能力双重门控后才调用。
+## 时长为表现层参数（balance.json juice 节唯一出处，fail-soft 回落规格默认）。
+func request_vibrate(ms: int) -> void:
+	if ms <= 0 or not bool(SaveSystem.get_setting("vibration", true)):
+		return
+	if not vibration_supported():
+		return
+	if vibrate_api.is_valid():
+		vibrate_api.call(ms)
+	else:
+		Input.vibrate_handheld(ms)
+
 # ---- J5 连击持有缝（命中音音高） ----
 
 ## 命中上报：远程结算点 / 近战命中缝调用（每有效命中一次）。连击窗口为表现层
@@ -238,9 +284,29 @@ func _on_player_damaged_combo_reset(_amount: int, _fatal: bool) -> void:
 func on_roll(player: Node2D) -> void:
 	_puff(player.global_position, Color(0.85, 0.85, 0.85), 6)
 
-func on_player_hurt(player: Node2D, _amount: int) -> void:
+func on_player_hurt(player: Node2D, _amount: int, from := Vector2.INF) -> void:
 	shake("shake_player_hurt")   # J2 v2：来源表注入（+0.3）
 	_flash_item(_find_sprite(player), Color(1.0, 0.3, 0.3), FLASH_DECAY_PER_SEC)
+	spawn_hit_arc(player, from)                 # J6/D-3b：受击方向指示（v1 红晕之上叠加）
+	request_vibrate(int(vibration_hurt_ms()))   # J6/D-1：受击短震 30ms（开关+平台双门控）
+
+## J6 受击方向指示（D-3b 补课；规格 §2 J6「8px 弧形闪光指向伤害来源，0.2s 淡出」）。
+## from 取伤害事件 ctx["from"]（来源位置，player.gd 受击缝传入）。方向裁定（规格未
+## 定义无方向语义，取「不误导」并记录于 checklist §6 D-3b）：from 缺失（INF）/非有限/
+## 与玩家重合（环境 DOT 等无来源）不生成弧。实现见 fx/hit_arc.gd（纯 _draw 矢量弧，
+## 无贴图/无缩放/无过滤）。
+func spawn_hit_arc(player: Node2D, from: Vector2) -> HitArc:
+	if player == null or not is_instance_valid(player) or not from.is_finite():
+		return null
+	var dir := from - player.global_position
+	if dir.length_squared() < 1.0:            # <1px 视为无方向（来源与玩家重合）
+		return null
+	var arc := HitArc.new()
+	arc.name = "HitArc"
+	arc.dir = dir.normalized()
+	arc.z_index = 45                          # 玩家之上、跳字(50)之下
+	player.add_child(arc)
+	return arc
 
 func on_enemy_hit(enemy: Node2D, ctx: Dictionary) -> void:
 	if bool(ctx.get("telegraph", false)):
@@ -281,10 +347,19 @@ func request_boss_phase() -> void:
 	else:
 		hitstop(BossBase.PHASE_HITSTOP_MS)   # v1 回退：仅冻结（与阶段常量同源）
 
+## 前台门（生产 = DeathRecorder 前台门模式；测试经 gameplay_scene_gate 注入）。
+func _gameplay_scene_active() -> bool:
+	if gameplay_scene_gate.is_valid():
+		return bool(gameplay_scene_gate.call())
+	return DeathRecorder.is_gameplay_scene_active()
+
 ## Boss 死亡定格链（J7）。前台为工具/测试场景时不接管（同 DeathRecorder
 ## 前台门模式）：脑测/套件里 Boss 死亡不会冻结 GdUnit 树。
 func request_boss_death() -> void:
-	if _director == null or not DeathRecorder.is_gameplay_scene_active():
+	# J6/D-1：Boss 死亡振动 80ms——自有开关（vibration 键），不随演出链/前台门门控
+	#（链被总开关跳过时振动仍属受击反馈的一部分；门控内部化，桌面/无头天然 no-op）。
+	request_vibrate(int(vibration_boss_death_ms()))
+	if _director == null or not _gameplay_scene_active():
 		return
 	# J2：Boss 死亡 trauma 1.0（J7 唯一例外值，读来源表）；须先注入再启链——
 	# 链启动即冻结树，后注会被 v1.5 冻结拍早退契约吞掉。
@@ -293,14 +368,120 @@ func request_boss_death() -> void:
 
 ## 玩家死亡慢速（J1）。前台门同上（测试致死路径不污染套件时序）。
 func request_player_death() -> void:
-	if _director == null or not DeathRecorder.is_gameplay_scene_active():
+	if _director == null or not _gameplay_scene_active():
 		return
 	_director.request_player_death(Time.get_ticks_msec())
+	_start_death_desat()   # J1/D-3a：0.4s 去饱和渐入（链接管失败时自检不启动）
 
 ## Boss 死亡链快进（J7 连按攻击键；输入接线在 J-C/J-D 收口）。
 func request_skip() -> void:
 	if _director != null:
 		_director.skip()
+
+## Boss 死亡演出链是否在跑（D-2 快进轮询 / D-3c 掉落挂起共用门控）：
+## 导演缺席或非 BOSS_DEATH 链 → false。
+func boss_death_chain_active() -> bool:
+	var d = _director
+	return d != null \
+		and (d as HitstopDirector).active_kind() == HitstopDirector.SeqKind.BOSS_DEATH
+
+## J7 快进输入接线（D-2 补课，fx.gd:300 注释自认缺口的兑现）：Boss 死亡演出链
+## 期间连按攻击键（既有 InputMap 动作 fire/touch_fire，不新增键位）跳过定格与慢速段
+## ——respect 老玩家节奏（规格 §2 J7「可被跳过」）。轮询式与 player_driver 同习语；
+## Fx 为 PROCESS_MODE_ALWAYS，冻结拍（树暂停）本函数照跑，首按即可跳过定格段。
+## 门控：仅 BOSS_DEATH 链活跃时消费——非演出期间零误触发（链 IDLE 时按键零副作用）。
+func _poll_boss_death_skip() -> void:
+	if not boss_death_chain_active():
+		return
+	if Input.is_action_just_pressed("fire") or Input.is_action_just_pressed("touch_fire"):
+		request_skip()
+
+
+# ---- J1 玩家死亡去饱和渐入（D-3a 补课；规格 §2 J1「0.3× 慢速 600ms + 去饱和渐入 0.4s」）----
+
+## 渐入启动（链在跑才启动——hitstop off/加载失败时 request 已 no-op，这里按
+## active_kind 自检，保证「演出整体跳过」口径一致）。全屏 hint_screen_texture
+## shader（fx/desat.gdshader，亮度加权去饱和）：无缩放/无重采样/无过滤切换，
+## 像素风红线不破。层挂 current_scene——死亡结算换场景时随宿主自动回收。
+func _start_death_desat() -> void:
+	var d = _director
+	if d == null or (d as HitstopDirector).active_kind() != HitstopDirector.SeqKind.PLAYER_DEATH:
+		return
+	if death_desat_active():
+		return                            # 已在渐入（重复致命不重启）
+	var layer := CanvasLayer.new()
+	layer.name = "DeathDesat"
+	layer.layer = 100                    # HUD(10) 之上：死亡时刻全屏演出
+	var rect := ColorRect.new()
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # 自醒目：像素风红线
+	_desat_mat = ShaderMaterial.new()
+	_desat_mat.shader = DESAT_SHADER
+	_desat_mat.set_shader_parameter("progress", 0.0)
+	rect.material = _desat_mat
+	layer.add_child(rect)
+	var cs := get_tree().current_scene if get_tree() != null else null
+	if cs != null:
+		cs.add_child(layer)
+	else:
+		add_child(layer)                  # 工具边界：挂 Fx（cancel_hitstop 兜底回收）
+	_death_desat = layer
+	_desat_start_ms = Time.get_ticks_msec()
+
+## 渐入推进（Fx._process 逐帧；真实毫秒口径与导演链一致——慢速段 time_scale 0.3
+## 不拉长渐入，0.4s 在 600ms 链尾结算前完成）。时长 = 导演参数
+## player_death_desat_ms（balance juice 唯一出处）。到 1.0 停更，层留宿主回收。
+func _step_death_desat() -> void:
+	if _desat_mat == null or _desat_start_ms < 0:
+		return
+	var d = _director
+	var ms := int(d.param("player_death_desat_ms")) if d != null else 400
+	var progress := clampf(
+		float(Time.get_ticks_msec() - _desat_start_ms) / float(maxi(ms, 1)), 0.0, 1.0)
+	_desat_mat.set_shader_parameter("progress", progress)
+	if progress >= 1.0:
+		_desat_mat = null
+		_desat_start_ms = -1
+
+func death_desat_active() -> bool:
+	return _death_desat != null and is_instance_valid(_death_desat)
+
+func death_desat_progress() -> float:
+	if _desat_mat == null:
+		return 1.0 if death_desat_active() else 0.0
+	var v: Variant = _desat_mat.get_shader_parameter("progress")
+	return float(v) if v != null else 0.0
+
+func _cancel_death_desat() -> void:
+	if _death_desat != null and is_instance_valid(_death_desat):
+		_death_desat.queue_free()
+	_death_desat = null
+	_desat_mat = null
+	_desat_start_ms = -1
+
+
+# ---- J7 战利品延迟喷出（D-3c 补课；规格 §2 J7「战利品延迟 300ms 喷出（视觉聚焦）」）----
+
+## 掉落挂起：Boss 死亡链在跑时，floor_scene 把掉落生成交给本队列，导演 loot 段
+## 开始（定格+慢速走完，loot_delay_ms=300 段仍保持 0.3× 慢速）或快进/链接管补发时
+## 统一 flush（快进不吞事件语义）。返回 true = 已挂起（调用方跳过同步掉落）；
+## false = 链未接管（hitstop off/加载失败/前台门外）→ 调用方照旧同步掉落，零改动。
+func defer_boss_loot(cb: Callable) -> bool:
+	if not boss_death_chain_active():
+		return false
+	_loot_pending.append(cb)
+	return true
+
+## loot 段开始/快进/接管补发的统一喷出口（director.on_loot_delay_started 挂接）。
+func _flush_boss_loot() -> void:
+	if _loot_pending.is_empty():
+		return
+	var pending := _loot_pending.duplicate()
+	_loot_pending.clear()
+	for cb in pending:
+		if cb.is_valid():                 # 宿主场景可能已释放（层间切换等）
+			cb.call()
 
 # ---- J4 伤害数字 v2 常量与视野裁剪缝（Juice v2 §2 J4；表现参数为规格直译，收口归 J-D） ----
 
@@ -421,6 +602,8 @@ static func element_shape(element: int) -> String:
 func _process(delta: float) -> void:
 	if _director != null:
 		_director.tick(Time.get_ticks_msec())   # J-A：逐帧注入真实毫秒（热路径空闲即 O(1) 早退）
+	_poll_boss_death_skip()                     # J7/D-2：演出链期间连按攻击键快进
+	_step_death_desat()                         # J1/D-3a：玩家死亡去饱和渐入（真实毫秒）
 	if _flash.is_empty():
 		return
 	var done: Array[int] = []

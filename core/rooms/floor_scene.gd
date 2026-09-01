@@ -1236,7 +1236,22 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 ## m1-t27 嘉宾死亡掉落（行内 drops 契约："weapon"=随机武器掉落台（ShopLogic.roll_weapon_id，
 ## loot 盐流确定性），"hearts2"=2 红心）。掉落台复用宝箱的 _build_loot_station（E 拾取换手）。
 ## m2-t24 追加："gems3"=3 蓝晶（RunState 局内蓝晶账）+ "soul"=头目魂（纯叙事贴花，无战斗奖励数值）。
+## J7/D-3c：Boss（boss_script 行）死亡演出链在跑时把掉落生成挂起到导演 loot 段开始
+## （快进/链接管补发同口径）——规格「战利品延迟 300ms 喷出（视觉聚焦）」，延迟段仍保持
+## 0.3× 慢速。链缺席（hitstop off/加载失败/前台门外）时 defer 拒绝、同步照旧：掉落内容、
+## 盐流与判定零改动，只挪表现时机。
 func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> void:
+	var drops := String(row.get("drops", ""))
+	if drops.is_empty():
+		return
+	if String(row.get("boss_script", "")) != "" \
+			and Fx.defer_boss_loot(func() -> void: _spawn_drops_now(room, row, world_pos)):
+		return
+	_spawn_drops_now(room, row, world_pos)
+
+
+## 掉落生成本体（J7/D-3c 前的既有路径，原样保留）。
+func _spawn_drops_now(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> void:
 	var drops := String(row.get("drops", ""))
 	if drops.is_empty():
 		return

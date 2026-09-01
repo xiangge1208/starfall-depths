@@ -49,15 +49,22 @@ var _topup_fs: FloorScene = null
 var _topup_room: FloorScene.FloorRoom = null
 var _topup_rng := RandomNumberGenerator.new()
 var _topup_active := false
+var _uncapped := false                 # m3-jd：--uncapped 诊断档（见 _probe_floor 内注释）
 
 
 func _ready() -> void:
-	# 兜底超时：ignore_time_scale 真实墙钟 240s，探针卡死以失败退出，不挂起编排者
-	get_tree().create_timer(240.0, true, false, true).timeout.connect(func() -> void:
+	# 兜底超时：ignore_time_scale 真实墙钟 900s（m3-jd 自 240 上调：远程虚拟显示会话下
+	# 逐层墙钟显著长于 M2 记录，240s 会掐死 floor 1——见 m3-juice-checklist.md §4 披露），
+	# 探针卡死以失败退出，不挂起编排者
+	get_tree().create_timer(900.0, true, false, true).timeout.connect(func() -> void:
 		print("PERF TIMEOUT")
 		get_tree().quit(1)
 	)
 	RunState.start_run("vanguard")
+	_uncapped = "--uncapped" in OS.get_cmdline_user_args()
+	if _uncapped:
+		print("PERF WARN: --uncapped 诊断档（Engine.max_fps 节流本会话异常）："
+			+ "整帧墙钟与 60fps 合成线不判定，仅逻辑帧/渲染 CPU/draw call/实体/弹幕/粒子观测有效")
 	# 关 vsync：节流/吞吐由 max_fps 控制，墙钟反映真实工作而非刷新率钳制
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var headless := DisplayServer.get_name() == "headless"
@@ -83,6 +90,8 @@ func _physics_process(_delta: float) -> void:
 # ================================================================ 压测主流程
 
 func _probe_floor(floor_idx: int) -> Dictionary:
+	print("PERF floor %d: build start (t=%.0fs)" % [floor_idx,
+		float(Time.get_ticks_msec()) / 1000.0])   # m3-jd：阶段标记（远程会话慢速诊断）
 	var fs := _make_floor(floor_idx)
 	var room: FloorScene.FloorRoom = fs.room_node(1)
 
@@ -96,7 +105,11 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 	_top_up_bullets(fs, room, _topup_rng)
 
 	# ---- 节流窗（生产节奏 60fps）：逻辑帧 / 渲染 CPU / draw call ----
-	Engine.set("max_fps", 60)
+	# m3-jd 适配：`-- --uncapped` 诊断档——Engine.max_fps 节流在当前会话异常（M2 同机
+	# TIME_FPS=60；2026-09-01 实测置 60 后 0.2~2.5s/帧、置 0 即全速，窗口/无头同现）。
+	# 该档两窗均不节流：逻辑帧/渲染 CPU/draw call/粒子观测仍有效（逐帧/逐 tick 计量，
+	# 与节流无关），整帧墙钟与 60fps 合成线无效（meta.paced=false 披露，judge 跳过）。
+	Engine.set("max_fps", 0 if _uncapped else 60)
 	_topup_fs = fs                        # 热身即保持满压（弹亡即补，物理 tick 内）
 	_topup_room = room
 	_topup_active = true
@@ -105,6 +118,8 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 	var logic_ms: Array[float] = []
 	var render_cpu_ms: Array[float] = []
 	var draw_calls: Array[float] = []
+	var particles_peak := 0                 # m3-jd：粒子池活跃峰（预算降级观测，additive）
+	var particles_degraded_ticks := 0       # m3-jd：降级标记被观测到的采样拍数
 	var enemies_peak := 0
 	var bullets_peak := 0
 	var objects_peak := 0
@@ -121,6 +136,9 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 		draw_calls.append(float(Performance.get_monitor(
 			Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)))
 		bullets_peak = maxi(bullets_peak, room.combat.pool.active_count())
+		particles_peak = maxi(particles_peak, Fx.particles.active_units())       # m3-jd
+		if Fx.particles.is_degraded():
+			particles_degraded_ticks += 1                                        # m3-jd
 		if i % 8 == 0:
 			enemies_peak = maxi(enemies_peak, _alive_enemies(room))
 			objects_peak = maxi(objects_peak, int(Performance.get_monitor(
@@ -129,6 +147,8 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 				Performance.OBJECT_ORPHAN_NODE_COUNT)))
 	var pf1 := Engine.get_physics_frames()
 	var paced_fps := float(Performance.get_monitor(Performance.TIME_FPS))
+	print("PERF floor %d: paced window done (t=%.0fs, fps=%.1f)" % [floor_idx,
+		float(Time.get_ticks_msec()) / 1000.0, paced_fps])   # m3-jd：阶段标记
 
 	# ---- 不节流窗：整帧墙钟（渲染+引擎开销，逻辑按 60Hz 摊入）----
 	Engine.set("max_fps", 0)
@@ -142,12 +162,14 @@ func _probe_floor(floor_idx: int) -> Dictionary:
 		walls.append((t - t_prev) / 1000.0)
 		t_prev = t
 	_topup_active = false
-	Engine.set("max_fps", 60)
+	Engine.set("max_fps", 0 if _uncapped else 60)
 
 	var res := _pack_result(floor_idx, fs, room, injected, enemies_peak, bullets_peak,
 		logic_ms, render_cpu_ms, draw_calls, walls,
 		float(pf1 - pf0) / float(SAMPLE_FRAMES), paced_fps,
 		objects_peak, orphans_peak)
+	res["particles_active_peak"] = particles_peak               # m3-jd：全特效粒子观测
+	res["particles_degraded_ticks"] = particles_degraded_ticks  # m3-jd
 	fs.free()                            # 玩家已被收养，随层释放
 	return res
 
@@ -300,7 +322,8 @@ func _pack_result(floor_idx: int, fs: FloorScene, room: FloorScene.FloorRoom,
 	var hazard_injects := 3 if floor_idx == 3 else 0
 	var logic_avg := stat_avg(logic_ms)
 	var wall_avg := stat_avg(walls)
-	return {
+	var res := {
+		"paced": not _uncapped,               # m3-jd：诊断档披露（judge 据此跳过合成线）
 		"floor_idx": floor_idx,
 		"template_id": room.template_id,
 		"template_density": combat_density(tpl),
@@ -326,6 +349,7 @@ func _pack_result(floor_idx: int, fs: FloorScene, room: FloorScene.FloorRoom,
 		"objects_peak": objects_peak,
 		"orphans_peak": orphans_peak,
 	}
+	return res
 
 
 static func stat_avg(xs: Array[float]) -> float:
@@ -366,10 +390,15 @@ static func judge(res: Dictionary) -> Array[Dictionary]:
 			res["enemies_peak"], res["props"], res["hazards"], res["hazard_injects"]]))
 	out.append(_item("同屏弹幕 ≤500", res["bullets_peak"], BUDGET["bullets"],
 		"峰 %d / 末 %d" % [res["bullets_peak"], res["bullets_active"]]))
-	out.append(_item("60fps 能力（合成 ≤16.67ms）", res["frame_est_ms"],
-		BUDGET["frame_est_ms"], "逻辑 %.3f + 整帧 %.3f = %.3f ms；节流窗 fps=%.1f steps/frame=%.2f" % [
-			res["logic_ms_avg"], res["frame_wall_ms"], res["frame_est_ms"],
-			res["paced_fps"], res["steps_per_frame"]]))
+	if not bool(res.get("paced", true)):
+		# m3-jd：--uncapped 诊断档——整帧墙钟失真（无节流语义），合成线不判定
+		out.append(_item("60fps 能力（合成 ≤16.67ms）", 0.0, BUDGET["frame_est_ms"],
+			"N/A（--uncapped 诊断档不判定；节流复测归 X-B）"))
+	else:
+		out.append(_item("60fps 能力（合成 ≤16.67ms）", res["frame_est_ms"],
+			BUDGET["frame_est_ms"], "逻辑 %.3f + 整帧 %.3f = %.3f ms；节流窗 fps=%.1f steps/frame=%.2f" % [
+				res["logic_ms_avg"], res["frame_wall_ms"], res["frame_est_ms"],
+				res["paced_fps"], res["steps_per_frame"]]))
 	return out
 
 
@@ -387,6 +416,8 @@ func _print_floor(res: Dictionary) -> void:
 		print("  %s %s (%s)" % ["PASS" if item["pass"] else "FAIL",
 			item["name"], item["note"]])
 	print("  OBS objects_peak=%d orphans_peak=%d" % [res["objects_peak"], res["orphans_peak"]])
+	print("  OBS particles_active_peak=%s degraded_ticks=%s (m3-jd 观测，无预算判定)" % [
+		res.get("particles_active_peak", "n/a"), res.get("particles_degraded_ticks", "n/a")])
 
 
 func _emit_summary(results: Array[Dictionary], headless: bool) -> void:
@@ -401,6 +432,7 @@ func _emit_summary(results: Array[Dictionary], headless: bool) -> void:
 		"date": Time.get_datetime_string_from_system(),
 		"display_server": DisplayServer.get_name(),
 		"headless": headless,
+		"paced": not _uncapped,   # m3-jd：--uncapped 诊断档标记
 		"vsync": "disabled",
 		"paced_window": {"max_fps": 60, "warmup": WARMUP_FRAMES, "sample": SAMPLE_FRAMES},
 		"capacity_window": {"max_fps": 0, "warmup": CAP_WARMUP_FRAMES, "sample": CAP_SAMPLE_FRAMES},
