@@ -4,8 +4,10 @@ extends Control
 ## 开始 → SceneRouter.goto("hero_select")（接续 T11 选角卡）；m2-t20 起图鉴 = 正式入口
 ## （SceneRouter.goto("codex")）；m2-t35 起天赋 = 正式入口（SceneRouter.goto("talents")，
 ## T15 天赋页）；成就 = M2 占位灰钮；
-## 设置 = 内联面板（屏震强度 0-1 滑条 + 伤害数字/色弱形状/自动瞄准/触屏控件开关），经 SaveSystem
-## get_setting/set_setting 读写即时落盘（键位与 SaveSystem.DEFAULT_SETTINGS 对齐）；
+## 设置 = m3-sa 起改开独立设置面板（ui/settings_panel.tscn，十键：旧 5 键 + 打击停顿/
+## 振动/三路音量）；旧内联面板 tscn 不动、运行时隐藏退役（handler 保留）；设置项经
+## SaveSystem get_setting/set_setting 读写即时落盘；启动时先 apply_audio_settings
+## 推三路音量端点再起 BGM；
 ## 退出 = quit。main_scene 归整合卡改（本卡不动 project.godot），
 ## 手动验证：godot --path . res://ui/main_menu.tscn
 
@@ -15,14 +17,24 @@ const SETTING_COLORBLIND := "colorblind_shapes"
 const SETTING_AUTO_AIM := "auto_aim"
 const SETTING_TOUCH_CONTROLS := "touch_controls"
 
+const SETTINGS_PANEL_SCENE := preload("res://ui/settings_panel.tscn")   # m3-sa：独立设置面板
+
 var save_system: Node = null   # 测试注入缝（临时路径档）；_ready 兜底探测 /root/SaveSystem
 var _router: Node = null       # /root/SceneRouter 探测缓存（守卫同 T11 选角卡手法）
+var _settings_panel: SettingsPanelUI = null   # m3-sa：新设置面板（初始隐藏，返回键只隐藏不销毁）
 
 func _ready() -> void:
 	if save_system == null:
 		save_system = get_node_or_null("/root/SaveSystem")
 	_router = get_node_or_null("/root/SceneRouter")
-	AudioMgr.play_music("menu")   # m2-t22：主菜单 BGM（同曲幂等，重进不重启）
+	# m3-sa：挂接新设置面板（旧内联面板不改 tscn、运行时强制隐藏退役）。
+	# 注入缝透传：save_system（可为测试替身）→ settings_host；audio 由面板自探测。
+	_settings_panel = SETTINGS_PANEL_SCENE.instantiate() as SettingsPanelUI
+	if _settings_panel != null:
+		_settings_panel.settings_host = save_system
+		add_child(_settings_panel)
+		_settings_panel.apply_audio_settings()   # 先按持久化音量推 Master/sfx/music 端点
+	AudioMgr.play_music("menu")   # m2-t22：主菜单 BGM（同曲幂等，重进不重启）——按已应用音量起
 	$Menu/StartBtn.pressed.connect(_on_start_pressed)
 	$Menu/SettingsBtn.pressed.connect(_on_settings_pressed)
 	$Menu/QuitBtn.pressed.connect(_on_quit_pressed)
@@ -75,7 +87,14 @@ func _on_talents_pressed() -> void:
 		_router.goto("talents")
 
 func _on_settings_pressed() -> void:
-	$SettingsPanel.visible = not $SettingsPanel.visible
+	# m3-sa：设置键改开独立面板（开合语义同旧内联面板）；旧面板退役强制隐藏
+	# （handler 保留不动，不再可达）
+	$SettingsPanel.visible = false
+	if _settings_panel != null:
+		if _settings_panel.visible:
+			_settings_panel.visible = false   # 再按一次收起（同「返 回」）
+		else:
+			_settings_panel.open()            # 打开（焦点落「返 回」，键盘可达）
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

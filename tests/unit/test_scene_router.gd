@@ -154,13 +154,18 @@ func test_menu_structure_and_button_wiring() -> void:
 	assert_bool((menu.get_node("Menu/TalentsBtn") as Button).pressed.is_connected(menu._on_talents_pressed)).is_true()
 	assert_bool((menu.get_node("Menu/SettingsBtn") as Button).pressed.is_connected(menu._on_settings_pressed)).is_true()
 	assert_bool((menu.get_node("Menu/QuitBtn") as Button).pressed.is_connected(menu._on_quit_pressed)).is_true()
-	# 设置内联面板默认收起，设置键开合
+	# 设置内联面板默认收起（m3-sa 起退役：设置键改开独立 SettingsPanelUI，旧面板强制
+	# 隐藏、不再开合——原「设置键切换内联面板」断言随挂钩裁定最小适配）
 	var panel: Control = menu.get_node("SettingsPanel")
+	var settings_ui: Control = menu.get_node("SettingsPanelUI")
 	assert_bool(panel.visible).is_false()
-	menu._on_settings_pressed()
-	assert_bool(panel.visible).is_true()
+	assert_bool(settings_ui.visible).is_false()
 	menu._on_settings_pressed()
 	assert_bool(panel.visible).is_false()
+	assert_bool(settings_ui.visible).is_true()
+	menu._on_settings_pressed()
+	assert_bool(panel.visible).is_false()
+	assert_bool(settings_ui.visible).is_false()
 
 
 func test_menu_settings_roundtrip_via_save_system() -> void:
