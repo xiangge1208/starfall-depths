@@ -542,7 +542,7 @@ func test_boss_phase_in_tree_freeze_then_slow_scale_with_real_fx() -> void:
 	e._take_hit_at(_ctx(60), FRAME)                     # 100→40 跨半血线 → P1
 	assert_int(e.phase()).is_equal(1)
 	assert_bool(get_tree().paused).is_true()            # v1 既有语义：120ms 冻结
-	assert_float(Fx.trauma).is_equal_approx(6.0, 0.001)
+	assert_float(Fx.trauma).is_equal_approx(0.5, 0.001)   # m3-jb：v2 来源表注入（shake_boss_phase）
 	await get_tree().create_timer(0.16, true, false, true).timeout
 	assert_bool(get_tree().paused).is_false()
 	assert_float(Engine.time_scale).is_equal_approx(0.3, 0.0001)   # J-A 新增慢速段

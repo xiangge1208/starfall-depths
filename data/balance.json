@@ -15,6 +15,17 @@
     "loot_delay_ms": 300,
     "player_death_slow_scale": 0.3,
     "player_death_slow_ms": 600,
-    "player_death_desat_ms": 400
+    "player_death_desat_ms": 400,
+    "trauma_decay_per_s": 1.6,
+    "trauma_offset_px": 8.0,
+    "trauma_rot_deg": 2.0,
+    "shake_player_hurt": 0.3,
+    "shake_explosion": 0.4,
+    "shake_boss_phase": 0.5,
+    "shake_boss_death": 1.0,
+    "shake_kill": 0.15,
+    "combo_window_ms": 1200,
+    "combo_pitch_step": 0.02,
+    "combo_pitch_max_steps": 6
   }
 }

@@ -145,7 +145,7 @@ func test_phase_transition_fx_only_for_in_tree_boss() -> void:
 	e._take_hit_at(_ctx(320), FRAME)
 	assert_int(e.phase()).is_equal(1)
 	assert_bool(get_tree().paused).is_true()
-	assert_float(Fx.trauma).is_equal_approx(BossBase.PHASE_SHAKE_PX, 0.001)
+	assert_float(Fx.trauma).is_equal_approx(Fx.trauma_source_amount("shake_boss_phase"), 0.001)   # m3-jb：v2 来源表注入
 	assert_object(get_tree().root.get_node_or_null("BossPhaseFlash")).is_not_null()
 	# hitstop 按真实毫秒解冻，闪光存活 0.25s 后自回收。
 	await get_tree().create_timer(0.16, true, false, true).timeout

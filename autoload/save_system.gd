@@ -20,7 +20,7 @@ extends Node
 const SAVE_VERSION := 2   # 迁移钩子：档结构变更时递增，并在 _migrate 补 from_version 分支
 
 const DEFAULT_SETTINGS := {
-	"screen_shake": 1.0,
+	"screen_shake": 0.5,   # J2（m3-jb）：晕动防线「默认档 50%」；老档显式值不受影响
 	"damage_numbers": true,
 	"colorblind_shapes": false,
 	"auto_aim": true,
