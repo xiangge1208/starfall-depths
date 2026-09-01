@@ -153,6 +153,10 @@ var _slot_labels: Array[Label] = []
 var _skill_ring: CdRing
 var _roll_dot: ColorRect
 var _trial_badges: TrialPanelUI.FactorBadges = null   # M3-R-B 试炼因子角标（层数旁）
+var _abandon_btn: Button = null              # M3-R-C 放弃试炼按钮（仅试炼局显示）
+## 回试炼面板路由接缝（M3-R-C 测试注入口，同 DeathSummary.exit_override 模式）：
+## 有效时替代真实路由（生产 = SceneRouter.goto("menu")，试炼面板在主菜单）。
+var abandon_route_override: Callable = Callable()
 var _style_normal: StyleBoxFlat
 var _style_active: StyleBoxFlat
 var _hearts_count := -1
@@ -243,6 +247,13 @@ func _build_top_right() -> void:
 	_seed_label.modulate = Color(1, 1, 1, 0.6)
 	_coin_label = _hud_label(col, "金币 0")
 	_coin_label.modulate = COIN_COLOR
+	_abandon_btn = Button.new()               # M3-R-C：规格 §4「放弃试炼」（暂停菜单缺席，
+	_abandon_btn.name = "AbandonTrial"        # 编排者裁定入口在 HUD；仅试炼局显示）
+	_abandon_btn.text = "放弃试炼"
+	_abandon_btn.add_theme_font_size_override("font_size", 8)
+	_abandon_btn.visible = run != null and bool(run.get("is_trial_run"))
+	_abandon_btn.pressed.connect(_on_abandon_pressed)
+	col.add_child(_abandon_btn)
 
 func _build_bottom_center() -> void:
 	_style_normal = StyleBoxFlat.new()
@@ -346,6 +357,8 @@ func _apply_top_right(snap: Dictionary) -> void:
 	_seed_label.text = "种子 %d" % int(snap["run_seed"])
 	_coin_label.text = "金币 %d" % int(snap["coins"])
 	_trial_badges.sync(run)   # M3-R-B：试炼局两枚因子图标（tooltip=名称：文案），非试炼零开销
+	if _abandon_btn != null:  # M3-R-C：放弃试炼仅试炼局显示（bool 同步无分配）
+		_abandon_btn.visible = run != null and bool(run.get("is_trial_run"))
 
 func _apply_bottom(snap: Dictionary) -> void:
 	var names: Array[String] = snap["weapon_names"]
@@ -358,6 +371,23 @@ func _apply_bottom(snap: Dictionary) -> void:
 	_skill_ring.cd_done = bool(snap["skill_ready"])
 	_skill_ring.queue_redraw()
 	_roll_dot.color = DOT_READY if bool(snap["roll_ready"]) else DOT_DIM
+
+## 放弃试炼（M3-R-C，规格 §4；暂停菜单全库缺席——编排者裁定入口在 HUD）：按当前进度
+## 结算（已过层 + 击杀池现值 ×1.5 floored，无死亡减半——GDD §14 仅死亡减半）→
+## settlement_record（records 追加 + trial_completed + trials_total 并档落盘）→
+## 回主菜单（试炼面板在主菜单覆盖层，与死亡/胜利结算回菜单口径一致；规格字面
+## 「回试炼面板」的偏离随 G-1 走查统一勘误）。
+func _on_abandon_pressed() -> void:
+	var awarded := RunState.settle_victory_gems()
+	if awarded > 0:
+		SaveSystem.add_gems(awarded)
+	TrialPanelUI.settlement_record(awarded, false)
+	if abandon_route_override.is_valid():
+		abandon_route_override.call()
+		return
+	var router := get_node_or_null("/root/SceneRouter")
+	if router != null and router.has_method("goto"):
+		router.call("goto", "menu")
 
 ## 技能 CD 环：暗环垫底 + 亮弧按 ratio 顺时针收缩（就绪绿 / 冷却橙）。
 class CdRing extends Control:

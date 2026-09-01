@@ -79,6 +79,12 @@ var trial_factors: Array[String] = []
 ## M3-R-B 试炼转让（面板「开始」→ 选角 → 试炼局）：arm_trial 挂日期，select_hero 消费
 ## 即清并转 start_trial_run——hero_select 零改动即接入试炼流程。
 var pending_trial_date := ""
+## M3-R-C 开局业务日快照（start_trial_run 定格；records date 口径——局可能跨业务日，
+## 结算取开局日期不漂移）。start_run 复位。
+var trial_date := ""
+## M3-R-C trial_completed 每局至多一次的防重标记（record_trial_completed 消费；
+## 死亡/放弃/面板重复确认竞态只发一次）。start_run 复位。
+var trial_completed_fired := false
 
 func start_run(hero: String) -> void:
 	# GDD §9.1「玩家点击时刻」：开局种子允许非确定源——**全代码库仅此处**可用
@@ -105,6 +111,8 @@ func start_run(hero: String) -> void:
 	is_trial_run = false
 	trial_factors.clear()                # M3-R-B 因子角标数据不残留；迟到 pending 一并清除
 	pending_trial_date = ""
+	trial_date = ""                      # M3-R-C 结算日期快照不残留
+	trial_completed_fired = false        # M3-R-C 防重标记不残留
 
 ## 每日试炼开局（M3-R-A）：先 start_run（复位全字段 + 消费其复位逻辑）→ 覆写种子为
 ## 当日 trial_seed 并重新激活 RngSvc → is_trial_run + mods 单点注入（当日两因子 mods
@@ -119,6 +127,7 @@ func start_trial_run(hero: String, date_str: String) -> void:
 	is_trial_run = true
 	mods = trial.pick_mods(date_str)
 	trial_factors = trial.pick_factors(date_str)   # M3-R-B 展示用因子 id（升序快照）
+	trial_date = date_str                # M3-R-C records date 口径（开局业务日定格）
 
 ## 选角钩子（T11 守卫契约：HeroSelect 探测 /root/RunState 后调用）= start_run 的别名：
 ## 选角即开局——玩家点击选卡时刻就是 GDD §9.1 的种子激活时刻，故此处直接全程启动；
@@ -149,12 +158,34 @@ func next_floor() -> int:
 	gems += FLOOR_GEMS[clampi(floor_idx - 2, 0, FLOOR_GEMS.size() - 1)]
 	return floor_idx
 
-## 死亡结算一次性消费：本局待结算蓝晶按 50% 向下取整入账，随后立即归零。
-## 把防重放在 RunState 而非单个 DeathSummary 节点，重复面板/重复确认均只能领取一次。
+## 死亡结算一次性消费：本局待结算蓝晶按 50% 向下取整入账（试炼局保底 75% = 50% × 1.5，
+## 规格 §4），随后立即归零。把防重放在 RunState 而非单个 DeathSummary 节点，重复面板/
+## 重复确认均只能领取一次。
 func settle_death_gems() -> int:
-	var awarded := int(floor(gems / 2.0))
+	var rate := 0.75 if is_trial_run else 0.5   # M3-R-C：非试炼路径 0.5 语义不变
+	var awarded := int(floor(gems * rate))
 	gems = 0
 	return awarded
+
+## 胜利/放弃结算一次性消费（M3-R-C）：本局待结算蓝晶全额入账；试炼局 ×1.5 向下取整
+## （规格 §4，GDD §14.1）。放弃与胜利同口径——GDD §14 仅死亡减半，放弃按当前进度
+## （已过层 + 击杀池现值）不减半（编排者口径）。防重同 settle_death_gems：消费即归零。
+func settle_victory_gems() -> int:
+	var awarded := gems
+	if is_trial_run:
+		awarded = int(floor(gems * 1.5))
+	gems = 0
+	return awarded
+
+## 试炼局结束单点（M3-R-C，规格 §4）：EventBus.trial_completed 每局至多一次（防重守卫
+## 在此——死亡/放弃/面板重复确认竞态只发一次）→ 试炼成就通知（试炼者/试炼大师
+## state_threshold 轮询）。非试炼局不计数不通知。
+func record_trial_completed() -> void:
+	if not is_trial_run or trial_completed_fired:
+		return
+	trial_completed_fired = true
+	EventBus.trial_completed.emit()
+	AchievementSystem.notify_trial_completed()
 
 ## 分盐流：等价 RngSvc.stream(floor_idx, salt)（一致性由 test_run_state 钉死）。
 func stream(salt: String) -> RandomNumberGenerator:

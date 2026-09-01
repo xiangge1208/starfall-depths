@@ -222,6 +222,52 @@ static func trial_title_text(base: String) -> String:
 	return ("每日试炼 · %s" % base) if RunState.is_trial_run else base
 
 
+# ---------------------------------------------------------------- 结算接线（M3-R-C）
+
+## 结算写入注入缝（测试）：临时路径 TrialRecords；null → 默认 user:// 档（生产路径）。
+static var settlement_records: TrialRecords = null
+
+## 试炼结算数学（规格 §4 单点展示口径）：死亡保底 75%（= 50% × 1.5，floor）；
+## 胜利/放弃 ×1.5 floor。权威结算在 RunState.settle_death_gems / settle_victory_gems
+## （同式），等价性由 test_trial_settle 钉死——本助手只服务结算面板明细行。
+static func trial_award(base_gems: int, death: bool) -> int:
+	return int(floor(base_gems * 0.75)) if death else int(floor(base_gems * 1.5))
+
+
+## 结算蓝晶行文案（规格 §6 倍率明细行）：试炼局「基础 X × 1.5 = Y」/死亡「保底 75%」
+## 口径（X = 倍率前值，Y = 实际入档额）；普通局返回空串——站点保留既有文案不改动。
+static func settlement_gems_line(base_gems: int, death: bool) -> String:
+	if not RunState.is_trial_run:
+		return ""
+	if death:
+		return "蓝晶结算：+%d（试炼保底 75%%：基础 %d 的 3/4）" % [trial_award(base_gems, true), base_gems]
+	return "蓝晶结算：+%d（基础 %d × 1.5 = %d）" % [
+		trial_award(base_gems, false), base_gems, trial_award(base_gems, false)]
+
+
+## 结算写入点（R-B 移交②收敛单点，规格 §5「每次试炼局结束追加 1 条」）：死亡确认 /
+## 胜利确认 / 放弃入口三路各 1 行调用。试炼局：records 追加 1 条（date = 开局业务日
+## 快照 RunState.trial_date——局可跨业务日不漂移；gems_earned = 实际入档额；
+## clear_time_s = run_time_frames/60，60Hz 帧计换算禁墙钟；factors = RunState.
+## trial_factors）+ record_trial_completed（EventBus.trial_completed 每局至多一次 +
+## 试炼成就轮询）。普通局无操作（records 只收试炼局）。返回是否入档。
+static func settlement_record(gems_earned: int, victory: bool) -> bool:
+	if not RunState.is_trial_run:
+		return false
+	RunState.record_trial_completed()
+	var recs: TrialRecords = settlement_records if settlement_records != null \
+		else TrialRecords.new()
+	return recs.append_record({
+		"date": RunState.trial_date,
+		"hero_id": RunState.hero_id,
+		"deepest_floor": RunState.floor_idx,
+		"clear_time_s": int(RunState.run_time_frames / 60.0),
+		"gems_earned": gems_earned,
+		"victory": victory,
+		"factors": RunState.trial_factors,
+	})
+
+
 # ---------------------------------------------------------------- HUD 因子角标（规格 §6）
 
 ## HUD 层数旁因子小图标行（挂 HUD 右上层数列——现版 HUD 层数显示在右上，角标随层数

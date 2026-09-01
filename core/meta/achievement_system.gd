@@ -30,7 +30,9 @@ extends Node
 ##   · prop_destroyed：可破坏物机制未建（props 为静态 solid，无破坏路径）→ 拆迁办
 ##     blocked，待机制卡落地后 1 行接入；
 ##   · shop_purchase：24 条成就无消费方（T20 buy_x 计数源，T35 已发射），无需就绪检测。
-## - fail-safe 占位：试炼 2 条（trials_total）M3 激活，判定器不接线；
+## - 试炼 2 条 M3-R-C 激活（trier/trial_master，state_threshold counter:trials_total）：
+##   计数源 = RunState.record_trial_completed → notify_trial_completed（trials_total 为
+##   CodexSystem 计数器表外键，unlock_tasks 快照持久化，见 _persist_trials_total）；
 ##   codex_seen（藏品家/大收藏家权威源）写键方未落地期间回落 unlocked_weapons 子集口径
 ##   （保守低估不误解锁，见 _state_value）。
 ## - 计数源与 T20 图鉴共享（计划卡明文）：单局会话计数订阅与 CodexSystem 同一批
@@ -129,10 +131,11 @@ const DEFS: Array[Dictionary] = [
 		"type": "composite", "trigger": "boss_slain",
 		"pred": {"field": "floor_idx", "op": "==", "value": 3},
 		"conds": [{"src": "session:deaths", "op": "==", "value": 0}]},
-	# -- 试炼 2 条（M3 随试炼系统激活；判定器不接线） --
-	{"id": "trier", "name": "试炼者", "gems": 100, "active": false,
+	# -- 试炼 2 条（M3-R-C 随试炼结算接线激活；state_threshold counter:trials_total，
+	#    计数源 = RunState.record_trial_completed → notify_trial_completed） --
+	{"id": "trier", "name": "试炼者", "gems": 100, "active": true,
 		"type": "state_threshold", "source": "counter:trials_total", "goal": 1},
-	{"id": "trial_master", "name": "试炼大师", "gems": 200, "active": false,
+	{"id": "trial_master", "name": "试炼大师", "gems": 200, "active": true,
 		"type": "state_threshold", "source": "counter:trials_total", "goal": 10},
 ]
 
@@ -426,12 +429,21 @@ func _state_value(source: String) -> int:
 				return h
 		return 0
 	if source.begins_with("counter:"):
+		var key := source.substr(8)
 		var codex := get_node_or_null("/root/CodexSystem")
-		if codex != null and codex.get("counters") is Dictionary:
-			return int((codex.get("counters") as Dictionary).get(source.substr(8), 0))
+		if codex != null and codex.get("counters") is Dictionary \
+				and (codex.get("counters") as Dictionary).has(key):
+			return int((codex.get("counters") as Dictionary).get(key, 0))
+		# M3-R-C：表外键（trials_total——CodexSystem.COUNTER_KEYS 无此键，计数源在
+		# notify_trial_completed）回落存档 unlock_tasks 快照（持久化权威）；legacy
+		# data["counters"] 直构测试缝保留其后（crafts_total 等六类键仍以 CodexSystem
+		# 活计数器为权威，行为不变）。
+		var tasks: Variant = save_system.data.get("unlock_tasks", {})
+		if typeof(tasks) == TYPE_DICTIONARY and (tasks as Dictionary).has(key):
+			return int((tasks as Dictionary).get(key, 0))
 		var counters: Variant = save_system.data.get("counters", {})
 		if typeof(counters) == TYPE_DICTIONARY:
-			return int((counters as Dictionary).get(source.substr(8), 0))
+			return int((counters as Dictionary).get(key, 0))
 		return 0
 	return 0   # 未知源 fail-closed（占位 0，永不误解锁）
 
@@ -479,6 +491,30 @@ func notify_talent_purchased(_talent_id: String = "") -> bool:
 
 func notify_challenge_cleared() -> bool:
 	return _recheck_and_report()
+
+
+## 发射点：RunState.record_trial_completed（M3-R-C 试炼局结束单点；每局至多一次的
+## 防重守卫在 RunState 侧）。trials_total +1 → state_threshold 轮询（试炼者 goal 1 /
+## 试炼大师 goal 10）。trials_total 为 CodexSystem 计数器表外键（计数源在本卡），
+## 持久化走 unlock_tasks 快照（见 _persist_trials_total）。返回本次是否产生新解锁。
+func notify_trial_completed() -> bool:
+	_persist_trials_total(_state_value("counter:trials_total") + 1)
+	return _recheck_and_report()
+
+
+## trials_total 快照落盘（对齐 m2-t31 unlock_tasks 手法）：与 CodexSystem 计数器快照
+## 并档整体覆写（unlock_tasks 是整体快照语义——不并档会抹掉六类计数器最近快照）。
+## 结算点顺序契约：Death/VictorySummary 确认内 codex.persist_counters() 先行、
+## 本函数殿后 → 最终快照恒含两源（HUD 放弃路无显式 persist，由本函数并档覆盖）。
+func _persist_trials_total(total: int) -> void:
+	if save_system == null or not save_system.has_method("record_unlock_tasks"):
+		return
+	var snap: Dictionary = {}
+	var codex := get_node_or_null("/root/CodexSystem")
+	if codex != null and codex.has_method("snapshot_counters"):
+		snap = codex.snapshot_counters()
+	snap["trials_total"] = total
+	save_system.record_unlock_tasks(snap)
 
 
 ## —— 计数源（会话吸收 + 触发判定） ——

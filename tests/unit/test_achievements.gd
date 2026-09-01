@@ -1,6 +1,6 @@
 class_name TestAchievements
 extends GdUnitTestSuite
-## M2-T32 成就系统契约测试（22 条 M2 激活 + 2 条试炼 M3 不激活）。
+## M2-T32 成就系统契约测试（22 条 M2 激活 + 2 条试炼 M3-R-C 激活）。
 ## 判定规格逐条来自数据表附录 K（docs/superpowers/specs/数据表附录-K-成就接线.md）：
 ## 判定类型白名单 event_once / event_count / state_threshold / composite 各覆盖；
 ## 蓝晶入账（附录 G.1 原值，M2 合计 4050）/ toast 队列 / 跨局持久化（temp path 模式）。
@@ -69,18 +69,18 @@ func _spy_toast() -> SpyToast:
 
 # ---- 判定器表（附录 K 全表装载） ----
 
-func test_defs_load_24_rows_with_22_active() -> void:
+func test_defs_load_24_rows_all_active_in_m3() -> void:
 	var cs: Variant = _as("defs")
 	var defs: Array = cs.defs()
 	assert_int(defs.size()).is_equal(24)
 	var active := defs.filter(func(d: Dictionary) -> bool: return bool(d.get("active", false)))
-	assert_int(active.size()).is_equal(22)
+	assert_int(active.size()).is_equal(24)   # M3-R-C：试炼 2 条随试炼结算接线激活
 	var inactive_ids: Array = defs.filter(func(d: Dictionary) -> bool: return not bool(d.get("active", false))) \
 		.map(func(d: Dictionary) -> String: return String(d["id"]))
-	assert_array(inactive_ids).contains_exactly(["trier", "trial_master"])   # 试炼 2 条 M3
+	assert_array(inactive_ids).is_empty()
 
 
-func test_defs_ids_unique_schema_and_gem_total_4050() -> void:
+func test_defs_ids_unique_schema_and_gem_total_4350() -> void:
 	var cs: Variant = _as("schema")
 	var ids: Array = cs.defs().map(func(d: Dictionary) -> String: return String(d["id"]))
 	var uniq := {}
@@ -95,7 +95,7 @@ func test_defs_ids_unique_schema_and_gem_total_4050() -> void:
 		assert_array(whitelist).contains(String(d.get("type", "")))   # 判定类型白名单
 		if bool(d.get("active", false)):
 			total += int(d.get("gems", 0))
-	assert_int(total).is_equal(4050)   # 附录 K 勘误口径：M2 22 条合计 4050
+	assert_int(total).is_equal(4350)   # M2 22 条 4050 + M3 试炼 2 条 300（附录 G.1）
 
 
 # ---- event_once：信号到达（参数谓词满足）即解锁 ----
@@ -466,15 +466,19 @@ func test_reset_session_clears_session_counters_not_unlocks() -> void:
 	assert_int(cs.save_system.gems()).is_equal(100)
 
 
-func test_trial_achievements_not_unlockable_in_m2() -> void:
-	# 试炼 2 条 M3：判定器不接线，强行判定也拒绝入档
+func test_trial_achievements_active_and_counted_in_m3() -> void:
+	# M3-R-C 激活：state_threshold counter:trials_total（计数权威 = unlock_tasks 快照，
+	# 持久化口径见 test_trial_settle）；首局 → 试炼者 +100，累计 10 局 → 试炼大师 +200
 	var cs: Variant = _as("trial")
-	assert_bool(cs.is_active("trier")).is_false()
-	assert_bool(cs.is_active("trial_master")).is_false()
-	assert_bool(cs._unlock("trier")).is_false()
-	assert_bool(cs._unlock("trial_master")).is_false()
-	assert_array(cs.save_system.unlocked_achievements()).is_empty()
-	assert_int(cs.save_system.gems()).is_equal(0)
+	assert_bool(cs.is_active("trier")).is_true()
+	assert_bool(cs.is_active("trial_master")).is_true()
+	assert_bool(cs.notify_trial_completed()).is_true()   # 1 局完成 → 试炼者
+	assert_array(cs.save_system.unlocked_achievements()).contains("trier")
+	assert_int(cs.save_system.gems()).is_equal(100)
+	for _i in 9:
+		cs.notify_trial_completed()                      # 累计 10 局 → 试炼大师
+	assert_array(cs.save_system.unlocked_achievements()).contains("trial_master")
+	assert_int(cs.save_system.gems()).is_equal(100 + 200)
 
 
 func test_notify_recheck_does_not_unlock_unknown_or_locked_defs() -> void:
