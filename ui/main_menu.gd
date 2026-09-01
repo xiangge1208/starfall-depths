@@ -19,11 +19,13 @@ const SETTING_TOUCH_CONTROLS := "touch_controls"
 
 const SETTINGS_PANEL_SCENE := preload("res://ui/settings_panel.tscn")   # m3-sa：独立设置面板
 const TRIAL_PANEL_SCENE := preload("res://ui/trial_panel.tscn")         # m3-rb：试炼面板
+const REBIND_PANEL_SCENE := preload("res://ui/rebind_panel.tscn")       # m3-sb：按键重映射面板
 
 var save_system: Node = null   # 测试注入缝（临时路径档）；_ready 兜底探测 /root/SaveSystem
 var _router: Node = null       # /root/SceneRouter 探测缓存（守卫同 T11 选角卡手法）
 var _settings_panel: SettingsPanelUI = null   # m3-sa：新设置面板（初始隐藏，返回键只隐藏不销毁）
 var _trial_panel: TrialPanelUI = null         # m3-rb：试炼面板（初始隐藏，返回键只隐藏）
+var _rebind_panel: RebindPanelUI = null       # m3-sb：按键重映射面板（初始隐藏，返回键只隐藏）
 
 func _ready() -> void:
 	if save_system == null:
@@ -63,6 +65,20 @@ func _ready() -> void:
 	_trial_panel = TRIAL_PANEL_SCENE.instantiate() as TrialPanelUI
 	if _trial_panel != null:
 		add_child(_trial_panel)
+	# m3-sb：按键设置入口（S-B 1 挂钩）。按钮运行时构建同「试 炼」钮手法
+	# （main_menu.tscn 禁改），插「设 置」之下；面板 save_host 透传注入缝
+	# （同 settings_host，可为测试替身）。
+	var rebind_btn := Button.new()
+	rebind_btn.text = "按 键"
+	rebind_btn.custom_minimum_size = Vector2(140, 18)
+	rebind_btn.add_theme_font_size_override("font_size", 11)
+	$Menu.add_child(rebind_btn)
+	$Menu.move_child(rebind_btn, 6)   # 开始/试炼/图鉴/天赋/成就/设置 之后、退出之前
+	rebind_btn.pressed.connect(_on_rebind_pressed)
+	_rebind_panel = REBIND_PANEL_SCENE.instantiate() as RebindPanelUI
+	if _rebind_panel != null:
+		_rebind_panel.save_host = save_system
+		add_child(_rebind_panel)
 	var slider: HSlider = $SettingsPanel/Rows/ScreenShakeSlider
 	slider.value_changed.connect(_on_shake_changed)
 	$SettingsPanel/Rows/DamageNumbersToggle.toggled.connect(_on_damage_numbers_toggled)
@@ -115,6 +131,15 @@ func _on_settings_pressed() -> void:
 			_settings_panel.visible = false   # 再按一次收起（同「返 回」）
 		else:
 			_settings_panel.open()            # 打开（焦点落「返 回」，键盘可达）
+
+func _on_rebind_pressed() -> void:
+	# m3-sb：按键设置面板开合（同设置面板手法；再按收起，「返 回」同样收起）
+	if _rebind_panel == null:
+		return
+	if _rebind_panel.visible:
+		_rebind_panel.visible = false
+	else:
+		_rebind_panel.open()
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

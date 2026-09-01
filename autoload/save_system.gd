@@ -50,6 +50,7 @@ func _ready() -> void:
 	if DisplayServer.get_name() == "headless" and save_path == "user://save.json":
 		save_path = "user://save_headless.json"
 	load_save()
+	_apply_saved_rebinds()   # m3-sb：改键随档恢复（启动时 InputMap 运行时覆写）
 
 ## 默认档：每次调用全新构造（调用方可自由改写，不与常量共享引用）。
 func _default_data() -> Dictionary:
@@ -73,6 +74,13 @@ func _default_data() -> Dictionary:
 		# 计数 + floor_clears 层号分桶）。CodexSystem 在层进入/解锁/终局结算点写入，
 		# _ready 读档恢复——J.2 跨局累计的持久化后端。
 		"unlock_tasks": {},
+		# m3-sb（v2 additive，不 bump 版本）：按键重映射表——动作名 → InputEventKey
+		# 序列化字典（physical_keycode/ctrl/alt/shift）。旧 v2 档缺键由 _merge_saved
+		# 回落空表（空表 = 全默认键位），与 unlock_tasks 同一 additive 键集演进口径。
+		# ★ 独立顶层键、不入 settings 子键：DEFAULT_SETTINGS.duplicate() 是浅拷贝，
+		# 若把嵌套字典挂进 settings 常量，其默认值会跨实例共享（浅拷贝只复制顶层），
+		# 顶层键经本函数全新构造无此患。
+		"key_rebinds": {},
 	}
 
 ## 读取存档到 data 并返回。缺文件→默认档（静默）；损坏/畸形→push_error+默认档；
@@ -137,6 +145,11 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 	# m2-t31（v2）：解锁任务进度合并（标量计数 int 还原；floor_clears 的 JSON 字符串
 	# 键归一化回 int——CodexSystem 按整型层号查桶；非数字/非字典该键回落默认）
 	out["unlock_tasks"] = _normalize_unlock_tasks(saved.get("unlock_tasks"))
+	# m3-sb（v2 additive）：按键重映射表合并（动作名 String 键 + 合法序列化键事件值；
+	# 脏项静默剔除——fail-SOFT，空表 = 全默认）。动作白名单不在本层（单一事实源在
+	# RebindPanelUI.REBINDABLE_ACTIONS，覆写应用时跳过清单外动作——同 unlock_tasks
+	# 不做 codex 白名单的先例）。
+	out["key_rebinds"] = _normalize_key_rebinds(saved.get("key_rebinds"))
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
 		var ach_in: Dictionary = saved["achievements"]
 		var ach: Dictionary = {}
@@ -190,6 +203,39 @@ func _normalize_unlock_tasks(saved: Variant) -> Dictionary:
 
 func _is_number(v: Variant) -> bool:
 	return typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT
+
+## key_rebinds 重映射表归一化（m3-sb v2 additive）：动作名 String 键 + 值须为合法
+## 序列化键事件字典（physical_keycode 数字且 >0——0 = KEY_NONE 视为脏；ctrl/alt/
+## shift 若存在必须为 bool，缺省回落 false；JSON 数字 float→int 截断归一）。脏项
+## 整键剔除（fail-SOFT 回落空表）。动作名不做白名单（见 _merge_saved 注）。
+func _normalize_key_rebinds(saved: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if typeof(saved) != TYPE_DICTIONARY:
+		return out
+	for k: Variant in saved:
+		if typeof(k) != TYPE_STRING:
+			continue
+		var ev := _normalize_rebind_event(saved[k])
+		if not ev.is_empty():
+			out[String(k)] = ev
+	return out
+
+
+## 单条序列化键事件归一：非法（非字典 / 键码缺失或非法 / 修饰键类型错）→ 空字典。
+func _normalize_rebind_event(v: Variant) -> Dictionary:
+	if typeof(v) != TYPE_DICTIONARY:
+		return {}
+	var d: Dictionary = v
+	var code: Variant = d.get("physical_keycode")
+	if not _is_number(code) or int(code) <= 0:
+		return {}
+	var out := {"physical_keycode": int(code), "ctrl": false, "alt": false, "shift": false}
+	for m: String in ["ctrl", "alt", "shift"]:
+		if d.has(m):
+			if typeof(d[m]) != TYPE_BOOL:
+				return {}
+			out[m] = d[m]
+	return out
 
 ## 写盘：临时文件写完 flush 后 rename 覆盖目标（原子性足够——进程任意时刻死掉
 ## 最多留下 .tmp 残骸，save.json 本体要么是旧档要么是新档，不会写半截）。
@@ -320,6 +366,38 @@ func unlock_tasks() -> Dictionary:
 func record_unlock_tasks(progress: Dictionary) -> void:
 	data["unlock_tasks"] = _normalize_unlock_tasks(progress)
 	save_now()
+
+## ---- 按键重映射（m3-sb）：顶层键 key_rebinds 的读写 + 启动挂点 ----
+
+## 重映射表读取（m3-sb）：防御性——恒返回 Dictionary（空表 = 全默认键位）。
+func key_rebinds() -> Dictionary:
+	var saved: Variant = data.get("key_rebinds")
+	if typeof(saved) == TYPE_DICTIONARY:
+		return saved
+	return {}
+
+## 改键入库（m3-sb）：单动作覆写 + 落盘（只在面板改键/恢复默认点写入，非热路径）。
+## 事件经归一化——脏事件拒收不入库（fail-SOFT，不崩不改原表）。
+func record_key_rebind(action: String, event_data: Dictionary) -> void:
+	var ev := _normalize_rebind_event(event_data)
+	if ev.is_empty():
+		push_error("SaveSystem: record_key_rebind %s — 脏事件拒收" % action)
+		return
+	var table := key_rebinds()
+	table[action] = ev
+	data["key_rebinds"] = table
+	save_now()
+
+## 清空重映射表（m3-sb「恢复默认」）：空表 = 全默认，落盘。
+func clear_key_rebinds() -> void:
+	data["key_rebinds"] = {}
+	save_now()
+
+## 启动挂点（m3-sb）：把档内覆写应用到运行时 InputMap（空表 = 零操作）。序列化/
+## 匹配/覆写逻辑单一事实源在 RebindPanelUI 静态域（清单白名单同源），本层只读档
+## 转发；仅运行时覆写，不写回 project.godot。
+func _apply_saved_rebinds() -> void:
+	RebindPanelUI.apply_rebinds(key_rebinds())
 
 ## ---- 成就（m2-t32）：持久化集合（achievements id→true）+ 幂等解锁 ----
 ## 字段 m1-t17 起即在默认档骨架（"achievements": {}），本卡补访问器并随 SAVE_VERSION=2
