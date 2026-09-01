@@ -53,6 +53,14 @@ func restore_vision_factor() -> void:
 	_apply_vision_factor()
 
 
+## m3-fix1 试炼 vision_scale 消费端（规格 §3 边界：与 A2 暗视野叠加时取更暗者，
+## 不双乘）：_vision_factor 取 min(当前, f) 后落地。灾厄复合走 compound_vision_factor
+## （连乘）语义不变；本方法只被整层试炼视野使用。
+func apply_vision_scale_min(factor: float) -> void:
+	_vision_factor = minf(_vision_factor, factor)
+	_apply_vision_factor()
+
+
 ## 复合系数落地：CanvasModulate 基色逐通道乘系数（alpha 不动），光圈纹理缩放与
 ## 剪影判定半径同比缩径（三口径一致，同 m2-t26 评审 Minor-1 结论）。
 func _apply_vision_factor() -> void:

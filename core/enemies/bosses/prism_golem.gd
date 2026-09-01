@@ -379,7 +379,7 @@ func _blink_ring_fire() -> void:
 	fired_this_tick = true
 	if combat == null:
 		return
-	var speed := float(row.get("bullet_speed", 100))
+	var speed := enemy_bullet_speed(100)
 	for i in range(BLINK_RING_COUNT):
 		var a := TAU * float(i) / float(BLINK_RING_COUNT)
 		combat.spawn_projectile({

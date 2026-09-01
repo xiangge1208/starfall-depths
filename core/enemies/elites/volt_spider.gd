@@ -42,7 +42,7 @@ func _zap_at_player() -> void:
 	if dir == Vector2.ZERO:
 		dir = Vector2.RIGHT
 	combat.spawn_projectile({
-		"pos": brain_pos, "vel": dir * float(row.get("bullet_speed", 110.0)),
+		"pos": brain_pos, "vel": dir * enemy_bullet_speed(110.0),
 		"damage": int(row.get("bullet_dmg", 5)), "faction": Projectile.Faction.ENEMY,
 		"element": Elements.Id.SHOCK, "pierce": 0, "bounce": 0,
 		"life_seconds": float(row.get("bullet_life_seconds", 2.0)),

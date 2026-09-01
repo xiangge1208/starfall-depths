@@ -169,6 +169,9 @@ var _fire_rain_vis: Array[CanvasItem] = []
 var challenge_room_id := -1
 ## m2-t26 灾厄「视野-35%」暗视野组件（A1/A3 无生态组件层的单实例路径；房清/场景销毁时卸载）。
 var calamity_fx: BiomeFx = null
+## m3-fix1 试炼 vision_scale 暗视野组件（整层因子，房清不还原；A2 生态层取更暗者
+## 复合进 biome_fx，不另设实例）。规格 §3「管中窥豹」复用 M2-T4 组件。
+var trial_vision_fx: BiomeFx = null
 ## m2-t36（裁定㉑）：视野灾厄复合路径标记——A2 层复合进既有 biome_fx（单 CanvasModulate），
 ## 房清 restore_vision_factor 复位；false 时走 calamity_fx 单实例路径。
 var calamity_compounded := false
@@ -364,6 +367,7 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	flow.room_event.connect(_on_flow_room_event)
 	# m2-t24 隐藏门携带判定：本层共鸣计数（EnemyBase 共鸣结算 → EventBus 广播）
 	EventBus.resonance_triggered.connect(_on_floor_resonance_triggered)
+	_apply_trial_vision()                      # m3-fix1 试炼 vision_scale（整层暗视野）
 	Telemetry.log_row(["floor_build", Engine.get_physics_frames(), str(_rooms.size())])
 
 
@@ -584,6 +588,41 @@ func _build_ice(room: FloorRoom, local: Vector2, radius: float) -> void:
 ## m2-t26（T4 移交）：模板 biome 字段驱动——crystal 房（A2）挂暗视野（整层一次，
 ## mount_biome_a2 幂等，无演示冰面补丁）；冰面 zone 逐行由 hazards kind=ice 铺设。
 ## magma 无全局生态组件（岩浆基调由瓦片套件按 floor_idx 呈现， hazards 自带实例）。
+## m3-fix1 试炼 vision_scale 消费端（规格 §3：暗角遮罩 = 基准视野 ×vision_scale，
+## 复用 M2-T4 暗视野组件；与 A2 暗视野叠加取更暗者，不双乘）。口径与灾厄 vision
+## 单实例路径一致（独立层灰 = f 的 CanvasModulate + 光圈/剪影半径同比 ×f）；
+## 因子为整层属性，房清不还原（_restore_calamity 不触碰 trial_vision_fx）。
+## vision_scale ≥1（无因子）零改动。
+func _apply_trial_vision() -> void:
+	var f := TrialMods.vision_scale()
+	if f >= 1.0:
+		return
+	if player == null or not is_instance_valid(player):
+		push_error("FloorScene._apply_trial_vision: no player")
+		return
+	if biome_fx != null and is_instance_valid(biome_fx):
+		biome_fx.apply_vision_scale_min(f)     # 与生态暗视野取更暗者（不双乘）
+		return
+	trial_vision_fx = BiomeFx.new()
+	trial_vision_fx.name = "TrialVisionFx"
+	trial_vision_fx.setup(player)
+	add_child(trial_vision_fx)
+	_apply_trial_vision_grey(f)                # 立即落地（生产路径：setup 前已入树）
+	if not trial_vision_fx.is_node_ready():    # 测试/未入树路径：_ready 会重置外观，就绪后重落地
+		trial_vision_fx.ready.connect(_apply_trial_vision_grey.bind(f))
+	Telemetry.log_row(["trial_vision", Engine.get_physics_frames(), f])
+
+
+## 试炼暗视野灰度落地（口径同灾厄 vision 单实例路径）：CanvasModulate 灰 = f、
+## 光圈纹理缩放/剪影判定半径同比 ×f（BiomeFx._apply_vision_factor 同式）。
+func _apply_trial_vision_grey(f: float) -> void:
+	if trial_vision_fx == null or not is_instance_valid(trial_vision_fx):
+		return
+	trial_vision_fx.canvas_modulate.color = Color(f, f, f)
+	trial_vision_fx.light.texture_scale = 		BiomeFx.LIGHT_RADIUS_PX * f * 2.0 / float(BiomeFx.LIGHT_TEXTURE_PX)
+	trial_vision_fx.light_radius_px = BiomeFx.LIGHT_RADIUS_PX * f
+
+
 func _apply_template_biome(tpl: Dictionary) -> void:
 	if String(tpl.get("biome", "")) == "crystal":
 		mount_biome_a2(false)
@@ -1001,6 +1040,13 @@ func _push_back() -> void:
 		player.position = room.outer.get_center()
 
 
+## m3-fix1：落位测试缝（bot/无头宿主用，等价生产 _push_back 语义）——把玩家放到
+## flow 当前房中心。bot 无走廊徒步（头注 5），flow 经 enter_room 前进而玩家物理位
+## 滞留旧房时，锁房战斗会「玩家不在场」；本缝提供与生产失败路径相同的落位能力。
+func push_player_back() -> void:
+	_push_back()
+
+
 func _start_room_combat(room: FloorRoom) -> void:
 	room.room_flow.setup(room.waves_cfg)
 	room.room_flow.on_entered(room.entry_frame)
@@ -1018,8 +1064,21 @@ func _spawn_wave(room: FloorRoom) -> void:
 	if points.is_empty():
 		push_error("FloorScene: room %d has no spawn points" % room.room_id)
 		return
+	# m3-fix1 试炼 elite_bonus_pct 消费端：精英房波次内的精英标记体（GUEST_SPECS
+	# kind=="elite"）追加 TrialMods.elite_extra_copies() 个同 id 体（100% → 双精英）；
+	# 同 wave_id 由 RoomFlow 按出现次数计数，清房判定天然含追加体。无因子零改动。
+	var wave_ids := room.room_flow.current_wave_ids()
+	var extra_elite := TrialMods.elite_extra_copies() if room.type == "elite" else 0
+	if extra_elite > 0:
+		wave_ids = wave_ids.duplicate()
+		var base_ids: Array = wave_ids.duplicate()   # 快照遍历：追加体不参与再检（防链式翻倍）
+		for base_id: String in base_ids:
+			if String((GUEST_SPECS.get(base_id, {}) as Dictionary).get("kind", "")) == "elite":
+				for c in extra_elite:
+					wave_ids.append(base_id)
+		Telemetry.log_row(["trial_elite_bonus", Engine.get_physics_frames(), wave_ids.size()])
 	var i := 0
-	for enemy_id: String in room.room_flow.current_wave_ids():
+	for enemy_id: String in wave_ids:
 		_spawn_enemy(room, enemy_id, points[i % points.size()])
 		i += 1
 
@@ -1261,7 +1320,8 @@ func _spawn_drops_now(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> v
 		# 掉落沿战斗行（m1 口径不变）——按 wave_id 区分（池内含同名行也不串档）。
 		var source := "elite" \
 			if String(row.get("wave_id", "")) == "elite_charger" else "combat"
-		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, exclude, source)
+		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, exclude, source,
+			TrialMods.drop_melee_only())   # m3-fix1 试炼 drop_melee_only（掉落池过滤近战）
 		if wid.is_empty():
 			wid = _roll_weapon("common")   # 池枯哨兵兜底（common 桶空再全名录，沿宝箱习语）
 		if not wid.is_empty():
@@ -1392,6 +1452,14 @@ func _scatter(i: int) -> Vector2:
 
 
 func _spawn_pickup(room: FloorRoom, kind: String, world_pos: Vector2) -> void:
+	# m3-fix1 试炼 no_hearts：红心掉落位替换为等值金币（规格 §3 边界；递归落币，
+	# coin 分支无再入）。Heal-disable 灾厄照旧截断。
+	if kind == "heart" and TrialMods.no_hearts():
+		for i in TrialMods.HEART_DROP_COIN_EQUIV:
+			_spawn_pickup(room, "coin", world_pos + _scatter(i))
+		Telemetry.log_row(["trial_heart_to_coins", Engine.get_physics_frames(),
+			TrialMods.HEART_DROP_COIN_EQUIV])
+		return
 	# m2-t26 灾厄「治疗无效」：本房不落红心（房内治疗源截断；meta 标志供其他消费方读）。
 	if kind == "heart" and player != null and is_instance_valid(player) \
 			and player.has_meta(CALAMITY_HEAL_META):
@@ -1605,7 +1673,8 @@ func _build_chest(room: FloorRoom, local_pos: Vector2) -> void:
 		# m2-audit：宝箱改走 §8.2 宝箱房权重行（30/35/22/10/3；locked 空桶沿
 		# RARITY_FALLBACK 向下回退）——替换漂移键名 LOOT_RARITY_WEIGHTS（绿档
 		# 曾永不被直抽）。rarity 从事实行后取（真实落桶）。
-		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, [], "chest")
+		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, [], "chest",
+			TrialMods.drop_melee_only())   # m3-fix1 试炼 drop_melee_only（宝箱同口径）
 		if wid.is_empty():
 			wid = _roll_weapon("common")   # 池枯哨兵兜底（common 桶空再全名录）
 		if wid.is_empty():
@@ -1666,16 +1735,26 @@ func _fixture_body() -> CollisionShape2D:
 
 ## 桶内均匀取武器（字典序确定性）；桶空回落全池（GameDB.weapons 已滤 locked）。
 ## m2-audit：稀有度掷签收敛到 ShopLogic（§8.2 分源行）——本类只留桶内均匀取。
+## m3-fix1 试炼 drop_melee_only：哨兵兜底池同样只出近战（口径与掉落主路径一致）。
 func _roll_weapon(rarity: String) -> String:
+	var melee_only := TrialMods.drop_melee_only()
 	var ids: Array[String] = []
 	for wid: String in GameDB.weapons:
-		if String((GameDB.weapons[wid] as Dictionary).get("rarity", "common")) == rarity:
+		if _weapon_pool_eligible(wid, rarity, melee_only):
 			ids.append(wid)
 	if ids.is_empty():
 		for wid: String in GameDB.weapons:
-			ids.append(wid)
+			if not melee_only or String((GameDB.weapons[wid] as Dictionary).get("category", "")) == "melee":
+				ids.append(wid)
 	ids.sort()
 	return ids[_loot_rng.randi_range(0, ids.size() - 1)]
+
+## 哨兵池资格（m3-fix1）：稀有度命中 +（近战洗礼时 category=="melee"）。
+func _weapon_pool_eligible(wid: String, rarity: String, melee_only: bool) -> bool:
+	var row: Dictionary = GameDB.weapons[wid] as Dictionary
+	if melee_only and String(row.get("category", "")) != "melee":
+		return false
+	return String(row.get("rarity", "common")) == rarity
 
 
 # ================================================================ 波次/嘉宾数据（静态可测）

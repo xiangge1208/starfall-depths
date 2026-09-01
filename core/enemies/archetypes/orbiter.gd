@@ -44,7 +44,7 @@ func _tick_fire(frame: int) -> void:
 			if _fire_left <= 0:
 				fire_bullet(_player_pos(), frame)
 				_fire_phase = "cool"
-				_fire_left = maxi(int(row.get("cd_ticks", 150)) - int(row.get("windup_ticks", 30)), 0)
+				_fire_left = _attack_cooldown_ticks(150)
 		"cool":
 			_fire_left -= 1
 			if _fire_left <= 0:
@@ -60,7 +60,7 @@ func die() -> void:
 			for i in burst:
 				var dir := Vector2.from_angle(TAU * float(i) / float(burst))
 				combat.spawn_projectile({
-					"pos": brain_pos, "vel": dir * float(row.get("bullet_speed", 110.0)),
+					"pos": brain_pos, "vel": dir * enemy_bullet_speed(110.0),
 					"damage": int(row.get("bullet_dmg", 5)), "faction": Projectile.Faction.ENEMY,
 					"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
 					"life_seconds": float(row.get("bullet_life_seconds", 2.0)),

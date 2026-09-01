@@ -85,7 +85,7 @@ func _fire_laser() -> void:
 	add_child(laser)
 	laser.setup({
 		"pos": brain_pos, "dir": d,
-		"speed_px": float(row.get("bullet_speed", EnemyLaser.DEFAULT_SPEED_PX)),
+		"speed_px": enemy_bullet_speed(EnemyLaser.DEFAULT_SPEED_PX),
 		"damage": int(row.get("bullet_dmg", 5)),
 		"life_ticks": TimeConst.ticks(float(row.get("bullet_life_seconds", 2.0))),
 		"pillars": pillars, "bounds": combat_bounds, "player": player_ref,
@@ -97,7 +97,7 @@ func _fire_laser() -> void:
 
 func _begin_cool() -> void:
 	_phase = "cool"
-	_phase_left = maxi(int(row.get("cd_ticks", 150)) - int(row.get("windup_ticks", 30)), 0)
+	_phase_left = _attack_cooldown_ticks(150)
 
 func _fire_fan(fan: int) -> void:
 	fired_this_tick = true
@@ -110,7 +110,7 @@ func _fire_fan(fan: int) -> void:
 	for i in fan:
 		var ang := -spread / 2.0 + spread * float(i) / float(maxi(fan - 1, 1))
 		combat.spawn_projectile({
-			"pos": brain_pos, "vel": base_dir.rotated(ang) * float(row.get("bullet_speed", 95.0)),
+			"pos": brain_pos, "vel": base_dir.rotated(ang) * enemy_bullet_speed(95.0),
 			"damage": int(row.get("bullet_dmg", 4)), "faction": Projectile.Faction.ENEMY,
 			"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
 			"life_seconds": float(row.get("bullet_life_seconds", 2.0)),

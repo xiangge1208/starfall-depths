@@ -62,13 +62,16 @@ func _answer_fire() -> void:
 	if combat == null:
 		return
 	var dmg := int(row.get("bullet_dmg", 4))
-	var speed := float(row.get("bullet_speed", 110.0))
+	var speed := enemy_bullet_speed(110.0)
 	var rig = player_ref.get("weapon_rig") if player_ref != null else null
 	if rig != null:
 		var w: Dictionary = rig.current()
 		if not w.is_empty():
 			dmg = int(w.get("damage", dmg))
-			speed = minf(float(w.get("bullet_speed", speed)), COPY_SPEED_CAP)
+			# m3-fix1：bullet_speed_pct 统一口径（复制速已夹 ≤150，因子只对 ≤150 段等比、
+			# 封顶不倒扣；脑测回退路径经 enemy_bullet_speed 单次缩放，两路径不叠加）
+			speed = TrialMods.enemy_bullet_speed_px(
+				minf(float(w.get("bullet_speed", speed)), COPY_SPEED_CAP))
 	var dir := (_player_pos() - brain_pos).normalized()
 	if dir == Vector2.ZERO:
 		dir = Vector2.RIGHT

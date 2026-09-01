@@ -34,7 +34,7 @@ func _engage(_frame: int) -> void:
 			if _phase_left <= 0:
 				_spit_back()
 				_phase = "cool"
-				_phase_left = maxi(int(row.get("cd_ticks", 90)) - int(row.get("windup_ticks", 30)), 0)
+				_phase_left = _attack_cooldown_ticks(90)
 		"cool":
 			_walk_to_player()
 			_phase_left -= 1
@@ -72,7 +72,7 @@ func _spit_back() -> void:
 	for i in count:
 		var ang := -spread / 2.0 + spread * float(i) / float(maxi(count - 1, 1))
 		combat.spawn_projectile({
-			"pos": brain_pos, "vel": base_dir.rotated(ang) * float(row.get("bullet_speed", 110.0)),
+			"pos": brain_pos, "vel": base_dir.rotated(ang) * enemy_bullet_speed(110.0),
 			"damage": per, "faction": Projectile.Faction.ENEMY,
 			"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
 			"life_seconds": float(row.get("bullet_life_seconds", 2.5)),

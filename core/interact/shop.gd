@@ -176,11 +176,17 @@ func _buy_weapon(idx: int) -> void:
 
 
 ## 买道具：红心 25 → heal(2)；蓝瓶 20 → add_energy(20)；余额不足闪红。
-## 道具价为规格固定常量（附录 H 明示），不参与议价（披露，测试钉死）。
+## 道具价为规格固定常量（附录 H 明示），不参与议价（披露，测试钉死）；
+## m3-fix1 试炼 shop_discount_pct 统一经售价漏斗生效；no_hearts 时红心拒售
+## （规格 §3 边界：商店不出现治疗类商品）。
 func _buy_item(kind: String) -> void:
 	if not ITEM_PRICES.has(kind) or bool(_item_sold.get(kind, false)):
 		return
-	var cost := int(ITEM_PRICES[kind])
+	if kind == "heart" and TrialMods.no_hearts():
+		return
+	# 道具价：试炼 shop_discount_pct 生效，但 m2-t35 披露的「道具固定价不参与议价」
+	# 契约保持——只过 TrialMods 折让、不过玩家议价（无因子恒等）。
+	var cost := TrialMods.shop_price(int(ITEM_PRICES[kind]))
 	if wallet == null or not wallet.spend_coins(cost):
 		_flash(_item_price_labels[kind] as Label)
 		return
@@ -420,10 +426,11 @@ func _fill() -> void:
 	for kind: String in ITEM_PRICES.keys():
 		var card := _item_cards[kind] as PanelContainer
 		var price_l := _item_price_labels[kind] as Label
-		card.visible = kinds.has(kind)
+		# m3-fix1 试炼 no_hearts：商店不出现治疗类商品（红心卡整卡隐藏）
+		card.visible = kinds.has(kind) and not (kind == "heart" and TrialMods.no_hearts())
 		card.modulate = Color.WHITE
 		price_l.text = "已售" if bool(_item_sold.get(kind, false)) \
-			else "%d 金币" % int(ITEM_PRICES[kind])
+			else "%d 金币" % TrialMods.shop_price(int(ITEM_PRICES[kind]))
 	_fill_drink()
 	_fill_recycle()
 	_refresh_coins()
@@ -495,13 +502,16 @@ func _floor_idx() -> int:
 	return int(stock.get("floor_idx", 1))
 
 
-## m2-t35 议价：玩家 buff_haggle_pct 折扣（ShopLogic.haggle_price 负值 clamp 收口）。
-## 玩家缺席（测试/独立预览）= 无折扣。道具固定价不经此（规格明示）。
+## 售价漏斗：① m3-fix1 试炼 shop_discount_pct（TrialMods.shop_price，整层统一折扣，
+## 玩家缺席同样生效）→ ② m2-t35 玩家 buff_haggle_pct 议价（ShopLogic.haggle_price
+## 负值 clamp 收口；玩家缺席 = 无议价）。武器/道具/饮料统一经此；无试炼因子时
+## TrialMods 恒等返回，行为与既有逐字节一致。
 func _haggled_price(price_value: int) -> int:
+	var base := TrialMods.shop_price(price_value)
 	var p := _player as Player
 	if p == null:
-		return price_value
-	return ShopLogic.haggle_price(price_value, float(p.get_meta("buff_haggle_pct", 0.0)))
+		return base
+	return ShopLogic.haggle_price(base, float(p.get_meta("buff_haggle_pct", 0.0)))
 
 
 func _flash(label: Label) -> void:

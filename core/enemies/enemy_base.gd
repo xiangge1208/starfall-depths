@@ -31,6 +31,32 @@ var body_scale := 1.0              # 体型：行 body_scale（小 Boss 1.25）�
 var has_berserk := false           # 狂暴门控：仅带词缀者 berserk_active() 才可能为真
 var _seen_frame := -1
 var _slow_action_credit := 0.0     # 冰缓以 0.7 行动频率推进，不永久改写敌人行数据
+var _nan_reset_done := false       # fix1：非有限坐标重置只告警/留痕一次（防警告洪水重现）
+
+## fix1（m3-b1 报告 69/100 停滞的下游症状防御）：brain_pos 是权威位置，一旦非有限
+## （NaN/inf）即经表现层 `velocity = (brain_pos - global_position) * FPS` 传播到
+## global_position，再经拍末 `brain_pos = global_position` 回写永久污染——敌人成为
+## 「冻结的不可伤幽灵」，房间永不可清，且引擎 normalize 每帧告警（B-1 实测 20min
+## 259 万行可拖垮进程）。本守卫在每物理帧表现层入口跑（房间 brain_tick 之后同拍）：
+## 检测 → 重置到 combat_bounds 内域中心（生产路径必注入；脑测空 bounds 回原点）
+## → push_warning + Telemetry 各留痕一次。返回 false 时本拍跳过表现层，NaN 不跨拍存活。
+func ensure_finite_position() -> bool:
+	if brain_pos.is_finite() and global_position.is_finite():
+		return true
+	var target := Vector2.ZERO
+	if combat_bounds.size != Vector2.ZERO:
+		target = combat_bounds.get_center()
+	if not brain_pos.is_finite():
+		brain_pos = target
+	if not global_position.is_finite():
+		global_position = target
+	velocity = Vector2.ZERO
+	if not _nan_reset_done:
+		_nan_reset_done = true
+		push_warning("EnemyBase: non-finite position detected and reset to %s (id=%s, bounds=%s)"
+				% [target, String(row.get("id", "?")), combat_bounds])
+		Telemetry.log_row(["enemy_nan_reset", Engine.get_physics_frames(), String(row.get("id", ""))])
+	return false
 
 func _test_init(r: Dictionary) -> void:
 	# 原型选择已由 EnemyFactory 在构造前完成；本方法只初始化当前正确子类实例。
@@ -110,7 +136,7 @@ func fire_bullet(target: Vector2, frame: int) -> void:
 		return
 	var dir := (target - brain_pos).normalized()
 	combat.spawn_projectile({
-		"pos": brain_pos, "vel": dir * float(row.get("bullet_speed", 110)),
+		"pos": brain_pos, "vel": dir * enemy_bullet_speed(110),
 		"damage": int(row.get("bullet_dmg", 3)), "faction": Projectile.Faction.ENEMY,
 		"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
 		"life_seconds": float(row.get("bullet_life_seconds", 2.5)),
@@ -235,11 +261,31 @@ func berserk_active() -> bool:
 
 ## 蓄力拍数取值：行 windup_ticks（缺省用 default_ticks），狂暴激活时 ×0.7（截断取整）。
 ## charger/shooter 的 windup 计算统一经此钩子（设计 §12.3「50% 血后攻速 ×1.3」）。
+## m3-fix1 试炼 enemy_attack_speed_pct 消费端（半边）：蓄力拍 ÷攻速倍率（÷1.0 恒等）。
 func _windup_ticks(default_ticks: int) -> int:
 	var w := int(row.get("windup_ticks", default_ticks))
 	if berserk_active():
 		w = int(float(w) * BERSERK_WINDUP_SCALE)
-	return w
+	return _scaled_attack_ticks(w)
+
+## m3-fix1 试炼 enemy_attack_speed_pct 消费端：攻击节奏拍数 ÷攻速倍率
+## （攻速 ×1.2 ⇔ 拍数 ÷1.2；≤0 原样（0 拍语义保持）；÷1.0 为精确恒等零漂移）。
+func _scaled_attack_ticks(ticks: int) -> int:
+	if ticks <= 0:
+		return ticks
+	return maxi(int(round(float(ticks) / TrialMods.enemy_attack_speed_scale())), 1)
+
+## 攻击冷却拍数统一取值（m3-fix1 收敛 6 处 `maxi(cd - windup, 0)` 字面重复）：
+## 行 cd_ticks − 行 windup_ticks（同键缺省语义不变），再经 _scaled_attack_ticks
+## 应用试炼攻速倍率。狂暴只作用于 windup（既有语义不变）。
+func _attack_cooldown_ticks(default_cd: int, default_windup := 30) -> int:
+	var base := maxi(int(row.get("cd_ticks", default_cd)) - int(row.get("windup_ticks", default_windup)), 0)
+	return _scaled_attack_ticks(base)
+
+## m3-fix1 试炼 bullet_speed_pct 消费端：敌方出弹速度统一经此读行键
+## （慢弹等比提速、快弹封顶 150px/s；无因子恒等，见 TrialMods.enemy_bullet_speed_px）。
+func enemy_bullet_speed(default_px: float) -> float:
+	return TrialMods.enemy_bullet_speed_px(float(row.get("bullet_speed", default_px)))
 
 func combat_faction() -> int:
 	return Projectile.Faction.ENEMY
@@ -252,11 +298,17 @@ func _player_pos() -> Vector2:
 func _physics_process(_delta: float) -> void:
 	if state == State.DEAD:
 		return
+	# fix1：非有限坐标守卫（见 ensure_finite_position）——重置拍跳过表现层，
+	# 权威位与实际位同拍归正，NaN/inf 不跨拍存活。
+	if not ensure_finite_position():
+		return
 	if player_ref != null and state == State.IDLE \
 			and global_position.distance_to(player_ref.brain_pos) <= VISION_PX:
 		on_player_seen(Engine.get_physics_frames())
 	# brain_pos 为权威位置：以差值速度过 move_and_slide 处理碰撞，之后把 brain 对齐实际位置
-	velocity = (brain_pos - global_position) * TimeConst.FPS
+	# m3-fix1 试炼 enemy_speed_pct 消费端：体速整体 ×TrialMods.enemy_speed_scale()
+	# （×1.0 为 IEEE 精确恒等，非试炼局逐字节零漂移）。
+	velocity = (brain_pos - global_position) * (TimeConst.FPS * TrialMods.enemy_speed_scale())
 	move_and_slide()
 	brain_pos = global_position
 	# m0-t12 fix1：接触伤害（收口 t10 缺口）。玩家侧 0.8s 受击无敌帧天然节流同体连击，不另设冷却；

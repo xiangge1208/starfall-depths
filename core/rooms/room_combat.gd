@@ -91,8 +91,39 @@ func load_config(cfg: Dictionary) -> void:
 
 # ---- 刷怪点过滤（纯逻辑，单测覆盖：距门 ≥64px、距玩家 ≥120px） ----
 
+const SPAWN_RELAX_STEP_PX := 8.0   # fix1：全过滤时双阈值同步渐进放宽的步长（px/档）
+
 static func filter_spawn_points(points: Array[Vector2], doors: Array[Vector2], player_pos: Vector2,
 		min_door_px := MIN_SPAWN_DOOR_PX, min_player_px := MIN_SPAWN_PLAYER_PX) -> Array[Vector2]:
+	var out := _filter_by_thresholds(points, doors, player_pos, min_door_px, min_player_px)
+	if not out.is_empty() or points.is_empty():
+		return out
+	# fix1 重设计（m3-b1 报告 69/100 停滞根因之一）：全点位被过滤时旧实现「响亮式兜底」
+	# 原样返回全量点位（丢弃 ≥64px 距门 / ≥120px 距玩家不变量），怪可刷在玩家贴脸位
+	# 甚至门体上——玩家贴住刷点蹲守即触发。新策略：
+	# ① 双阈值同步按 SPAWN_RELAX_STEP_PX/档渐进放宽，取「首个非空档」= 最小必要放宽量
+	#    （保不变量本意：能不放宽就不放宽）；
+	# ② 命中非空档后按「离玩家距离降序」输出（同距按输入序稳定排序）——波次刷怪依次
+	#    取点，首怪必落离玩家最远的合法点（保进度、保公平）；
+	# ③ 放宽至 0 阈值必有非空档（点位非空时）→ 任何点位组合都有怪可刷，房间必可清。
+	var steps := int(ceil(maxf(min_door_px, min_player_px) / SPAWN_RELAX_STEP_PX))
+	for i in range(1, steps + 1):
+		var relax := float(i) * SPAWN_RELAX_STEP_PX
+		var door_px := maxf(min_door_px - relax, 0.0)
+		var player_px := maxf(min_player_px - relax, 0.0)
+		var relaxed := _filter_by_thresholds(points, doors, player_pos, door_px, player_px)
+		if relaxed.is_empty():
+			continue
+		_sort_by_player_distance_desc(relaxed, player_pos)
+		push_warning("RoomCombat.filter_spawn_points: all points filtered at full thresholds "
+				+ "— progressive relax %.0fpx (door>=%.0f, player>=%.0f), %d point(s), farthest-first"
+				% [relax, door_px, player_px, relaxed.size()])
+		return relaxed
+	return points   # 防御性不可达：末档阈值为 0 时必有非空档
+
+## 阈值过滤本体（fix1 前语义：距玩家 ≥min_player_px 且距每扇门 ≥min_door_px）。
+static func _filter_by_thresholds(points: Array[Vector2], doors: Array[Vector2],
+		player_pos: Vector2, min_door_px: float, min_player_px: float) -> Array[Vector2]:
 	var out: Array[Vector2] = []
 	for pt in points:
 		var ok := pt.distance_to(player_pos) >= min_player_px
@@ -103,12 +134,21 @@ static func filter_spawn_points(points: Array[Vector2], doors: Array[Vector2], p
 					break
 		if ok:
 			out.append(pt)
-	if out.is_empty() and not points.is_empty():
-		# 兜底（响亮式，fix1）：玩家贴住唯一刷怪点等情形可剔除全部点位——无怪可刷 = 流程卡死，
-		# 故显式放弃 ≥64px/≥120px 不变量、原样返回全量点位（调用方只读），并告警留痕。
-		push_warning("RoomCombat.filter_spawn_points: all points filtered — falling back to raw points, spawn invariants dropped")
-		return points
 	return out
+
+## 按离玩家距离降序原地排序（同距保持传入次序，稳定可复现）。
+static func _sort_by_player_distance_desc(points: Array[Vector2], player_pos: Vector2) -> void:
+	var order: Array = []
+	for i in points.size():
+		order.append({"pt": points[i], "i": i})
+	order.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var da := (a["pt"] as Vector2).distance_squared_to(player_pos)
+		var db := (b["pt"] as Vector2).distance_squared_to(player_pos)
+		if absf(da - db) > 0.0001:
+			return da > db
+		return int(a["i"]) < int(b["i"]))
+	for i in order.size():
+		points[i] = order[i]["pt"]
 
 func valid_spawn_points() -> Array[Vector2]:
 	var player_pos := player.global_position if player != null else Vector2(500, 135)
