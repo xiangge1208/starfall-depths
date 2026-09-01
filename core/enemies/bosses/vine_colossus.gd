@@ -236,7 +236,7 @@ func _ring_fire_wave(wave: int) -> void:
 	for i in range(RING_PER_WAVE):
 		var a := deg_to_rad(360.0) * (float(i * 2 + wave) / float(total))
 		combat.spawn_projectile({
-			"pos": brain_pos, "vel": Vector2.from_angle(a) * float(row.get("bullet_speed", 110)),
+			"pos": brain_pos, "vel": Vector2.from_angle(a) * enemy_bullet_speed(110),
 			"damage": int(row.get("bullet_dmg", 3)), "faction": Projectile.Faction.ENEMY,
 			"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
 			"life_seconds": float(row.get("bullet_life_seconds", 2.5)),

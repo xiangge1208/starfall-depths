@@ -35,7 +35,7 @@ func _engage(_frame: int) -> void:
 			if _phase_left <= 0:
 				_fire_volley()
 				_phase = "cool"
-				_phase_left = maxi(int(row.get("cd_ticks", 108)) - int(row.get("windup_ticks", 30)), 0)
+				_phase_left = _attack_cooldown_ticks(108)
 		"cool":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -63,7 +63,7 @@ func _fire_volley() -> void:
 			dirs.append(base_dir.rotated(ang))
 	for dir in dirs:
 		var cfg := {
-			"pos": brain_pos, "vel": dir * float(row.get("bullet_speed", 95.0)),
+			"pos": brain_pos, "vel": dir * enemy_bullet_speed(95.0),
 			"damage": int(row.get("bullet_dmg", 3)), "faction": Projectile.Faction.ENEMY,
 			"element": element, "pierce": 0, "bounce": 0,
 			"life_seconds": float(row.get("bullet_life_seconds", 2.5)),

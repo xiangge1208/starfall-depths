@@ -331,7 +331,7 @@ func _spiral_fire(volley: int) -> void:
 	fired_this_tick = true
 	if combat == null:
 		return
-	var speed := float(row.get("bullet_speed", 100))
+	var speed := enemy_bullet_speed(100)
 	var base := _spiral_base \
 		+ deg_to_rad(SPIRAL_ROTATE_DEG_PER_TICK * float(SPIRAL_PERIOD_TICKS * volley))
 	for arm in SPIRAL_ARMS:

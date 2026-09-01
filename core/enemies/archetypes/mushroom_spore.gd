@@ -44,7 +44,7 @@ func _fire_spore_fan(_frame: int) -> void:
 	for deg in [-SPORE_SPREAD_DEG, 0.0, SPORE_SPREAD_DEG]:
 		combat.spawn_projectile({
 			"pos": brain_pos,
-			"vel": base_dir.rotated(deg_to_rad(deg)) * float(row.get("bullet_speed", 95)),
+			"vel": base_dir.rotated(deg_to_rad(deg)) * enemy_bullet_speed(95),
 			"damage": int(row.get("bullet_dmg", 3)),
 			"faction": Projectile.Faction.ENEMY,
 			"element": Elements.Id.NONE,

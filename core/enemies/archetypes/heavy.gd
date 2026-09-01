@@ -29,7 +29,7 @@ func _engage(frame: int) -> void:
 			if _phase_left <= 0:
 				_fire_root_ring(frame)
 				_phase = "cool"
-				_phase_left = maxi(int(row.get("cd_ticks", 180)) - int(row.get("windup_ticks", 30)), 0)
+				_phase_left = _attack_cooldown_ticks(180)
 		"cool":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -46,7 +46,7 @@ func _fire_root_ring(_frame: int) -> void:
 	for i in count:
 		var dir := Vector2.from_angle(TAU * float(i) / float(count))
 		combat.spawn_projectile({
-			"pos": brain_pos, "vel": dir * float(row.get("bullet_speed", RING_SPEED_DEFAULT)),
+			"pos": brain_pos, "vel": dir * enemy_bullet_speed(RING_SPEED_DEFAULT),
 			"damage": int(row.get("bullet_dmg", 4)), "faction": Projectile.Faction.ENEMY,
 			"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
 			"life_seconds": float(row.get("bullet_life_seconds", 2.5)),

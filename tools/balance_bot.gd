@@ -123,6 +123,13 @@ var _root_lost_ticks := 0
 var _hearts_bought := 0
 var _debug := false
 var _cur_seed := 0                    # m3-fix1：当前局种子（灾厄选择等日志留痕用）
+# m3-fix1 试炼因子观测采样（只读游戏状态零干预：弹速/敌移速/红心数/掉落武器 id，
+# 供因子局复测的 gameplay 改变证据；普通局样本即基线对照）
+var _obs_bullet_speeds: Array[float] = []
+var _obs_enemy_speeds: Array[float] = []
+var _obs_enemy_last := {}             # instance_id -> {pos, frame}（敌移速差分）
+var _obs_hearts := {}                 # instance_id -> true（本局见过的红心拾取物）
+var _obs_loot_ids := {}               # weapon_id -> true（本局掉落台武器）
 
 
 func _ready() -> void:
@@ -293,6 +300,10 @@ func _run_one(seed: int) -> String:
 		"trial_date": _trial_date(seed - int(opts["seed_base"])) if String(opts["trial"]) != "" else "",
 		"trial_factors": ",".join(RunState.trial_factors),
 		"boss_first_kill_eligible": not boss_kills.has("vine_colossus"),
+		"obs_enemy_bullet_speed_avg": _mean_f(_obs_bullet_speeds),
+		"obs_enemy_move_speed_avg": _mean_f(_obs_enemy_speeds),
+		"obs_hearts_seen": _obs_hearts.size(),
+		"obs_loot_ids": ",".join(_obs_loot_ids.keys()),
 	}
 	results.append(row)
 	_write_outputs()                         # M3-B1 逐局落盘：批被中断时保留已完成局
@@ -368,6 +379,11 @@ func _reset_run_state(p_seed: int) -> void:
 	_wander_next_switch = 0
 	_root_lost_ticks = 0
 	_hearts_bought = 0
+	_obs_bullet_speeds = []
+	_obs_enemy_speeds = []
+	_obs_enemy_last = {}
+	_obs_hearts = {}
+	_obs_loot_ids = {}
 	_ttk_seen = {}
 	_track_room = -1
 	_track_room_type = ""
@@ -428,6 +444,12 @@ func _drive_floor(fs: FloorScene, player: Player) -> void:
 	var rtype := fs.flow.room_type(room_id)
 	_track_room_entry(room_id, rtype)
 	_track_enemy_ttk(fs, room)
+	if Engine.get_physics_frames() % 600 == 0:   # m3-fix1：因子观测低频扫描（10s 一拍）
+		for c in room.get_children():
+			if c is Pickup and (c as Pickup).kind == "heart":
+				_obs_hearts[c.get_instance_id()] = true
+			elif c is FloorScene.FixtureInteractable and c.has_meta("weapon_id"):
+				_obs_loot_ids[String(c.get_meta("weapon_id"))] = true
 	# m3-fix1：挑战房灾厄 4 选 1（B-1 停滞主家族，探针实证 seed 3004：进挑战房后面板
 	# 等待玩家选卡，bot 无 UI 交互 → locked=true / wave_idx=-1 / enemies=0 永不开战）。
 	# 走生产测试缝 FloorScene.choose_calamity（等价面板选卡），策略=固定选目录首项
@@ -484,6 +506,7 @@ func _player_room_id(fs: FloorScene) -> int:
 	return -1
 
 
+
 ## 设施一次性键：层号×房号（房型 id 跨层重复，裸 room_id 会误判已交互）。
 func _facility_key(room_id: int) -> int:
 	return RunState.floor_idx * 1000 + room_id
@@ -508,6 +531,20 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 		for p in combat.pool.active:
 			if is_instance_valid(p) and p.faction == Projectile.Faction.ENEMY:
 				bullets.append({"pos": p.position, "vel": p.vel})
+	for b: Dictionary in bullets:
+		if _obs_bullet_speeds.size() < 512:
+			_obs_bullet_speeds.append(float((b["vel"] as Vector2).length()))
+	for e in alive:
+		var ekey := e.get_instance_id()
+		var prev: Variant = _obs_enemy_last.get(ekey)
+		if prev != null:
+			var dt := frame - int((prev as Dictionary)["frame"])
+			if dt >= 30 and _obs_enemy_speeds.size() < 512:
+				var step: Vector2 = e.brain_pos - Vector2((prev as Dictionary)["pos"])
+				_obs_enemy_speeds.append(step.length() / float(dt) * 60.0)
+				_obs_enemy_last[ekey] = {"pos": e.brain_pos, "frame": frame}
+		else:
+			_obs_enemy_last[ekey] = {"pos": e.brain_pos, "frame": frame}
 	var bombers := _bombers_observation(alive)
 	var enemies: Array = []
 	for e in alive:
@@ -1047,6 +1084,15 @@ func _room_dur_summary() -> Dictionary:
 			out[rt] = {"median_s": _percentile(vals, 0.5), "p90_s": _percentile(vals, 0.9),
 				"n": vals.size()}
 	return out
+
+
+func _mean_f(vals: Array[float]) -> float:
+	if vals.is_empty():
+		return 0.0
+	var s := 0.0
+	for v in vals:
+		s += v
+	return snappedf(s / float(vals.size()), 0.1)
 
 
 func _mean(vals: Array[float]) -> float:

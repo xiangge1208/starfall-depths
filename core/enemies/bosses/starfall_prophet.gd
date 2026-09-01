@@ -217,7 +217,7 @@ func _cycle_fire_round(frame: int) -> void:
 		return
 	var element: int = CYCLE_ELEMENTS[_cycle_round % CYCLE_ELEMENTS.size()]
 	_cycle_round += 1
-	var speed := float(row.get("bullet_speed", 100))
+	var speed := enemy_bullet_speed(100)
 	var dmg := int(row.get("bullet_dmg", 6))
 	var aim := _aim_at_player()
 	var field_el := _spawn_element()   # 领域存续：轮回弹伤害同转化为领域元素（附录 E.6 P2）
@@ -276,7 +276,7 @@ func _starfall_resolve() -> void:
 	if combat == null:
 		return
 	_stars_active = true              # 追踪粘性置位（池内无星自动清零——评审 M-1）
-	var speed := float(row.get("bullet_speed", 100))
+	var speed := enemy_bullet_speed(100)
 	var aim := _aim_at_player()
 	for i in range(STAR_COUNT):
 		var a := aim + deg_to_rad(STAR_SPREAD_DEG) * (float(i) / float(STAR_COUNT - 1) - 0.5)
@@ -389,7 +389,7 @@ func _galaxy_fire_wave(wave: int, _frame: int) -> void:
 	if _galaxy_rng == null:           # 懒初始化护栏（同 vine_colossus/magma_tyrant，评审 M-3）
 		_galaxy_rng = RngSvc.stream(RunState.floor_idx, GALAXY_RNG_SALT)
 	var wave_dir := _galaxy_base_dir if wave % 2 == 0 else -_galaxy_base_dir
-	var speed := float(row.get("bullet_speed", 100))
+	var speed := enemy_bullet_speed(100)
 	var dmg := int(row.get("bullet_dmg", 6))
 	var bounds := combat_bounds if combat_bounds.has_area() \
 		else Rect2(brain_pos - Vector2(240, 120), Vector2(480, 240))

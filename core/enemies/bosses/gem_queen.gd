@@ -206,7 +206,7 @@ func _fan_fire_wave() -> void:
 	fired_this_tick = true
 	if combat == null:
 		return
-	var speed := float(row.get("bullet_speed", 110))
+	var speed := enemy_bullet_speed(110)
 	for i in range(FAN_PER_WAVE):
 		var off := deg_to_rad(FAN_SPREAD_DEG) * (float(i) / float(FAN_PER_WAVE - 1) - 0.5)
 		combat.spawn_projectile({
@@ -226,7 +226,7 @@ func _ring_fire() -> void:
 	fired_this_tick = true
 	if combat == null:
 		return
-	var speed := float(row.get("bullet_speed", 110))
+	var speed := enemy_bullet_speed(110)
 	for q in range(4):
 		for k in range(RING_PER_QUAD):
 			# 象限内 18°/36°/54°/72° 均布：距 90° 缺口心最近 18°（≥15° 缺口约束）

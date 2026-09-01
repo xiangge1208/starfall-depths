@@ -62,15 +62,17 @@ static func recycle_price(rarity: String, floor_idx: int) -> int:
 ## 按源权重 roll 一把武器 id：先掷稀有度（§8.2 来源行——combat=当层行 /
 ## chest·elite=固定行，见 SOURCE_RARITY_WEIGHTS），桶内按 id 字典序均匀取；
 ## 桶空（数据缺失或被 exclude）→ 沿 RARITY_FALLBACK 向下回退；全空返回 ""（池枯哨兵）。
+## m3-fix1 试炼 drop_melee_only 消费端（半边）：melee_only=true 时桶内再过滤
+## category=="melee"（桶近战全空沿回退序继续；随机数消费序列不变——掷签在前）。
 static func roll_weapon_id(rng: RandomNumberGenerator, floor_idx: int,
-		exclude: Array[String], source := "combat") -> String:
+		exclude: Array[String], source := "combat", melee_only := false) -> String:
 	var weapons := _weapons()
 	var rolled := _roll_rarity(rng, floor_idx, source)
 	var start := RARITY_FALLBACK.find(rolled)
 	if start < 0:
 		start = RARITY_FALLBACK.size() - 1
 	for i in range(start, RARITY_FALLBACK.size()):
-		var pool := _bucket(weapons, RARITY_FALLBACK[i], exclude)
+		var pool := _bucket(weapons, RARITY_FALLBACK[i], exclude, melee_only)
 		if not pool.is_empty():
 			return pool[rng.randi_range(0, pool.size() - 1)]
 	return ""
@@ -108,6 +110,11 @@ static func roll_stock(rng: RandomNumberGenerator, floor_idx: int,
 
 # ---------------------------------------------------------------- 内部
 
+## 取整到 5（TrialMods 商店折扣复用；与 _round5 同式，公开别名避免跨类私读）。
+static func round5(x: float) -> int:
+	return _round5(x)
+
+
 static func _floor_mult(floor_idx: int) -> float:
 	return FLOOR_MULT[clampi(floor_idx - 1, 0, 2)]
 
@@ -131,11 +138,15 @@ static func _roll_rarity(rng: RandomNumberGenerator, floor_idx: int, source := "
 	return "common"
 
 
-## 稀有度桶：表内该稀有度、未被 exclude 的 id 集（字典序，保证确定性）。
-static func _bucket(weapons: Dictionary, rarity: String, exclude: Array[String]) -> Array[String]:
+## 稀有度桶：表内该稀有度、未被 exclude 的 id 集（字典序，保证确定性）；
+## melee_only（m3-fix1 试炼近战洗礼）再过滤 category=="melee"。
+static func _bucket(weapons: Dictionary, rarity: String, exclude: Array[String],
+		melee_only := false) -> Array[String]:
 	var out: Array[String] = []
 	for id: String in weapons:
 		if String(weapons[id].get("rarity", "")) == rarity and not exclude.has(id):
+			if melee_only and String(weapons[id].get("category", "")) != "melee":
+				continue
 			out.append(id)
 	out.sort()
 	return out

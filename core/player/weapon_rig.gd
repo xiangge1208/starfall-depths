@@ -89,7 +89,9 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 	var player := get_parent() as Player
 	var dual := frame < dual_wield_until              # 狂潮双持窗（GDD §6）
 	var energy_free := frame < player.energy_free_until
-	var cost := 0 if dual or energy_free else int(w["energy_cost"])
+	# m3-fix1 试炼 energy_cost_mult 消费端：开火蓝耗 ceil(蓝耗×倍率)（规格 §3「所有
+	# 武器蓝耗」；技能蓝耗不经此处）。倍率缺省 1.0 → TrialMods 恒等返回零漂移。
+	var cost := 0 if dual or energy_free else TrialMods.player_energy_cost(int(w["energy_cost"]))
 	if cost > player.energy:
 		return false                     # 空蓝禁远程（GDD §7.2）；双持期双武器免蓝
 	player.energy -= cost
@@ -159,11 +161,16 @@ func effective_attack_rate(w: Dictionary, player: Player, frame: int) -> float:
 ## - 武器原生元素始终是主元素；永久 Buff 是命中时额外 proc；
 ## - 星髓像为独立 100% 临时覆盖，激活时只使用临时元素且不掷永久 Buff。
 func element_hit_profile(w: Dictionary, frame: int) -> Dictionary:
+	# m3-fix1 试炼 force_element 消费端（规格 §3 边界）：本层玩家一切元素附魔
+	# （武器自带/增益/星髓像临时附魔）统一转为层元素——元素身份被统一，临时附魔
+	# 的「独立覆盖、不掷永久 proc」结构与永久 proc 概率语义保留。NONE = 无因子零改动。
+	var forced := TrialMods.floor_force_element(RunState.floor_idx)
 	if frame < temporary_enchant_until and temporary_enchant_element != Elements.Id.NONE:
-		return {"element": temporary_enchant_element,
+		return {"element": forced if forced != Elements.Id.NONE else temporary_enchant_element,
 			"proc_element": Elements.Id.NONE, "proc_chance": 0.0}
-	return {"element": Elements.from_name(String(w.get("element", "none"))),
-		"proc_element": enchant_element, "proc_chance": enchant_proc_chance}
+	return {"element": forced if forced != Elements.Id.NONE else Elements.from_name(String(w.get("element", "none"))),
+		"proc_element": forced if forced != Elements.Id.NONE else enchant_element,
+		"proc_chance": enchant_proc_chance}
 
 func _fan_offset(n: int, i: int, spread_deg: float) -> float:
 	if n <= 1:

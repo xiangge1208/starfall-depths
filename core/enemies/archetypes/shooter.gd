@@ -50,11 +50,12 @@ func _after_volley_shot() -> void:
 		_begin_cool()
 
 func _burst_gap() -> int:
-	return maxi(int(row.get("burst_interval_ticks", DEFAULT_BURST_INTERVAL)) - 1, 0)
+	# m3-fix1：连发间隔同属攻击节奏，一并经试炼攻速倍率缩放（0 拍语义保持）。
+	return _scaled_attack_ticks(maxi(int(row.get("burst_interval_ticks", DEFAULT_BURST_INTERVAL)) - 1, 0))
 
 func _begin_cool() -> void:
 	_phase = "cool"
-	_phase_left = maxi(int(row.get("cd_ticks", 108)) - int(row.get("windup_ticks", 30)), 0)
+	_phase_left = _attack_cooldown_ticks(108)
 
 ## m1-t12 弹幕大师：每轮 volley = 1 + barrage_extra 发——首发瞄向玩家，extra 发
 ## 沿瞄准方向交替左右展开（±8°，每侧逐级加倍偏角）。节拍不变（fired_this_tick 单拍一轮语义不变）。
