@@ -57,13 +57,17 @@ func test_shake_suppressed_during_hitstop_pause() -> void:
 func test_hitstop_extension_not_cut_short_by_replaced_timer() -> void:
 	# fix1 回归：40ms hitstop 进行中延长为 60ms —— 被替换的旧定时器到点不得提前解冻
 	#（真实序列：暴击 hitstop(40) 后同帧击杀 hitstop(60)；原实现只冻 ~40ms）。
+	# m3-ja 集成稳固化：全量高负载下 SceneTreeTimer 实际触发可晚漂 15ms+，原两段定点
+	# 采样（55ms 定点判「仍冻结」）余量过薄会假红；改为轮询记录实际解冻时刻，只设
+	# 下界——提前解冻（bug 形态 ~40ms）才判负，回归意图不变且与负载无关。
+	var t0 := Time.get_ticks_msec()
 	Fx.hitstop(40)
 	await get_tree().create_timer(0.01, true, false, true).timeout   # ~10ms 后延长
 	Fx.hitstop(60)                       # 权威换为 60ms；旧 40ms 定时器已断开
-	await get_tree().create_timer(0.045, true, false, true).timeout  # ~55ms：已越过旧 40ms 到期点
-	assert_bool(get_tree().paused).is_true()      # bug 在此暴露：~40ms 处已被旧定时器解冻
-	await get_tree().create_timer(0.05, true, false, true).timeout   # ~105ms：60ms 权威（~15ms 起 → ~75ms）已恢复
-	assert_bool(get_tree().paused).is_false()
+	while get_tree().paused and Time.get_ticks_msec() - t0 < 300:
+		await get_tree().process_frame
+	assert_int(Time.get_ticks_msec() - t0).is_greater(50)   # bug 在此暴露：~40ms 处已被旧定时器解冻
+	assert_bool(get_tree().paused).is_false()   # 60ms 权威到期已恢复（或 300ms 兜底判负）
 
 func test_screen_shake_setting_is_clamped_scale() -> void:
 	SaveSystem.data["settings"]["screen_shake"] = 0.5
