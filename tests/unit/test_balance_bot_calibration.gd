@@ -81,27 +81,60 @@ func test_loot_pool_sizes_per_rarity_key() -> void:
 	assert_int(pristine.size()).is_equal(66)
 
 
-func test_loot_weights_green_tier_unreachable() -> void:
-	# 漂移实证①：LOOT_RARITY_WEIGHTS 只含 common/rare/epic 三键（注释称 白60/绿30/蓝10），
-	# 但「绿」=uncommon 无权重键——绿 21 把不可能被直接抽中；30% 走的 rare 键抽的是蓝 36。
-	var keys := FloorScene.LOOT_RARITY_WEIGHTS.keys()
-	assert_bool(keys.has("uncommon")).is_false()
-	assert_bool(keys.has("legend")).is_false()
-	assert_int(int(FloorScene.LOOT_RARITY_WEIGHTS.get("common", 0))).is_equal(60)
-	assert_int(int(FloorScene.LOOT_RARITY_WEIGHTS.get("rare", 0))).is_equal(30)
-	assert_int(int(FloorScene.LOOT_RARITY_WEIGHTS.get("epic", 0))).is_equal(10)
+func test_loot_weights_green_tier_direct_draw_restored() -> void:
+	# m2-audit 收口（原「漂移实证①」翻转）：漂移键名 LOOT_RARITY_WEIGHTS（无 uncommon
+	# 键、绿档永不被直抽 ~3.2% vs 设计 30%）已删——武器掉落统一走 ShopLogic §8.2
+	# 分源行，战斗/宝箱/精英各行均含 uncommon 绿档直抽；A1 战斗行紫橙权重 0。
+	var keys: Array = ShopLogic.RARITY_WEIGHTS[1].keys()
+	assert_bool(keys.has("uncommon")).is_true()
+	for fl in [1, 2, 3]:
+		assert_int(int(ShopLogic.RARITY_WEIGHTS[fl].get("uncommon", 0))).is_greater(0)
+	assert_int(int(ShopLogic.RARITY_WEIGHTS[1].get("epic", 0))).is_equal(0)
+	assert_int(int(ShopLogic.RARITY_WEIGHTS[1].get("legend", 0))).is_equal(0)
+	# §8.2 非按层来源行（m2-audit 补录）：宝箱 30/35/22/10/3、精英奖励 10/30/35/20/5
+	var chest: Dictionary = ShopLogic.SOURCE_RARITY_WEIGHTS["chest"]
+	assert_int(int(chest.get("common", 0))).is_equal(30)
+	assert_int(int(chest.get("uncommon", 0))).is_equal(35)
+	assert_int(int(chest.get("rare", 0))).is_equal(22)
+	assert_int(int(chest.get("epic", 0))).is_equal(10)
+	assert_int(int(chest.get("legend", 0))).is_equal(3)
+	var elite: Dictionary = ShopLogic.SOURCE_RARITY_WEIGHTS["elite"]
+	assert_int(int(elite.get("common", 0))).is_equal(10)
+	assert_int(int(elite.get("uncommon", 0))).is_equal(30)
+	assert_int(int(elite.get("rare", 0))).is_equal(35)
+	assert_int(int(elite.get("epic", 0))).is_equal(20)
+	assert_int(int(elite.get("legend", 0))).is_equal(5)
 
 
-func test_loot_epic_key_is_dead_branch_falling_back_to_full_pool() -> void:
-	# 漂移实证②：epic 键（10% 权重）在初始池内 0 命中——_roll_weapon 的空池兜底
-	# 会退化为「全池均匀」（66 把任抽），绿装只能经这条 10% 兜底路径以
-	# 21/66 ≈ 3.2% 的综合概率出现（设计意图 30%）。
+func test_loot_epic_key_falls_down_not_full_pool() -> void:
+	# m2-audit 收口（原「漂移实证②」翻转）：初始池紫橙 0 把（locked 49 不入池）——
+	# 修复后 epic/legend 掷中经 ShopLogic RARITY_FALLDOWN 逐级向下落到非空桶
+	# （宝箱 33% 高档掷签 → 蓝桶），不再退化「全池均匀 66 把任抽」。
 	var pristine := _pristine_drop_pool()
 	var epic_ids: Array[String] = []
 	for wid: String in pristine:
 		if String((pristine[wid] as Dictionary).get("rarity", "")) == "epic":
 			epic_ids.append(wid)
 	assert_int(epic_ids.size()).is_equal(0)
+	# 桩池双桶验证降级序：仅 common/rare 各 1 把（stub_c0/stub_r0）——chest 行
+	# 高档掷签（legend3+epic10 = 13%）沿 RARITY_FALLDOWN 落 rare 桶 stub_r0，
+	# uncommon（35%）向下落 common 桶 stub_c0；200 抽只出这两把（空桶永不触发
+	# 「全池均匀」兜底，池内两桶皆非空也无池枯 ""）。
+	var saved_weapons: Dictionary = GameDB.weapons
+	GameDB.weapons = {
+		"stub_c0": {"id": "stub_c0", "rarity": "common"},
+		"stub_r0": {"id": "stub_r0", "rarity": "rare"},
+	}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260831
+	var hits := {"stub_c0": 0, "stub_r0": 0}
+	for i in 200:
+		var got := ShopLogic.roll_weapon_id(rng, 1, [], "chest")
+		assert_bool(got == "stub_c0" or got == "stub_r0").is_true()
+		hits[got] = int(hits[got]) + 1
+	# 期望分布：stub_c0 ≈ common30+uncommon35 = 65%，stub_r0 ≈ rare22+epic10+legend3 = 35%
+	assert_int(int(hits["stub_r0"])).is_between(50, 90)
+	GameDB.weapons = saved_weapons
 	# 全量表复核（weapons_all 含 locked）：紫 33 + 橙 16 = 49 全 locked（裁定②口径）。
 	var locked_epic := 0
 	var locked := 0

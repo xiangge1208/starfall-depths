@@ -56,8 +56,19 @@ const ICE_PATCH_COLOR := Color(0.62, 0.78, 0.92, 0.42)      # 冰面补丁缺图
 const FIRE_RAIN_WARN_COLOR := Color(1.0, 0.3, 0.2, 0.35)     # 火雨红圈（预警）
 const FIRE_RAIN_BOOM_COLOR := Color(1.0, 0.5, 0.15, 0.8)     # 火雨落点爆发拍
 
-## A1 名录（data/enemies.json）：楼层垃圾怪池，波次按房号确定性轮转组合。
-const A1_TRASH := ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"]
+## 楼层垃圾怪池（data/enemies.json）：波次按房号确定性轮转组合。
+## m2-audit：A2/A3 波次此前误用 A1 名录（T26 披露「移交 T36 评估」未承接），按
+## 附录 B.2 各生态特有种 12 行分层修复——行内即该层缩放值（B.2 口径 A2 ×2.2 /
+## A3 ×4.84），不做运行时再缩放。A1 沿 M1 门禁校准的 4 行小池（通用 3 + 藤蔓冲锋者）。
+const FLOOR_TRASH: Dictionary = {
+	1: ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"],
+	2: ["crystal_bat", "ice_mage", "magnet_golem", "ghost_jelly", "frost_crab",
+		"crystal_rat", "rock_crystal_turret", "crystal_summoner", "prism_ranger",
+		"ice_spider", "echo_lurker", "crystal_dragon"],
+	3: ["lava_hound", "ash_shooter", "firerain_priest", "magma_slime",
+		"obsidian_guard", "sulfur_moth", "lava_turret", "ember_summoner",
+		"scorch_stomper", "flame_lich", "magma_wyvern", "starmarrow_blob"],
+}
 ## m2-t26 挑战房灾厄常量（GDD §11 挑战房，仅本房生效；敌速/弹速走行级 override、
 ## 视野复用 BiomeFx、治疗无效 = 玩家临时 meta——heal() 侧收口拦截，评审 I-1）。
 const CHALLENGE_STRENGTH_MULT := 1.25      # 挑战房波次强度：行 hp ×1.25（3 波强化怪）
@@ -74,7 +85,8 @@ const MINIBOSS_FLOOR_HP := {1: 180, 2: 400, 3: 870}
 ## m2-t26 小 Boss 抽取池（附录 B.3 全 6 行；T9 评审移交「抽取池接线」）：setup 按
 ## 层以独立 "miniboss" 盐流确定性取一（同 run_seed 同层恒同体——RngSvc.stream 为
 ## 无状态派生）；行内 elite_affixes/drops 数据驱动生效（6 行 drops 一致 weapon,hearts2）。
-## elite 嘉宾恒双刀蜥人不变（REAL_GUEST_ROWS 既有映射）；电磁蛛召 A2 冰蛛的跨层
+## elite 嘉宾恒双刀蜥人不变（REAL_GUEST_ROWS 既有映射；词缀自 m2-audit 起按层递进
+## §12.3，见 elite_affixes_for_floor）；电磁蛛召 A2 冰蛛的跨层
 ## 顾虑（T9 m7）由按层缩放的冰蛛行 hp 兜住（summon_row 未经缩放——披露见报告）。
 const MINIBOSS_POOL: Array[String] = [
 	"shuangdao_lizardman", "zibao_wangchong", "stone_shield_monk",
@@ -86,8 +98,9 @@ const MINIBOSS_POOL: Array[String] = [
 ## 口径不变），真实行路由在 _spawn_real_guest 替换。
 const BOSS_POOL: Array[String] = ["gem_queen", "prism_golem", "frost_widow"]
 const BOSS_FLOOR_ROWS := {1: "vine_colossus", 3: "magma_tyrant"}
-## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（swift+berserk 词缀，
-## drops weapon+hearts2）、垒主=自爆王虫（armored+leech，drops weapon+hearts2）、
+## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（词缀按层递进
+## §12.3——m2-audit 起覆盖行内固定 swift+berserk，drops weapon+hearts2）、
+## 垒主=自爆王虫（armored+leech，drops weapon+hearts2）、
 ## boss=藤蔓巨像（行内 boss_script → 真 3 阶段 BossBase 子类）；m2-t36 起 Boss 行
 ## 按层路由（_spawn_real_guest 里 vine_colossus 标记 → _boss_row_id，映射作 A1 缺省）。
 const REAL_GUEST_ROWS := {
@@ -110,7 +123,9 @@ const ARCHETYPE_COLORS := {
 	"charger": Color(0.7, 0.4, 0.8), "orbiter": Color(0.45, 0.42, 0.55),
 	"dummy": Color(0.65, 0.5, 0.35), "mushroom_spore": Color(0.58, 0.82, 0.46),
 }
-const LOOT_RARITY_WEIGHTS := {"common": 60, "rare": 30, "epic": 10}   # 白/绿/蓝
+## 熔铸台常驻像素偏移回落（m2-audit：T25 披露「位置硬编码」收口——优先读模板行
+## forge 字段，缺省/坏形状回落本常量；值 = 迁移前硬编码，行为保持）。
+const FORGE_FALLBACK_OFFSET := Vector2(0, 56)
 ## m1-t28 美术接线（ArtLookup 表驱动）：地块按生物群系选 floor_*/wall_*。
 const BULLET_VISUAL_SCALE := 0.75      # 8x8 弹底图 ≈ 原 5px 方块
 
@@ -376,10 +391,10 @@ func _build_room(id: int, data: Dictionary) -> void:
 	_build_hazards(room, tpl)
 	_init_spawn_points(room, tpl)
 	if FloorFlow.COMBAT_TYPES.has(room.type):
-		room.waves_cfg = waves_for(id, room.type)
+		room.waves_cfg = waves_for(id, room.type, floor_idx)   # m2-audit：按层名录
 		if id == challenge_room_id:               # m2-t26：挑战房 3 波配置 + 房标记
 			room.is_challenge = true
-			room.waves_cfg = challenge_waves_for(id)
+			room.waves_cfg = challenge_waves_for(id, floor_idx)
 		var pool_root := Node2D.new()
 		pool_root.name = "ProjectilePoolRoot"
 		room.add_child(pool_root)
@@ -1107,6 +1122,11 @@ func _spawn_real_guest(room: FloorRoom, wave_id: String, world_pos: Vector2,
 		return null
 	real_row["guest_kind"] = String((GUEST_SPECS[wave_id] as Dictionary)["kind"])
 	real_row["wave_id"] = wave_id
+	if wave_id == "elite_charger":
+		# m2-audit：§12.3 精英词缀楼层递进（A1 无 / A2 一 / A3 二）——行内固定
+		# swift+berserk 仅作数据缺省，实际按层掷签覆盖（同层恒同组，层派生盐）。
+		real_row["elite_affixes"] = elite_affixes_for_floor(floor_idx,
+			RngSvc.stream(floor_idx, RunState.SALT_ELITE))
 	if wave_id == "miniboss_charger":         # m2-t26：小 Boss 楼层侧行 hp（B.3：A2 400/A3 870）
 		real_row["hp"] = miniboss_hp_for_floor(floor_idx, int(real_row.get("hp", 180)))
 	var e := EnemyFactory.spawn(real_row, room, world_pos - room.position)
@@ -1220,11 +1240,16 @@ func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) ->
 		return
 	if drops.contains("weapon"):
 		var exclude: Array[String] = []
-		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, exclude)
+		# m2-audit：精英房必得武器走 §8.2 精英房奖励行（10/30/35/20/5）；小 Boss
+		# 掉落沿战斗行（m1 口径不变）——按 wave_id 区分（池内含同名行也不串档）。
+		var source := "elite" \
+			if String(row.get("wave_id", "")) == "elite_charger" else "combat"
+		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, exclude, source)
 		if wid.is_empty():
-			wid = _roll_weapon(_roll_rarity())   # 池枯哨兵兜底（全名录 roll）
-		Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, "guest_drop"])
-		room.add_child(_build_loot_station(room, world_pos - room.position, wid))
+			wid = _roll_weapon("common")   # 池枯哨兵兜底（common 桶空再全名录，沿宝箱习语）
+		if not wid.is_empty():
+			Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, "guest_drop"])
+			room.add_child(_build_loot_station(room, world_pos - room.position, wid))
 	if drops.contains("hearts2"):
 		for i in 2:
 			_spawn_pickup(room, "heart", world_pos + _scatter(71 + i))
@@ -1423,11 +1448,17 @@ func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
 		shrine.rng = _facility_rng
 		shrine.combat = player.combat
 		room.add_child(shrine)
-	# m2-t25 熔铸台：每层固定 1 台（GDD §8.3/§9.1 每层恰 1 商店房 → 常量选型挂商店房，
-	# 数据驱动模板字段由后续卡扩 schema）。wallet/pool/rng/run_state 全走 RunState 接缝。
+	# m2-audit（T25 披露「位置硬编码」收口）：熔铸台常驻位置改模板行驱动——商店房
+	# fit-aware 复用 combat 模板池，combat 行可选 "forge":[x,y] 像素偏移（自房中心；
+	# 24 行已录 [0,56] 行为保持）；缺省/坏形状回落常量 FORGE_FALLBACK_OFFSET。
+	# wallet/pool/rng/run_state 全走 RunState 接缝。
+	var forge_off: Array = RoomTemplate.get_room(room.template_id).get("forge", [])
+	var forge_pos := local_pos + FORGE_FALLBACK_OFFSET
+	if forge_off.size() == 2:
+		forge_pos = local_pos + Vector2(float(forge_off[0]), float(forge_off[1]))
 	var forge := FORGE_SCENE.instantiate() as Forge
 	forge.name = "Forge"
-	forge.position = local_pos + Vector2(0, 56)
+	forge.position = forge_pos
 	forge.wallet = RunState
 	forge.pool = GameDB.weapons
 	forge.rng = RunState.stream(RunState.SALT_FORGE)
@@ -1554,9 +1585,16 @@ func _build_chest(room: FloorRoom, local_pos: Vector2) -> void:
 	chest.on_interact_cb = func(p: Node2D) -> void:
 		chest.enabled = false                       # 一次性
 		vis.modulate = Color(0.55, 0.5, 0.4)
-		var rarity := _roll_rarity()
-		var wid := _roll_weapon(rarity)
-		Telemetry.log_row(["loot", Engine.get_physics_frames(), wid, rarity])
+		# m2-audit：宝箱改走 §8.2 宝箱房权重行（30/35/22/10/3；locked 空桶沿
+		# RARITY_FALLBACK 向下回退）——替换漂移键名 LOOT_RARITY_WEIGHTS（绿档
+		# 曾永不被直抽）。rarity 从事实行后取（真实落桶）。
+		var wid := ShopLogic.roll_weapon_id(_loot_rng, floor_idx, [], "chest")
+		if wid.is_empty():
+			wid = _roll_weapon("common")   # 池枯哨兵兜底（common 桶空再全名录）
+		if wid.is_empty():
+			return
+		Telemetry.log_row(["loot", Engine.get_physics_frames(), wid,
+			String(GameDB.get_weapon(wid).get("rarity", "common"))])
 		# 开箱只揭示掉落；玩家必须再按 E 与武器台交互才会换枪。
 		# 这既保留开箱前双槽，也防同一武器被开箱与武器台各装备一次。
 		room.add_child(_build_loot_station(room, local_pos + Vector2(0, 22), wid))
@@ -1609,17 +1647,8 @@ func _fixture_body() -> CollisionShape2D:
 	return cs
 
 
-## 掉落权重 白60/绿30/蓝10（LOOT_RARITY_WEIGHTS 累积区间）；确定性 loot 流。
-func _roll_rarity() -> String:
-	var roll := _loot_rng.randi_range(1, 100)
-	var acc := 0
-	for rarity: String in ["common", "rare", "epic"]:
-		acc += int(LOOT_RARITY_WEIGHTS.get(rarity, 0))
-		if roll <= acc:
-			return rarity
-	return "common"
-
-
+## 桶内均匀取武器（字典序确定性）；桶空回落全池（GameDB.weapons 已滤 locked）。
+## m2-audit：稀有度掷签收敛到 ShopLogic（§8.2 分源行）——本类只留桶内均匀取。
 func _roll_weapon(rarity: String) -> String:
 	var ids: Array[String] = []
 	for wid: String in GameDB.weapons:
@@ -1634,15 +1663,17 @@ func _roll_weapon(rarity: String) -> String:
 
 # ================================================================ 波次/嘉宾数据（静态可测）
 
-## 波次组合（按 floor 预算的 A1 名录确定性轮转）：combat 2 波各 3 垃圾；
-## elite 波2 +1 精英标记嘉宾 +2 红心；miniboss 2 垃圾→强化怪；boss 单波巨像占位。
-static func waves_for(room_id: int, room_type: String) -> Dictionary:
+## 波次组合（按层名录 FLOOR_TRASH 确定性轮转；floor_idx 缺省 1 = M1 契约不变）：
+## combat 2 波各 3 垃圾；elite 波2 +1 精英标记嘉宾 +2 红心；miniboss 2 垃圾→强化怪；
+## boss 单波巨像占位。
+static func waves_for(room_id: int, room_type: String, floor_idx := 1) -> Dictionary:
+	var pool: Array = FLOOR_TRASH.get(clampi(floor_idx, 1, 3), FLOOR_TRASH[1])
 	var trash := func(offset: int, n: int) -> Array:
 		var out: Array = []
 		for i in n:
-			out.append(A1_TRASH[(offset + i) % A1_TRASH.size()])
+			out.append(pool[(offset + i) % pool.size()])
 		return out
-	var o := (int(room_id) * 2) % A1_TRASH.size()
+	var o := (int(room_id) * 2) % pool.size()
 	match room_type:
 		"combat":
 			return {"waves": [trash.call(o, 3), trash.call(o + 3, 3)],
@@ -1681,12 +1712,29 @@ static func guest_row(id: String) -> Dictionary:
 ## m2-t26 挑战房波次（GDD §11：3 波强化怪）：组成 = 本层战斗房配置轮转 3 波
 ## （波1/波2/波1 复用），奖励置零（清房改发紫武器 + 大量金币）；强度 ×1.25 由
 ## _calamity_row 在 spawn 行级生效，与所选灾厄无关。
-static func challenge_waves_for(room_id: int) -> Dictionary:
-	var waves: Array = waves_for(room_id, "combat").get("waves", [])
+static func challenge_waves_for(room_id: int, floor_idx := 1) -> Dictionary:
+	var waves: Array = waves_for(room_id, "combat", floor_idx).get("waves", [])
 	if waves.is_empty():
 		return {}
 	return {"waves": [waves[0], waves[1 % waves.size()], waves[0]],
 		"coins": 0, "energy_orbs": 0, "hearts": 0}
+
+
+## m2-audit：§12.3 精英词缀楼层递进——A1 无词缀 / A2 一条 / A3 两条（不重复，
+## 从 EliteAffix.AFFIXES 字典序池抽取）。表外楼层 clamp 到界；rng 由调用方注入
+## （实例路径 = RngSvc.stream(floor_idx, SALT_ELITE)，同层恒同组）。
+static func elite_affixes_for_floor(floor_idx: int,
+		rng: RandomNumberGenerator) -> Array[String]:
+	var pool: Array[String] = []
+	for a in EliteAffix.AFFIXES:
+		pool.append(String(a))
+	pool.sort()
+	var out: Array[String] = []
+	for i in clampi(floor_idx, 1, 3) - 1:
+		var pick := rng.randi_range(0, pool.size() - 1)
+		out.append(pool[pick])
+		pool.remove_at(pick)
+	return out
 
 
 ## m2-t26 小 Boss 楼层侧行 hp（附录 B.3：A1 基准 / A2 400 / A3 870）：floor1 返回

@@ -12,6 +12,16 @@ extends Node2D
 ## reflect_direction 纯函数无头可测）。与镜面轴成 45° 的轴向入射偏转恰 90°
 ## （右→下 / 左→上 / 上→左 / 下→右）；沿镜面法线入射原路折返；沿镜面轴掠射
 ## 方向不变（数学边界，仍消耗折射次数）。
+##
+## 弹幕预算重估（m2-audit，收口 T7 评审 m4「T14 复用时重估」的悬置承诺）：本组件
+## 为独立 Node2D 直进，不经 CombatSystem 投射物池——敌弹 400 上限（ENEMY_BULLET_CAP）
+## 不约束激光束，束量由发射方节律自限：①岩晶炮台（turret 行 laser=true）冷却
+## cd_ticks−windup（rock_crystal_turret：180−36=144t）＞ 束寿命 DEFAULT_LIFE_TICKS
+## (120t) → 每炮台至多 1 束并存（test_enemy_laser 钉死该行不变量）；②晶棱魔像
+## 棱镜射线单拍 1 束（三向扫描为时序扫掠非同拍齐发）。全束上界 ≈ 场上炮台数 + 1 ≪ 400；
+## F2 最密晶核层窗口探针（40 敌 + 500 弹满压）draw avg 102.2 ≤150 PASS
+## （t37-evidence/m2_perf_main_2026-09-01.json）。裁定：不将激光计入 ENEMY_BULLET_CAP
+## （束≠弹，计入反引入池化耦合）；新增激光发射方须维持「冷却 ≥ 束寿命」节律。
 
 const PILLAR_GROUP := &"refraction_pillars"   # FloorScene 晶柱实体组（折射判定源）
 const MIRROR_AXIS_DEG := 45.0     # 晶柱镜面轴（GDD §10 A2「按 45° 反射」）

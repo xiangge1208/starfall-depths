@@ -30,10 +30,13 @@ const ROOM_SCHEMA := {
 	"id": TYPE_STRING, "size": TYPE_ARRAY, "doors": TYPE_ARRAY,
 	"spawn_points": TYPE_ARRAY, "props": TYPE_ARRAY, "hazards": TYPE_ARRAY,
 }
-const ROOM_OPTIONAL := {"biome": ""}
+const ROOM_OPTIONAL := {"biome": "", "forge": []}
 # biome 值白名单（validate_room_row 语义校验）：A1 行缺省 ""（无群系特效）；
 # A2 crystal（暗视野 + 冰面）/ A3 magma（岩浆基调，瓦片套件仍按 floor_idx）。
 const BIOME_TAGS: Array[String] = ["", "crystal", "magma"]
+# forge（optional，缺省 []）：熔铸台常驻像素偏移 [x,y]（自房中心）——商店房 fit-aware
+# 复用 combat 模板池 → 偏移挂 combat 模板行（m2-audit：T25 披露「位置硬编码」收口）。
+# 空 = 未选型（FloorScene 回落常量）；非空必须恰 2 数字（validate_room_row 形状校验）。
 # hazards kind 白名单（validate_room_row 形状校验）：vine=A1 藤蔓 / magma·geyser=A3
 # 岩浆系（m2-t10）/ ice=A2 冰面（m2-t26，同 vine/magma 需 radius）/ spikes=A2 地刺、
 # rock=A1 滚石（FloorScene 组件分派 m2-t7 已有，白名单 m2-t26 随 A2/A3 模板落库扩展）。
@@ -371,6 +374,16 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 	var biome: Variant = row.get("biome", "")
 	if typeof(biome) != TYPE_STRING or not BIOME_TAGS.has(biome):
 		errors.append("bad biome: %s" % str(biome))
+	# forge（optional，缺省 []）：空 = 未选型；非空必须恰 2 数字（像素偏移）
+	var forge: Variant = row.get("forge", [])
+	if typeof(forge) != TYPE_ARRAY:
+		errors.append("forge must be array")
+	elif not forge.is_empty():
+		var forge_ok: bool = forge.size() == 2 \
+			and (typeof(forge[0]) == TYPE_INT or typeof(forge[0]) == TYPE_FLOAT) \
+			and (typeof(forge[1]) == TYPE_INT or typeof(forge[1]) == TYPE_FLOAT)
+		if not forge_ok:
+			errors.append("forge must be [x,y] numeric pixel offset")
 	# doors
 	var doors: Variant = row.get("doors")
 	var door_px: Array[Vector2] = []

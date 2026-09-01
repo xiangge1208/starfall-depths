@@ -819,3 +819,39 @@ func test_black_affects_actual_charge_not_just_label() -> void:
 	var wallet: WalletProbe = ctx["wallet"]
 	shop._buy_weapon(0)
 	assert_int(wallet.coins).is_equal(465)   # 500 - 35
+
+
+# ================================================================ m2-audit 补录
+
+func test_roll_weapon_source_rows_chest_and_elite() -> void:
+	# m2-audit：§8.2 非按层来源行——宝箱房 30/35/22/10/3、精英房奖励 10/30/35/20/5。
+	# 五档全桩池下固定 seed 连抽，两源各自五档均可达（最低档权重 3%，400 抽缺席
+	# 概率 ~0.95^400 ≈ 1.3e-9）；combat 缺省口径不变（A1 行无紫橙，桩池下紫橙仅
+	# 可经 chest/elite 源出现）。
+	_stub_weapons(_stub_pool(1, 1, 1, 1, 1))
+	var rng := _rng(SEED)
+	var chest := {}
+	var elite := {}
+	var combat_epic_or_legend := false
+	for i in 400:
+		chest[ShopLogic.roll_weapon_id(rng, 1, [], "chest")] = true
+		elite[ShopLogic.roll_weapon_id(rng, 1, [], "elite")] = true
+		var c := ShopLogic.roll_weapon_id(rng, 1, [], "combat")
+		if c == "stub_e0" or c == "stub_l0":
+			combat_epic_or_legend = true
+	for id in ["stub_c0", "stub_u0", "stub_r0", "stub_e0", "stub_l0"]:
+		assert_bool(chest.has(id)).is_true()
+		assert_bool(elite.has(id)).is_true()
+	assert_bool(combat_epic_or_legend).is_false()
+
+
+func test_fallback_weapons_exclude_locked() -> void:
+	# m2-audit：--script 回退装载过滤 locked（T6 评审移交「回退未过滤」收口）——
+	# 与 autoload _ready 同口径。直接调回退装载器（GameDB 在树时 _weapons 不走此
+	# 路径）；断言无 locked 行、数量 = 115 − 49、id 全部在 weapons_all。
+	var table := ShopLogic._load_fallback_weapons()
+	assert_int(table.size()).is_equal(115 - 49)
+	var all_ids: Array = GameDB.weapons_all.keys()
+	for id: String in table:
+		assert_bool(bool((table[id] as Dictionary).get("locked", false))).is_false()
+		assert_array(all_ids).contains(id)

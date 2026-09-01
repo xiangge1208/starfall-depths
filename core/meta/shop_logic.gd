@@ -3,8 +3,10 @@ extends RefCounted
 ## 商店纯逻辑（m1-t14）：定价 / 货架 roll / 回收价，全 static 无副作用。
 ## 数值锚点：数据表附录 H（商店价格系数 ×1.0/×1.6/×2.56）+ 控制器基准表
 ## {common:20, uncommon:42, rare:85, epic:155, legend:260}（附录 H 锚点中值）；
-## 稀有度权重：设计文档 §8.2 掉落权重表按层取行（A1 70/25/5/0/0、A2 45/35/16/4/0、
-## A3 25/33/25/13/4）。同名武器不重复（exclude 由调用方累积传入）。
+## 稀有度权重：设计文档 §8.2 掉落权重表——战斗房按层取行（A1 70/25/5/0/0、
+## A2 45/35/16/4/0、A3 25/33/25/13/4）；宝箱房/精英房奖励为固定行
+## （SOURCE_RARITY_WEIGHTS，m2-audit 补录）；商店货架沿 m1-t14 控制器裁定用战斗行。
+## 同名武器不重复（exclude 由调用方累积传入）。
 ## 注意：M1 data/weapons.json 已扩至 40 把（T25；M1 期全 common，M2 扩池后含高稀有）——高稀有度桶在真实数据下
 ## 统一经「向下回退」落到 common（预期行为，数据补齐后自动生效）。
 
@@ -20,6 +22,13 @@ const RARITY_WEIGHTS := {
 	1: {"common": 70, "uncommon": 25, "rare": 5, "epic": 0, "legend": 0},
 	2: {"common": 45, "uncommon": 35, "rare": 16, "epic": 4, "legend": 0},
 	3: {"common": 25, "uncommon": 33, "rare": 25, "epic": 13, "legend": 4},
+}
+# §8.2 非按层来源权重行（单行全层共用；m2-audit 补录——此前 FloorScene 宝箱/精英
+# 必得武器走自造 {common:60, rare:30, epic:10} 漂移键名，绿档永不被直抽）。
+# source="combat"（缺省）= RARITY_WEIGHTS 按层行。
+const SOURCE_RARITY_WEIGHTS := {
+	"chest": {"common": 30, "uncommon": 35, "rare": 22, "epic": 10, "legend": 3},
+	"elite": {"common": 10, "uncommon": 30, "rare": 35, "epic": 20, "legend": 5},
 }
 # 高→低（桶空向下回退序）
 const RARITY_FALLBACK: Array[String] = ["legend", "epic", "rare", "uncommon", "common"]
@@ -50,12 +59,13 @@ static func recycle_price(rarity: String, floor_idx: int) -> int:
 	return maxi(RECYCLE_MIN, _round5(float(base) * RECYCLE_RATIO * _floor_mult(floor_idx)))
 
 
-## 按层权重 roll 一把武器 id：先掷稀有度（§8.2 当层行），桶内按 id 字典序均匀取；
+## 按源权重 roll 一把武器 id：先掷稀有度（§8.2 来源行——combat=当层行 /
+## chest·elite=固定行，见 SOURCE_RARITY_WEIGHTS），桶内按 id 字典序均匀取；
 ## 桶空（数据缺失或被 exclude）→ 沿 RARITY_FALLBACK 向下回退；全空返回 ""（池枯哨兵）。
 static func roll_weapon_id(rng: RandomNumberGenerator, floor_idx: int,
-		exclude: Array[String]) -> String:
+		exclude: Array[String], source := "combat") -> String:
 	var weapons := _weapons()
-	var rolled := _roll_rarity(rng, floor_idx)
+	var rolled := _roll_rarity(rng, floor_idx, source)
 	var start := RARITY_FALLBACK.find(rolled)
 	if start < 0:
 		start = RARITY_FALLBACK.size() - 1
@@ -106,10 +116,12 @@ static func _round5(x: float) -> int:
 	return int(round(x / float(ROUND_TO))) * ROUND_TO
 
 
-## 掷稀有度：当层权重行 1..100 落区间（行合计恒 100）。
-static func _roll_rarity(rng: RandomNumberGenerator, floor_idx: int) -> String:
-	var weights: Dictionary = RARITY_WEIGHTS.get(clampi(floor_idx, 1, 3),
-		RARITY_WEIGHTS[1])
+## 掷稀有度：来源行 1..100 落区间（各行合计恒 100）。source 命中 SOURCE_RARITY_WEIGHTS
+## 用固定行；否则（combat/未知）按层行（未知 source 防御性回落 combat 而非崩溃）。
+static func _roll_rarity(rng: RandomNumberGenerator, floor_idx: int, source := "combat") -> String:
+	var weights: Dictionary = SOURCE_RARITY_WEIGHTS.get(source) \
+		if SOURCE_RARITY_WEIGHTS.has(source) \
+		else RARITY_WEIGHTS.get(clampi(floor_idx, 1, 3), RARITY_WEIGHTS[1])
 	var roll := rng.randi_range(1, 100)
 	var acc := 0
 	for rarity: String in RARITIES:
@@ -138,8 +150,21 @@ static func _weapons() -> Dictionary:
 		if found != null:
 			return found.weapons
 	if _fallback_weapons.is_empty():
-		var script: GDScript = load("res://autoload/game_db.gd")
-		var db: Object = script.new()
-		_fallback_weapons = db._load_table(script.TABLES["weapons"],
-			script.WEAPON_SCHEMA, script.WEAPON_OPTIONAL)
+		_fallback_weapons = _load_fallback_weapons()
 	return _fallback_weapons
+
+
+## --script 回退装载（m2-audit：T6 评审移交「回退未过滤 locked」收口）：与 autoload
+## _ready 同口径——locked 行不进掉落池（紫/橙 49 把默认锁定），免无头工具/测试池与
+## 生产池语义分叉（回退曾混入 115 全量）。独立函数便于树内直接测试（GameDB 在树时
+## _weapons 不走此路径）。
+static func _load_fallback_weapons() -> Dictionary:
+	var script: GDScript = load("res://autoload/game_db.gd")
+	var db: Object = script.new()
+	var table: Dictionary = db._load_table(script.TABLES["weapons"],
+		script.WEAPON_SCHEMA, script.WEAPON_OPTIONAL)
+	db.free()   # 临时装载器实例不进树，用后即释（防 orphan）
+	for id: String in table.keys():
+		if bool((table[id] as Dictionary).get("locked", false)):
+			table.erase(id)
+	return table

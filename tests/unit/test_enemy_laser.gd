@@ -164,3 +164,13 @@ func test_rock_crystal_turret_fires_enemy_laser() -> void:
 			assert_float(laser.speed_px).is_equal(150.0)   # 行 bullet_speed
 			break
 	assert_bool(fired).is_true()
+
+
+func test_turret_laser_row_budget_invariant() -> void:
+	# m2-audit 弹幕预算重估锚点：激光炮台行「冷却 ≥ 束寿命」——每炮台至多 1 束
+	# 并存（EnemyLaser 不入敌弹 400 上限池，束量靠发射方节律自限；见类头重估注）。
+	# 行值漂移（冷却 < 寿命）会让单炮台束量翻倍，此测试即红。
+	var row := GameDB.get_enemy("rock_crystal_turret")
+	assert_bool(bool(row.get("laser", false))).is_true()
+	var cd := int(row.get("cd_ticks", 0)) - int(row.get("windup_ticks", 0))
+	assert_int(cd).is_greater_equal(EnemyLaser.DEFAULT_LIFE_TICKS)

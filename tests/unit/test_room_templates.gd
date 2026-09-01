@@ -318,3 +318,36 @@ func test_load_table_accepts_valid_room_row() -> void:
 	assert_int(loaded["ok"]["props"][0]["hp"]).is_equal(20)
 	assert_int(loaded["ok"]["hazards"][0]["radius"]).is_equal(24)
 	assert_int(DirAccess.remove_absolute(path)).is_equal(OK)
+
+
+func test_combat_rows_carry_forge_offset() -> void:
+	# m2-audit（T25 披露收口）：熔铸台常驻偏移模板行驱动——24 个 combat 行全录
+	# [0,56]（迁移值，行为保持）；start/boss 行不选型（缺省 []）。
+	for fl in [1, 2, 3]:
+		var ids: Array[String] = RoomTemplate.combat_ids(fl)
+		assert_int(ids.size()).is_equal(8)
+		for id: String in ids:
+			var forge: Array = GameDB.rooms[id].get("forge", [])
+			assert_int(forge.size()).is_equal(2)
+			assert_int(int(forge[0])).is_equal(0)
+			assert_int(int(forge[1])).is_equal(56)
+	for id in ["start_a1", "boss_a1", "start_a2", "boss_a2", "start_a3", "boss_a3"]:
+		assert_array(GameDB.rooms[id].get("forge", [])).is_empty()
+
+
+func test_schema_rejects_bad_forge_shape() -> void:
+	# m2-audit：forge 形状校验 fail-closed——非数组 / 非恰 2 元 / 非数字均拒
+	var base := {"id": "f", "size": [22, 14], "doors": ["N", "S"],
+		"spawn_points": [[5, 4], [16, 9]], "props": [], "hazards": []}
+	var one := base.duplicate(true)
+	one["forge"] = [0]
+	assert_int(GameDB.validate_room_row(one).size()).is_greater(0)
+	var bad_type := base.duplicate(true)
+	bad_type["forge"] = ["x", 56]
+	assert_int(GameDB.validate_room_row(bad_type).size()).is_greater(0)
+	var not_array := base.duplicate(true)
+	not_array["forge"] = 56
+	assert_int(GameDB.validate_room_row(not_array).size()).is_greater(0)
+	var good := base.duplicate(true)
+	good["forge"] = [0, 56]
+	assert_array(GameDB.validate_room_row(good)).is_empty()

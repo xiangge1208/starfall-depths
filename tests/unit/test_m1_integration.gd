@@ -188,13 +188,14 @@ func test_physical_walk_into_adjacent_room_triggers_enter() -> void:
 
 func test_real_guests_spawn_and_waves_advance() -> void:
 	_fs = _make_floor(["elite", "miniboss", "boss"])
-	# elite：波2 真双刀蜥人（swift+berserk）→ kill 经 wave_id 回译 elite_charger → 房清
+	# elite：波2 真双刀蜥人（m2-audit §12.3 后 A1 层无词缀——词缀 A2 起）→
+	# kill 经 wave_id 回译 elite_charger → 房清
 	assert_bool(_fs.enter_room(1)).is_true()
 	_kill_all(_fs.room_node(1))
 	await _await_until(func() -> bool: return _find_enemy(_fs.room_node(1), "shuangdao_lizardman") != null)
 	var elite := _find_enemy(_fs.room_node(1), "shuangdao_lizardman")
 	assert_int(elite.hp).is_equal(180)
-	assert_bool(elite.has_berserk).is_true()
+	assert_bool(elite.has_berserk).is_false()
 	_kill_all(_fs.room_node(1))
 	await _await_until(func() -> bool: return _fs.flow.cleared.has(1))
 	assert_bool(_fs.flow.cleared.has(1)).is_true()

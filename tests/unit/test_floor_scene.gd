@@ -569,12 +569,13 @@ func test_scene_full_walk_elite_miniboss_boss() -> void:
 	assert_int(_alive_enemies(fs.room_node(1))).is_equal(3)
 	_kill_all(fs.room_node(1))
 	await _await_until(func() -> bool: return _alive_enemies(fs.room_node(1)) == 4)
-	# 波2：3 垃圾 + 1 真实精英（双刀蜥人行：swift+berserk 词缀 → has_berserk，hp 180）
+	# 波2：3 垃圾 + 1 真实精英（双刀蜥人行：hp 180）——m2-audit §12.3 后 A1 层
+	# 精英无词缀（词缀 A2 起 1 条 / A3 两条，见 test_scene_elite_affixes_progression）
 	assert_int(_alive_enemies(fs.room_node(1))).is_equal(4)
 	var elite_guest := _find_enemy(fs.room_node(1), "shuangdao_lizardman")
 	assert_object(elite_guest).is_not_null()
 	assert_int(elite_guest.hp).is_equal(180)
-	assert_bool(elite_guest.has_berserk).is_true()
+	assert_bool(elite_guest.has_berserk).is_false()
 	_kill_all(fs.room_node(1))
 	await _await_until(func() -> bool: return fs.flow.cleared.has(1))
 	assert_bool(fs.flow.cleared.has(1)).is_true()
@@ -809,3 +810,71 @@ func _weapon_slot_ids(rig: WeaponRig) -> Array[String]:
 	for slot_row: Dictionary in rig.slots:
 		ids.append(String(slot_row.get("id", "")))
 	return ids
+
+
+# ================================================================ m2-audit 补录
+
+const A2_TRASH_IDS := ["crystal_bat", "ice_mage", "magnet_golem", "ghost_jelly",
+	"frost_crab", "crystal_rat", "rock_crystal_turret", "crystal_summoner",
+	"prism_ranger", "ice_spider", "echo_lurker", "crystal_dragon"]
+const A3_TRASH_IDS := ["lava_hound", "ash_shooter", "firerain_priest", "magma_slime",
+	"obsidian_guard", "sulfur_moth", "lava_turret", "ember_summoner",
+	"scorch_stomper", "flame_lich", "magma_wyvern", "starmarrow_blob"]
+
+
+func test_scene_waves_floor_rosters() -> void:
+	# m2-audit：A2/A3 波次名录分层（附录 B.2 特有种 12 行；此前恒 A1）。
+	# 规模契约不变（2 波各 3 只）；缺省 floor=1 = M1 契约（A1 小池）。
+	for fl in [2, 3]:
+		var roster := A2_TRASH_IDS if fl == 2 else A3_TRASH_IDS
+		for rid in [1, 5, 9]:
+			var cfg: Dictionary = FloorScene.waves_for(rid, "combat", fl)
+			assert_int(cfg["waves"].size()).is_equal(2)
+			for w in cfg["waves"]:
+				assert_int((w as Array).size()).is_equal(3)
+				for id in w:
+					assert_array(roster).contains(id)
+		# elite 波2 = 本层杂兵 3 + 精英标记（词缀递进见 elite_affixes_for_floor 测试）
+		var elite_w2: Array = FloorScene.waves_for(2, "elite", fl)["waves"][1]
+		assert_array(elite_w2).contains("elite_charger")
+		for id in elite_w2:
+			if id != "elite_charger":
+				assert_array(roster).contains(id)
+	for id: String in A2_TRASH_IDS + A3_TRASH_IDS:
+		assert_dict(GameDB.get_enemy(id)).is_not_empty()   # id 转录无漂移
+	# 挑战房随层（复用本层战斗配置）
+	var ch: Dictionary = FloorScene.challenge_waves_for(3, 2)
+	for w in ch["waves"]:
+		for id in w:
+			assert_array(A2_TRASH_IDS).contains(id)
+
+
+func test_scene_floor_pool_enemies_constructible() -> void:
+	# m2-audit：分层池全部行可构造（防「池内行缺失 → 波次空转 → 房间不可清」软锁；
+	# FLOOR_TRASH 与 enemies.json 行漂移在此即红）。
+	for fl in [1, 2, 3]:
+		for id: String in FloorScene.FLOOR_TRASH[fl]:
+			var e: EnemyBase = auto_free(EnemyFactory.create(GameDB.get_enemy(id)))
+			assert_object(e).is_not_null()
+
+
+func test_scene_elite_affixes_progression() -> void:
+	# m2-audit：§12.3 精英词缀楼层递进——A1 无 / A2 一条 / A3 两条不重复，值域合法；
+	# 同层同盐确定性（层派生 SALT_ELITE，同层恒同组）。
+	var valid: Array = EliteAffix.AFFIXES
+	var r1: Array[String] = FloorScene.elite_affixes_for_floor(1,
+		RngSvc.stream(1, RunState.SALT_ELITE))
+	assert_int(r1.size()).is_equal(0)
+	var r2: Array[String] = FloorScene.elite_affixes_for_floor(2,
+		RngSvc.stream(2, RunState.SALT_ELITE))
+	assert_int(r2.size()).is_equal(1)
+	assert_array(valid).contains(r2[0])
+	var r3: Array[String] = FloorScene.elite_affixes_for_floor(3,
+		RngSvc.stream(3, RunState.SALT_ELITE))
+	assert_int(r3.size()).is_equal(2)
+	for a in r3:
+		assert_array(valid).contains(a)
+	assert_str(r3[0]).is_not_equal(r3[1])
+	var r3b: Array[String] = FloorScene.elite_affixes_for_floor(3,
+		RngSvc.stream(3, RunState.SALT_ELITE))
+	assert_str(var_to_str(r3)).is_equal(var_to_str(r3b))

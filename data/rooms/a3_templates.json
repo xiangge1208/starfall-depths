@@ -1,6 +1,7 @@
 {
   "combat_a3_01": {
     "id": "combat_a3_01",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E", "W"],
     "biome": "magma",
@@ -21,6 +22,7 @@
   },
   "combat_a3_02": {
     "id": "combat_a3_02",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E"],
     "biome": "magma",
@@ -39,6 +41,7 @@
   },
   "combat_a3_03": {
     "id": "combat_a3_03",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["W", "E", "N"],
     "biome": "magma",
@@ -57,6 +60,7 @@
   },
   "combat_a3_04": {
     "id": "combat_a3_04",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E", "W"],
     "biome": "magma",
@@ -75,6 +79,7 @@
   },
   "combat_a3_05": {
     "id": "combat_a3_05",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["E", "W", "S"],
     "biome": "magma",
@@ -92,6 +97,7 @@
   },
   "combat_a3_06": {
     "id": "combat_a3_06",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "E", "W"],
     "biome": "magma",
@@ -111,6 +117,7 @@
   },
   "combat_a3_07": {
     "id": "combat_a3_07",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "W", "S"],
     "biome": "magma",
@@ -128,6 +135,7 @@
   },
   "combat_a3_08": {
     "id": "combat_a3_08",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["S", "E", "W"],
     "biome": "magma",

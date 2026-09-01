@@ -15,6 +15,7 @@ extends Node
 ##   SALT_INTER_FLOOR("inter_floor") 层间三选一增益
 ##   SALT_EVENT("event")          楼层事件/房间抽取（宝箱、事件选项等）
 ##   SALT_FORGE("forge")          熔铸台通用升级随机产物（m2-t25）
+##   SALT_ELITE("elite")          精英房词缀楼层递进掷签（m2-audit，§12.3）
 ##
 ## 调用时序契约：**RunState.start_run() 必须先于本局任何地牢构建 / 战斗发生**。
 ## T7 的 DungeonBuilder.build(seed, floor_idx) 仍是纯函数（rng 内部自派生，签名不变）：
@@ -31,6 +32,7 @@ const SALT_DRINK := "drink"
 const SALT_INTER_FLOOR := "inter_floor"
 const SALT_EVENT := "event"
 const SALT_FORGE := "forge"                # m2-t25 熔铸台（通用升级掷签独立盐）
+const SALT_ELITE := "elite"                # m2-audit 精英房词缀递进（A1 无/A2 一/A3 二）
 const FLOOR_GEMS := [60, 120, 200]   # GDD §14.1 每层通过蓝晶结算
 ## m2-t31 击杀蓝晶档位（GDD §14 允许口径）：精英 +5 / 小 Boss +20 / Boss +50；
 ## Boss 首杀再 +300（SaveSystem.boss_first_kills 无该 boss 记录时，击杀即标记入档

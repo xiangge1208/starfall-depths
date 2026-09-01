@@ -1,6 +1,7 @@
 {
   "combat_a2_01": {
     "id": "combat_a2_01",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E", "W"],
     "biome": "crystal",
@@ -21,6 +22,7 @@
   },
   "combat_a2_02": {
     "id": "combat_a2_02",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E"],
     "biome": "crystal",
@@ -41,6 +43,7 @@
   },
   "combat_a2_03": {
     "id": "combat_a2_03",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["W", "E", "N"],
     "biome": "crystal",
@@ -61,6 +64,7 @@
   },
   "combat_a2_04": {
     "id": "combat_a2_04",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E", "W"],
     "biome": "crystal",
@@ -81,6 +85,7 @@
   },
   "combat_a2_05": {
     "id": "combat_a2_05",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["E", "W", "S"],
     "biome": "crystal",
@@ -100,6 +105,7 @@
   },
   "combat_a2_06": {
     "id": "combat_a2_06",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "E", "W"],
     "biome": "crystal",
@@ -120,6 +126,7 @@
   },
   "combat_a2_07": {
     "id": "combat_a2_07",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "W", "S"],
     "biome": "crystal",
@@ -138,6 +145,7 @@
   },
   "combat_a2_08": {
     "id": "combat_a2_08",
+    "forge": [0, 56],
     "size": [22, 14],
     "doors": ["S", "E", "W"],
     "biome": "crystal",
