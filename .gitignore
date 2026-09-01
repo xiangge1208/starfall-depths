@@ -1,6 +1,15 @@
 .godot/
 *.tmp
 user_export/
+# Android release keystore 与口令绝不入库：keystore 实体、口令、alias 均在仓库外
+# D:\workspace\thomas\.keystores\m3-release\（keystore.properties + starfall-release.keystore），
+# 导出脚本 tools/export_android.cmd 运行期经 GODOT_ANDROID_KEYSTORE_RELEASE_* 环境变量注入
+.keystores/
+# Android gradle 构建模板整目录不入库：android/build 为机器级引导产物（export_templates
+# 的 android_source.zip 解压 + .build_version 版本戳，等效编辑器「安装 Android 构建模板」），
+# 207MB；重建步骤见 docs/superpowers/reports/m3-android-export.md
+/android/
+
 /reports/
 .worktrees/
 __pycache__/
