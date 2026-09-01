@@ -360,7 +360,7 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	EventBus.player_hit_resolved.emit(actual, fatal, resolved)
 	EventBus.player_damaged.emit(actual, fatal)   # 旧两参契约仍只发一次
 	Telemetry.log_row(["hurt", frame, actual, hp])   # m1-t18：hurt 行收口至玩家受击路径（原 training_room 本地行）
-	Fx.on_player_hurt(self, actual)
+	Fx.on_player_hurt(self, actual, ctx.get("from", global_position))   # from → J6 方向指示（D-3b）
 	_reflect_thorns(ctx)                             # m2-t35：荆棘护甲接触反伤（命中结算后）
 
 ## m2-t35 荆棘护甲：被接触（source_type "contact"）时对来敌反伤 thorns_contact_dmg。

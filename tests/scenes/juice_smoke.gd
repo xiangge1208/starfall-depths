@@ -6,7 +6,8 @@ extends Node
 ##      hitstop_enabled=false → 冻结/击杀链 no-op 但伤害数字照常；
 ##      screen_shake=0 → 相机 offset/rotation 恒零但跟随不丢；
 ##      粒子预算降级 → ≥200 活跃自动降级为单帧（图仍在，信息保留）且回落自动恢复；
-##      vibration=false → 设置落盘（消费端链路核对归报告：headless 本就无振动 API 调用点）；
+##      vibration=false → 设置落盘（消费端接线补课后由 §7 直接机检：headless 经注入口
+##      验证调用链，平台门控使真实 API 在无头/桌面零调用）；
 ##   ③ 全关组合：四开关全关同拍打命中管线 → 伤害数字/火花/命中判定零错误零缺失；
 ##   ④ 设置面板 UI → SaveSystem → 消费端三段接线（真实控件驱动 HitstopToggle /
 ##      VibrationToggle，写档并翻转 Fx 门控）；
@@ -15,7 +16,8 @@ extends Node
 ##   ⑦ D-1 振动消费端：受击 30ms / Boss 死亡 80ms 触发、vibration 开关门控、
 ##      平台能力门控（headless 无注入口不裸调振动 API）；
 ##   ⑧ D-2：Boss 死亡演出链期间连按攻击键（fire/touch_fire）快进——非演出期零误触发；
-##   ⑨ D-3a：玩家死亡去饱和渐入 0.4s（真实毫秒推进、hitstop off 不启动、cancel 清理）；
+##   ⑨ D-3a/D-3c：玩家死亡去饱和渐入 0.4s（真实毫秒推进、hitstop off 不启动、
+##      cancel 清理）；Boss 战利品挂起延迟喷出（loot 段/快进补发，链缺席同步照旧）；
 ##   ⑩ D-3b/D-4：受击方向 8px 弧形几何与 0.2s 淡出（无方向不画弧裁定）、
 ##      低血呼吸参数对齐规格 §J6。
 ## 边界披露：打击感主观项（"爽不爽"、晕动观感、音高可闻度）不在此测，归 G-1 试玩员；
@@ -70,6 +72,10 @@ func _run() -> void:
 	await _section_vibration_consumer()
 	print("SMOKE 8: boss-death skip wiring (D-2)")
 	await _section_boss_death_skip()
+	print("SMOKE 9: death desat fade-in + loot delay (D-3a/D-3c)")
+	await _section_death_desat_and_loot()
+	print("SMOKE 10: hit direction arc + low-hp breath params (D-3b/D-4)")
+	await _section_hit_arc_and_breath()
 
 	_restore_settings()
 	print("SMOKE DONE: %s (%d checks failed)" % ["OK" if failures.is_empty() else "FAILED",
@@ -376,6 +382,97 @@ func _section_boss_death_skip() -> void:
 	await _frames(1)
 
 
+# ================================================================ ⑨ D-3a 去饱和 + D-3c 掉落延迟
+
+func _section_death_desat_and_loot() -> void:
+	# 前台门注入（同 visible_world_rect_provider 模式）：无头走 request_player_death 全路径
+	Fx.gameplay_scene_gate = func() -> bool: return true
+	# hitstop off → 链 no-op → 去饱和不启动（演出整体跳过口径一致）
+	SaveSystem.set_setting("hitstop_enabled", false)
+	Fx.request_player_death()
+	_check(not Fx.death_desat_active(),
+		"D-3a: hitstop_enabled=false -> no desat layer (performance skipped)")
+	SaveSystem.set_setting("hitstop_enabled", true)
+	# 链接管 → 去饱和层在场，渐入自 ~0 起按真实毫秒推进（time_scale 0.3 不拉长）
+	Fx.request_player_death()
+	_check(Fx.death_desat_active() and Fx.death_desat_progress() < 0.2,
+		"D-3a: request_player_death arms desat layer at ~0 progress")
+	await _real_seconds(0.14)
+	var mid := Fx.death_desat_progress()
+	_check(mid > 0.05 and mid < 0.95,
+		"D-3a: desat fades in over real ms (spec 0.4s, slow-mo does not stretch it)")
+	await _real_seconds(0.5)
+	_check(Fx.death_desat_progress() >= 1.0,
+		"D-3a: desat completes at 400ms (player_death_desat_ms from balance)")
+	Fx.cancel_hitstop()
+	_check(not Fx.death_desat_active(),
+		"D-3a: cancel_hitstop cleans desat layer (boundary hygiene)")
+	# D-3c：链活跃时掉落挂起、不立即喷出；快进补发恰一次；链缺席拒绝挂起（同步照旧）
+	var d = Fx._director
+	d.request_boss_death(Time.get_ticks_msec())
+	var loot_at: Array[int] = []
+	_check(Fx.defer_boss_loot(func() -> void: loot_at.append(Engine.get_physics_frames())),
+		"D-3c: defer_boss_loot accepted while boss chain active")
+	await _frames(2)
+	_check(loot_at.is_empty(), "D-3c: deferred loot not fired synchronously (300ms delay armed)")
+	Input.action_press("fire")             # 快进（D-2 接线路径）：loot 段回调补发不吞事件
+	await _frames(2)
+	Input.action_release("fire")
+	await _frames(1)
+	_check(loot_at.size() == 1, "D-3c: skipped chain flushes pending loot exactly once")
+	_check(not Fx.defer_boss_loot(func() -> void: loot_at.append(-1)),
+		"D-3c: defer_boss_loot rejected when no chain (sync fallback unchanged)")
+	Fx.gameplay_scene_gate = Callable()
+	Fx.cancel_hitstop()
+	await _frames(1)
+
+
+# ================================================================ ⑩ D-3b 方向指示 + D-4 呼吸参数
+
+func _section_hit_arc_and_breath() -> void:
+	var player: Player = (PLAYER_SCENE as PackedScene).instantiate() as Player
+	add_child(player)
+	await _frames(1)
+	# 方向几何：来源在右 → 弧朝 0rad；来源在上 → -PI/2（方向取自伤害事件 ctx.from）
+	Fx.on_player_hurt(player, 4, player.global_position + Vector2(20.0, 0.0))
+	var arcs := _hit_arcs(player)
+	_check(arcs.size() == 1 and absf(arcs[0].dir.angle()) < 0.01,
+		"D-3b: hurt from right spawns one arc pointing right (angle 0)")
+	Fx.on_player_hurt(player, 4, player.global_position + Vector2(0.0, -20.0))
+	arcs = _hit_arcs(player)
+	_check(arcs.size() == 2 and absf(arcs[1].dir.angle() + PI / 2.0) < 0.01,
+		"D-3b: hurt from above -> arc angle -PI/2 (source direction from damage event)")
+	# 无方向裁定（规格未定义，取「不误导」并记录 checklist §6）：缺 from / 与玩家重合 → 不画弧
+	Fx.on_player_hurt(player, 4)
+	Fx.on_player_hurt(player, 4, player.global_position)
+	_check(_hit_arcs(player).size() == 2,
+		"D-3b: directionless sources (missing/coincident env damage) spawn no arc")
+	# 几何与淡出：8px 半径、0.2s 线性淡出、到时自毁
+	_check(is_equal_approx(HitArc.RADIUS, 8.0) and is_equal_approx(HitArc.FADE_SECONDS, 0.2),
+		"D-3b: arc geometry per spec (8px radius, 0.2s fade-out)")
+	arcs[0]._process(0.1)
+	_check(absf(arcs[0].fade_alpha() - 0.5) < 0.02,
+		"D-3b: arc fades linearly (alpha ~0.5 at half lifetime)")
+	arcs[0]._process(0.1)
+	_check(arcs[0].is_queued_for_deletion(),
+		"D-3b: arc self-frees at 0.2s (fade-out lifetime)")
+	Fx.trauma = 0.0
+	player.queue_free()
+	await _frames(1)
+	# D-4：低血呼吸参数对齐规格 §J6（0.8s 周期正弦，alpha 0.15~0.35）
+	_check(HUD.BREATH_ALPHA_MIN == 0.15 and HUD.BREATH_ALPHA_MAX == 0.35
+		and is_equal_approx(HUD.BREATH_HALF_SEC * 2.0, 0.8),
+		"D-4: low-hp breath aligned to spec J6 (0.8s cycle, alpha 0.15~0.35)")
+
+
+func _hit_arcs(player: Node2D) -> Array[HitArc]:
+	var out: Array[HitArc] = []
+	for c in player.get_children():
+		if c is HitArc:
+			out.append(c as HitArc)
+	return out
+
+
 # ================================================================ helpers
 
 func _restore_settings() -> void:
@@ -393,3 +490,8 @@ func _check(ok: bool, label: String) -> void:
 func _frames(n: int) -> void:
 	for _i in n:
 		await get_tree().process_frame
+
+## 真实毫秒等待（ignore_time_scale 定时器）：玩家死亡慢速段（time_scale 0.3）下
+## 计量去饱和渐入用——与导演链/Fx 渐入同钟（墙钟）。
+func _real_seconds(s: float) -> void:
+	await get_tree().create_timer(s, true, false, true).timeout

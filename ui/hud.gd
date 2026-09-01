@@ -11,6 +11,11 @@ extends CanvasLayer
 ## 无 rig（纯逻辑测试/极端剥离）时回退 RunState.weapons（record_weapon 聚合值）。
 
 const LOW_HP_THRESHOLD := 2         # GDD §19：hp ≤ 2 红晕呼吸
+## J6 呼吸参数（Juice v2 规格 §2 J6 字面；J-D 缺口 D-4 对齐——原实现 0.12↔0.38 /
+## 1.4s 周期偏差已收回规格带内）：0.8s 周期正弦，alpha 0.15~0.35。
+const BREATH_ALPHA_MIN := 0.15
+const BREATH_ALPHA_MAX := 0.35
+const BREATH_HALF_SEC := 0.4        # 半程 0.4s → 全周期 0.8s（规格字面）
 const WEAPON_SLOTS := 2             # 同 RunState.WEAPON_SLOTS / WeaponRig 双槽契约
 
 const HEART_SIZE := Vector2(6, 6)
@@ -189,17 +194,18 @@ func _process(_delta: float) -> void:
 
 func _build_vignette() -> void:
 	_vignette = ColorRect.new()
-	_vignette.color = Color(0.75, 0.05, 0.05, 0.12)
+	_vignette.color = Color(0.75, 0.05, 0.05, BREATH_ALPHA_MIN)
 	_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_vignette)
 	_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-## 红晕呼吸：alpha 0.12 ↔ 0.38 正弦往返（常驻循环 tween，显隐由 visible 控制）。
+## 红晕呼吸：alpha 0.15 ↔ 0.35 正弦往返（0.8s 周期，规格 §2 J6 字面；常驻循环 tween，
+## 显隐由 visible 控制）。
 func _start_breath_tween() -> void:
 	var tw := create_tween().set_loops()
-	tw.tween_property(_vignette, "color:a", 0.38, 0.7) \
+	tw.tween_property(_vignette, "color:a", BREATH_ALPHA_MAX, BREATH_HALF_SEC) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(_vignette, "color:a", 0.12, 0.7) \
+	tw.tween_property(_vignette, "color:a", BREATH_ALPHA_MIN, BREATH_HALF_SEC) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func _build_top_left() -> void:
