@@ -73,6 +73,12 @@ var last_chosen_hero: String = ""    # 与 HeroSelect.last_chosen 静态暂存�
 ## 注入当日两因子 mods 的合并（键互不相交，见 TrialSystem.pick_mods）。
 var mods: Dictionary = {}
 var is_trial_run: bool = false       # M3-R-A 本局是否每日试炼局（种子 = 当日 trial_seed）
+## M3-R-B 本局因子 id（升序，start_trial_run 存 pick_factors 结果；HUD 角标/结算显示用，
+## 消费侧禁散读 trials.json——展示文案经 GameDB.trials 按 id 查行）；start_run 复位。
+var trial_factors: Array[String] = []
+## M3-R-B 试炼转让（面板「开始」→ 选角 → 试炼局）：arm_trial 挂日期，select_hero 消费
+## 即清并转 start_trial_run——hero_select 零改动即接入试炼流程。
+var pending_trial_date := ""
 
 func start_run(hero: String) -> void:
 	# GDD §9.1「玩家点击时刻」：开局种子允许非确定源——**全代码库仅此处**可用
@@ -97,6 +103,8 @@ func start_run(hero: String) -> void:
 	forge_upgrades = 0
 	mods = {}                            # M3-R-A 试炼 mods 不残留到普通局
 	is_trial_run = false
+	trial_factors.clear()                # M3-R-B 因子角标数据不残留；迟到 pending 一并清除
+	pending_trial_date = ""
 
 ## 每日试炼开局（M3-R-A）：先 start_run（复位全字段 + 消费其复位逻辑）→ 覆写种子为
 ## 当日 trial_seed 并重新激活 RngSvc → is_trial_run + mods 单点注入（当日两因子 mods
@@ -110,12 +118,26 @@ func start_trial_run(hero: String, date_str: String) -> void:
 	RngSvc.setup_run(run_seed)
 	is_trial_run = true
 	mods = trial.pick_mods(date_str)
+	trial_factors = trial.pick_factors(date_str)   # M3-R-B 展示用因子 id（升序快照）
 
 ## 选角钩子（T11 守卫契约：HeroSelect 探测 /root/RunState 后调用）= start_run 的别名：
 ## 选角即开局——玩家点击选卡时刻就是 GDD §9.1 的种子激活时刻，故此处直接全程启动；
 ## T23 场景路由只需读 RunState.run_seed / hero_id，无需再补调 start_run。
+## M3-R-B 转让分支：试炼面板已 arm（pending 非空）→ 消费并走 start_trial_run（hero_select
+## 零改动接入试炼流程）；消费即清（start_trial_run→start_run 亦兜底清除）。
 func select_hero(id: String) -> void:
+	if not pending_trial_date.is_empty():
+		var date := pending_trial_date
+		pending_trial_date = ""
+		start_trial_run(id, date)
+		return
 	start_run(id)
+
+
+## M3-R-B 试炼面板「开始」挂钩：仅挂起今日业务日（由面板经 TrialSystem.today_date()
+## 取得，墙钟豁免口径同 start_trial_run）；实际开局延后到选角（select_hero 消费）。
+func arm_trial(date_str: String) -> void:
+	pending_trial_date = date_str
 
 ## 楼层推进：floor_idx+1 并按 GDD §14.1 结算蓝晶（过第 N 层在进入 N+1 层时给
 ## FLOOR_GEMS[min(N-1,2)]：1→2 给 60，2→3 给 120，其后封顶 200）。

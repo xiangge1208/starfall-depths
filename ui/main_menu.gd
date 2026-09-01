@@ -18,10 +18,12 @@ const SETTING_AUTO_AIM := "auto_aim"
 const SETTING_TOUCH_CONTROLS := "touch_controls"
 
 const SETTINGS_PANEL_SCENE := preload("res://ui/settings_panel.tscn")   # m3-sa：独立设置面板
+const TRIAL_PANEL_SCENE := preload("res://ui/trial_panel.tscn")         # m3-rb：试炼面板
 
 var save_system: Node = null   # 测试注入缝（临时路径档）；_ready 兜底探测 /root/SaveSystem
 var _router: Node = null       # /root/SceneRouter 探测缓存（守卫同 T11 选角卡手法）
 var _settings_panel: SettingsPanelUI = null   # m3-sa：新设置面板（初始隐藏，返回键只隐藏不销毁）
+var _trial_panel: TrialPanelUI = null         # m3-rb：试炼面板（初始隐藏，返回键只隐藏）
 
 func _ready() -> void:
 	if save_system == null:
@@ -48,6 +50,19 @@ func _ready() -> void:
 	talents_btn.disabled = false
 	talents_btn.text = "天 赋"
 	talents_btn.pressed.connect(_on_talents_pressed)
+	# m3-rb：试炼入口（main_menu.tscn 禁改 → 运行时构建按钮加入 $Menu，尺寸/字号对齐
+	# 既有按钮排，同 CodexBtn 灰钮点亮手法；插「开 始」之下，入口优先级次高）
+	var trial_btn := Button.new()
+	trial_btn.text = "试 炼"
+	trial_btn.custom_minimum_size = Vector2(140, 18)
+	trial_btn.add_theme_font_size_override("font_size", 11)
+	$Menu.add_child(trial_btn)
+	$Menu.move_child(trial_btn, 1)
+	trial_btn.pressed.connect(_on_trial_pressed)
+	# m3-rb：挂接试炼面板（覆盖层同 settings_panel 挂法，初始隐藏；键盘/触屏同源）
+	_trial_panel = TRIAL_PANEL_SCENE.instantiate() as TrialPanelUI
+	if _trial_panel != null:
+		add_child(_trial_panel)
 	var slider: HSlider = $SettingsPanel/Rows/ScreenShakeSlider
 	slider.value_changed.connect(_on_shake_changed)
 	$SettingsPanel/Rows/DamageNumbersToggle.toggled.connect(_on_damage_numbers_toggled)
@@ -85,6 +100,11 @@ func _on_codex_pressed() -> void:
 func _on_talents_pressed() -> void:
 	if _router != null:
 		_router.goto("talents")
+
+func _on_trial_pressed() -> void:
+	# m3-rb：试炼面板打开即刷新（日期/因子/今日最佳/历史）；「开 始」在面板内 arm+路由
+	if _trial_panel != null:
+		_trial_panel.open()
 
 func _on_settings_pressed() -> void:
 	# m3-sa：设置键改开独立面板（开合语义同旧内联面板）；旧面板退役强制隐藏

@@ -152,6 +152,7 @@ var _slot_panels: Array[PanelContainer] = []
 var _slot_labels: Array[Label] = []
 var _skill_ring: CdRing
 var _roll_dot: ColorRect
+var _trial_badges: TrialPanelUI.FactorBadges = null   # M3-R-B 试炼因子角标（层数旁）
 var _style_normal: StyleBoxFlat
 var _style_active: StyleBoxFlat
 var _hearts_count := -1
@@ -236,6 +237,8 @@ func _build_top_right() -> void:
 	col.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	col.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_floor_label = _hud_label(col, "第 0 层")
+	_trial_badges = TrialPanelUI.FactorBadges.new()   # M3-R-B 试炼因子角标（层数旁，零稳态分配）
+	col.add_child(_trial_badges)
 	_seed_label = _hud_label(col, "种子 0")
 	_seed_label.modulate = Color(1, 1, 1, 0.6)
 	_coin_label = _hud_label(col, "金币 0")
@@ -342,6 +345,7 @@ func _apply_top_right(snap: Dictionary) -> void:
 	_floor_label.text = "第 %d 层" % int(snap["floor_idx"])
 	_seed_label.text = "种子 %d" % int(snap["run_seed"])
 	_coin_label.text = "金币 %d" % int(snap["coins"])
+	_trial_badges.sync(run)   # M3-R-B：试炼局两枚因子图标（tooltip=名称：文案），非试炼零开销
 
 func _apply_bottom(snap: Dictionary) -> void:
 	var names: Array[String] = snap["weapon_names"]
