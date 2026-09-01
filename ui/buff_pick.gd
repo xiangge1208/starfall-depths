@@ -59,9 +59,9 @@ func _fill_cards() -> void:
 		var box := VBoxContainer.new()
 		box.add_theme_constant_override("separation", 2)
 		card.add_child(box)
-		box.add_child(_label("[%d] %s" % [i + 1, info.get("name", "?")], 10))
-		box.add_child(_label(str(RARITY_TAGS.get(info.get("rarity", ""), "?")), 8, col))
-		var desc := _label(str(info.get("desc", "")), 8)
+		box.add_child(_label("[%d] %s" % [i + 1, info.get("name", "?")], 12))
+		box.add_child(_label(str(RARITY_TAGS.get(info.get("rarity", ""), "?")), 12, col))
+		var desc := _label(str(info.get("desc", "")), 12)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.custom_minimum_size = Vector2(CARD_MIN.x - 12.0, 0)
 		desc.size_flags_vertical = Control.SIZE_EXPAND_FILL

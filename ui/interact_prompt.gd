@@ -7,7 +7,7 @@ const LIFT_PX := 16.0
 
 func _init() -> void:
 	z_index = 50                              # 压过地板/实体绘层
-	add_theme_font_size_override("font_size", 8)
+	add_theme_font_size_override("font_size", 12)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 ## 绑定目标：文案 = action_label，水平居中悬于目标上方（null 视为 clear）。

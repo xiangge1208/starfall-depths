@@ -43,6 +43,10 @@ window/stretch/scale_mode="integer"
 
 enabled=PackedStringArray("gdUnit4")
 
+[gui]
+
+theme/custom="res://ui/m3_theme.tres"
+
 [input]
 
 move_left={

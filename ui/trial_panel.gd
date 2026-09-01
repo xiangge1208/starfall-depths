@@ -101,10 +101,10 @@ func _make_factor_card(info: Dictionary) -> HBoxContainer:
 	var col := VBoxContainer.new()
 	var name_label := Label.new()
 	name_label.text = String(info["name"])
-	name_label.add_theme_font_size_override("font_size", 9)
+	name_label.add_theme_font_size_override("font_size", 12)
 	var desc_label := Label.new()
 	desc_label.text = String(info["desc"])
-	desc_label.add_theme_font_size_override("font_size", 8)
+	desc_label.add_theme_font_size_override("font_size", 12)
 	desc_label.modulate = Color(1, 1, 1, 0.72)
 	col.add_child(name_label)
 	col.add_child(desc_label)
@@ -133,7 +133,7 @@ func _fill_history(rows: Array) -> void:
 func _history_cell(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 8)
+	l.add_theme_font_size_override("font_size", 12)
 	return l
 
 

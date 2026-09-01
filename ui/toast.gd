@@ -67,10 +67,10 @@ func _build_label(text: String) -> Label:
 	label.text = text
 	label.custom_minimum_size = Vector2(WIDTH, LINE_HEIGHT - 4.0)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	label.add_theme_font_size_override("font_size", 15)
+	label.add_theme_font_size_override("font_size", 12)
 	label.add_theme_color_override("font_color", Color(0.92, 0.95, 1.0))
 	label.add_theme_color_override("font_outline_color", Color(0.05, 0.07, 0.12, 0.9))
-	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_constant_override("outline_size", 2)
 	return label
 
 

@@ -291,11 +291,11 @@ func _build_ui() -> void:
 		box.add_theme_constant_override("separation", 2)
 		card.add_child(box)
 		var name_l := Label.new()
-		name_l.add_theme_font_size_override("font_size", 10)
+		name_l.add_theme_font_size_override("font_size", 12)
 		box.add_child(name_l)
 		_mat_name_labels.append(name_l)
 		var rarity_l := Label.new()
-		rarity_l.add_theme_font_size_override("font_size", 10)
+		rarity_l.add_theme_font_size_override("font_size", 12)
 		box.add_child(rarity_l)
 		_mat_rarity_labels.append(rarity_l)
 	_preview = $UILayer/UI/Center/Panel/VBox/Preview
