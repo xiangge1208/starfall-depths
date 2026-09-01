@@ -150,14 +150,21 @@ func _merge_daily_best(table: Dictionary, rec: Dictionary) -> void:
 	}
 
 
-## 落盘（紧凑 JSON）。写失败 push_error 返回 false（fail-soft：丢一写不崩进程）。
+## 落盘（紧凑 JSON）。原子写（M3-R-C 移交①，对齐 SaveSystem.save_now 手法）：tmp 写完
+## flush 后 rename 覆盖目标——进程任意时刻死掉最多留下 .tmp 残骸，records 本体要么是
+## 旧表要么是新表，不会写半截。写失败 push_error 返回 false（fail-soft：丢一写不崩进程）。
 func _save(table: Dictionary) -> bool:
-	var f := FileAccess.open(records_path, FileAccess.WRITE)
+	var tmp := records_path + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
 		_fail("write failed")
 		return false
 	f.store_string(JSON.stringify(table))
-	f = null
+	f.flush()
+	f = null   # 先落引用再改名（Windows 上打开中的文件不可 rename）
+	if DirAccess.rename_absolute(tmp, records_path) != OK:
+		_fail("rename failed")
+		return false
 	return true
 
 

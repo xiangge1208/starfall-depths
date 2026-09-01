@@ -12,8 +12,8 @@ extends Control
 ## main_menu.tscn 是否存在回落（同 DeathSummary 手法）。测试经 exit_override 接缝
 ## 注入，不真跳场景。
 ##
-## 【蓝晶口径】RunState 只读消费（本卡不改 run_state.gd）：胜利全额 = RunState.gems
-## 整额，消费后写零防重复领取；T32 蓝晶结算收口时如增 settle_victory_gems() 可平移。
+## 【蓝晶口径】胜利一次性消费经 RunState.settle_victory_gems()（M3-R-C 已平移于此：
+## 普通局全额，试炼局 ×1.5 向下取整；消费即归零防重复领取）。
 
 signal dismissed
 
@@ -49,7 +49,9 @@ func _fill() -> void:
 		int(summary.get("hurt_count", 0)), int(summary.get("peak_dps", 0)),
 		RunState.buffs.size(), _weapons_text(),
 	]
-	$Panel/Box/Gems.text = "蓝晶结算：+%d（通关全额入账）" % RunState.gems
+	# M3-R-C：试炼局倍率明细行（基础 X × 1.5 = Y）；普通局文案不变
+	$Panel/Box/Gems.text = TrialPanelUI.settlement_gems_line(RunState.gems, false) \
+		if RunState.is_trial_run else "蓝晶结算：+%d（通关全额入账）" % RunState.gems
 	$Panel/Box/Preview.text = "更多内容与试炼模式即将开放"
 	$Panel/Box/Hint.text = "—— 按任意键返回 ——"
 
@@ -89,13 +91,13 @@ func _confirm() -> void:
 	if _confirmed:
 		return
 	_confirmed = true
-	var awarded := RunState.gems            # GDD §14：胜利全额（死亡口径为 50%）
-	RunState.gems = 0                       # 本局待结算蓝晶消费归零（防重复领取）
+	var awarded := RunState.settle_victory_gems()   # M3-R-C：胜利一次性消费（试炼 ×1.5 floored；普通局全额）防重归零
 	if awarded > 0:
 		SaveSystem.add_gems(awarded)
 	var codex: Node = get_node_or_null("/root/CodexSystem")
 	if codex != null and codex.has_method("persist_counters"):
 		codex.persist_counters()
+	TrialPanelUI.settlement_record(awarded, true)   # M3-R-C：试炼局 records + trial_completed（普通局无操作）
 	DeathRecorder.reset()
 	dismissed.emit()
 	_exit_to_menu()

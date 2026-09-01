@@ -106,6 +106,7 @@ func _init_settings_controls() -> void:
 # ---- 按键 handlers（接线在 _ready；路由守卫：SceneRouter 缺席时不动作不崩）----
 
 func _on_start_pressed() -> void:
+	RunState.pending_trial_date = ""   # M3-R-C 移交③：普通开始清迟到试炼 arm（防选角转让劫持）
 	if _router != null:
 		_router.goto("hero_select")
 

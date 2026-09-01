@@ -96,7 +96,9 @@ func _fill() -> void:
 		else str(int(fatal_event.get("remaining_hp", 0)))
 	var roll_text := "可用" if bool(fatal_event.get("roll_available", false)) else "不可用"
 	$Panel/Box/Cause.text += "\n致死后剩余生命：%s　当时翻滚：%s" % [hp_text, roll_text]
-	$Panel/Box/Gems.text = "蓝晶结算：+%d（死亡保留 50%%）" % _gems_awarded()
+	# M3-R-C：试炼局倍率明细行（保底 75% 口径，覆盖报告 50% 快照）；普通局文案不变
+	$Panel/Box/Gems.text = TrialPanelUI.settlement_gems_line(_stats_gems(), true) \
+		if RunState.is_trial_run else "蓝晶结算：+%d（死亡保留 50%%）" % _gems_awarded()
 	$Panel/Box/Hint.text = "—— 按任意键返回 ——"
 
 func _format_time(seconds: float) -> String:
@@ -109,6 +111,11 @@ func _gems_awarded() -> int:
 	if stats.has("gems_awarded"):
 		return int(stats["gems_awarded"])
 	return int(floor(int(stats.get("gems", RunState.gems)) / 2.0))
+
+## 报告快照的待结算池（M3-R-C 试炼倍率明细行的「基础 X」；缺 stats 回落现值）。
+func _stats_gems() -> int:
+	var stats: Dictionary = _report.get("stats", {})
+	return int(stats.get("gems", RunState.gems))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _replay_state != ReplayState.IDLE:
@@ -149,6 +156,7 @@ func _confirm() -> void:
 	var codex: Node = get_node_or_null("/root/CodexSystem")
 	if codex != null and codex.has_method("persist_counters"):
 		codex.persist_counters()
+	TrialPanelUI.settlement_record(awarded, false)   # M3-R-C：试炼局 records + trial_completed（普通局无操作）
 	DeathRecorder.reset()
 	dismissed.emit()
 	_exit_to_menu()
