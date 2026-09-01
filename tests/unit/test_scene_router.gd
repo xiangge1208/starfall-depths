@@ -179,9 +179,9 @@ func test_menu_settings_roundtrip_via_save_system() -> void:
 	var menu: Control = auto_free(load(MENU_SCENE).instantiate())
 	menu.save_system = fresh                 # _ready 前注入 → 控件初值从该档读
 	add_child(menu)
-	# 控件初值 = 默认档
+	# 控件初值 = 默认档（m3-jb：J2 晕动防线 screen_shake 默认档 50%）
 	assert_float((menu.get_node("SettingsPanel/Rows/ScreenShakeSlider") as HSlider).value) \
-		.is_equal_approx(1.0, 0.0001)
+		.is_equal_approx(0.5, 0.0001)
 	assert_bool((menu.get_node("SettingsPanel/Rows/DamageNumbersToggle") as CheckButton).button_pressed).is_true()
 	assert_bool((menu.get_node("SettingsPanel/Rows/ColorblindToggle") as CheckButton).button_pressed).is_false()
 	assert_bool((menu.get_node("SettingsPanel/Rows/AutoAimToggle") as CheckButton).button_pressed).is_true()
