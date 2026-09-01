@@ -16,6 +16,9 @@ extends Node
 ##   SALT_EVENT("event")          楼层事件/房间抽取（宝箱、事件选项等）
 ##   SALT_FORGE("forge")          熔铸台通用升级随机产物（m2-t25）
 ##   SALT_ELITE("elite")          精英房词缀楼层递进掷签（m2-audit，§12.3）
+##   SALT_TRIAL("trial")          每日试炼因子抽取（M3-R-A；抽取流种子精确复刻
+##                                派生链于 run_seed=trial_seed、floor_idx=0，
+##                                等价性由 test_trial_system 钉死）
 ##
 ## 调用时序契约：**RunState.start_run() 必须先于本局任何地牢构建 / 战斗发生**。
 ## T7 的 DungeonBuilder.build(seed, floor_idx) 仍是纯函数（rng 内部自派生，签名不变）：
@@ -33,6 +36,7 @@ const SALT_INTER_FLOOR := "inter_floor"
 const SALT_EVENT := "event"
 const SALT_FORGE := "forge"                # m2-t25 熔铸台（通用升级掷签独立盐）
 const SALT_ELITE := "elite"                # m2-audit 精英房词缀递进（A1 无/A2 一/A3 二）
+const SALT_TRIAL := "trial"                # M3-R-A 每日试炼因子抽取（trial_seed 派生链盐）
 const FLOOR_GEMS := [60, 120, 200]   # GDD §14.1 每层通过蓝晶结算
 ## m2-t31 击杀蓝晶档位（GDD §14 允许口径）：精英 +5 / 小 Boss +20 / Boss +50；
 ## Boss 首杀再 +300（SaveSystem.boss_first_kills 无该 boss 记录时，击杀即标记入档
@@ -64,6 +68,11 @@ var beggar_paid_floor: int = 0       # 乞丐付款层号（T19 declare-only；0
 var star_spring_used: bool = false   # 星髓泉每局一次守卫（T19 declare-only；start_run 重置在整合任务接线）
 var forge_upgrades: int = 0          # 本局熔铸通用升级已用次数（m2-t25；上限 ForgeLogic.UPGRADE_LIMIT_PER_RUN）
 var last_chosen_hero: String = ""    # 与 HeroSelect.last_chosen 静态暂存同口径（T11 接缝）
+## M3-R-A 试炼因子修改器（单点注入）：全系统消费侧只读本字段（键 = trials.json mods
+## 白名单），禁止散读 data/trials.json。普通局恒空 {}；试炼局由 start_trial_run
+## 注入当日两因子 mods 的合并（键互不相交，见 TrialSystem.pick_mods）。
+var mods: Dictionary = {}
+var is_trial_run: bool = false       # M3-R-A 本局是否每日试炼局（种子 = 当日 trial_seed）
 
 func start_run(hero: String) -> void:
 	# GDD §9.1「玩家点击时刻」：开局种子允许非确定源——**全代码库仅此处**可用
@@ -86,6 +95,21 @@ func start_run(hero: String) -> void:
 	beggar_paid_floor = 0
 	star_spring_used = false
 	forge_upgrades = 0
+	mods = {}                            # M3-R-A 试炼 mods 不残留到普通局
+	is_trial_run = false
+
+## 每日试炼开局（M3-R-A）：先 start_run（复位全字段 + 消费其复位逻辑）→ 覆写种子为
+## 当日 trial_seed 并重新激活 RngSvc → is_trial_run + mods 单点注入（当日两因子 mods
+## 按 id 升序合并，TrialSystem.pick_mods）。种子不含角色 id：同日所有人同布局（§2）。
+## date_str 由调用方经 TrialSystem.today_date() 取得——全代码库唯一墙钟豁免点
+## （试炼入口读系统日期，元游戏调度）；种子写入后一切随机走 RngSvc 种子链。
+func start_trial_run(hero: String, date_str: String) -> void:
+	start_run(hero)
+	var trial := TrialSystem.new()
+	run_seed = trial.daily_seed(date_str)
+	RngSvc.setup_run(run_seed)
+	is_trial_run = true
+	mods = trial.pick_mods(date_str)
 
 ## 选角钩子（T11 守卫契约：HeroSelect 探测 /root/RunState 后调用）= start_run 的别名：
 ## 选角即开局——玩家点击选卡时刻就是 GDD §9.1 的种子激活时刻，故此处直接全程启动；

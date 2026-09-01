@@ -173,6 +173,35 @@ const TALENT_KEY_MAX := {
 	"talent_gem_gain_pct": 0.10, "talent_coin_gain_pct": 0.10,
 	"talent_pickup_radius_pct": 0.30,
 }
+# 试炼因子（M3-R-A）：data/trials.json 契约（规格 §7）。数组形态（顶层标量 + factors
+# 数组）与 dict 键控表不同，走自定义装载器 _load_trials（对齐 _load_room_tables /
+# _finalize_talents 严谨度：任一标量/行校验失败 → load_ok=false 且整表拒收）。
+# 顶层标量为固定契约值（域外即拒收）：
+const TRIAL_VERSION := 1
+const TRIAL_REFRESH_HOUR := 5     # 本地时区 05:00 业务日刷新点（规格 §2）
+const TRIAL_PICK_PER_DAY := 2     # 每日抽取因子数（抽取后按 id 升序使用）
+const TRIAL_REWARD_GEM_MULT := 1.5
+# 8 条因子 id 白名单（规格 §3 表，顺序即策划案顺序）
+const TRIAL_FACTOR_IDS: Array[String] = [
+	"enemy_haste", "melee_drops", "energy_tax", "bullet_haste",
+	"bargain_ban", "narrow_vision", "elite_surge", "single_element",
+]
+# mods 键白名单（规格 §3 表 mods 键全集，消费侧 = RunState.mods）
+const TRIAL_MOD_KEYS: Array[String] = [
+	"enemy_speed_pct", "enemy_attack_speed_pct", "drop_melee_only",
+	"energy_cost_mult", "bullet_speed_pct", "shop_discount_pct",
+	"no_hearts", "vision_scale", "elite_bonus_pct", "force_element",
+]
+# 百分比键：数值域 (0, 100]
+const TRIAL_PCT_KEYS: Array[String] = [
+	"enemy_speed_pct", "enemy_attack_speed_pct", "bullet_speed_pct",
+	"shop_discount_pct", "elite_bonus_pct",
+]
+# §3 表定值键：数值必须精确等于表值（换值 = 换平衡口径，须改规格而非数据）
+const TRIAL_FIXED_VALUES := {"energy_cost_mult": 1.5, "vision_scale": 0.65}
+# 布尔键：真 bool（JSON true/false，防 1/0 数字混入）
+const TRIAL_BOOL_KEYS: Array[String] = ["drop_melee_only", "no_hearts"]
+const TRIAL_FORCE_ELEMENTS: Array[String] = ["random"]
 const ROOM_SIZE := [22, 14]   # A1 标准房间 22x14 格（x 0..21, y 0..13）
 const DOOR_TILES := {"N": [11, 0], "S": [11, 13], "E": [21, 7], "W": [0, 7]}
 const ROOM_TILE_PX := 16        # 格坐标转像素
@@ -200,6 +229,7 @@ var buffs: Dictionary = {}
 var heroes: Dictionary = {}
 var drinks: Dictionary = {}
 var talents: Dictionary = {}
+var trials: Dictionary = {}         # 试炼因子表（id → 行 {id,name,desc,mods}；M3-R-A 正式接线）
 var load_ok := true
 
 func _ready() -> void:
@@ -219,6 +249,7 @@ func _ready() -> void:
 	drinks = _load_table(TABLES["drinks"], DRINK_SCHEMA, DRINK_OPTIONAL, validate_drink_row)
 	talents = _finalize_talents(_load_table(
 		TABLES["talents"], TALENT_SCHEMA, TALENT_OPTIONAL, validate_talent_row))
+	trials = _load_trials()
 	if not load_ok:
 		push_error("GameDB: data validation failed")
 		get_tree().quit(1)
@@ -644,6 +675,99 @@ func _finalize_talents(nodes: Dictionary) -> Dictionary:
 		push_error("GameDB talents: %s" % ", ".join(errors))
 		return {}
 	return nodes
+
+## 试炼因子表装载（M3-R-A）：数组形态（顶层标量 + factors 数组），与 dict 键控表不同，
+## 自定义装载器（对齐 _load_table / _finalize_talents 的 fail-closed 严谨度）：
+## 任一顶层标量或行校验失败 → load_ok = false 且整表拒收（返回 {}，_ready 据此 quit(1)）。
+## 行内未知键忽略（对齐 _load_table 既有惯例：只严格校验必需键）；mods 键严格白名单。
+func _load_trials(path := "res://data/trials.json") -> Dictionary:
+	var out: Dictionary = {}
+	if not FileAccess.file_exists(path):
+		load_ok = false
+		push_error("GameDB: missing %s" % path)
+		return out
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if parsed == null or typeof(parsed) != TYPE_DICTIONARY:
+		load_ok = false
+		push_error("GameDB: bad json %s" % path)
+		return out
+	var data: Dictionary = parsed
+	# 顶层标量固定契约值（规格 §7，域外即整表拒收；JSON 数字全 float → int() 还原比较）
+	if int(data.get("version", -1)) != TRIAL_VERSION:
+		return _reject_trials(path, "version must be %d" % TRIAL_VERSION)
+	if int(data.get("refresh_hour", -1)) != TRIAL_REFRESH_HOUR:
+		return _reject_trials(path, "refresh_hour must be %d" % TRIAL_REFRESH_HOUR)
+	if int(data.get("pick_per_day", -1)) != TRIAL_PICK_PER_DAY:
+		return _reject_trials(path, "pick_per_day must be %d" % TRIAL_PICK_PER_DAY)
+	if not is_equal_approx(float(data.get("reward_gem_multiplier", 0.0)), TRIAL_REWARD_GEM_MULT):
+		return _reject_trials(path, "reward_gem_multiplier must be %s" % str(TRIAL_REWARD_GEM_MULT))
+	# factors：恰 8 条（= 白名单大小），逐行语义校验 + id 唯一
+	var rows: Variant = data.get("factors")
+	if typeof(rows) != TYPE_ARRAY:
+		return _reject_trials(path, "factors must be array")
+	if (rows as Array).size() != TRIAL_FACTOR_IDS.size():
+		return _reject_trials(path, "factors must have exactly %d rows, got %d"
+			% [TRIAL_FACTOR_IDS.size(), (rows as Array).size()])
+	var seen := {}
+	for i: int in (rows as Array).size():
+		if typeof(rows[i]) != TYPE_DICTIONARY:
+			return _reject_trials(path, "factor[%d] not an object" % i)
+		var row: Dictionary = rows[i]
+		_deep_int_restore(row)   # JSON 数字全 float：整值还原（20 → int 20），float 契约键不动
+		var errs := validate_trial_row(row)
+		if not errs.is_empty():
+			return _reject_trials(path, "factor[%d]: %s" % [i, ", ".join(errs)])
+		var id := str(row["id"])
+		if seen.has(id):
+			return _reject_trials(path, "duplicate factor id: %s" % id)
+		seen[id] = true
+		out[id] = row
+	return out
+
+## 试炼表拒收（fail-closed 单点）：置 load_ok = false + 报错 + 空表。
+func _reject_trials(path: String, msg: String) -> Dictionary:
+	load_ok = false
+	push_error("GameDB %s: %s" % [path, msg])
+	return {}
+
+## 试炼因子行语义校验（M3-R-A），作为 _load_trials 的行级校验：
+## id ∈ 8 因子白名单；name/desc 非空 String；mods 非空且键 ⊆ 白名单；
+## 数值域同规格 §3 表（百分比 (0,100]；energy_cost_mult/vision_scale 为 §3 定值；
+## 布尔键真 bool；force_element ∈ ["random"]）。
+func validate_trial_row(row: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	var id: Variant = row.get("id")
+	if typeof(id) != TYPE_STRING or not TRIAL_FACTOR_IDS.has(id):
+		errors.append("bad factor id: %s" % str(id))
+	var name_v: Variant = row.get("name")
+	if typeof(name_v) != TYPE_STRING or (name_v as String).is_empty():
+		errors.append("name must be non-empty string")
+	var desc_v: Variant = row.get("desc")
+	if typeof(desc_v) != TYPE_STRING or (desc_v as String).is_empty():
+		errors.append("desc must be non-empty string")
+	var mods: Variant = row.get("mods")
+	if typeof(mods) != TYPE_DICTIONARY or (mods as Dictionary).is_empty():
+		errors.append("mods must be non-empty object")
+		return errors
+	for k: String in mods:
+		var v: Variant = mods[k]
+		if not TRIAL_MOD_KEYS.has(k):
+			errors.append("unknown mod key: %s" % k)
+		elif TRIAL_PCT_KEYS.has(k):
+			if (typeof(v) != TYPE_INT and typeof(v) != TYPE_FLOAT) \
+					or float(v) <= 0.0 or float(v) > 100.0:
+				errors.append("mod %s must be number in (0, 100]: %s" % [k, str(v)])
+		elif TRIAL_FIXED_VALUES.has(k):
+			if (typeof(v) != TYPE_INT and typeof(v) != TYPE_FLOAT) \
+					or not is_equal_approx(float(v), float(TRIAL_FIXED_VALUES[k])):
+				errors.append("mod %s must be %s" % [k, str(TRIAL_FIXED_VALUES[k])])
+		elif TRIAL_BOOL_KEYS.has(k):
+			if typeof(v) != TYPE_BOOL:
+				errors.append("mod %s must be bool" % k)
+		elif k == "force_element":
+			if typeof(v) != TYPE_STRING or not TRIAL_FORCE_ELEMENTS.has(v):
+				errors.append("mod force_element must be in %s" % str(TRIAL_FORCE_ELEMENTS))
+	return errors
 
 func _is_grid(v: Variant) -> bool:
 	return typeof(v) == TYPE_ARRAY and v.size() == 2 \
