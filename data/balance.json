@@ -26,6 +26,8 @@
     "shake_kill": 0.15,
     "combo_window_ms": 1200,
     "combo_pitch_step": 0.02,
-    "combo_pitch_max_steps": 6
+    "combo_pitch_max_steps": 6,
+    "vibration_hurt_ms": 30,
+    "vibration_boss_death_ms": 80
   }
 }

@@ -42,6 +42,11 @@ var _combo: ComboCounter = ComboCounter.new()
 ## M3 J-C：池化条带播放器（火花/枪口焰/碎片环）。启动建满常驻，热路径零分配；
 ## 挂本节点下继承 PROCESS_MODE_ALWAYS（hitstop 冻结期表现照常）。
 var particles: ParticlesPool = null
+## J6 振动消费端（D-1 补课）：设置键 vibration 的运行时读取方（消费模式同
+## screen_shake——消费方运行时 get_setting）。平台门控：规格「仅 Android 生效」，
+## 桌面/无头不裸调 Input.vibrate_handheld；测试注入口有效时视为具备能力
+## （headless 冒烟经此机检调用链）。
+var vibrate_api: Callable = Callable()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -169,6 +174,8 @@ static func _default_juice_params() -> Dictionary:
 		"combo_window_ms": 1200.0,
 		"combo_pitch_step": 0.02,
 		"combo_pitch_max_steps": 6.0,
+		"vibration_hurt_ms": 30.0,
+		"vibration_boss_death_ms": 80.0,
 	}
 
 ## 只对本卡新增键做「已知即校验类型」（数值型否则回落默认）；J-A 导演加载器对
@@ -216,6 +223,33 @@ func combo_pitch_step() -> float:
 func combo_pitch_max_steps() -> float:
 	return float(_params.get("combo_pitch_max_steps", 6.0))
 
+func vibration_hurt_ms() -> float:
+	return float(_params.get("vibration_hurt_ms", 30.0))
+
+func vibration_boss_death_ms() -> float:
+	return float(_params.get("vibration_boss_death_ms", 80.0))
+
+# ---- J6 振动消费端（D-1 补课；规格 §2 J6「受击 30ms / Boss 死亡 80ms，仅 Android 生效」）----
+
+## 平台能力：Android 特性在位才允许触真 API；测试注入口有效视为具备能力。
+## 桌面/无头在此早退——不裸调 Input.vibrate_handheld（无害 no-op 也不调，零噪音）。
+func vibration_supported() -> bool:
+	if vibrate_api.is_valid():
+		return true
+	return OS.has_feature("android")
+
+## 振动请求原语：开关（设置键 vibration，默认开）→ 平台能力双重门控后才调用。
+## 时长为表现层参数（balance.json juice 节唯一出处，fail-soft 回落规格默认）。
+func request_vibrate(ms: int) -> void:
+	if ms <= 0 or not bool(SaveSystem.get_setting("vibration", true)):
+		return
+	if not vibration_supported():
+		return
+	if vibrate_api.is_valid():
+		vibrate_api.call(ms)
+	else:
+		Input.vibrate_handheld(ms)
+
 # ---- J5 连击持有缝（命中音音高） ----
 
 ## 命中上报：远程结算点 / 近战命中缝调用（每有效命中一次）。连击窗口为表现层
@@ -241,6 +275,7 @@ func on_roll(player: Node2D) -> void:
 func on_player_hurt(player: Node2D, _amount: int) -> void:
 	shake("shake_player_hurt")   # J2 v2：来源表注入（+0.3）
 	_flash_item(_find_sprite(player), Color(1.0, 0.3, 0.3), FLASH_DECAY_PER_SEC)
+	request_vibrate(int(vibration_hurt_ms()))   # J6/D-1：受击短震 30ms（开关+平台双门控）
 
 func on_enemy_hit(enemy: Node2D, ctx: Dictionary) -> void:
 	if bool(ctx.get("telegraph", false)):
@@ -284,6 +319,9 @@ func request_boss_phase() -> void:
 ## Boss 死亡定格链（J7）。前台为工具/测试场景时不接管（同 DeathRecorder
 ## 前台门模式）：脑测/套件里 Boss 死亡不会冻结 GdUnit 树。
 func request_boss_death() -> void:
+	# J6/D-1：Boss 死亡振动 80ms——自有开关（vibration 键），不随演出链/前台门门控
+	#（链被总开关跳过时振动仍属受击反馈的一部分；门控内部化，桌面/无头天然 no-op）。
+	request_vibrate(int(vibration_boss_death_ms()))
 	if _director == null or not DeathRecorder.is_gameplay_scene_active():
 		return
 	# J2：Boss 死亡 trauma 1.0（J7 唯一例外值，读来源表）；须先注入再启链——
@@ -301,6 +339,24 @@ func request_player_death() -> void:
 func request_skip() -> void:
 	if _director != null:
 		_director.skip()
+
+## Boss 死亡演出链是否在跑（D-2 快进轮询 / D-3c 掉落挂起共用门控）：
+## 导演缺席或非 BOSS_DEATH 链 → false。
+func boss_death_chain_active() -> bool:
+	var d = _director
+	return d != null \
+		and (d as HitstopDirector).active_kind() == HitstopDirector.SeqKind.BOSS_DEATH
+
+## J7 快进输入接线（D-2 补课，fx.gd:300 注释自认缺口的兑现）：Boss 死亡演出链
+## 期间连按攻击键（既有 InputMap 动作 fire/touch_fire，不新增键位）跳过定格与慢速段
+## ——respect 老玩家节奏（规格 §2 J7「可被跳过」）。轮询式与 player_driver 同习语；
+## Fx 为 PROCESS_MODE_ALWAYS，冻结拍（树暂停）本函数照跑，首按即可跳过定格段。
+## 门控：仅 BOSS_DEATH 链活跃时消费——非演出期间零误触发（链 IDLE 时按键零副作用）。
+func _poll_boss_death_skip() -> void:
+	if not boss_death_chain_active():
+		return
+	if Input.is_action_just_pressed("fire") or Input.is_action_just_pressed("touch_fire"):
+		request_skip()
 
 # ---- J4 伤害数字 v2 常量与视野裁剪缝（Juice v2 §2 J4；表现参数为规格直译，收口归 J-D） ----
 
@@ -421,6 +477,7 @@ static func element_shape(element: int) -> String:
 func _process(delta: float) -> void:
 	if _director != null:
 		_director.tick(Time.get_ticks_msec())   # J-A：逐帧注入真实毫秒（热路径空闲即 O(1) 早退）
+	_poll_boss_death_skip()                     # J7/D-2：演出链期间连按攻击键快进
 	if _flash.is_empty():
 		return
 	var done: Array[int] = []

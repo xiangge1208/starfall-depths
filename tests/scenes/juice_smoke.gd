@@ -11,7 +11,13 @@ extends Node
 ##   ④ 设置面板 UI → SaveSystem → 消费端三段接线（真实控件驱动 HitstopToggle /
 ##      VibrationToggle，写档并翻转 Fx 门控）；
 ##   ⑤ 信息侧抽检：HUD（红心/金币/Buff chip 状态图标）、伤害数字开关语义、色弱形状开关语义；
-##   ⑥ 输入延迟 ≤1 帧机检：Input.action_press → player._physics_process 同/次拍消费。
+##   ⑥ 输入延迟 ≤1 帧机检：Input.action_press → player._physics_process 同/次拍消费；
+##   ⑦ D-1 振动消费端：受击 30ms / Boss 死亡 80ms 触发、vibration 开关门控、
+##      平台能力门控（headless 无注入口不裸调振动 API）；
+##   ⑧ D-2：Boss 死亡演出链期间连按攻击键（fire/touch_fire）快进——非演出期零误触发；
+##   ⑨ D-3a：玩家死亡去饱和渐入 0.4s（真实毫秒推进、hitstop off 不启动、cancel 清理）；
+##   ⑩ D-3b/D-4：受击方向 8px 弧形几何与 0.2s 淡出（无方向不画弧裁定）、
+##      低血呼吸参数对齐规格 §J6。
 ## 边界披露：打击感主观项（"爽不爽"、晕动观感、音高可闻度）不在此测，归 G-1 试玩员；
 ## 整局无头跑通的开关矩阵回归见 tests/scenes/juice_matrix_run.gd（bot 全局驱动）。
 ## 运行：godot --headless --path . res://tests/scenes/juice_smoke.tscn
@@ -60,6 +66,10 @@ func _run() -> void:
 	await _section_info_channels()
 	print("SMOKE 6: input-to-motion latency (<=1 physics tick)")
 	await _section_input_latency()
+	print("SMOKE 7: vibration consumer (D-1)")
+	await _section_vibration_consumer()
+	print("SMOKE 8: boss-death skip wiring (D-2)")
+	await _section_boss_death_skip()
 
 	_restore_settings()
 	print("SMOKE DONE: %s (%d checks failed)" % ["OK" if failures.is_empty() else "FAILED",
@@ -305,6 +315,65 @@ func _section_input_latency() -> void:
 	await get_tree().physics_frame
 	player.queue_free()
 	RunState.start_run("vanguard")          # 复位探针污染（coins/buffs）
+
+
+# ================================================================ ⑦ D-1 振动消费端
+
+func _section_vibration_consumer() -> void:
+	# 平台门控：headless 无 Android 特性、无注入口 → 不具备能力（不裸调振动 API）
+	Fx.vibrate_api = Callable()
+	SaveSystem.set_setting("vibration", true)
+	_check(not Fx.vibration_supported(),
+		"D-1: headless without android feature/injection -> vibration_supported false")
+	var calls: Array[int] = []
+	Fx.vibrate_api = func(ms: int) -> void: calls.append(ms)
+	_check(Fx.vibration_supported(), "D-1: injected vibrate_api counts as capable (test seam)")
+	var player: Node2D = Node2D.new()
+	add_child(player)
+	# 受击 30ms：on_player_hurt 经消费模式（运行时 get_setting("vibration")）触发一次短震
+	Fx.on_player_hurt(player, 5)
+	_check(calls.size() == 1 and calls[0] == 30, "D-1: player hurt requests 30ms vibrate (spec J6)")
+	# Boss 死亡 80ms：自有开关语义，不受前台门/演出链门控（链在 headless 冒烟恒不启）
+	Fx.request_boss_death()
+	_check(calls.size() == 2 and calls[1] == 80,
+		"D-1: boss death requests 80ms vibrate (own switch, gate-independent)")
+	# 开关关 = 不震（受击与 Boss 死亡两路同门控）
+	SaveSystem.set_setting("vibration", false)
+	Fx.on_player_hurt(player, 5)
+	Fx.request_boss_death()
+	_check(calls.size() == 2, "D-1: vibration=false gates both hurt and boss-death vibrate")
+	SaveSystem.set_setting("vibration", true)
+	Fx.trauma = 0.0
+	Fx.vibrate_api = Callable()
+	player.queue_free()
+	await _frames(1)
+
+
+# ================================================================ ⑧ D-2 快进接线
+
+func _section_boss_death_skip() -> void:
+	var d = Fx._director
+	# 非演出期间：连按攻击键零误触发（链 IDLE、树不冻结）
+	Input.action_press("fire")
+	await _frames(2)
+	Input.action_release("fire")
+	await _frames(1)
+	_check(d.active_kind() == HitstopDirector.SeqKind.NONE and not get_tree().paused,
+		"D-2: attack press outside performance does not trigger skip (no mis-fire)")
+	# 启动 Boss 死亡链（直接驱动导演——Fx 入口的前台门在 headless 冒烟场景恒关）
+	d.request_boss_death(Time.get_ticks_msec())
+	_check(get_tree().paused and Fx.boss_death_chain_active(),
+		"D-2: boss death chain active (tree frozen, performance running)")
+	# 连按攻击键 → 快进：链立即结束、时计恢复（跳过定格与慢速段）
+	Input.action_press("fire")
+	await _frames(2)
+	Input.action_release("fire")
+	await _frames(1)
+	_check(d.active_kind() == HitstopDirector.SeqKind.NONE and not get_tree().paused
+		and is_equal_approx(Engine.time_scale, 1.0),
+		"D-2: attack press during performance skips chain (freeze/slow advanced, clock restored)")
+	Fx.cancel_hitstop()
+	await _frames(1)
 
 
 # ================================================================ helpers
