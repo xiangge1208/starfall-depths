@@ -43,6 +43,8 @@ extends Node
 ##
 ## 运行：godot --headless --path . res://tools/balance_bot.tscn -- --runs=10 --seed-base=2001
 ##       可选 --time-scale=20 --max-frames-per-run=216000 --out-md=... --out-json=... --no-quit --debug
+##       M3-B1 试炼因子局：--trial=YYYY-MM-DD（基日期；第 i 局业务日=基日期+i 天，
+##       经生产 start_trial_run 注入当日因子对——因子对随局递增以扩覆盖度）
 ## 一键挂载：tools/run_balance.cmd（10 局 + 报告落 docs/superpowers/reports/）。
 ## 测试/冒烟以 configure() 注入参数后 add_child 复用本脚本（quit_when_done=false）。
 
@@ -54,6 +56,9 @@ const ROOM_MARGIN_PX := 18.0            # 房内墙距（outer 含 16px 墙）
 const WANDER_SWITCH_TICKS := 45         # 切向游走符号换拍周期（0.75s，防抖动）
 const CHARGE_READ_RADIUS_PX := 180.0    # 冲锋前摇读拍半径
 const BOT_RUN_ROOT_LOST_GUARD := 8      # run_root 失效后仍存活的物理拍上限（崩溃判定）
+const BOT_STALL_TICKS := 10800          # 无进展停滞判定窗（180s）：签名含活敌血量和，
+                                        # 真实战斗（敌血下降/换房/清房）持续变化不误判；
+                                        # 窗长 > GDD Boss 带上沿 150s（慢 Boss 战不误伤）
 
 # GDD §14.3 节奏校准目标带（只读对照，bot 不修改游戏数值）
 const GDD_MINION_TTK_S := 2.0           # 初始武器打 A1 杂兵 ≤2.0s
@@ -66,6 +71,9 @@ const GDD_WIN_RATE := [0.20, 0.40]      # 本卡验收带（生产胜利口径�
 var opts := {
 	"runs": 10,
 	"seed_base": 2001,
+	"trial": "",                         # M3-B1 试炼因子局基日期 "YYYY-MM-DD"（空=普通局）；
+	                                     # 第 i 局业务日 = 基日期 + i 天（每局不同因子对，
+	                                     # 覆盖度优先；与生产「同日同因子」口径偏离在报告披露）
 	"time_scale": 1.0,
 	"max_frames_per_run": 64800,         # 18 局分钟守门（64800 tick @60tps 墙钟；
 	                                     # 引擎 time_scale 对本作逐拍定步长逻辑无加速效用，
@@ -89,6 +97,7 @@ var _milestone := false
 var _death_report := {}
 var _death_room_type := ""
 var _plan: Array[int] = []
+var _plan_idx := 0                       # M3-B1：按计划索引推进（修 M2 移交门槛震荡）
 var _plan_fs: FloorScene = null
 var _shop_done := {}
 var _event_done := {}
@@ -140,17 +149,21 @@ func _run_all() -> void:
 	var runs := int(opts["runs"])
 	var crashes := 0
 	var timeouts := 0
+	var stalls := 0
 	for i in runs:
 		var outcome := await _run_one(int(opts["seed_base"]) + i)
 		if outcome == "crash":
 			crashes += 1
 		elif outcome == "timeout":
 			timeouts += 1
+		elif outcome == "stalled":
+			stalls += 1
 	aggregate = _aggregate(crashes)
+	aggregate["stalls"] = stalls
 	_write_outputs()
-	print("BALANCE-BOT DONE: %d runs, wins=%d milestones=%d deaths=%d timeouts=%d crashes=%d" % [
+	print("BALANCE-BOT DONE: %d runs, wins=%d milestones=%d deaths=%d timeouts=%d stalls=%d crashes=%d" % [
 		results.size(), int(aggregate.get("wins", 0)), int(aggregate.get("milestones", 0)),
-		int(aggregate.get("deaths", 0)), timeouts, crashes])
+		int(aggregate.get("deaths", 0)), timeouts, stalls, crashes])
 	finished.emit()
 	if bool(opts["quit_when_done"]) and get_tree() != null:
 		# 门禁口径：崩溃或未走完（超时）即失败；死亡是合法对局结局。
@@ -173,7 +186,16 @@ func _arm_watchdog() -> void:
 func _run_one(seed: int) -> String:
 	_reset_run_state(seed)
 	_arm_watchdog()
-	RunState.start_run("vanguard")
+	if String(opts["trial"]) != "":
+		# M3-B1 因子局注入口：生产 start_trial_run 单点（mods+SALT_TRIAL 抽取链）。
+		# 随后种子仍被批次种子覆写（布局采样；与生产同日同布局的偏离见报告披露）。
+		var tdate := _trial_date(seed - int(opts["seed_base"]))
+		RunState.start_trial_run("vanguard", tdate)
+		print("BALANCE-BOT TRIAL seed=%d date=%s factors=%s mods=%s" % [
+			seed, tdate, ",".join(RunState.trial_factors),
+			",".join(RunState.mods.keys())])
+	else:
+		RunState.start_run("vanguard")
 	RunState.run_seed = seed                 # 种子覆写（口径披露：start_run 的墙钟
 	RngSvc.setup_run(seed)                   # 种子被确定性种子替换，其余状态不变）
 	_run_root = RUN_ROOT_SCENE.instantiate()
@@ -187,6 +209,9 @@ func _run_one(seed: int) -> String:
 	_run_root._begin()
 	_enable_bot_firing(_run_root.player)
 	var outcome := "timeout"
+	var stall_sig := ""
+	var stall_since := -1
+	var nan_ticks := 0
 	while true:
 		await get_tree().physics_frame
 		if _run_root == null or not is_instance_valid(_run_root):
@@ -196,6 +221,27 @@ func _run_one(seed: int) -> String:
 				break
 			continue
 		_drive_tick()
+		# M3-B1 NaN 快速停滞：活敌坐标非有限（刷怪不变量丢弃的下游症状，引擎
+		# normalize 警告洪水源头，实测可 20min 刷 250 万行拖垮进程）——合法对局
+		# 不存在非有限坐标的活敌，600t（10s）确认即判停滞。
+		if _has_nonfinite_enemy():
+			nan_ticks += 1
+			if nan_ticks >= 600:
+				outcome = "stalled"
+				break
+		else:
+			nan_ticks = 0
+		# M3-B1 停滞检测（M2 rerun 3/10 超时的根因缓解）：游戏侧刷怪不变量
+		# 偶发丢弃（RoomCombat.filter_spawn_points 回退裸点）→ 敌人不可达/不可伤
+		# → 房间永不可清，bot 只能空转至帧帽。签名 180s 不变 → 判 stalled 收局。
+		var sig := "%d|%d|%d|%d|%s" % [RunState.floor_idx, RunState.rooms_cleared,
+			RunState.kills, _track_room, _alive_enemy_hp_sig()]
+		if sig != stall_sig:
+			stall_sig = sig
+			stall_since = Engine.get_physics_frames()
+		elif Engine.get_physics_frames() - stall_since >= BOT_STALL_TICKS:
+			outcome = "stalled"
+			break
 		if Engine.get_physics_frames() % 1800 == 0:
 			var prog_hp := -1
 			var prog_player: Player = _run_root.player
@@ -233,9 +279,12 @@ func _run_one(seed: int) -> String:
 		"death_floor": int(_death_report.get("stats", {}).get("floor", 0)) if _fatal else 0,
 		"death_cause": String(_death_report.get("cause", "")) if _fatal else "",
 		"death_room_type": _death_room_type if _fatal else "",
+		"trial_date": _trial_date(seed - int(opts["seed_base"])) if String(opts["trial"]) != "" else "",
+		"trial_factors": ",".join(RunState.trial_factors),
 		"boss_first_kill_eligible": not boss_kills.has("vine_colossus"),
 	}
 	results.append(row)
+	_write_outputs()                         # M3-B1 逐局落盘：批被中断时保留已完成局
 	print("BALANCE-BOT RUN %d/%d: seed=%d outcome=%s floor=%d rooms=%d kills=%d dur=%.1fs coins=%d gems=%d hearts=%d death=%s(%s)" % [
 		results.size(), int(opts["runs"]), seed, outcome, RunState.floor_idx, RunState.rooms_cleared,
 		RunState.kills, float(RunState.run_time_frames) / 60.0, RunState.coins, RunState.gems,
@@ -248,6 +297,50 @@ func _run_one(seed: int) -> String:
 	return outcome
 
 
+## M3-B1 因子局业务日：基日期 + i 天（正午锚点避开 05:00 业务日回退窗）。
+func _trial_date(i: int) -> String:
+	var parts := String(opts["trial"]).split("-")
+	var unix := Time.get_unix_time_from_datetime_dict({
+		"year": int(parts[0]), "month": int(parts[1]), "day": int(parts[2]),
+		"hour": 12, "minute": 0, "second": 0,
+	})
+	var d := Time.get_datetime_dict_from_unix_time(unix + i * 86400)
+	return "%04d-%02d-%02d" % [int(d["year"]), int(d["month"]), int(d["day"])]
+
+
+## M3-B1 NaN 快速停滞半边：当前房任一活敌坐标非有限 → true。
+func _has_nonfinite_enemy() -> bool:
+	if _run_root == null or not is_instance_valid(_run_root):
+		return false
+	var fs: FloorScene = _run_root.floor_scene
+	if fs == null or not is_instance_valid(fs):
+		return false
+	var room: FloorScene.FloorRoom = fs.room_node(fs.flow.current_room)
+	if room == null:
+		return false
+	for e in _alive_enemies(room):
+		if not e.global_position.is_finite():
+			return true
+	return false
+
+
+## 停滞签名半边：当前房间活敌血量和（int 拼接）；取不到房间返回 "?"（异常态
+## 也在签名内可观测）。敌人不可伤/不可达时恒定 → 停滞窗累积。
+func _alive_enemy_hp_sig() -> String:
+	if _run_root == null or not is_instance_valid(_run_root):
+		return "?"
+	var fs: FloorScene = _run_root.floor_scene
+	if fs == null or not is_instance_valid(fs):
+		return "?"
+	var room: FloorScene.FloorRoom = fs.room_node(fs.flow.current_room)
+	if room == null:
+		return "?"
+	var total := 0
+	for e in _alive_enemies(room):
+		total += int(e.hp)
+	return str(total)
+
+
 func _reset_run_state(p_seed: int) -> void:
 	_won = false
 	_fatal = false
@@ -255,6 +348,7 @@ func _reset_run_state(p_seed: int) -> void:
 	_death_report = {}
 	_death_room_type = ""
 	_plan = []
+	_plan_idx = 0
 	_plan_fs = null
 	_shop_done = {}
 	_event_done = {}
@@ -647,11 +741,16 @@ func _next_room(fs: FloorScene) -> int:
 	if _plan_fs != fs:
 		_plan_fs = fs
 		_plan = _walk_order(fs)
-	var cur := fs.flow.current_room
-	var idx := _plan.find(cur)
-	if idx < 0 or idx + 1 >= _plan.size():
+		_plan_idx = 0
+	# M3-B1 修复（M2 rerun 行动项①·门槛震荡）：按计划索引推进，替代旧的
+	# `_plan.find(cur)` 首现检索——DFS 回溯计划含重复房号，首现下标会把 bot
+	# 打回计划中段，两房间每帧 enter_room 往返（telemetry floor_enter 每帧
+	# 交替、rooms/kills 冻结直至超时；m1_loop_smoke 同源走图即索引顺序遍历）。
+	while _plan_idx < _plan.size() and _plan[_plan_idx] == fs.flow.current_room:
+		_plan_idx += 1
+	if _plan_idx >= _plan.size():
 		return -1
-	return _plan[idx + 1]                   # 沿计划逐步走（清房战斗在步进中自然发生）
+	return _plan[_plan_idx]
 
 
 func _walk_order(fs: FloorScene) -> Array[int]:
@@ -1279,6 +1378,8 @@ func _parse_user_args() -> void:
 				opts["runs"] = int(kv[1])
 			"seed-base":
 				opts["seed_base"] = int(kv[1])
+			"trial":
+				opts["trial"] = kv[1]
 			"time-scale":
 				opts["time_scale"] = float(kv[1])
 			"max-frames-per-run":
