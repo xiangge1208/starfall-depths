@@ -14,6 +14,20 @@ var _phase := 0
 var _phase_thresholds: Array[int] = []   # 绝对血量线（floor(row.hp × 分数)），下标即阶段
 var _phase_invuln_until := -1
 
+## J7 Boss 死亡演出链驱动源：任一 BossBase 子类死亡恰发一次
+## （四个真 Boss 覆写 die() 均调 super；vine_colossus/starfall_prophet 继承本类 die）。
+signal boss_defeated(boss: BossBase)
+
+
+## J-A：先广播死亡演出信号再走基类退场（基类状态门防重复；queue_free 延迟帧末，
+## 监听者可读位置）。演出链的 Fx 请求在房间层击杀缝（floor_scene kill_kind=="boss"），
+## 纯脑测 Boss 不在树内、不触发任何表现。
+func die() -> void:
+	if state == State.DEAD:
+		return
+	boss_defeated.emit(self)
+	super()
+
 func _test_init(r: Dictionary) -> void:
 	super(r)          # 基类初始化（BossBase/子类脚本不触发原型换装，无实例重绑问题）
 	_parse_phases(r)
@@ -80,7 +94,7 @@ func _advance_phase_if_crossed(frame: int) -> void:
 		# Fx.shake 在树暂停时按 Juice v1.5 契约早退，故必须先落重震再启 hitstop。
 		Fx.shake(PHASE_SHAKE_PX, PHASE_SHAKE_SECONDS)
 		_phase_flash()
-		Fx.hitstop(PHASE_HITSTOP_MS)
+		Fx.request_boss_phase()   # J-A：120ms 冻结 + 0.3× 慢速 240ms（参数在 balance.json juice）
 	EventBus.boss_phase.emit(self, _phase)
 	_on_phase_enter(_phase)
 

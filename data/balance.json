@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "juice": {
+    "kill_freeze_ms": 20,
+    "kill_recover_ms": 60,
+    "multikill_window_ms": 300,
+    "multikill_bonus_ms": 40,
+    "hitstop_cap_ms": 120,
+    "boss_phase_hitstop_ms": 120,
+    "boss_phase_slow_scale": 0.3,
+    "boss_phase_slow_ms": 240,
+    "boss_death_freeze_ms": 300,
+    "boss_death_slow_scale": 0.3,
+    "boss_death_slow_ms": 900,
+    "loot_delay_ms": 300,
+    "player_death_slow_scale": 0.3,
+    "player_death_slow_ms": 600,
+    "player_death_desat_ms": 400
+  }
+}
