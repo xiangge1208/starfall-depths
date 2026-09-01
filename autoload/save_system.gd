@@ -25,6 +25,19 @@ const DEFAULT_SETTINGS := {
 	"colorblind_shapes": false,
 	"auto_aim": true,
 	"touch_controls": false,
+	# m3-sa（S-A 特批）追加 5 键，纯 additive：旧档缺失由 _merge_saved 回落默认，
+	# 不 bump SAVE_VERSION。hitstop_enabled = Juice v2 红线三开关之一（消费方 J-A
+	# 导演类直接 get_setting 读取）；vibration 本卡仅设置键（振动 API 消费在 J6/J-D，
+	# 仅 Android 生效）。三路音量为 int 语义（0..100，UI 权威键），面板改键即推
+	# AudioMgr / AudioServer 端点（见 ui/settings_panel.gd）。
+	# ★ 音量默认值必须是 float 字面量：JSON 数字解析恒为 float，_merge_saved 按
+	# typeof 严格比对——int 默认会让重载后的 33.0 匹配失败而静默回落默认，持久化
+	# 往返即坏。读取侧一律 int() 归一（int(round(float(v))) 口径在面板内）。
+	"hitstop_enabled": true,
+	"vibration": true,
+	"volume_master": 80.0,
+	"volume_music": 80.0,
+	"volume_sfx": 80.0,
 }
 
 # save_path 可被测试覆写（临时 user:// 路径注入）；生产代码勿改。
