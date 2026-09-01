@@ -1,0 +1,196 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/rebind_panel.gd" id="1_rebindui"]
+
+[node name="RebindPanelUI" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_rebindui")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="Rows" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "按 键 设 置"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 1
+columns = 2
+
+[node name="MoveLeftLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "移动左"
+vertical_alignment = 1
+
+[node name="move_left" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="MoveRightLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "移动右"
+vertical_alignment = 1
+
+[node name="move_right" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="MoveUpLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "移动上"
+vertical_alignment = 1
+
+[node name="move_up" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="MoveDownLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "移动下"
+vertical_alignment = 1
+
+[node name="move_down" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="FireLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "射击"
+vertical_alignment = 1
+
+[node name="fire" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="SkillLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "技能"
+vertical_alignment = 1
+
+[node name="skill" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="RollLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "翻滚"
+vertical_alignment = 1
+
+[node name="roll" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="SwitchWeaponLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "切武器"
+vertical_alignment = 1
+
+[node name="switch_weapon" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="InteractLabel" type="Label" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "交互"
+vertical_alignment = 1
+
+[node name="interact" type="Button" parent="Center/Panel/Margin/Rows/Grid"]
+custom_minimum_size = Vector2(120, 14)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "—"
+
+[node name="Status" type="Label" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "点击动作行改键（Esc 取消）"
+horizontal_alignment = 1
+
+[node name="Btns" type="HBoxContainer" parent="Center/Panel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="ResetBtn" type="Button" parent="Center/Panel/Margin/Rows/Btns"]
+custom_minimum_size = Vector2(88, 16)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "恢复默认"
+
+[node name="BackBtn" type="Button" parent="Center/Panel/Margin/Rows/Btns"]
+custom_minimum_size = Vector2(88, 16)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "返 回"
