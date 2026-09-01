@@ -1,0 +1,48 @@
+{
+	"version": 1,
+	"refresh_hour": 5,
+	"pick_per_day": 2,
+	"reward_gem_multiplier": 1.5,
+	"factors": [
+		{
+			"id": "enemy_haste", "name": "敌人提速",
+			"desc": "敌人移速与攻速 +20%",
+			"mods": {"enemy_speed_pct": 20, "enemy_attack_speed_pct": 20}
+		},
+		{
+			"id": "melee_drops", "name": "近战洗礼",
+			"desc": "武器掉落只出近战类",
+			"mods": {"drop_melee_only": true}
+		},
+		{
+			"id": "energy_tax", "name": "蓝量重税",
+			"desc": "所有武器蓝耗 ×1.5（向上取整）",
+			"mods": {"energy_cost_mult": 1.5}
+		},
+		{
+			"id": "bullet_haste", "name": "弹速风暴",
+			"desc": "敌方弹幕速度 +25%",
+			"mods": {"bullet_speed_pct": 25}
+		},
+		{
+			"id": "bargain_ban", "name": "黑心集市",
+			"desc": "商店半价，但禁止红心",
+			"mods": {"shop_discount_pct": 50, "no_hearts": true}
+		},
+		{
+			"id": "narrow_vision", "name": "管中窥豹",
+			"desc": "视野 -35%",
+			"mods": {"vision_scale": 0.65}
+		},
+		{
+			"id": "elite_surge", "name": "精英潮",
+			"desc": "精英数量 +100%",
+			"mods": {"elite_bonus_pct": 100}
+		},
+		{
+			"id": "single_element", "name": "元素独尊",
+			"desc": "每层限定单一元素附魔",
+			"mods": {"force_element": "random"}
+		}
+	]
+}
