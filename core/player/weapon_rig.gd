@@ -52,6 +52,7 @@ func current() -> Dictionary:
 func switch_slot(frame: int) -> void:
 	if slots.size() < 2:
 		return
+	Fx.on_weapon_switched()   # J5：换武器重置连击
 	slot = (slot + 1) % 2
 	_sync_run_state()
 	_switch_until = frame + SWITCH_LOCK_TICKS

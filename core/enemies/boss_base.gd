@@ -92,7 +92,7 @@ func _advance_phase_if_crossed(frame: int) -> void:
 	# GdUnit 树。生产实例入树后才执行重震、全屏闪光与 120ms hitstop。
 	if is_inside_tree():
 		# Fx.shake 在树暂停时按 Juice v1.5 契约早退，故必须先落重震再启 hitstop。
-		Fx.shake(PHASE_SHAKE_PX, PHASE_SHAKE_SECONDS)
+		Fx.shake("shake_boss_phase")   # J2 v2：来源表注入（+0.5），仍须先于 hitstop
 		_phase_flash()
 		Fx.request_boss_phase()   # J-A：120ms 冻结 + 0.3× 慢速 240ms（参数在 balance.json juice）
 	EventBus.boss_phase.emit(self, _phase)

@@ -32,27 +32,27 @@ func test_hitstop_restores_and_coalesces() -> void:
 	assert_bool(get_tree().paused).is_false()
 
 func test_shake_decays() -> void:
-	Fx.shake(6.0, 0.25)
+	Fx.shake("shake_player_hurt")      # J2 v2：来源表注入 +0.3
 	assert_float(Fx.trauma).is_greater(0.0)
 	for _i in 300:
-		Fx.decay_step()                    # 每帧衰减（×0.9），300 帧后归零
+		Fx.decay_step(1.0 / 60.0)          # 每帧衰减（1.6/s 线性），300 帧（5s）后归零
 	assert_float(Fx.trauma).is_equal_approx(0.0, 0.001)
 
 ## m1-t18 juice v1.5：hitstop 冻结拍（树暂停中）shake 早退，不再叠加震屏；
 ## 解冻后恢复原语义。
 func test_shake_suppressed_during_hitstop_pause() -> void:
 	for _i in 300:
-		Fx.decay_step()                       # 隔离前序用例残留 trauma
+		Fx.decay_step(1.0 / 60.0)             # 隔离前序用例残留 trauma
 	Fx.hitstop(80)
 	assert_bool(get_tree().paused).is_true()
-	Fx.shake(6.0, 0.1)
+	Fx.shake("shake_player_hurt")
 	assert_float(Fx.trauma).is_equal(0.0)     # 冻结拍不吃震屏
 	await get_tree().create_timer(0.12, true, false, true).timeout
 	assert_bool(get_tree().paused).is_false()
-	Fx.shake(6.0, 0.1)
+	Fx.shake("shake_player_hurt")
 	assert_float(Fx.trauma).is_greater(0.0)   # 解冻后照常
 	for _i in 300:
-		Fx.decay_step()
+		Fx.decay_step(1.0 / 60.0)
 
 func test_hitstop_extension_not_cut_short_by_replaced_timer() -> void:
 	# fix1 回归：40ms hitstop 进行中延长为 60ms —— 被替换的旧定时器到点不得提前解冻
@@ -79,20 +79,20 @@ func test_screen_shake_setting_is_clamped_scale() -> void:
 
 func test_game_camera_zero_setting_forces_zero_offset_and_still_decays() -> void:
 	SaveSystem.data["settings"]["screen_shake"] = 0.0
-	Fx.trauma = 2.0
+	Fx.trauma = 1.0                        # J2 v2：归一化 [0,1]
 	var camera: Camera2D = auto_free(CAMERA_SCRIPT.new())
 	camera.offset = Vector2(99, 99)
-	camera._process(0.0)
+	camera._process(1.0 / 60.0)
 	assert_vector(camera.offset).is_equal(Vector2.ZERO)
-	assert_float(Fx.trauma).is_equal_approx(1.8, 0.0001)
+	assert_float(Fx.trauma).is_equal_approx(1.0 - 1.6 / 60.0, 0.0001)   # 1.6/s 线性衰减
 
 func test_game_camera_half_setting_caps_offset_to_half_amplitude() -> void:
 	SaveSystem.data["settings"]["screen_shake"] = 0.5
-	Fx.trauma = 2.0
+	Fx.trauma = 1.0
 	var camera: Camera2D = auto_free(CAMERA_SCRIPT.new())
 	camera._process(0.0)
-	assert_float(CAMERA_SCRIPT.shake_amplitude(2.0, 0.5)).is_equal(4.0)
-	assert_float(CAMERA_SCRIPT.shake_amplitude(2.0, 0.0)).is_equal(0.0)
+	assert_float(CAMERA_SCRIPT.shake_amplitude(1.0, 0.5)).is_equal(4.0)   # v2：1²×8×0.5
+	assert_float(CAMERA_SCRIPT.shake_amplitude(1.0, 0.0)).is_equal(0.0)
 	assert_float(absf(camera.offset.x)).is_less_equal(4.0)
 	assert_float(absf(camera.offset.y)).is_less_equal(4.0)
 

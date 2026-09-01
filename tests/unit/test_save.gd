@@ -67,7 +67,7 @@ func test_defaults_shape() -> void:
 	assert_int(s.data["gems"]).is_equal(0)
 	assert_array(s.data["unlocked_heroes"]).is_equal(["vanguard"])
 	assert_dict(s.data["achievements"]).is_empty()
-	assert_float(s.data["settings"]["screen_shake"]).is_equal(1.0)
+	assert_float(s.data["settings"]["screen_shake"]).is_equal(0.5)   # m3-jb：J2 晕动防线默认档 50%
 	assert_bool(s.data["settings"]["damage_numbers"]).is_true()
 	assert_bool(s.data["settings"]["colorblind_shapes"]).is_false()
 	assert_bool(s.data["settings"]["auto_aim"]).is_true()

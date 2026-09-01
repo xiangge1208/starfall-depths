@@ -124,10 +124,11 @@ func _physics_process(_delta: float) -> void:
 			})
 			# m2-t5：玩家弹有效命中音（普通命中 / 暴击升调）；敌方弹打玩家不发声
 			if player_shot:
+				Fx.on_combo_hit()   # J5：连击上报（1.2s 窗内累计；真实毫秒口径在 Fx 内）
 				if roll["is_crit"]:
 					AudioMgr.play("crit_hit", 1.15)
 				else:
-					AudioMgr.play("hit_enemy")
+					AudioMgr.play("hit_enemy", Fx.combo_pitch())   # J5：连击音高
 			if p.pierce_left > 0:
 				p.pierce_left -= 1
 			else:

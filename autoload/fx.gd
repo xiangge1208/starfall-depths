@@ -6,11 +6,16 @@ extends Node
 ## 常量路径，导演在位但 hitstop_enabled=false 或 balance 加载失败时请求全部 no-op。
 
 const DIRECTOR_SCRIPT_PATH := "res://fx/hitstop_director.gd"
+const BALANCE_PATH := "res://data/balance.json"
 const FLASH_SHADER := preload("res://fx/white_flash.gdshader")
 const FLASH_DECAY_PER_SEC := 6.0      # 命中白闪 1→0 约 0.17s
 const TELEGRAPH_DECAY_PER_SEC := 2.0  # 蓄力/引信红闪更持久（约 0.5s）
 const HITSTOP_CRIT_MS := 40
 const HITSTOP_KILL_MS := 60
+## J2 trauma 来源表键（balance.json juice 节；数值唯一出处）。
+const TRAUMA_SOURCE_KEYS: Array[String] = [
+	"shake_player_hurt", "shake_explosion", "shake_boss_phase", "shake_boss_death", "shake_kill",
+]
 
 const ELEMENT_SHAPES := {
 	Elements.Id.FIRE: "▲",    # 火 = 三角
@@ -25,16 +30,24 @@ const ELEMENT_COLORS := {
 	Elements.Id.SHOCK: Color(0.75, 0.35, 1.0),
 }
 
-var trauma := 0.0                     # 震屏强度，相机每渲染帧调 decay_step() 衰减
+var trauma := 0.0                     # J2 v2：归一化震屏能量 [0,1]（注入累加 clamp 1.0，相机每渲染帧调 decay_step(delta) 按 1.6/s 线性衰减）
 var _restore_timer: SceneTreeTimer = null   # 当前"权威"恢复定时器（最长剩余者）
 var _flash: Dictionary = {}           # instance_id -> {item, mat, amount, speed}（键用 id：宿主释放后不悬垂）
 var _director: Object = null          # HitstopDirector（J-A v2；缺席 → v1 常量回退）
+## J2/J5 juice 参数（本卡键自校验装载，fail-soft 回落规格默认；见 load_juice_params）。
+var _params: Dictionary = _default_juice_params()
+var _trauma_sources: Dictionary = {}  # TRAUMA_SOURCE_KEYS 子集（apply_juice_params 派生）
+## J5 连击持有（纯逻辑 RefCounted；成员即初始化兜底，_ready 再按 balance 重建）。
+var _combo: ComboCounter = ComboCounter.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_init_director()
+	apply_juice_params(load_juice_params(BALANCE_PATH))
 	if not EventBus.status_applied.is_connected(_on_status_applied):
 		EventBus.status_applied.connect(_on_status_applied)
+	if not EventBus.player_damaged.is_connected(_on_player_damaged_combo_reset):
+		EventBus.player_damaged.connect(_on_player_damaged_combo_reset)   # J5：受击重置连击
 
 ## 懒构造 v2 导演（脚本缺失/解析失败 → null → v1 回退；balance 加载失败由导演
 ## load_ok=false 门控全部请求 no-op，fail-closed 不崩游戏）。
@@ -104,31 +117,123 @@ func cancel_hitstop() -> void:
 	if tree != null:
 		tree.paused = false
 
-## 震屏：trauma 取 max；duration 仅占位（衰减率由 decay_step 契约固定 ×0.9/帧）。
-## m1-t18 juice v1.5：hitstop 冻结拍（树暂停中）早退不吃震屏——冻结期叠的 trauma
-## 会在解冻前被白白衰减掉，且冻帧上无位移可看。
-func shake(strength: float, _duration: float) -> void:
+## J2 v2 注入口：按 balance.json juice 来源表命名注入（trauma += 表值后 clamp [0,1]）。
+## 「单事件注入 ≤0.5」由来源表数据保证（shake_boss_death 1.0 为 J7 唯一例外）；
+## 未知来源 fail-soft 归 0（不震不崩）。保留 v1.5 契约：hitstop 冻结拍（树暂停中）
+## 早退——冻结期叠的 trauma 会在解冻前被白白衰减掉，且冻帧上无位移可看。
+func shake(source: String) -> void:
 	var tree := get_tree()
 	if tree != null and tree.paused:
 		return
-	trauma = maxf(trauma, strength)
+	add_trauma(trauma_source_amount(source))
+
+## v2 注入原语：累加并 clamp 峰值 1.0（晕动防线：trauma 峰值 ≤1.0）。
+func add_trauma(amount: float) -> void:
+	trauma = clampf(trauma + amount, 0.0, 1.0)
+
+## 来源表查询（未知来源 → 0.0）：测试断言与调用方共用，balance 为唯一数值出处。
+func trauma_source_amount(source: String) -> float:
+	return float(_trauma_sources.get(source, 0.0))
 
 ## 玩家设置是相机振幅倍率，而非 trauma 的逻辑值：同一拍多相机时不能重复缩放 trauma。
 ## 读取处夹到 0..1，损坏档/未来版本的异常数值不会放大到设置允许范围外。
 func screen_shake_scale() -> float:
 	return clampf(float(SaveSystem.get_setting("screen_shake", 1.0)), 0.0, 1.0)
 
-## 由相机每渲染帧调用（brief 契约：×0.9，300 帧后 ≈0）。
-func decay_step() -> void:
-	trauma *= 0.9
-	if trauma < 0.001:
-		trauma = 0.0
+## 由相机每渲染帧调用（J2 v2 契约：线性衰减 trauma_decay_per_s × 渲染 delta）。
+## delta 为渲染帧长——表现层计时例外（与 hitstop 真实毫秒同口径，判定无关）；
+## 冻结拍树暂停时相机 _process 停摆，衰减随之自然暂停（trauma 跨冻结保持）。
+func decay_step(delta: float) -> void:
+	trauma = maxf(trauma - trauma_decay_per_s() * delta, 0.0)
+
+
+# ---- J2/J5 juice 参数装载（本卡键自校验，fail-soft） ----
+
+## 规格默认（balance 缺失/坏键时回落——表现参数缺失降级为无演出/默认手感，不崩）。
+static func _default_juice_params() -> Dictionary:
+	return {
+		"trauma_decay_per_s": 1.6,
+		"trauma_offset_px": 8.0,
+		"trauma_rot_deg": 2.0,
+		"shake_player_hurt": 0.3,
+		"shake_explosion": 0.4,
+		"shake_boss_phase": 0.5,
+		"shake_boss_death": 1.0,
+		"shake_kill": 0.15,
+		"combo_window_ms": 1200.0,
+		"combo_pitch_step": 0.02,
+		"combo_pitch_max_steps": 6.0,
+	}
+
+## 只对本卡新增键做「已知即校验类型」（数值型否则回落默认）；J-A 导演加载器对
+## 未知键保持忽略——其 fail-closed 必需键集不含表现参数，导演不因本卡键损坏而 no-op。
+func load_juice_params(path: String) -> Dictionary:
+	var out := _default_juice_params()
+	if not FileAccess.file_exists(path):
+		return out
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return out
+	var juice: Variant = (parsed as Dictionary).get("juice")
+	if typeof(juice) != TYPE_DICTIONARY:
+		return out
+	for key: String in out.keys():
+		var v: Variant = (juice as Dictionary).get(key)
+		if typeof(v) == TYPE_FLOAT or typeof(v) == TYPE_INT:
+			out[key] = float(v)
+	return out
+
+## 应用装载结果并按 balance 重建连击器（窗口/步长/封顶唯一出处为 balance juice 节）。
+func apply_juice_params(p: Dictionary) -> void:
+	_params = p
+	_trauma_sources.clear()
+	for key in TRAUMA_SOURCE_KEYS:
+		_trauma_sources[key] = float(p.get(key, 0.0))
+	_combo = ComboCounter.new(int(combo_window_ms()), combo_pitch_step(),
+		int(combo_pitch_max_steps()))
+
+func trauma_decay_per_s() -> float:
+	return float(_params.get("trauma_decay_per_s", 1.6))
+
+func trauma_offset_px() -> float:
+	return float(_params.get("trauma_offset_px", 8.0))
+
+func trauma_rot_deg() -> float:
+	return float(_params.get("trauma_rot_deg", 2.0))
+
+func combo_window_ms() -> float:
+	return float(_params.get("combo_window_ms", 1200.0))
+
+func combo_pitch_step() -> float:
+	return float(_params.get("combo_pitch_step", 0.02))
+
+func combo_pitch_max_steps() -> float:
+	return float(_params.get("combo_pitch_max_steps", 6.0))
+
+# ---- J5 连击持有缝（命中音音高） ----
+
+## 命中上报：远程结算点 / 近战命中缝调用（每有效命中一次）。连击窗口为表现层
+## 计时（真实毫秒，与 hitstop 同口径，判定无关——只驱动音高，不碰任何数值）。
+func on_combo_hit() -> void:
+	_combo.on_hit(Time.get_ticks_msec())
+
+## 命中音音高查询：1.0 + 0.02 × min(combo, 封顶档数)（消费点总紧跟 on_combo_hit）。
+func combo_pitch() -> float:
+	return _combo.pitch()
+
+## 换武器重置（WeaponRig.switch_slot 调用）。
+func on_weapon_switched() -> void:
+	_combo.on_weapon_switch(Time.get_ticks_msec())
+
+## 受击重置（EventBus.player_damaged 订阅）。
+func _on_player_damaged_combo_reset(_amount: int, _fatal: bool) -> void:
+	_combo.on_player_hurt(Time.get_ticks_msec())
 
 func on_roll(player: Node2D) -> void:
 	_puff(player.global_position, Color(0.85, 0.85, 0.85), 6)
 
 func on_player_hurt(player: Node2D, _amount: int) -> void:
-	shake(2.0, 0.12)
+	shake("shake_player_hurt")   # J2 v2：来源表注入（+0.3）
 	_flash_item(_find_sprite(player), Color(1.0, 0.3, 0.3), FLASH_DECAY_PER_SEC)
 
 func on_enemy_hit(enemy: Node2D, ctx: Dictionary) -> void:
@@ -155,7 +260,7 @@ func on_enemy_killed(at: Vector2) -> void:
 		_director.request_kill(Time.get_ticks_msec())   # 表现层墙钟（多杀窗口基准，判定无关）
 	else:
 		hitstop(HITSTOP_KILL_MS)                        # v1 回退：60ms 冻结
-	shake(1.0, 0.1)
+	shake("shake_kill")                             # J2 v2：v1 击杀震屏的 v2 移植（来源表 +0.15）
 	_puff(at, Color(1.0, 0.55, 0.25), 12)
 
 
@@ -173,6 +278,9 @@ func request_boss_phase() -> void:
 func request_boss_death() -> void:
 	if _director == null or not DeathRecorder.is_gameplay_scene_active():
 		return
+	# J2：Boss 死亡 trauma 1.0（J7 唯一例外值，读来源表）；须先注入再启链——
+	# 链启动即冻结树，后注会被 v1.5 冻结拍早退契约吞掉。
+	shake("shake_boss_death")
 	_director.request_boss_death(Time.get_ticks_msec())
 
 ## 玩家死亡慢速（J1）。前台门同上（测试致死路径不污染套件时序）。

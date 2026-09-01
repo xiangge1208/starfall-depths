@@ -60,6 +60,7 @@ func _physics_process(_delta: float) -> void:
 				player.effective_crit_chance(base_crit), player.effective_crit_multiplier())
 		var element_profile := rig.element_hit_profile(w, Engine.get_physics_frames())
 		for body in combat.bodies_in_arc(player.global_position, player.facing.angle(), range_px, arc, Projectile.Faction.ENEMY):
+			Fx.on_combo_hit()   # J5：近战命中上报连击（每目标一次，口径同弹幕）
 			var proc_element := ElementProc.roll_element(int(element_profile["proc_element"]),
 				float(element_profile["proc_chance"]), combat_rng)
 			var force_resonance := bool(roll["is_crit"]) \
