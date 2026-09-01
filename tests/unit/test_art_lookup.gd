@@ -205,6 +205,55 @@ func test_weapon_icon_paths_exist_for_rack_roster() -> void:
 		assert_bool(FileAccess.file_exists(ArtLookup.weapon_icon_path(wid))).is_true()
 	assert_str(ArtLookup.weapon_icon_path("")).is_empty()
 
+# ---------- M3 J-C：fx 粒子条带注册（路径/帧数唯一出处 MANIFEST_M3.md） ----------
+
+func test_fx_strip_paths_registered() -> void:
+	# 8 张条带（Juice v2 §2 J3）：spark 六张 strip4 + muzzle_v2 strip3 + kill_shard strip6
+	assert_str(ArtLookup.fx_strip_path("spark_hit")) \
+		.is_equal("res://art/generated/fx/spark_hit_strip4.png")
+	assert_str(ArtLookup.fx_strip_path("spark_crit")) \
+		.is_equal("res://art/generated/fx/spark_crit_strip4.png")
+	assert_str(ArtLookup.fx_strip_path("spark_fire")) \
+		.is_equal("res://art/generated/fx/spark_fire_strip4.png")
+	assert_str(ArtLookup.fx_strip_path("spark_ice")) \
+		.is_equal("res://art/generated/fx/spark_ice_strip4.png")
+	assert_str(ArtLookup.fx_strip_path("spark_poison")) \
+		.is_equal("res://art/generated/fx/spark_poison_strip4.png")
+	assert_str(ArtLookup.fx_strip_path("spark_shock")) \
+		.is_equal("res://art/generated/fx/spark_shock_strip4.png")
+	assert_str(ArtLookup.fx_strip_path("muzzle_v2")) \
+		.is_equal("res://art/generated/fx/muzzle_v2_strip3.png")
+	assert_str(ArtLookup.fx_strip_path("kill_shard")) \
+		.is_equal("res://art/generated/fx/kill_shard_strip6.png")
+	assert_str(ArtLookup.fx_strip_path("no_such_strip")).is_empty()
+
+func test_fx_strip_frames_match_manifest() -> void:
+	# 帧数（MANIFEST_M3.md QA 总表）：火花系 4 帧、枪口焰 3 帧、碎片环 6 帧
+	assert_int(ArtLookup.fx_strip_frames("spark_hit")).is_equal(4)
+	assert_int(ArtLookup.fx_strip_frames("spark_crit")).is_equal(4)
+	assert_int(ArtLookup.fx_strip_frames("spark_fire")).is_equal(4)
+	assert_int(ArtLookup.fx_strip_frames("spark_ice")).is_equal(4)
+	assert_int(ArtLookup.fx_strip_frames("spark_poison")).is_equal(4)
+	assert_int(ArtLookup.fx_strip_frames("spark_shock")).is_equal(4)
+	assert_int(ArtLookup.fx_strip_frames("muzzle_v2")).is_equal(3)
+	assert_int(ArtLookup.fx_strip_frames("kill_shard")).is_equal(6)
+	assert_int(ArtLookup.fx_strip_frames("no_such_strip")).is_equal(0)
+
+func test_all_fx_strip_files_exist_on_disk() -> void:
+	# 表驱动承诺：注册的路径一定有文件（防表腐坏给 load 塞坏路径，同敌人/瓦片模式）
+	for strip_id: String in ArtLookup.FX_STRIPS:
+		var path: String = ArtLookup.BASE + String(ArtLookup.FX_STRIPS[strip_id])
+		assert_bool(FileAccess.file_exists(path)).is_true()
+
+func test_fx_strip_textures_have_manifest_geometry() -> void:
+	# 实载纹理几何 = MANIFEST_M3.md QA 总表：帧宽一律 16px（宽 = 16×帧数、高 = 16），
+	# 池化播放器按此切帧（AtlasTexture region 步进）。
+	for strip_id: String in ArtLookup.FX_STRIPS:
+		var t := ArtLookup.tex(ArtLookup.fx_strip_path(strip_id))
+		assert_object(t).is_not_null()
+		assert_int(t.get_width()).is_equal(16 * ArtLookup.fx_strip_frames(strip_id))
+		assert_int(t.get_height()).is_equal(16)
+
 # ---------- 节点工厂 ----------
 
 func test_make_sprite_nearest_filter() -> void:

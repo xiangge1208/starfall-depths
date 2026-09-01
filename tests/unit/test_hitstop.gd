@@ -560,3 +560,35 @@ func test_production_wiring_lines_present() -> void:
 		.contains("Fx.request_player_death()")).is_true()
 	assert_bool(FileAccess.get_file_as_string("res://core/enemies/boss_base.gd")
 		.contains("Fx.request_boss_phase()")).is_true()
+
+
+# ---- M3 J-C 必跟②：更长链接管时被替换链的待发 loot 立即补发（与 skip 对称） ----
+
+func test_takeover_reissues_pending_loot_of_replaced_chain() -> void:
+	var d := _fresh()
+	var loot: Array = []
+	d.on_loot_delay_started = func() -> void:
+		loot.append(1)
+	d.request_boss_death(0)                 # 链1：Boss 死亡定格链（loot 段待发）
+	d.tick(500)                             # 慢速段中：loot 尚未发
+	assert_int(loot.size()).is_equal(0)
+	d.request_boss_death(500)               # 等长链接管（total 1500 > 剩余 1000）
+	assert_int(loot.size()).is_equal(1)     # 接管瞬间：被替换链待发 loot 补发一次
+	d.tick(1700)                            # 新链进入 loot 延迟段（offset 1200）→ loot 再发
+	assert_int(loot.size()).is_equal(2)     # 每条 Boss 死亡链各喷一次（不吞不重）
+	d.tick(2010)                            # 链尾（offset 1510 > 1500）→ 恢复时计
+	assert_int(d.phase()).is_equal(HitstopDirector.Phase.IDLE)
+
+func test_takeover_without_pending_loot_does_not_fire() -> void:
+	# 普通链（kill，无 loot 段）被接管：无补偿回调（_loot_ms=0 天然跳过）
+	var d := _fresh()
+	var loot: Array = []
+	d.on_loot_delay_started = func() -> void:
+		loot.append(1)
+	d.request_kill(0)
+	d.request_boss_death(0)                 # kill 链（80ms）被 Boss 链（1500ms）接管
+	assert_int(loot.size()).is_equal(0)
+	d.tick(1300)                            # 新链 loot 段（offset 1300 ∈ [1200,1500)）
+	assert_int(loot.size()).is_equal(1)     # 仅新链自身 loot 段一次
+	d.tick(2000)
+	assert_int(loot.size()).is_equal(1)

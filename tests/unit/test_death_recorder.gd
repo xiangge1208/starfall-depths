@@ -20,6 +20,8 @@ const LEGACY_CSV := "user://telemetry.csv"
 
 var _saved_run: Dictionary = {}
 var _saved_save_path: String = ""
+var _saved_settings: Dictionary = {}
+var _saved_director: Object = null
 var _tmp_save := ""
 
 
@@ -37,6 +39,9 @@ func before_test() -> void:
 	_tmp_save = "user://test_t22_%d.json" % absi(randi())
 	SaveSystem.save_path = _tmp_save
 	SaveSystem.load_save()                     # 全新默认档（gems=0）
+	# M3 J-C③ 适配（加法）：设置与 Fx 导演快照——链尾开面板用例需要注入/还原现场
+	_saved_settings = (SaveSystem.data.get("settings", {}) as Dictionary).duplicate(true)
+	_saved_director = Fx._director
 	DeathRecorder.reset()
 	DeathRecorder.suppressed = false
 	DeathRecorder.open_summary_override = Callable()
@@ -49,6 +54,8 @@ func after_test() -> void:
 	RunState.floor_idx = int(_saved_run["floor_idx"])
 	RunState.gems = int(_saved_run["gems"])
 	RunState.run_seed = int(_saved_run["run_seed"])
+	Fx._director = _saved_director             # J-C③：导演现场还原
+	SaveSystem.data["settings"] = _saved_settings
 	DeathRecorder.reset()
 	DeathRecorder.suppressed = false
 	DeathRecorder.open_summary_override = Callable()
@@ -718,3 +725,62 @@ func test_summary_exit_tree_restores_timescale_finally() -> void:
 	assert_float(Engine.time_scale).is_equal(8.0)
 	node.free()                                       # 任意路径离场：finally 语义
 	assert_float(Engine.time_scale).is_equal(1.0)
+
+
+# ================================================================ M3 J-C③：致命面板延迟到玩家死亡链尾
+
+func _fresh_director() -> HitstopDirector:
+	# 真实 balance.json 装配（参数断言在 test_hitstop，这里只关心链状态语义）
+	var d := HitstopDirector.new()
+	d.load_balance_file("res://data/balance.json")
+	return d
+
+func test_death_chain_active_truth_table() -> void:
+	# 导演缺席 → false（保持既有同帧开面板语义）
+	SaveSystem.data["settings"]["hitstop_enabled"] = true
+	Fx._director = null
+	assert_bool(DeathRecorder._death_chain_active()).is_false()
+	# 总开关关 → request no-op 无链 → false（同帧语义）
+	var d := _fresh_director()
+	Fx._director = d
+	SaveSystem.data["settings"]["hitstop_enabled"] = false
+	d.request_player_death(0)
+	assert_bool(DeathRecorder._death_chain_active()).is_false()
+	# 开且链在跑 → true；600ms 慢速窗毕（链尾）→ false
+	SaveSystem.data["settings"]["hitstop_enabled"] = true
+	d.request_player_death(0)
+	assert_bool(DeathRecorder._death_chain_active()).is_true()
+	d.tick(600)
+	assert_bool(DeathRecorder._death_chain_active()).is_false()
+
+func test_pending_summary_flushes_immediately_when_chain_absent() -> void:
+	var opened: Array[Dictionary] = []
+	DeathRecorder.open_summary_override = func(report: Dictionary) -> void:
+		opened.append(report)
+	DeathRecorder.current_report = {"stats": {}}
+	DeathRecorder._summary_pending = true
+	DeathRecorder._process(0.0)             # 链缺席：首个 _process 即 flush（同帧语义等价）
+	assert_int(opened.size()).is_equal(1)
+	assert_bool(DeathRecorder._summary_pending).is_false()
+
+func test_pending_summary_waits_for_player_death_chain_end() -> void:
+	# J-A 评审 Major：600ms 0.3× 慢速窗播在游戏场景上，面板在链尾恰开一次
+	var d := _fresh_director()
+	Fx._director = d
+	SaveSystem.data["settings"]["hitstop_enabled"] = true
+	var opened: Array[Dictionary] = []
+	DeathRecorder.open_summary_override = func(report: Dictionary) -> void:
+		opened.append(report)
+	DeathRecorder.current_report = {"stats": {}}
+	d.request_player_death(0)
+	DeathRecorder._summary_pending = true
+	DeathRecorder._process(0.0)             # 链在跑：不开
+	assert_int(opened.size()).is_equal(0)
+	assert_bool(DeathRecorder._summary_pending).is_true()
+	d.tick(599)
+	DeathRecorder._process(0.0)
+	assert_int(opened.size()).is_equal(0)   # 链未完：继续等
+	d.tick(600)
+	DeathRecorder._process(0.0)
+	assert_int(opened.size()).is_equal(1)   # 链尾恰开一次
+	assert_bool(DeathRecorder._summary_pending).is_false()

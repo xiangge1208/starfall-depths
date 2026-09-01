@@ -47,10 +47,19 @@ var replay_key: Dictionary = {}
 
 var _window: Array[Dictionary] = []   # {frame, amount, source_type/id/name, attack_name, pos, fatal}
 var _fatal_handled := false           # once-per-fatal：同局第二次致命不再重复开
+var _summary_pending := false         # J-C③：慢速链尾开面板挂起（_process 轮询链状态）
 
 func _ready() -> void:
 	purge_legacy_csv()                        # T18 移交：清 m0 的 5 列烂行文件（一次性）
 	EventBus.player_hit_resolved.connect(_on_player_hit_resolved)
+
+## J-C③（J-A 评审 Major）：结算面板挂起时逐帧查链——链尾（恢复 IDLE）才开面板；
+## 非挂起态零开销早退。
+func _process(_delta: float) -> void:
+	if not _summary_pending or _death_chain_active():
+		return
+	_summary_pending = false
+	_flush_summary()
 
 ## 受击入窗：frame 显式传入（测试可注入历史帧）；旧五参调用仍兼容。
 func record_event(amount: int, frame: int, source_type := "", source_id := "",
@@ -147,6 +156,7 @@ func reset() -> void:
 	current_report = {}
 	replay_key = {}
 	_fatal_handled = false
+	_summary_pending = false
 	Telemetry.reset_session()
 
 func _on_player_hit_resolved(amount: int, fatal: bool, ctx: Dictionary) -> void:
@@ -165,7 +175,28 @@ func _on_player_hit_resolved(amount: int, fatal: bool, ctx: Dictionary) -> void:
 		open_summary_override.call(current_report)
 		return
 	if is_gameplay_scene_active():
-		_open_summary()
+		# J-C③（J-A 评审 Major）：玩家死亡 0.3× 慢速 600ms 窗必须播在游戏场景上——
+		# 链在跑时挂起到链尾再开面板；链缺席（导演缺席/加载失败/hitstop_enabled=false）
+		# 保持既有同帧行为。
+		if _death_chain_active():
+			_summary_pending = true
+		else:
+			_open_summary()
+
+## J-C③：玩家死亡演出链是否在跑。Fx 无公共查询器，读导演状态（同 test_hitstop
+## 对 Fx._director 的既有访问模式）；开关/加载门控口径与导演 _gate 一致。
+func _death_chain_active() -> bool:
+	var d: Object = Fx._director
+	return d != null and (d as HitstopDirector).load_ok \
+		and bool(SaveSystem.get_setting("hitstop_enabled", true)) \
+		and (d as HitstopDirector).active_kind() != HitstopDirector.SeqKind.NONE
+
+## 链尾开面板：注入口在 flush 时同样生效（单测观测缝，不真跳场景）。
+func _flush_summary() -> void:
+	if open_summary_override.is_valid():
+		open_summary_override.call(current_report)
+		return
+	_open_summary()
 
 ## 前台是否为游戏场景：current_scene 脚本/场景路径落在工具区（res://tests/、
 ## res://addons/）视为非游戏前台——gdUnit 无主场景（current_scene 为 null）或

@@ -283,6 +283,8 @@ func _physics_process(_delta: float) -> void:
 				"from": global_position, "frame": frame, "source_type": "status",
 				"source_id": "element_dot", "source_name": "元素异常", "attack_name": "持续伤害",
 				"player_damage": true,
+				# J4 tick 跳字色（M3 J-C 上报：表现层附加键，apply_hit_context 不读，判定零影响）
+				"tick_element": Elements.Id.FIRE if status.active.has(Elements.Id.FIRE) else Elements.Id.POISON,
 			})
 			if state == State.DEAD:
 				return
