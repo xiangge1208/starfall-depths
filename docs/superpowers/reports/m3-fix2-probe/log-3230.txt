@@ -1,0 +1,37 @@
+# 注：本日志原件 ~47087 行，其中 11751 行为 fix1 已披露的引擎 normalize 告警洪水（非本卡证据）；
+# 归档时裁剪为 BOT 叙事行（RUN/PROG/PROBE/CALAMITY/DONE），逐局结构化结果见 m3-fix2-stall-regression-*.json。
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=30s floor=1 rooms=1 kills=8 hp=2
+BALANCE-BOT RUN 1/10: seed=3230 outcome=death floor=1 rooms=1 kills=11 dur=46.5s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3230 t=13s floor=1 rooms=0 kills=4 hp=8
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=43s floor=1 rooms=1 kills=8 hp=8
+BALANCE-BOT RUN 2/10: seed=3230 outcome=death floor=1 rooms=1 kills=13 dur=59.3s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3230 t=13s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=43s floor=1 rooms=1 kills=8 hp=8
+BALANCE-BOT PROBE false-trigger seed=3230 a3 t=52s (progress resumed)
+BOT-PROG seed=3230 t=73s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=3230 t=103s floor=1 rooms=1 kills=13 hp=8
+BOT-PROG seed=3230 t=133s floor=1 rooms=2 kills=20 hp=2
+BALANCE-BOT RUN 3/10: seed=3230 outcome=death floor=1 rooms=3 kills=26 dur=160.0s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BOT-PROG seed=3230 t=3s floor=1 rooms=0 kills=1 hp=8
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=33s floor=1 rooms=1 kills=9 hp=8
+BOT-PROG seed=3230 t=63s floor=1 rooms=2 kills=17 hp=4
+BOT-PROG seed=3230 t=93s floor=1 rooms=3 kills=26 hp=2
+BOT-PROG seed=3230 t=122s floor=1 rooms=5 kills=30 hp=6
+BALANCE-BOT RUN 4/10: seed=3230 outcome=death floor=1 rooms=6 kills=35 dur=138.6s coins=19 gems=5 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3230 t=14s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=43s floor=1 rooms=1 kills=7 hp=8
+BOT-PROG seed=3230 t=73s floor=1 rooms=1 kills=14 hp=4
+BOT-PROG seed=3230 t=103s floor=1 rooms=2 kills=20 hp=4
+BALANCE-BOT RUN 5/10: seed=3230 outcome=death floor=1 rooms=3 kills=23 dur=113.9s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BOT-PROG seed=3230 t=19s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=49s floor=1 rooms=1 kills=11 hp=4
+BOT-PROG seed=3230 t=79s floor=1 rooms=2 kills=16 hp=4
+BALANCE-BOT RUN 6/10: seed=3230 outcome=death floor=1 rooms=3 kills=23 dur=101.7s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BALANCE-BOT DONE: 6 runs, wins=0 milestones=0 deaths=6 timeouts=0 stalls=0 crashes=0 probe_skipped=0

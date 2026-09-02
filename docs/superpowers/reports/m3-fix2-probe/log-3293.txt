@@ -1,0 +1,38 @@
+# 注：本日志原件 ~14119 行，其中 3601 行为 fix1 已披露的引擎 normalize 告警洪水（非本卡证据）；
+# 归档时裁剪为 BOT 叙事行（RUN/PROG/PROBE/CALAMITY/DONE），逐局结构化结果见 m3-fix2-stall-regression-*.json。
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=30s floor=1 rooms=1 kills=8 hp=4
+BALANCE-BOT RUN 1/10: seed=3293 outcome=death floor=1 rooms=1 kills=10 dur=43.3s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3293 t=16s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=46s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=3293 t=76s floor=1 rooms=1 kills=14 hp=4
+BOT-PROG seed=3293 t=106s floor=1 rooms=1 kills=14 hp=4
+BOT-PROG seed=3293 t=136s floor=1 rooms=2 kills=20 hp=2
+BALANCE-BOT RUN 2/10: seed=3293 outcome=death floor=1 rooms=3 kills=22 dur=145.5s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=20s floor=1 rooms=1 kills=7 hp=8
+BALANCE-BOT RUN 3/10: seed=3293 outcome=death floor=1 rooms=1 kills=13 dur=39.6s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3293 t=10s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=40s floor=1 rooms=1 kills=13 hp=4
+BOT-PROG seed=3293 t=70s floor=1 rooms=2 kills=15 hp=4
+BALANCE-BOT RUN 4/10: seed=3293 outcome=death floor=1 rooms=3 kills=23 dur=99.1s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3293 t=1s floor=1 rooms=0 kills=0 hp=8
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=31s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=3293 t=60s floor=1 rooms=2 kills=17 hp=8
+BOT-PROG seed=3293 t=89s floor=1 rooms=4 kills=28 hp=8
+BOT-PROG seed=3293 t=119s floor=1 rooms=6 kills=34 hp=8
+BOT-PROG seed=3293 t=149s floor=1 rooms=6 kills=38 hp=6
+BOT-PROG seed=3293 t=179s floor=1 rooms=7 kills=42 hp=7
+BOT-PROG seed=3293 t=209s floor=1 rooms=10 kills=48 hp=7
+BOT-PROG seed=3293 t=239s floor=1 rooms=10 kills=48 hp=7
+BOT-PROG seed=3293 t=269s floor=1 rooms=10 kills=48 hp=7
+BALANCE-BOT RUN 5/10: seed=3293 outcome=death floor=1 rooms=10 kills=48 dur=293.9s coins=41 gems=5 hearts=0 death=腐沼巨蟾的接触冲撞(miniboss)
+BOT-PROG seed=3293 t=4s floor=1 rooms=0 kills=2 hp=8
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=34s floor=1 rooms=1 kills=10 hp=4
+BALANCE-BOT RUN 6/10: seed=3293 outcome=death floor=1 rooms=1 kills=13 dur=39.9s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT DONE: 6 runs, wins=0 milestones=0 deaths=6 timeouts=0 stalls=0 crashes=0 probe_skipped=0

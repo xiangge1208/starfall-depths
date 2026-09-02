@@ -1,0 +1,57 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BOT-PROG seed=3221 t=30s floor=1 rooms=2 kills=7 hp=4
+BALANCE-BOT RUN 1/10: seed=3221 outcome=death floor=1 rooms=3 kills=13 dur=41.1s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BOT-PROG seed=3221 t=19s floor=1 rooms=0 kills=2 hp=8
+BALANCE-BOT PROBE false-trigger seed=3221 a2 t=25s (progress resumed)
+BOT-PROG seed=3221 t=49s floor=1 rooms=0 kills=5 hp=6
+BOT-PROG seed=3221 t=78s floor=1 rooms=2 kills=8 hp=2
+BALANCE-BOT PROBE false-trigger seed=3221 a2 t=80s (progress resumed)
+BOT-PROG seed=3221 t=108s floor=1 rooms=2 kills=11 hp=2
+BALANCE-BOT RUN 2/10: seed=3221 outcome=death floor=1 rooms=3 kills=13 dur=131.2s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BOT-PROG seed=3221 t=7s floor=1 rooms=0 kills=2 hp=4
+BALANCE-BOT RUN 3/10: seed=3221 outcome=death floor=1 rooms=2 kills=7 dur=26.7s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3221 t=10s floor=1 rooms=0 kills=2 hp=1
+BOT-PROG seed=3221 t=40s floor=1 rooms=0 kills=5 hp=1
+BALANCE-BOT RUN 4/10: seed=3221 outcome=death floor=1 rooms=2 kills=7 dur=63.8s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3221 t=7s floor=1 rooms=0 kills=2 hp=4
+BALANCE-BOT RUN 5/10: seed=3221 outcome=death floor=1 rooms=2 kills=7 dur=26.8s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3221 t=10s floor=1 rooms=0 kills=2 hp=1
+BOT-PROG seed=3221 t=40s floor=1 rooms=0 kills=5 hp=1
+BALANCE-BOT RUN 6/10: seed=3221 outcome=death floor=1 rooms=2 kills=7 dur=43.0s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3221 t=26s floor=1 rooms=2 kills=7 hp=8
+BOT-PROG seed=3221 t=56s floor=1 rooms=3 kills=17 hp=4
+BOT-PROG seed=3221 t=86s floor=1 rooms=4 kills=21 hp=3
+BOT-PROG seed=3221 t=116s floor=1 rooms=4 kills=24 hp=3
+BALANCE-BOT RUN 7/10: seed=3221 outcome=death floor=1 rooms=6 kills=33 dur=145.3s coins=6 gems=5 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3221 t=0s floor=1 rooms=0 kills=0 hp=8
+BOT-PROG seed=3221 t=30s floor=1 rooms=0 kills=3 hp=8
+BOT-PROG seed=3221 t=60s floor=1 rooms=2 kills=8 hp=8
+BALANCE-BOT PROBE false-trigger seed=3221 a8 t=71s (progress resumed)
+BOT-PROG seed=3221 t=90s floor=1 rooms=2 kills=11 hp=6
+BOT-PROG seed=3221 t=120s floor=1 rooms=3 kills=14 hp=6
+BOT-PROG seed=3221 t=150s floor=1 rooms=3 kills=17 hp=6
+BOT-PROG seed=3221 t=180s floor=1 rooms=4 kills=22 hp=7
+BOT-PROG seed=3221 t=210s floor=1 rooms=6 kills=33 hp=7
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 32px (door>=32, player>=88), 2 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1130)
+       [2] _start_room_combat (res://core/rooms/floor_scene.gd:1121)
+       [3] choose_calamity (res://core/rooms/floor_scene.gd:2052)
+       [4] _drive_floor (res://tools/balance_bot.gd:756)
+       [5] _drive_tick (res://tools/balance_bot.gd:731)
+       [6] _run_one (res://tools/balance_bot.gd:276)
+BALANCE-BOT CALAMITY seed=3221 room=10 chose=enemy_speed
+BOT-PROG seed=3221 t=240s floor=1 rooms=7 kills=39 hp=3
+BOT-PROG seed=3221 t=269s floor=1 rooms=10 kills=48 hp=4
+BOT-PROG seed=3221 t=299s floor=1 rooms=10 kills=48 hp=4
+BOT-PROG seed=3221 t=329s floor=1 rooms=10 kills=48 hp=3
+BOT-PROG seed=3221 t=359s floor=1 rooms=10 kills=48 hp=1
+BALANCE-BOT RUN 8/10: seed=3221 outcome=death floor=1 rooms=10 kills=48 dur=379.4s coins=43 gems=5 hearts=0 death=腐沼巨蟾的接触冲撞(miniboss)
+BALANCE-BOT DONE: 8 runs, wins=0 milestones=0 deaths=8 timeouts=0 stalls=0 crashes=0 probe_skipped=0
+WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

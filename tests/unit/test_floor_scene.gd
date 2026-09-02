@@ -878,3 +878,83 @@ func test_scene_elite_affixes_progression() -> void:
 	var r3b: Array[String] = FloorScene.elite_affixes_for_floor(3,
 		RngSvc.stream(3, RunState.SALT_ELITE))
 	assert_str(var_to_str(r3)).is_equal(var_to_str(r3b))
+
+
+# ---------------------------------------------------------------- m3-fix2 中心落位防卡缝
+
+static func _circle_rect_gap(at: Vector2, rect: Rect2) -> float:
+	var closest := Vector2(
+		clampf(at.x, rect.position.x, rect.end.x),
+		clampf(at.y, rect.position.y, rect.end.y))
+	return closest.distance_to(at)
+
+
+func test_scene_push_back_never_places_player_inside_center_pillars() -> void:
+	# B-2 停滞残差产品侧根因回归钉死：combat_a1_01（_typed_chain 战斗房默认模板）
+	# 房心 2×2 柱阵恰好占住 outer 中心 → 旧实现 _push_back 把玩家放进柱缝
+	# （探针实证 seeds 3221/3251/3258/3268：dir/vel 非零而 pp 全窗零位移）。
+	# 修复后落位必须与全部实体保持玩家半径间距且在内域。
+	var fs := _make_scene(_typed_chain(["combat", "combat"]))
+	var combat_room := 1
+	assert_bool(fs.enter_room(combat_room)).is_true()
+	fs.push_player_back()
+	var pp: Vector2 = fs.player_node().position
+	var room_rect: Rect2 = fs.room_rect(combat_room)
+	var interior := Rect2(room_rect.position + Vector2(16, 16),
+		room_rect.size - Vector2(32, 32))
+	assert_bool(interior.has_point(pp)).is_true()
+	var radius := fs._player_body_radius()
+	assert_float(radius).is_equal_approx(6.0, 0.001)
+	for rect in fs._room_solid_rects(fs.room_node(combat_room)):
+		assert_float(_circle_rect_gap(pp, rect)).is_greater_equal(radius - 0.001)
+
+
+func test_scene_place_player_at_start_respects_solids() -> void:
+	# start 房模板（start_a1）当前无房心实体 → 零漂移落在中心（原契约保持）；
+	# 若未来模板引入房心实体，落位仍必须合法（同一 safe 路径）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var start := int(fs.flow.start_room())
+	var pp: Vector2 = fs.player_node().position
+	var center := fs.room_center(start)
+	assert_vector(pp).is_equal_approx(center, Vector2(0.5, 0.5))
+	for rect in fs._room_solid_rects(fs.room_node(start)):
+		assert_float(_circle_rect_gap(pp, rect)).is_greater_equal(
+			fs._player_body_radius() - 0.001)
+
+
+func test_scene_pickup_spawn_clamped_out_of_solids() -> void:
+	# m3-fix2（B-2 seed 3271 产品侧半边）：掉落/奖励散布点可落进房心柱/箱实体 →
+	# 拾取物成为不可达死物。_spawn_pickup 必须把落点钳到实体外（玩家圆 r=6 可及）。
+	var fs := _make_scene(_typed_chain(["combat", "combat"]))
+	var room := fs.room_node(1)
+	var interior := Rect2(fs.room_rect(1).position + Vector2(16, 16),
+		fs.room_rect(1).size - Vector2(32, 32))
+	var solids := fs._room_solid_rects(room)
+	# combat_a1_01 房心柱阵西柱中心（必然与实体相交的落点）
+	var inside := Vector2(168, 104)
+	var world_inside := room.position + inside
+	fs._spawn_pickup(room, "coin", world_inside)
+	var pickups: Array = []
+	for c in room.get_children():
+		if c is Pickup:
+			pickups.append(c)
+	assert_int(pickups.size()).is_equal(1)
+	var p := pickups[0] as Pickup
+	var at: Vector2 = (p as Node2D).global_position
+	assert_bool(interior.has_point(at)).is_true()
+	for rect in solids:
+		assert_float(_circle_rect_gap(at, rect)).is_greater_equal(6.0 - 0.001)
+
+
+func test_scene_pickup_spawn_free_point_unchanged() -> void:
+	# 合法落点零漂移（防钳制无事生非）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var room := fs.room_node(1)
+	var free := room.position + Vector2(230, 60)
+	fs._spawn_pickup(room, "coin", free)
+	for c in room.get_children():
+		if c is Pickup:
+			assert_vector((c as Node2D).global_position).is_equal_approx(free,
+				Vector2(0.001, 0.001))
+			return
+	fail("no pickup spawned")

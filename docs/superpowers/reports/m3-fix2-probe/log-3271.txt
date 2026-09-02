@@ -1,0 +1,35 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BOT-PROG seed=3271 t=30s floor=1 rooms=1 kills=8 hp=4
+BALANCE-BOT RUN 1/10: seed=3271 outcome=death floor=1 rooms=2 kills=13 dur=37.5s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BOT-PROG seed=3271 t=22s floor=1 rooms=0 kills=2 hp=8
+BOT-PROG seed=3271 t=52s floor=1 rooms=2 kills=13 hp=4
+BALANCE-BOT RUN 2/10: seed=3271 outcome=death floor=1 rooms=2 kills=17 dur=71.7s coins=1 gems=0 hearts=0 death=弩兵的弹幕(elite)
+BOT-PROG seed=3271 t=10s floor=1 rooms=0 kills=2 hp=8
+BOT-PROG seed=3271 t=40s floor=1 rooms=0 kills=5 hp=8
+BOT-PROG seed=3271 t=70s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=3271 t=99s floor=1 rooms=2 kills=16 hp=4
+BOT-PROG seed=3271 t=129s floor=1 rooms=2 kills=18 hp=2
+BOT-PROG seed=3271 t=159s floor=1 rooms=3 kills=19 hp=4
+BOT-PROG seed=3271 t=189s floor=1 rooms=3 kills=19 hp=4
+BOT-PROG seed=3271 t=219s floor=1 rooms=3 kills=19 hp=4
+BOT-PROG seed=3271 t=249s floor=1 rooms=3 kills=19 hp=4
+BOT-PROG seed=3271 t=279s floor=1 rooms=3 kills=19 hp=4
+BOT-PROG seed=3271 t=309s floor=1 rooms=3 kills=19 hp=4
+BALANCE-BOT RUN 3/10: seed=3271 outcome=stalled floor=1 rooms=3 kills=19 dur=317.0s coins=0 gems=5 hearts=0 death=()
+BOT-PROG seed=3271 t=22s floor=1 rooms=0 kills=5 hp=8
+BOT-PROG seed=3271 t=52s floor=1 rooms=2 kills=15 hp=4
+BALANCE-BOT RUN 4/10: seed=3271 outcome=death floor=1 rooms=2 kills=15 dur=66.1s coins=0 gems=0 hearts=0 death=双刀蜥人的接触冲撞(elite)
+BOT-PROG seed=3271 t=16s floor=1 rooms=0 kills=4 hp=8
+BOT-PROG seed=3271 t=45s floor=1 rooms=2 kills=15 hp=8
+BALANCE-BOT RUN 5/10: seed=3271 outcome=death floor=1 rooms=2 kills=16 dur=53.8s coins=0 gems=0 hearts=0 death=双刀蜥人的接触冲撞(elite)
+BOT-PROG seed=3271 t=21s floor=1 rooms=0 kills=5 hp=8
+BOT-PROG seed=3271 t=51s floor=1 rooms=2 kills=13 hp=8
+BOT-PROG seed=3271 t=81s floor=1 rooms=2 kills=14 hp=8
+BALANCE-BOT PROBE false-trigger seed=3271 a6 t=83s (progress resumed)
+BALANCE-BOT RUN 6/10: seed=3271 outcome=death floor=1 rooms=2 kills=15 dur=99.5s coins=0 gems=0 hearts=0 death=弩兵的弹幕(elite)
+BALANCE-BOT DONE: 6 runs, wins=0 milestones=0 deaths=5 timeouts=0 stalls=1 crashes=0 probe_skipped=0
+WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

@@ -1,0 +1,74 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 64px (door>=0, player>=56), 4 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1130)
+       [2] _start_room_combat (res://core/rooms/floor_scene.gd:1121)
+       [3] choose_calamity (res://core/rooms/floor_scene.gd:2052)
+       [4] _drive_floor (res://tools/balance_bot.gd:791)
+       [5] _drive_tick (res://tools/balance_bot.gd:766)
+       [6] _run_one (res://tools/balance_bot.gd:277)
+BALANCE-BOT CALAMITY seed=3217 room=1 chose=enemy_speed
+BOT-PROG seed=3217 t=30s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT RUN 1/10: seed=3217 outcome=death floor=1 rooms=1 kills=11 dur=54.2s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 64px (door>=0, player>=56), 4 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1130)
+       [2] _start_room_combat (res://core/rooms/floor_scene.gd:1121)
+       [3] choose_calamity (res://core/rooms/floor_scene.gd:2052)
+       [4] _drive_floor (res://tools/balance_bot.gd:791)
+       [5] _drive_tick (res://tools/balance_bot.gd:766)
+       [6] _run_one (res://tools/balance_bot.gd:277)
+BALANCE-BOT CALAMITY seed=3217 room=1 chose=enemy_speed
+BOT-PROG seed=3217 t=6s floor=1 rooms=0 kills=1 hp=8
+BOT-PROG seed=3217 t=35s floor=1 rooms=1 kills=9 hp=8
+BALANCE-BOT RUN 2/10: seed=3217 outcome=death floor=1 rooms=3 kills=16 dur=53.3s coins=11 gems=0 hearts=0 death=穴蝠的接触冲撞(combat)
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 64px (door>=0, player>=56), 4 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1130)
+       [2] _start_room_combat (res://core/rooms/floor_scene.gd:1121)
+       [3] choose_calamity (res://core/rooms/floor_scene.gd:2052)
+       [4] _drive_floor (res://tools/balance_bot.gd:791)
+       [5] _drive_tick (res://tools/balance_bot.gd:766)
+       [6] _run_one (res://tools/balance_bot.gd:277)
+BALANCE-BOT CALAMITY seed=3217 room=1 chose=enemy_speed
+BOT-PROG seed=3217 t=12s floor=1 rooms=0 kills=2 hp=8
+BOT-PROG seed=3217 t=42s floor=1 rooms=0 kills=2 hp=8
+BALANCE-BOT PROBE false-trigger seed=3217 a3 t=42s (sig_frozen resumed)
+BOT-PROG seed=3217 t=72s floor=1 rooms=0 kills=2 hp=8
+BALANCE-BOT PROBE false-trigger seed=3217 a3 t=74s (sig_frozen resumed)
+BOT-PROG seed=3217 t=102s floor=1 rooms=0 kills=5 hp=8
+BOT-PROG seed=3217 t=132s floor=1 rooms=0 kills=8 hp=8
+BALANCE-BOT PROBE false-trigger seed=3217 a3 t=157s (sig_frozen resumed)
+BOT-PROG seed=3217 t=162s floor=1 rooms=0 kills=8 hp=7
+BOT-PROG seed=3217 t=192s floor=1 rooms=1 kills=11 hp=7
+BOT-PROG seed=3217 t=222s floor=1 rooms=3 kills=17 hp=7
+BOT-PROG seed=3217 t=251s floor=1 rooms=4 kills=23 hp=3
+BALANCE-BOT RUN 3/10: seed=3217 outcome=death floor=1 rooms=4 kills=26 dur=278.9s coins=0 gems=0 hearts=0 death=弩兵的弹幕(elite)
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 64px (door>=0, player>=56), 4 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1130)
+       [2] _start_room_combat (res://core/rooms/floor_scene.gd:1121)
+       [3] choose_calamity (res://core/rooms/floor_scene.gd:2052)
+       [4] _drive_floor (res://tools/balance_bot.gd:791)
+       [5] _drive_tick (res://tools/balance_bot.gd:766)
+       [6] _run_one (res://tools/balance_bot.gd:277)
+BALANCE-BOT CALAMITY seed=3217 room=1 chose=enemy_speed
+BOT-PROG seed=3217 t=2s floor=1 rooms=0 kills=0 hp=8
+BOT-PROG seed=3217 t=32s floor=1 rooms=0 kills=2 hp=8
+BALANCE-BOT PROBE-DUMP seed=3217 a4 t=59s trigger=sig_frozen room=1(combat) alive=1 | crossbowman hp=4 gp=[138.5, -296.0] appr=14.2 cross=0 | win_hits=0
+BALANCE-BOT PROBE CAPTURED seed=3217 file=docs/superpowers/reports/m3-fix2-probe-fixed/probe-3217-a4.json
+BALANCE-BOT RUN 4/10: seed=3217 outcome=stalled floor=1 rooms=0 kills=2 dur=58.7s coins=0 gems=0 hearts=0 death=()
+BALANCE-BOT DONE: 4 runs, wins=0 milestones=0 deaths=3 timeouts=0 stalls=1 crashes=0 probe_skipped=0
+WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

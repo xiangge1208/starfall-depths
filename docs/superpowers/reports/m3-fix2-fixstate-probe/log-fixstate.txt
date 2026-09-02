@@ -1,0 +1,200 @@
+# 注：归档时裁剪 3568 行引擎告警（fix1 已披露的 normalize 洪水等，非本卡证据）；逐局结构化结果见同目录/同名 .json。
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+BALANCE-BOT CALAMITY seed=3205 room=2 chose=enemy_speed
+BOT-PROG seed=3205 t=30s floor=1 rooms=1 kills=8 hp=8
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 1/10: seed=3205 outcome=death floor=1 rooms=1 kills=13 dur=49.8s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3205 t=10s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3205 room=2 chose=enemy_speed
+BOT-PROG seed=3205 t=40s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=3205 t=70s floor=1 rooms=1 kills=8 hp=8
+BALANCE-BOT PROBE false-trigger seed=3205 a2 t=76s (sig_frozen resumed)
+BOT-PROG seed=3205 t=100s floor=1 rooms=1 kills=10 hp=8
+BOT-PROG seed=3205 t=130s floor=1 rooms=1 kills=14 hp=8
+BALANCE-BOT PROBE false-trigger seed=3205 a2 t=138s (sig_frozen resumed)
+BOT-PROG seed=3205 t=159s floor=1 rooms=2 kills=17 hp=8
+BOT-PROG seed=3205 t=189s floor=1 rooms=2 kills=20 hp=8
+BOT-PROG seed=3205 t=219s floor=1 rooms=5 kills=29 hp=4
+BOT-PROG seed=3205 t=249s floor=1 rooms=5 kills=31 hp=2
+BOT-PROG seed=3205 t=279s floor=1 rooms=6 kills=36 hp=6
+BOT-PROG seed=3205 t=309s floor=1 rooms=10 kills=46 hp=6
+BOT-PROG seed=3205 t=339s floor=1 rooms=10 kills=47 hp=6
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 2/10: seed=3205 outcome=death floor=1 rooms=10 kills=49 dur=349.7s coins=42 gems=5 hearts=0 death=电磁蛛的电弧链(miniboss)
+BOT-PROG seed=3205 t=19s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3205 room=2 chose=enemy_speed
+BOT-PROG seed=3205 t=49s floor=1 rooms=1 kills=8 hp=8
+BALANCE-BOT PROBE false-trigger seed=3205 a3 t=65s (sig_frozen resumed)
+BOT-PROG seed=3205 t=79s floor=1 rooms=1 kills=9 hp=8
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 3/10: seed=3205 outcome=death floor=1 rooms=1 kills=14 dur=87.2s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT CALAMITY seed=3217 room=1 chose=enemy_speed
+BOT-PROG seed=3217 t=22s floor=1 rooms=0 kills=4 hp=8
+BOT-PROG seed=3217 t=51s floor=1 rooms=1 kills=11 hp=4
+BOT-PROG seed=3217 t=80s floor=1 rooms=4 kills=22 hp=4
+BOT-PROG seed=3217 t=110s floor=1 rooms=4 kills=26 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 4/10: seed=3217 outcome=death floor=1 rooms=5 kills=32 dur=136.6s coins=8 gems=5 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT CALAMITY seed=3217 room=1 chose=enemy_speed
+BOT-PROG seed=3217 t=4s floor=1 rooms=0 kills=1 hp=8
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 5/10: seed=3217 outcome=death floor=1 rooms=0 kills=7 dur=31.5s coins=0 gems=0 hearts=0 death=藤蔓冲锋者的接触冲撞(combat)
+BALANCE-BOT CALAMITY seed=3217 room=1 chose=enemy_speed
+BOT-PROG seed=3217 t=2s floor=1 rooms=0 kills=0 hp=8
+BOT-PROG seed=3217 t=32s floor=1 rooms=0 kills=5 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 6/10: seed=3217 outcome=death floor=1 rooms=0 kills=7 dur=41.7s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3221 t=20s floor=1 rooms=0 kills=5 hp=8
+BOT-PROG seed=3221 t=50s floor=1 rooms=3 kills=14 hp=1
+BOT-PROG seed=3221 t=80s floor=1 rooms=4 kills=19 hp=2
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 7/10: seed=3221 outcome=death floor=1 rooms=4 kills=21 dur=88.3s coins=0 gems=5 hearts=0 death=弩兵的弹幕(combat)
+BOT-PROG seed=3221 t=21s floor=1 rooms=0 kills=2 hp=4
+BOT-PROG seed=3221 t=51s floor=1 rooms=2 kills=8 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 8/10: seed=3221 outcome=death floor=1 rooms=3 kills=13 dur=68.9s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BOT-PROG seed=3221 t=12s floor=1 rooms=0 kills=2 hp=1
+BOT-PROG seed=3221 t=42s floor=1 rooms=2 kills=11 hp=1
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 9/10: seed=3221 outcome=death floor=1 rooms=3 kills=13 dur=50.1s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BALANCE-BOT CALAMITY seed=3223 room=1 chose=enemy_speed
+BOT-PROG seed=3223 t=22s floor=1 rooms=0 kills=2 hp=8
+BOT-PROG seed=3223 t=52s floor=1 rooms=0 kills=5 hp=8
+BOT-PROG seed=3223 t=82s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT PROBE-DUMP seed=3223 a1 t=96s trigger=sig_frozen room=1(combat) alive=1 | crossbowman hp=4 gp=[645.0, 199.0] appr=9.7 cross=0 | win_hits=0
+BALANCE-BOT PROBE CAPTURED seed=3223 file=docs/superpowers/reports/m3-fix2-fixstate-probe/probe-3223-a1.json
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 10/10: seed=3223 outcome=stalled floor=1 rooms=0 kills=5 dur=95.6s coins=0 gems=0 hearts=0 death=()
+BOT-PROG seed=3230 t=16s floor=1 rooms=0 kills=2 hp=4
+BOT-PROG seed=3230 t=46s floor=1 rooms=0 kills=5 hp=4
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 11/10: seed=3230 outcome=death floor=1 rooms=1 kills=8 dur=57.5s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3230 t=18s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=48s floor=1 rooms=1 kills=14 hp=4
+BOT-PROG seed=3230 t=78s floor=1 rooms=2 kills=17 hp=1
+BOT-PROG seed=3230 t=108s floor=1 rooms=3 kills=25 hp=1
+BOT-PROG seed=3230 t=137s floor=1 rooms=5 kills=28 hp=5
+BOT-PROG seed=3230 t=167s floor=1 rooms=6 kills=38 hp=1
+BOT-PROG seed=3230 t=197s floor=1 rooms=7 kills=43 hp=1
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 12/10: seed=3230 outcome=death floor=1 rooms=7 kills=44 dur=197.4s coins=28 gems=5 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT CALAMITY seed=3230 room=2 chose=enemy_speed
+BOT-PROG seed=3230 t=30s floor=1 rooms=1 kills=9 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 13/10: seed=3230 outcome=death floor=1 rooms=1 kills=11 dur=30.4s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 14/10: seed=3251 outcome=death floor=1 rooms=1 kills=7 dur=26.3s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3251 t=3s floor=1 rooms=0 kills=0 hp=8
+BOT-PROG seed=3251 t=32s floor=1 rooms=1 kills=9 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 15/10: seed=3251 outcome=death floor=1 rooms=1 kills=10 dur=33.5s coins=1 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3251 t=29s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=3251 t=59s floor=1 rooms=3 kills=18 hp=8
+BOT-PROG seed=3251 t=88s floor=1 rooms=5 kills=30 hp=8
+BALANCE-BOT CALAMITY seed=3251 room=9 chose=enemy_speed
+BOT-PROG seed=3251 t=118s floor=1 rooms=6 kills=33 hp=8
+BOT-PROG seed=3251 t=148s floor=1 rooms=6 kills=33 hp=8
+BOT-PROG seed=3251 t=178s floor=1 rooms=6 kills=36 hp=8
+BOT-PROG seed=3251 t=208s floor=1 rooms=6 kills=36 hp=8
+BOT-PROG seed=3251 t=238s floor=1 rooms=7 kills=43 hp=4
+BOT-PROG seed=3251 t=268s floor=1 rooms=10 kills=48 hp=6
+BOT-PROG seed=3251 t=298s floor=1 rooms=10 kills=48 hp=6
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 16/10: seed=3251 outcome=death floor=1 rooms=10 kills=48 dur=312.2s coins=56 gems=5 hearts=0 death=腐沼巨蟾的吐还弹幕(miniboss)
+BOT-PROG seed=3258 t=15s floor=1 rooms=0 kills=4 hp=8
+BALANCE-BOT CALAMITY seed=3258 room=4 chose=enemy_speed
+BOT-PROG seed=3258 t=45s floor=1 rooms=3 kills=13 hp=8
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 17/10: seed=3258 outcome=death floor=1 rooms=3 kills=19 dur=63.1s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3258 t=12s floor=1 rooms=0 kills=3 hp=8
+BALANCE-BOT CALAMITY seed=3258 room=4 chose=enemy_speed
+BOT-PROG seed=3258 t=42s floor=1 rooms=3 kills=12 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 18/10: seed=3258 outcome=death floor=1 rooms=3 kills=14 dur=42.3s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3258 t=29s floor=1 rooms=2 kills=8 hp=4
+BALANCE-BOT CALAMITY seed=3258 room=4 chose=enemy_speed
+BOT-PROG seed=3258 t=59s floor=1 rooms=3 kills=14 hp=4
+BOT-PROG seed=3258 t=89s floor=1 rooms=3 kills=20 hp=4
+BOT-PROG seed=3258 t=119s floor=1 rooms=3 kills=20 hp=2
+BOT-PROG seed=3258 t=149s floor=1 rooms=4 kills=23 hp=2
+BOT-PROG seed=3258 t=179s floor=1 rooms=4 kills=26 hp=2
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 19/10: seed=3258 outcome=death floor=1 rooms=5 kills=28 dur=184.1s coins=0 gems=0 hearts=0 death=苦力虫的自爆(elite)
+BOT-PROG seed=3262 t=25s floor=1 rooms=1 kills=6 hp=4
+BOT-PROG seed=3262 t=55s floor=1 rooms=2 kills=15 hp=4
+BOT-PROG seed=3262 t=84s floor=1 rooms=4 kills=23 hp=4
+BALANCE-BOT CALAMITY seed=3262 room=6 chose=enemy_speed
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 20/10: seed=3262 outcome=death floor=1 rooms=5 kills=28 dur=105.1s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3262 t=9s floor=1 rooms=0 kills=3 hp=4
+BOT-PROG seed=3262 t=39s floor=1 rooms=2 kills=13 hp=4
+BOT-PROG seed=3262 t=69s floor=1 rooms=4 kills=20 hp=4
+BALANCE-BOT CALAMITY seed=3262 room=6 chose=enemy_speed
+BOT-PROG seed=3262 t=99s floor=1 rooms=5 kills=29 hp=4
+BOT-PROG seed=3262 t=129s floor=1 rooms=6 kills=37 hp=4
+BOT-PROG seed=3262 t=158s floor=1 rooms=6 kills=39 hp=4
+BOT-PROG seed=3262 t=188s floor=1 rooms=10 kills=48 hp=3
+BOT-PROG seed=3262 t=218s floor=1 rooms=10 kills=48 hp=3
+BOT-PROG seed=3262 t=248s floor=1 rooms=11 kills=49 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 21/10: seed=3262 outcome=death floor=1 rooms=11 kills=49 dur=271.8s coins=41 gems=25 hearts=0 death=藤蔓巨像的藤蔓横扫(boss)
+BOT-PROG seed=3262 t=6s floor=1 rooms=0 kills=2 hp=4
+BOT-PROG seed=3262 t=36s floor=1 rooms=1 kills=6 hp=4
+BOT-PROG seed=3262 t=66s floor=1 rooms=2 kills=17 hp=2
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 22/10: seed=3262 outcome=death floor=1 rooms=4 kills=19 dur=88.1s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3268 t=8s floor=1 rooms=0 kills=2 hp=4
+BOT-PROG seed=3268 t=38s floor=1 rooms=0 kills=3 hp=4
+BALANCE-BOT PROBE false-trigger seed=3268 a1 t=66s (sig_frozen resumed)
+BOT-PROG seed=3268 t=68s floor=1 rooms=0 kills=5 hp=4
+BOT-PROG seed=3268 t=98s floor=1 rooms=2 kills=12 hp=4
+BOT-PROG seed=3268 t=128s floor=1 rooms=2 kills=15 hp=4
+BOT-PROG seed=3268 t=158s floor=1 rooms=2 kills=17 hp=4
+BALANCE-BOT CALAMITY seed=3268 room=5 chose=enemy_speed
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 23/10: seed=3268 outcome=death floor=1 rooms=4 kills=19 dur=161.2s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3268 t=26s floor=1 rooms=0 kills=5 hp=4
+BOT-PROG seed=3268 t=56s floor=1 rooms=1 kills=11 hp=4
+BOT-PROG seed=3268 t=86s floor=1 rooms=2 kills=14 hp=4
+BALANCE-BOT CALAMITY seed=3268 room=5 chose=enemy_speed
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 24/10: seed=3268 outcome=death floor=1 rooms=4 kills=19 dur=104.6s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3268 t=11s floor=1 rooms=0 kills=2 hp=4
+BOT-PROG seed=3268 t=41s floor=1 rooms=1 kills=11 hp=4
+BALANCE-BOT CALAMITY seed=3268 room=5 chose=enemy_speed
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 25/10: seed=3268 outcome=death floor=1 rooms=4 kills=19 dur=70.4s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3271 t=1s floor=1 rooms=0 kills=0 hp=8
+BOT-PROG seed=3271 t=31s floor=1 rooms=1 kills=7 hp=1
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 26/10: seed=3271 outcome=death floor=1 rooms=1 kills=10 dur=36.4s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3271 t=24s floor=1 rooms=0 kills=5 hp=8
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 27/10: seed=3271 outcome=death floor=1 rooms=1 kills=10 dur=36.1s coins=4 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3271 t=18s floor=1 rooms=0 kills=4 hp=8
+BOT-PROG seed=3271 t=47s floor=1 rooms=2 kills=14 hp=4
+BOT-PROG seed=3271 t=77s floor=1 rooms=2 kills=18 hp=4
+BOT-PROG seed=3271 t=107s floor=1 rooms=3 kills=19 hp=4
+BALANCE-BOT PROBE-DUMP seed=3271 a3 t=126s trigger=sig_frozen room=3(elite) alive=0 | win_hits=0
+BALANCE-BOT PROBE CAPTURED seed=3271 file=docs/superpowers/reports/m3-fix2-fixstate-probe/probe-3271-a3.json
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 28/10: seed=3271 outcome=stalled floor=1 rooms=3 kills=19 dur=126.5s coins=0 gems=5 hearts=0 death=()
+BOT-PROG seed=3293 t=11s floor=1 rooms=0 kills=2 hp=4
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=41s floor=1 rooms=1 kills=6 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 29/10: seed=3293 outcome=death floor=1 rooms=1 kills=10 dur=60.6s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BOT-PROG seed=3293 t=10s floor=1 rooms=0 kills=4 hp=8
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=40s floor=1 rooms=1 kills=10 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 30/10: seed=3293 outcome=death floor=1 rooms=1 kills=13 dur=43.3s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT CALAMITY seed=3293 room=2 chose=enemy_speed
+BOT-PROG seed=3293 t=26s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=3293 t=56s floor=1 rooms=1 kills=14 hp=4
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT RUN 31/10: seed=3293 outcome=death floor=1 rooms=3 kills=22 dur=83.2s coins=0 gems=0 hearts=0 death=苦力虫的自爆(combat)
+BALANCE-BOT report written: docs/superpowers/reports/m3-fix2-stall-regression-fixstate.md
+BALANCE-BOT DONE: 31 runs, wins=0 milestones=0 deaths=29 timeouts=0 stalls=2 crashes=0 probe_skipped=2

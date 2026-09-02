@@ -937,7 +937,7 @@ func _place_player_at_start() -> void:
 	if player == null or start == null:
 		push_error("FloorScene: no player or start room")
 		return
-	player.position = start.outer.get_center()
+	player.position = _safe_room_placement(start, start.outer.get_center())
 
 
 ## 玩家侧公共接线（一次性）：初始枪 / 输入驱动。combat 注入随进房切到当前房。
@@ -1037,12 +1037,80 @@ func enter_room(id: int) -> bool:
 func _push_back() -> void:
 	var room: FloorRoom = _rooms.get(flow.current_room)
 	if player != null and room != null:
-		player.position = room.outer.get_center()
+		player.position = _safe_room_placement(room, room.outer.get_center())
+
+
+## m3-fix2：中心落位的防卡缝修（B-2 停滞残差产品侧根因，探针实证 seeds
+## 3221/3251/3268）。combat_a1_01 / a1_03 / a1_05 / a2_06 / a3_06 模板在**房心**
+## 放置柱/箱实体：`_push_back`（生产 enter_room 拒绝路径 + bot 落位测试缝同一实现）
+## 与 `_place_player_at_start` 的「房心落位」会把玩家 CharacterBody2D 直接放进
+## 2×2 柱阵缝里，move_and_slide 双向去重叠相互抵消 → 玩家全程定死原点
+## （探针密集窗：pp 10s 零位移、dir 非零），风筝敌脱离点杀距离后伤害停摆 =
+## 「玩家可站位下敌不可达」产品缺陷。落位前经 `find_safe_placement` 把中心点
+## 推到最近合法空位（环搜确定性：半径升序 × 角度升序取首个自由点）。
+func _safe_room_placement(room: FloorRoom, preferred: Vector2) -> Vector2:
+	return find_safe_placement(preferred, _room_solid_rects(room), _player_body_radius(),
+		_room_interior(room))
+
+
+## 房间实体阻挡矩形（世界坐标；墙 + 柱/箱 props 同一 StaticBody2D 通道）。
+func _room_solid_rects(room: FloorRoom) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	for c in room.get_children():
+		if c is not StaticBody2D:
+			continue
+		for cc in (c as StaticBody2D).get_children():
+			if cc is CollisionShape2D and (cc as CollisionShape2D).shape is RectangleShape2D:
+				var size: Vector2 = ((cc as CollisionShape2D).shape as RectangleShape2D).size
+				out.append(Rect2((c as StaticBody2D).global_position - size / 2.0, size))
+				break
+	return out
+
+
+## 玩家物理体半径（player.tscn CircleShape2D=6；读不到时回落同值）。
+func _player_body_radius() -> float:
+	if player != null and is_instance_valid(player):
+		for c in player.get_children():
+			if c is CollisionShape2D and (c as CollisionShape2D).shape is CircleShape2D:
+				return ((c as CollisionShape2D).shape as CircleShape2D).radius
+	return 6.0
+
+
+## 静态纯函数（单测钉死）：`preferred` 与任一 solid 保持 ≥radius 间距则原样返回
+## （合法落位零漂移）；否则从半径 8px 起按 8px 步长环搜、每圈 16 方向角升序，
+## 取首个「圆心在 interior 内（整圆）且与全部 solid 不相交」的点；搜不到（防御）
+## 回原点。同输入必同输出。
+static func find_safe_placement(preferred: Vector2, solids: Array[Rect2], radius: float,
+		interior: Rect2) -> Vector2:
+	if _placement_is_free(preferred, solids, radius, interior):
+		return preferred
+	for r in range(1, 21):
+		var dist := float(r) * 8.0
+		for i in 16:
+			var cand := preferred + Vector2.from_angle(TAU * float(i) / 16.0) * dist
+			if _placement_is_free(cand, solids, radius, interior):
+				return cand
+	return preferred
+
+
+static func _placement_is_free(at: Vector2, solids: Array[Rect2], radius: float,
+		interior: Rect2) -> bool:
+	if at.x < interior.position.x + radius or at.x > interior.end.x - radius \
+			or at.y < interior.position.y + radius or at.y > interior.end.y - radius:
+		return false
+	for rect in solids:
+		var closest := Vector2(
+			clampf(at.x, rect.position.x, rect.end.x),
+			clampf(at.y, rect.position.y, rect.end.y))
+		if closest.distance_to(at) < radius:
+			return false
+	return true
 
 
 ## m3-fix1：落位测试缝（bot/无头宿主用，等价生产 _push_back 语义）——把玩家放到
-## flow 当前房中心。bot 无走廊徒步（头注 5），flow 经 enter_room 前进而玩家物理位
-## 滞留旧房时，锁房战斗会「玩家不在场」；本缝提供与生产失败路径相同的落位能力。
+## flow 当前房的合法落位（房心；m3-fix2 起房心被实体占用时弹到最近自由点，见
+## _safe_room_placement）。bot 无走廊徒步（头注 5），flow 经 enter_room 前进而玩家
+## 物理位滞留旧房时，锁房战斗会「玩家不在场」；本缝提供与生产失败路径相同的落位能力。
 func push_player_back() -> void:
 	_push_back()
 
@@ -1452,6 +1520,13 @@ func _scatter(i: int) -> Vector2:
 
 
 func _spawn_pickup(room: FloorRoom, kind: String, world_pos: Vector2) -> void:
+	# m3-fix2：拾取落点钳制（B-2 停滞 3271 取证的产品侧半边）。掉落/奖励散布点
+	# （精英 hearts2 死亡位散布、清房奖励房心散布）可落进柱/箱实体内部——拾取物
+	# 变成任何站位都摸不到的死物（Pickup 判定圆 r=6 会被实体隔断），bot 拾取寻路
+	# 被实体卡死即停滞（探针实证 dir 原始向量顶死箱柱、pp 零位移）。落点经
+	# find_safe_placement 弹到最近自由位（环搜东向优先，多数情形与来向同侧）。
+	world_pos = find_safe_placement(world_pos, _room_solid_rects(room), 6.0,
+		_room_interior(room))
 	# m3-fix1 试炼 no_hearts：红心掉落位替换为等值金币（规格 §3 边界；递归落币，
 	# coin 分支无再入）。Heal-disable 灾厄照旧截断。
 	if kind == "heart" and TrialMods.no_hearts():

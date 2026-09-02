@@ -1,0 +1,5708 @@
+{
+	"attempt": 1,
+	"bot_plan": {
+		"flow_current": 1,
+		"idx": 0,
+		"plan": [
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			5,
+			4,
+			3,
+			2,
+			9,
+			10,
+			11,
+			10,
+			12,
+			10,
+			9,
+			2,
+			1,
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			7,
+			8
+		]
+	},
+	"dense_samples": [
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						617.0,
+						196.5
+					],
+					"d": 159.2,
+					"gp": [
+						617.0,
+						196.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.0,
+				85.0
+			],
+			"t": 85.6,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						603.5,
+						182.0
+					],
+					"d": 171.9,
+					"gp": [
+						603.5,
+						182.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				65.5
+			],
+			"t": 85.8,
+			"vel": [
+				-43.0,
+				-62.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						590.5,
+						167.5
+					],
+					"d": 183.6,
+					"gp": [
+						590.5,
+						167.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				728.5,
+				46.5
+			],
+			"t": 86.1,
+			"vel": [
+				-43.0,
+				-62.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						578.0,
+						153.0
+					],
+					"d": 177.7,
+					"gp": [
+						578.0,
+						153.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				2.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				712.5,
+				37.5
+			],
+			"t": 86.3,
+			"vel": [
+				-63.5,
+				16.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						575.0,
+						150.0
+					],
+					"d": 165.7,
+					"gp": [
+						575.0,
+						150.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				56.0
+			],
+			"t": 86.6,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						586.5,
+						166.0
+					],
+					"d": 157.6,
+					"gp": [
+						586.5,
+						166.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				70.0
+			],
+			"t": 86.8,
+			"vel": [
+				0.0,
+				-36.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.5,
+						180.5
+					],
+					"d": 171.3,
+					"gp": [
+						599.5,
+						180.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				50.5
+			],
+			"t": 87.1,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						615.5,
+						191.5
+					],
+					"d": 183.0,
+					"gp": [
+						615.5,
+						191.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				36.0
+			],
+			"t": 87.3,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						618.5,
+						194.0
+					],
+					"d": 188.6,
+					"gp": [
+						618.5,
+						194.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				29.5
+			],
+			"t": 87.6,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						602.0,
+						183.5
+					],
+					"d": 195.1,
+					"gp": [
+						602.0,
+						183.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				22.0
+			],
+			"t": 87.8,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						586.5,
+						172.0
+					],
+					"d": 189.6,
+					"gp": [
+						586.5,
+						172.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				702.0,
+				22.0
+			],
+			"t": 88.1,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						571.5,
+						159.5
+					],
+					"d": 175.8,
+					"gp": [
+						571.5,
+						159.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				694.5,
+				34.0
+			],
+			"t": 88.3,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						568.5,
+						157.0
+					],
+					"d": 162.8,
+					"gp": [
+						568.5,
+						157.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				694.5,
+				54.0
+			],
+			"t": 88.6,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						581.5,
+						171.5
+					],
+					"d": 170.0,
+					"gp": [
+						581.5,
+						171.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				42.5
+			],
+			"t": 88.8,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						597.0,
+						183.0
+					],
+					"d": 175.2,
+					"gp": [
+						597.0,
+						183.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				36.0
+			],
+			"t": 89.1,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						614.0,
+						192.5
+					],
+					"d": 180.9,
+					"gp": [
+						614.0,
+						192.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				30.0
+			],
+			"t": 89.3,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						617.5,
+						194.5
+					],
+					"d": 188.1,
+					"gp": [
+						617.5,
+						194.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				22.0
+			],
+			"t": 89.6,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						600.0,
+						185.5
+					],
+					"d": 196.9,
+					"gp": [
+						600.0,
+						185.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				710.0,
+				22.0
+			],
+			"t": 89.8,
+			"vel": [
+				106.0,
+				-235.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						609.0,
+						171.5
+					],
+					"d": 202.6,
+					"gp": [
+						609.0,
+						171.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 90.1,
+			"vel": [
+				82.5,
+				-97.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.0,
+						157.5
+					],
+					"d": 190.3,
+					"gp": [
+						599.0,
+						157.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				744.0,
+				34.0
+			],
+			"t": 90.3,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						596.5,
+						156.0
+					],
+					"d": 175.1,
+					"gp": [
+						596.5,
+						156.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				729.5,
+				41.5
+			],
+			"t": 90.6,
+			"vel": [
+				-1.5,
+				43.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						610.5,
+						170.0
+					],
+					"d": 179.8,
+					"gp": [
+						610.5,
+						170.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				36.0
+			],
+			"t": 90.8,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						625.5,
+						182.5
+					],
+					"d": 179.8,
+					"gp": [
+						625.5,
+						182.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				36.0
+			],
+			"t": 91.1,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						642.0,
+						192.5
+					],
+					"d": 191.8,
+					"gp": [
+						642.0,
+						192.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				22.0
+			],
+			"t": 91.3,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						645.5,
+						194.0
+					],
+					"d": 199.1,
+					"gp": [
+						645.5,
+						194.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 91.6,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						629.5,
+						183.5
+					],
+					"d": 199.2,
+					"gp": [
+						629.5,
+						183.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 91.8,
+			"vel": [
+				175.0,
+				-190.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						614.0,
+						171.5
+					],
+					"d": 199.2,
+					"gp": [
+						614.0,
+						171.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 92.1,
+			"vel": [
+				-0.5,
+				-3.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						600.0,
+						158.0
+					],
+					"d": 181.0,
+					"gp": [
+						600.0,
+						158.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				733.0,
+				35.0
+			],
+			"t": 92.3,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						597.5,
+						156.0
+					],
+					"d": 177.6,
+					"gp": [
+						597.5,
+						156.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.0,
+				39.0
+			],
+			"t": 92.6,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						611.0,
+						170.0
+					],
+					"d": 177.6,
+					"gp": [
+						611.0,
+						170.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.0,
+				39.0
+			],
+			"t": 92.8,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						626.5,
+						182.0
+					],
+					"d": 189.0,
+					"gp": [
+						626.5,
+						182.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				728.5,
+				23.5
+			],
+			"t": 93.1,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						643.0,
+						192.0
+					],
+					"d": 190.1,
+					"gp": [
+						643.0,
+						192.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				728.5,
+				22.0
+			],
+			"t": 93.3,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						646.5,
+						193.5
+					],
+					"d": 189.2,
+					"gp": [
+						646.5,
+						193.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				726.5,
+				22.0
+			],
+			"t": 93.6,
+			"vel": [
+				12.0,
+				-258.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						629.5,
+						184.5
+					],
+					"d": 188.7,
+					"gp": [
+						629.5,
+						184.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				727.0,
+				23.0
+			],
+			"t": 93.8,
+			"vel": [
+				3.0,
+				43.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						613.5,
+						173.0
+					],
+					"d": 172.8,
+					"gp": [
+						613.5,
+						173.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				727.0,
+				43.0
+			],
+			"t": 94.1,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.0,
+						160.0
+					],
+					"d": 168.7,
+					"gp": [
+						599.0,
+						160.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				714.5,
+				37.0
+			],
+			"t": 94.3,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						596.0,
+						157.5
+					],
+					"d": 174.4,
+					"gp": [
+						596.0,
+						157.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				721.5,
+				36.5
+			],
+			"t": 94.6,
+			"vel": [
+				56.5,
+				-10.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						610.0,
+						171.0
+					],
+					"d": 182.8,
+					"gp": [
+						610.0,
+						171.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				736.5,
+				39.0
+			],
+			"t": 94.8,
+			"vel": [
+				74.5,
+				13.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						624.5,
+						184.5
+					],
+					"d": 189.5,
+					"gp": [
+						624.5,
+						184.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				39.0
+			],
+			"t": 95.1,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						640.0,
+						196.5
+					],
+					"d": 180.3,
+					"gp": [
+						640.0,
+						196.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				50.5
+			],
+			"t": 95.3,
+			"vel": [
+				13.5,
+				74.5
+			]
+		}
+	],
+	"enemies": [
+		{
+			"approach_min": 9.7,
+			"arch": "shooter",
+			"bounds": [
+				432.0,
+				16.0,
+				320.0,
+				192.0
+			],
+			"bp": [
+				645.0,
+				199.0
+			],
+			"counts_for_wave": true,
+			"cross_hits": 0,
+			"gp": [
+				645.0,
+				199.0
+			],
+			"hp": 4,
+			"hpmax": 20,
+			"id": "crossbowman",
+			"iid": 2177514870290,
+			"ph": "cool",
+			"st": 2
+		}
+	],
+	"false_triggers": 0,
+	"floor": {
+		"current": 1,
+		"rooms": [
+			{
+				"adj": [
+					1,
+					3,
+					9
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 2,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "combat",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					9,
+					11,
+					12
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 10,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "combat",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					0,
+					2
+				],
+				"cleared": false,
+				"enemies_alive": 1,
+				"enemies_dead_flag": 0,
+				"flow_current": true,
+				"id": 1,
+				"locked": true,
+				"spawned_wave": 1,
+				"type": "combat",
+				"wave_cleared": false,
+				"wave_index": 1
+			},
+			{
+				"adj": [
+					2,
+					4
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 3,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "combat",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					3,
+					5
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 4,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "shop",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					4,
+					6
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 5,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "combat",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					5,
+					7
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 6,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "elite",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					6,
+					8
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 7,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "miniboss",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					2,
+					10
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 9,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "combat",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					1
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 0,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "start",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					7
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 8,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "boss",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					10
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 11,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "treasure",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					10
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 12,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "event",
+				"wave_cleared": false,
+				"wave_index": -1
+			}
+		]
+	},
+	"frame": 60244,
+	"hits_in_window": [],
+	"kind": "stall_probe",
+	"pickups": [],
+	"player": {
+		"aim": [
+			-0.5,
+			1.0
+		],
+		"auto_locked": true,
+		"dir": [
+			-2.0,
+			0.5
+		],
+		"energy": 100,
+		"fire_held": true,
+		"hp": 8,
+		"hp_max": 8,
+		"physical_room": 1,
+		"pos": [
+			734.0,
+			59.0
+		],
+		"vel": [
+			-56.5,
+			56.5
+		],
+		"weapon": "laohuoji"
+	},
+	"ring_before_trigger": [
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						619.0,
+						187.5
+					],
+					"d": 201.9,
+					"gp": [
+						619.0,
+						187.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				734.5,
+				22.0
+			],
+			"t": 75.6,
+			"vel": [
+				228.0,
+				-121.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						616.5,
+						174.0
+					],
+					"d": 199.7,
+					"gp": [
+						616.5,
+						174.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 75.8,
+			"vel": [
+				179.5,
+				-71.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						602.0,
+						160.5
+					],
+					"d": 190.9,
+					"gp": [
+						602.0,
+						160.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				741.0,
+				30.0
+			],
+			"t": 76.1,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.3,
+					"arch": "shooter",
+					"bp": [
+						589.5,
+						149.5
+					],
+					"d": 181.9,
+					"gp": [
+						589.5,
+						149.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				735.0,
+				40.5
+			],
+			"t": 76.3,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						586.5,
+						147.0
+					],
+					"d": 182.6,
+					"gp": [
+						586.5,
+						147.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				735.0,
+				40.5
+			],
+			"t": 76.6,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						598.5,
+						162.5
+					],
+					"d": 189.6,
+					"gp": [
+						598.5,
+						162.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				744.0,
+				40.5
+			],
+			"t": 76.8,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						611.5,
+						176.5
+					],
+					"d": 191.4,
+					"gp": [
+						611.5,
+						176.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				40.5
+			],
+			"t": 77.1,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						625.5,
+						180.0
+					],
+					"d": 198.8,
+					"gp": [
+						625.5,
+						180.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 77.3,
+			"vel": [
+				230.5,
+				-117.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						628.5,
+						182.5
+					],
+					"d": 198.1,
+					"gp": [
+						628.5,
+						182.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				23.0
+			],
+			"t": 77.6,
+			"vel": [
+				-7.0,
+				29.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						613.5,
+						170.5
+					],
+					"d": 178.9,
+					"gp": [
+						613.5,
+						170.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				732.5,
+				37.0
+			],
+			"t": 77.8,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.5,
+						156.5
+					],
+					"d": 176.5,
+					"gp": [
+						599.5,
+						156.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				732.5,
+				40.5
+			],
+			"t": 78.1,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						586.5,
+						147.0
+					],
+					"d": 180.5,
+					"gp": [
+						586.5,
+						147.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				732.5,
+				40.5
+			],
+			"t": 78.3,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						584.5,
+						143.5
+					],
+					"d": 183.2,
+					"gp": [
+						584.5,
+						143.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				732.5,
+				36.0
+			],
+			"t": 78.6,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						597.0,
+						158.5
+					],
+					"d": 189.6,
+					"gp": [
+						597.0,
+						158.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				728.5,
+				22.0
+			],
+			"t": 78.8,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						612.0,
+						171.0
+					],
+					"d": 175.1,
+					"gp": [
+						612.0,
+						171.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				704.0,
+				22.0
+			],
+			"t": 79.1,
+			"vel": [
+				-111.5,
+				-233.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						630.0,
+						177.5
+					],
+					"d": 156.0,
+					"gp": [
+						630.0,
+						177.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				646.0,
+				22.0
+			],
+			"t": 79.3,
+			"vel": [
+				-53.0,
+				-132.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						634.0,
+						178.0
+					],
+					"d": 147.9,
+					"gp": [
+						634.0,
+						178.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				635.5,
+				30.0
+			],
+			"t": 79.6,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						614.5,
+						175.5
+					],
+					"d": 143.1,
+					"gp": [
+						614.5,
+						175.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				652.5,
+				37.5
+			],
+			"t": 79.8,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						596.5,
+						168.0
+					],
+					"d": 151.0,
+					"gp": [
+						596.5,
+						168.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				672.5,
+				37.5
+			],
+			"t": 80.1,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						581.0,
+						156.5
+					],
+					"d": 161.5,
+					"gp": [
+						581.0,
+						156.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				691.5,
+				39.0
+			],
+			"t": 80.3,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						578.0,
+						154.0
+					],
+					"d": 169.2,
+					"gp": [
+						578.0,
+						154.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				708.5,
+				46.5
+			],
+			"t": 80.6,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						590.5,
+						169.0
+					],
+					"d": 162.9,
+					"gp": [
+						590.5,
+						169.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				706.0,
+				54.0
+			],
+			"t": 80.8,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						605.0,
+						182.0
+					],
+					"d": 148.3,
+					"gp": [
+						605.0,
+						182.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				702.0,
+				70.0
+			],
+			"t": 81.1,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						618.0,
+						194.5
+					],
+					"d": 140.8,
+					"gp": [
+						618.0,
+						194.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				697.0,
+				78.0
+			],
+			"t": 81.3,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						621.5,
+						197.0
+					],
+					"d": 157.6,
+					"gp": [
+						621.5,
+						197.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				696.0,
+				58.0
+			],
+			"t": 81.6,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						605.0,
+						186.5
+					],
+					"d": 170.2,
+					"gp": [
+						605.0,
+						186.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				712.5,
+				54.0
+			],
+			"t": 81.8,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						591.0,
+						172.5
+					],
+					"d": 184.0,
+					"gp": [
+						591.0,
+						172.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				732.0,
+				54.0
+			],
+			"t": 82.1,
+			"vel": [
+				50.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						579.5,
+						157.0
+					],
+					"d": 195.5,
+					"gp": [
+						579.5,
+						157.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				54.0
+			],
+			"t": 82.3,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						577.5,
+						153.5
+					],
+					"d": 194.3,
+					"gp": [
+						577.5,
+						153.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				56.5
+			],
+			"t": 82.6,
+			"vel": [
+				62.0,
+				43.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						587.5,
+						170.5
+					],
+					"d": 183.4,
+					"gp": [
+						587.5,
+						170.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				743.0,
+				73.5
+			],
+			"t": 82.8,
+			"vel": [
+				-66.0,
+				14.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.0,
+						186.0
+					],
+					"d": 167.5,
+					"gp": [
+						599.0,
+						186.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				723.0,
+				73.5
+			],
+			"t": 83.1,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						613.0,
+						199.5
+					],
+					"d": 159.0,
+					"gp": [
+						613.0,
+						199.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				717.5,
+				79.5
+			],
+			"t": 83.3,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						616.5,
+						196.5
+					],
+					"d": 162.8,
+					"gp": [
+						616.5,
+						196.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.5,
+				81.5
+			],
+			"t": 83.6,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						603.5,
+						182.0
+					],
+					"d": 163.8,
+					"gp": [
+						603.5,
+						182.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				732.5,
+				81.5
+			],
+			"t": 83.8,
+			"vel": [
+				46.5,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						592.5,
+						166.0
+					],
+					"d": 175.1,
+					"gp": [
+						592.5,
+						166.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				81.5
+			],
+			"t": 84.1,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						584.0,
+						148.0
+					],
+					"d": 175.2,
+					"gp": [
+						584.0,
+						148.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				81.5
+			],
+			"t": 84.3,
+			"vel": [
+				253.5,
+				-51.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						582.5,
+						144.5
+					],
+					"d": 175.3,
+					"gp": [
+						582.5,
+						144.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				81.0
+			],
+			"t": 84.6,
+			"vel": [
+				189.5,
+				-23.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						591.0,
+						162.0
+					],
+					"d": 172.5,
+					"gp": [
+						591.0,
+						162.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				739.0,
+				73.5
+			],
+			"t": 84.8,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						602.5,
+						178.0
+					],
+					"d": 160.3,
+					"gp": [
+						602.5,
+						178.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				726.5,
+				76.5
+			],
+			"t": 85.1,
+			"vel": [
+				49.5,
+				53.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						615.0,
+						193.0
+					],
+					"d": 152.4,
+					"gp": [
+						615.0,
+						193.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.0,
+				94.5
+			],
+			"t": 85.3,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						617.0,
+						196.5
+					],
+					"d": 159.2,
+					"gp": [
+						617.0,
+						196.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.0,
+				85.0
+			],
+			"t": 85.6,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						603.5,
+						182.0
+					],
+					"d": 171.9,
+					"gp": [
+						603.5,
+						182.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				65.5
+			],
+			"t": 85.8,
+			"vel": [
+				-43.0,
+				-62.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						590.5,
+						167.5
+					],
+					"d": 183.6,
+					"gp": [
+						590.5,
+						167.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				728.5,
+				46.5
+			],
+			"t": 86.1,
+			"vel": [
+				-43.0,
+				-62.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						578.0,
+						153.0
+					],
+					"d": 177.7,
+					"gp": [
+						578.0,
+						153.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				2.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				712.5,
+				37.5
+			],
+			"t": 86.3,
+			"vel": [
+				-63.5,
+				16.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						575.0,
+						150.0
+					],
+					"d": 165.7,
+					"gp": [
+						575.0,
+						150.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				56.0
+			],
+			"t": 86.6,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						586.5,
+						166.0
+					],
+					"d": 157.6,
+					"gp": [
+						586.5,
+						166.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				70.0
+			],
+			"t": 86.8,
+			"vel": [
+				0.0,
+				-36.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.5,
+						180.5
+					],
+					"d": 171.3,
+					"gp": [
+						599.5,
+						180.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				50.5
+			],
+			"t": 87.1,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						615.5,
+						191.5
+					],
+					"d": 183.0,
+					"gp": [
+						615.5,
+						191.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				36.0
+			],
+			"t": 87.3,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						618.5,
+						194.0
+					],
+					"d": 188.6,
+					"gp": [
+						618.5,
+						194.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				29.5
+			],
+			"t": 87.6,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						602.0,
+						183.5
+					],
+					"d": 195.1,
+					"gp": [
+						602.0,
+						183.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				711.0,
+				22.0
+			],
+			"t": 87.8,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						586.5,
+						172.0
+					],
+					"d": 189.6,
+					"gp": [
+						586.5,
+						172.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				702.0,
+				22.0
+			],
+			"t": 88.1,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						571.5,
+						159.5
+					],
+					"d": 175.8,
+					"gp": [
+						571.5,
+						159.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				694.5,
+				34.0
+			],
+			"t": 88.3,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.5,
+					"arch": "shooter",
+					"bp": [
+						568.5,
+						157.0
+					],
+					"d": 162.8,
+					"gp": [
+						568.5,
+						157.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				694.5,
+				54.0
+			],
+			"t": 88.6,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						581.5,
+						171.5
+					],
+					"d": 170.0,
+					"gp": [
+						581.5,
+						171.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				42.5
+			],
+			"t": 88.8,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						597.0,
+						183.0
+					],
+					"d": 175.2,
+					"gp": [
+						597.0,
+						183.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				36.0
+			],
+			"t": 89.1,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						614.0,
+						192.5
+					],
+					"d": 180.9,
+					"gp": [
+						614.0,
+						192.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				30.0
+			],
+			"t": 89.3,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						617.5,
+						194.5
+					],
+					"d": 188.1,
+					"gp": [
+						617.5,
+						194.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				692.5,
+				22.0
+			],
+			"t": 89.6,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						600.0,
+						185.5
+					],
+					"d": 196.9,
+					"gp": [
+						600.0,
+						185.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				710.0,
+				22.0
+			],
+			"t": 89.8,
+			"vel": [
+				106.0,
+				-235.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						609.0,
+						171.5
+					],
+					"d": 202.6,
+					"gp": [
+						609.0,
+						171.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 90.1,
+			"vel": [
+				82.5,
+				-97.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.0,
+						157.5
+					],
+					"d": 190.3,
+					"gp": [
+						599.0,
+						157.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				744.0,
+				34.0
+			],
+			"t": 90.3,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						596.5,
+						156.0
+					],
+					"d": 175.1,
+					"gp": [
+						596.5,
+						156.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				729.5,
+				41.5
+			],
+			"t": 90.6,
+			"vel": [
+				-1.5,
+				43.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						610.5,
+						170.0
+					],
+					"d": 179.8,
+					"gp": [
+						610.5,
+						170.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				36.0
+			],
+			"t": 90.8,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						625.5,
+						182.5
+					],
+					"d": 179.8,
+					"gp": [
+						625.5,
+						182.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				36.0
+			],
+			"t": 91.1,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						642.0,
+						192.5
+					],
+					"d": 191.8,
+					"gp": [
+						642.0,
+						192.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				730.0,
+				22.0
+			],
+			"t": 91.3,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						645.5,
+						194.0
+					],
+					"d": 199.1,
+					"gp": [
+						645.5,
+						194.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 91.6,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						629.5,
+						183.5
+					],
+					"d": 199.2,
+					"gp": [
+						629.5,
+						183.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 91.8,
+			"vel": [
+				175.0,
+				-190.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						614.0,
+						171.5
+					],
+					"d": 199.2,
+					"gp": [
+						614.0,
+						171.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				22.0
+			],
+			"t": 92.1,
+			"vel": [
+				-0.5,
+				-3.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						600.0,
+						158.0
+					],
+					"d": 181.0,
+					"gp": [
+						600.0,
+						158.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				733.0,
+				35.0
+			],
+			"t": 92.3,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						597.5,
+						156.0
+					],
+					"d": 177.6,
+					"gp": [
+						597.5,
+						156.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.0,
+				39.0
+			],
+			"t": 92.6,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						611.0,
+						170.0
+					],
+					"d": 177.6,
+					"gp": [
+						611.0,
+						170.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				731.0,
+				39.0
+			],
+			"t": 92.8,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						626.5,
+						182.0
+					],
+					"d": 189.0,
+					"gp": [
+						626.5,
+						182.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				728.5,
+				23.5
+			],
+			"t": 93.1,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						643.0,
+						192.0
+					],
+					"d": 190.1,
+					"gp": [
+						643.0,
+						192.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				728.5,
+				22.0
+			],
+			"t": 93.3,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						646.5,
+						193.5
+					],
+					"d": 189.2,
+					"gp": [
+						646.5,
+						193.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				726.5,
+				22.0
+			],
+			"t": 93.6,
+			"vel": [
+				12.0,
+				-258.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						629.5,
+						184.5
+					],
+					"d": 188.7,
+					"gp": [
+						629.5,
+						184.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				727.0,
+				23.0
+			],
+			"t": 93.8,
+			"vel": [
+				3.0,
+				43.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						613.5,
+						173.0
+					],
+					"d": 172.8,
+					"gp": [
+						613.5,
+						173.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				727.0,
+				43.0
+			],
+			"t": 94.1,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						599.0,
+						160.0
+					],
+					"d": 168.7,
+					"gp": [
+						599.0,
+						160.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				714.5,
+				37.0
+			],
+			"t": 94.3,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						596.0,
+						157.5
+					],
+					"d": 174.4,
+					"gp": [
+						596.0,
+						157.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				721.5,
+				36.5
+			],
+			"t": 94.6,
+			"vel": [
+				56.5,
+				-10.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						610.0,
+						171.0
+					],
+					"d": 182.8,
+					"gp": [
+						610.0,
+						171.0
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				736.5,
+				39.0
+			],
+			"t": 94.8,
+			"vel": [
+				74.5,
+				13.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						624.5,
+						184.5
+					],
+					"d": 189.5,
+					"gp": [
+						624.5,
+						184.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				39.0
+			],
+			"t": 95.1,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.4,
+					"arch": "shooter",
+					"bp": [
+						640.0,
+						196.5
+					],
+					"d": 180.3,
+					"gp": [
+						640.0,
+						196.5
+					],
+					"hp": 4,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 8,
+			"lock": true,
+			"pb": 4,
+			"pp": [
+				746.0,
+				50.5
+			],
+			"t": 95.3,
+			"vel": [
+				13.5,
+				74.5
+			]
+		}
+	],
+	"room": {
+		"calamity": "enemy_speed",
+		"challenge": true,
+		"cleared": false,
+		"id": 1,
+		"interior": [
+			432.0,
+			16.0,
+			320.0,
+			192.0
+		],
+		"locked": true,
+		"outer": [
+			416.0,
+			0.0,
+			352.0,
+			224.0
+		],
+		"solids": [
+			{
+				"c": [
+					592.0,
+					8.0
+				],
+				"s": [
+					352.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					496.0,
+					216.0
+				],
+				"s": [
+					160.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					688.0,
+					216.0
+				],
+				"s": [
+					160.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					424.0,
+					56.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					424.0,
+					168.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					760.0,
+					56.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					760.0,
+					168.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					760.0,
+					112.0
+				],
+				"s": [
+					16.0,
+					32.0
+				]
+			},
+			{
+				"c": [
+					536.0,
+					72.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					536.0,
+					152.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					648.0,
+					72.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					648.0,
+					152.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					600.0,
+					88.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					600.0,
+					104.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					600.0,
+					120.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					600.0,
+					136.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			}
+		],
+		"spawn_points": [
+			[
+				504.0,
+				88.0
+			],
+			[
+				680.0,
+				88.0
+			],
+			[
+				504.0,
+				136.0
+			],
+			[
+				680.0,
+				136.0
+			]
+		],
+		"spawned_wave": 1,
+		"template": "combat_a1_05",
+		"type": "combat",
+		"wave_index": 1,
+		"waves": {
+			"coins": 0,
+			"energy_orbs": 0,
+			"hearts": 0,
+			"waves": [
+				[
+					"crossbowman",
+					"vine_charger",
+					"kuli_bug"
+				],
+				[
+					"cave_bat",
+					"crossbowman",
+					"vine_charger"
+				],
+				[
+					"crossbowman",
+					"vine_charger",
+					"kuli_bug"
+				]
+			]
+		}
+	},
+	"run": {
+		"coins": 0,
+		"floor": 1,
+		"gems": 0,
+		"kills": 5,
+		"rooms": 0
+	},
+	"seed": 3223,
+	"t_s": 95.6,
+	"trigger": "sig_frozen",
+	"trigger_stable_ticks": 900,
+	"window_ticks": 600
+}
