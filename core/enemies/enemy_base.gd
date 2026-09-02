@@ -135,15 +135,21 @@ func fire_bullet(target: Vector2, frame: int) -> void:
 	if combat == null:
 		return
 	var dir := (target - brain_pos).normalized()
+	# m4-c1 电弧链（幽光水母「电弧链射击」，volt_spider SHOCK 电弧弹同款元素归因）：
+	# 行 bullet_element 命名元素 → 元素弹；无键/none = NONE（既有弹不受影响）。
+	var element := Elements.from_name(String(row.get("bullet_element", "")))
 	combat.spawn_projectile({
 		"pos": brain_pos, "vel": dir * enemy_bullet_speed(110),
 		"damage": int(row.get("bullet_dmg", 3)), "faction": Projectile.Faction.ENEMY,
-		"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
+		"element": element, "pierce": 0, "bounce": 0,
 		"life_seconds": float(row.get("bullet_life_seconds", 2.5)),
 		"radius": float(row.get("bullet_radius", 3.0)),
 		"source_type": "projectile", "source_id": String(row.get("id", "")),
 		"source_name": String(row.get("name", row.get("id", ""))), "attack_name": "弹幕",
 	})
+	if element != Elements.Id.NONE:
+		Telemetry.log_row(["enemy_chain_zap", frame, Elements.NAMES[element]],
+			String(row.get("id", "")))   # 仅带键敌型上报（现=幽光水母电弧链）
 	AudioMgr.play("shoot_enemy")         # m2-t5：敌方实际出弹音（combat 未注入的脑层测试不触发）
 
 func take_hit(ctx: Dictionary) -> void:
@@ -290,6 +296,51 @@ func enemy_bullet_speed(default_px: float) -> float:
 func combat_faction() -> int:
 	return Projectile.Faction.ENEMY
 
+
+## m4-c1 接触伤害元素归因钩子（缺省 NONE 不变）：熔岩犬「两段扑咬，附带燃烧」覆写为
+## FIRE（扑咬=冲刺接触伤，燃烧=火元素归因；玩家侧无敌帧节流语义不变）。
+func _contact_element() -> int:
+	return Elements.Id.NONE
+
+
+## m4-c1 玩家武器行读缝（模仿武器用；经 PlayerProxy.current_weapon_row 只读 GameDB）。
+## player_ref 无该接缝（测试 SpyPlayer 等）返回 {}，调用方回退默认行为。
+func _player_weapon_row() -> Dictionary:
+	if player_ref == null or not player_ref.has_method("current_weapon_row"):
+		return {}
+	return player_ref.call("current_weapon_row")
+
+
+## m4-c1 派味特技蓄力拍（专用键优先）：行 pull_/claw_windup_ticks 专用键 > 既有
+## windup_ticks > default_ticks。注意 GameDB.ENEMY_OPTIONAL 对未填的 windup_ticks
+## 预填 0，`row.get("windup_ticks", d)` 的缺省永不被用到——故 0 值一律按缺省回落
+## （防特技 windup 被预填零击穿）。狂暴 ×0.7 / 试炼攻速缩放与 _windup_ticks 同口径。
+func _signature_windup(specific_key: String, default_ticks: int) -> int:
+	var w := int(row.get(specific_key, 0))
+	if w <= 0:
+		w = int(row.get("windup_ticks", default_ticks))
+	if w <= 0:
+		w = default_ticks
+	if berserk_active():
+		w = int(float(w) * BERSERK_WINDUP_SCALE)
+	return _scaled_attack_ticks(w)
+
+
+## m4-c1 派味特技冷却拍（专用 cd 键优先）：专用键口径 = 全周期（含专用 windup），
+## cool = 专用 cd − 专用 windup；无专用键回落 _attack_cooldown_ticks 既有语义
+## （该路径行必须自带 cd_ticks，否则预填 0 同样击穿——两行特技键齐备，不触此路）。
+func _signature_cooldown(specific_cd_key: String, specific_windup_key: String,
+		default_cd: int, default_windup: int) -> int:
+	var cd := int(row.get(specific_cd_key, 0))
+	if cd > 0:
+		var windup := int(row.get(specific_windup_key, 0))
+		if windup <= 0:
+			windup = int(row.get("windup_ticks", 0))
+		if windup <= 0:
+			windup = default_windup
+		return _scaled_attack_ticks(maxi(cd - windup, 0))
+	return _attack_cooldown_ticks(default_cd, default_windup)
+
 ## 原型取玩家位置；未注入 player_ref（纯 brain 测试）时退化为自身位置（零向量方向，不移动）。
 func _player_pos() -> Vector2:
 	return player_ref.brain_pos if player_ref != null else brain_pos
@@ -318,7 +369,7 @@ func _physics_process(_delta: float) -> void:
 		var dealt := int(row["contact_dmg"])
 		player_ref.take_hit({
 			"amount": dealt, "is_crit": false,
-			"element": Elements.Id.NONE, "from": global_position,
+			"element": _contact_element(), "from": global_position,
 			"source_type": "contact", "source_id": String(row.get("id", "")),
 			"source_name": String(row.get("name", row.get("id", ""))), "attack_name": "接触冲撞",
 		})

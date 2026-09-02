@@ -21,6 +21,11 @@ var source_type := "projectile"
 var source_id := ""
 var source_name := ""
 var attack_name := "弹幕"
+# m4-c1 抛物弹道（荆棘炮台/种子投手「抛物」）：沿发射轴的减速-落点弧线（顶视抛物线的
+# 地面投影）。arc_gravity = 沿 arc_dir 反向的减速度（px/s²）；速度归零即「落地」消散
+# （返回 false 由弹幕池回收）——落点精确等于发射时解算的目标点。缺省零 = 直线弹不变。
+var arc_dir := Vector2.ZERO
+var arc_gravity := 0.0
 var _ticks := 0
 
 func setup(cfg: Dictionary) -> void:
@@ -44,13 +49,20 @@ func setup(cfg: Dictionary) -> void:
 	source_id = String(cfg.get("source_id", ""))
 	source_name = String(cfg.get("source_name", ""))
 	attack_name = String(cfg.get("attack_name", "弹幕"))
+	# 弧线参数逐次覆盖（池化复用不得继承上一颗弹的弧线）。
+	arc_dir = cfg.get("arc_dir", Vector2.ZERO)
+	arc_gravity = float(cfg.get("arc_gravity", 0.0))
 	_ticks = 0
 	modulate = Color.WHITE   # t9 定影：池化复用（含被反弹染色的弹）不得带上旧 tint
 	visible = true
 
 func tick() -> bool:
-	position += vel / TimeConst.FPS
 	_ticks += 1
+	if arc_gravity > 0.0 and arc_dir != Vector2.ZERO:
+		vel -= arc_dir * (arc_gravity / TimeConst.FPS)   # 沿发射轴减速（抛物减速段）
+		if vel.dot(arc_dir) <= 0.0:
+			return false                                  # 速度耗尽 = 落地（落点=解算目标）
+	position += vel / TimeConst.FPS
 	return _ticks < life_ticks
 
 func on_despawn() -> void:

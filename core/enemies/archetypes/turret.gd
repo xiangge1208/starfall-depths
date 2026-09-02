@@ -28,7 +28,7 @@ func _engage(frame: int) -> void:
 			if _burst_wait > 0:
 				_burst_wait -= 1
 			else:
-				fire_bullet(_player_pos(), frame)
+				_fire_one(frame)
 				_burst_left -= 1
 				_burst_wait = _burst_gap()
 				if _burst_left <= 0:
@@ -54,7 +54,7 @@ func _begin_volley(frame: int) -> void:
 		_begin_cool()
 		return
 	_burst_left = int(row.get("burst_count", 1))
-	fire_bullet(_player_pos(), frame)            # 首发：windup 到点拍即出
+	_fire_one(frame)                             # 首发：windup 到点拍即出
 	_burst_left -= 1
 	_burst_wait = _burst_gap()
 	if _burst_left <= 0:
@@ -64,6 +64,47 @@ func _begin_volley(frame: int) -> void:
 
 func _burst_gap() -> int:
 	return maxi(int(row.get("burst_interval_ticks", DEFAULT_BURST_INTERVAL)) - 1, 0)
+
+
+## m4-c1 单发发射：行 arc_shot=true → 抛物弹（荆棘炮台「抛物 3 连发」，GDD §12.1
+## 「炮台（固定远程抛物）」）；否则直线弹（岩晶炮台/岩浆喷吐炮台不变）。
+## 抛物解算（SignatureMoves.lob_solution）：初速=封顶后行弹速，减速-落点弧线精确
+## 落在发射拍玩家位置；射程受弹寿命封顶（超距落半程，迫近惩罚保持贴脸威胁）。
+func _fire_one(frame: int) -> void:
+	if not bool(row.get("arc_shot", false)):
+		fire_bullet(_player_pos(), frame)
+		return
+	_fire_arc_shot(frame)
+
+
+func _fire_arc_shot(frame: int) -> void:
+	fired_this_tick = true
+	if combat == null:
+		return
+	var to_player := _player_pos() - brain_pos
+	var speed := enemy_bullet_speed(float(row.get("bullet_speed", 95.0)))
+	var reach := minf(to_player.length(),
+		SignatureMoves.lob_range_cap(speed, float(row.get("bullet_life_seconds", 2.5))))
+	var target := brain_pos
+	if to_player.length_squared() > 0.0001:
+		target = brain_pos + to_player.normalized() * reach
+	var lob := SignatureMoves.lob_solution(brain_pos, target, speed)
+	if lob.is_empty():
+		fire_bullet(target, frame)               # 贴身：回退直线弹（min range 门）
+		return
+	combat.spawn_projectile({
+		"pos": brain_pos, "vel": lob["vel"],
+		"damage": int(row.get("bullet_dmg", 3)), "faction": Projectile.Faction.ENEMY,
+		"element": Elements.Id.NONE, "pierce": 0, "bounce": 0,
+		"life_seconds": float(row.get("bullet_life_seconds", 2.5)),
+		"radius": float(row.get("bullet_radius", 3.0)),
+		"arc_dir": lob["arc_dir"], "arc_gravity": lob["arc_gravity"],
+		"source_type": "projectile", "source_id": String(row.get("id", "")),
+		"source_name": String(row.get("name", row.get("id", ""))), "attack_name": "抛物弹",
+	})
+	Telemetry.log_row(["enemy_arc_volley", frame, int(row.get("burst_count", 1))],
+		String(row.get("id", "")))
+	AudioMgr.play("shoot_enemy")
 
 
 ## m2-t7 激光形态发射：EnemyLaser 挂自身（炮台死亡束随体消亡）；晶柱折射源 =
