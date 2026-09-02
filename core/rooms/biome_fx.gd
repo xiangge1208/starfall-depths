@@ -27,6 +27,10 @@ var light_radius_px := LIGHT_RADIUS_PX   # 剪影判定口径（m2-t26 灾厄缩
 ## m2-t36（裁定㉑）：视野灾厄复合系数——挑战房「视野-35%」复合进本组件参数（单
 ## CanvasModulate），不再二次实例（双实例后挂者胜出会把生态 0.25 暗反亮成 0.65）。
 var _vision_factor := 1.0
+## m4-k3（K-3 披露收口）：当前挂载的暗视野组件——autoload 表现端（伤害数字/FX
+## 粒子折叠增亮）的只读状态源。_ready 注册、_exit_tree 清空（含楼层销毁路径），
+## 无常驻引用；多实例后挂者胜出（同 CanvasModulate 既有语义）。
+static var _live: BiomeFx = null
 
 
 ## 玩家注入（FloorScene.set_biome_a2 调用；未注入时 _process 安全 no-op）。
@@ -98,6 +102,28 @@ static func bullet_aid(dist_px: float, light_radius: float) -> Color:
 	return Color(f, f, f)
 
 
+## m4-k3 只读查询①：A2 光圈增亮源是否在位（消费端常态零成本早退依据）。
+## 组件或玩家不在树内 → false（光圈跟随玩家，无玩家即无光圈口径）。
+static func light_aid_active() -> bool:
+	if _live == null or not is_instance_valid(_live):
+		return false
+	var p := _live.player
+	return p != null and is_instance_valid(p) and p.is_inside_tree()
+
+
+## m4-k3 只读查询②：世界点的光圈增亮折叠色（bullet_aid 同形——同 aura_gradient
+## 曲线、同 LIGHT_ENERGY、同 light_radius_px 缩径口径，勿自建第二套）。
+## 消费端：Fx.spawn_damage_number / ParticlesPool（伤害数字/FX 粒子不进光照参与集
+## ——T37 探针 +47 draw 已否决——表现侧 self_modulate 折叠，零判定影响、零批处理
+## 成本）。无光圈 → WHITE（消费端零漂移）。随 bullet_aid 先例不发遥测（表现侧
+## 折叠，无判定语义，无既有事件口径可比照）。
+static func light_aid_at(world_pos: Vector2) -> Color:
+	if not light_aid_active():
+		return Color.WHITE
+	return bullet_aid(_live.player.global_position.distance_to(world_pos),
+		_live.light_radius_px)
+
+
 ## 卸载/复用前恢复敌人 modulate（disable 路径与 _exit_tree 都走这里）。
 func restore_enemies() -> void:
 	if get_tree() == null:
@@ -109,6 +135,7 @@ func restore_enemies() -> void:
 
 
 func _ready() -> void:
+	_live = self                            # m4-k3：autoload 表现端查询注册（_exit_tree 清空）
 	canvas_modulate = CanvasModulate.new()
 	canvas_modulate.name = "BiomeDarkness"
 	canvas_modulate.color = DARK_COLOR
@@ -158,6 +185,8 @@ func _process(_delta: float) -> void:
 
 
 func _exit_tree() -> void:
+	if _live == self:
+		_live = null                         # m4-k3：消亡即撤销状态源（消费端下帧回落 WHITE）
 	restore_enemies()
 	# 楼层销毁路径（run_root 换层 queue_free，不经 set_biome_a2(false)）也须复位玩家
 	# 摩擦——层间 PROCESS_MODE_DISABLED 已冻结 tick，站冰面换层会把 0.25 泄漏到
