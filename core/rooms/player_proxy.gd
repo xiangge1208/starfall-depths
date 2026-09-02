@@ -17,3 +17,26 @@ func _physics_process(_delta: float) -> void:
 func take_hit(ctx: Dictionary) -> void:
 	if player != null:
 		player.take_hit(ctx)
+
+
+## m4-c1 磁石傀儡拉拽接缝：把玩家实体位移到 target（敌人侧已按房间内域钳制）。
+## 尊重玩家无敌帧/翻滚窗（is_invincible）——受击硬直与翻滚中不可被拉动；其余返回 true。
+func apply_pull(target: Vector2) -> bool:
+	if player == null or player.is_invincible():
+		return false
+	player.global_position = target
+	return true
+
+
+## m4-c1 深窟回响者模仿武器读缝：玩家当前槽位武器行 id → GameDB 全行（只读，
+## 不写 weapons 侧任何状态）。无玩家/无 rig/空槽返回 {}（敌人侧回退默认扇弹）。
+func current_weapon_row() -> Dictionary:
+	if player == null:
+		return {}
+	var rig: Node = player.get_node_or_null("WeaponRig")
+	if rig == null:
+		return {}
+	var cur: Dictionary = rig.call("current")
+	if cur.is_empty():
+		return {}
+	return GameDB.get_weapon(String(cur.get("id", "")))
