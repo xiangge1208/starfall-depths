@@ -421,3 +421,170 @@ func test_greedy_unknown_effects_fall_back_to_rarity() -> void:
 			"b_new_b": {"rarity": "uncommon", "effects": {}},
 		}, 0)
 	assert_str(pick).is_equal("b_new_b")
+
+
+# ================================================================ m4-b3② shooter 接近带（风筝残差主因）
+
+func test_threat_approaches_far_shooter() -> void:
+	# m3-fix2 §2.1.3 形态：弩兵 180px 外风筝 + 弹自 shooter 方向逼近（(90,0) 向左飞）。
+	# 既有逻辑在 has_threat 下整段跳过距离带 → 恒距 150~200px 打不进；
+	# B-3② 起超带 shooter 给趋近主分量：躲避（juke ±y）保持的同时净趋近（+x）。
+	var dir := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[{"pos": Vector2(90, 0), "vel": Vector2(-110, 0)}],
+		[Vector2(180, 0)], [], 1.0, [], [Vector2(180, 0)])
+	assert_float(dir.x).override_failure_message("dir=%s 应含向 shooter 的净趋近" % dir).is_greater(0.5)
+	assert_float(absf(dir.y)).override_failure_message("dir=%s 应保留切向 juke" % dir).is_greater(0.3)
+
+func test_threat_no_shooter_approach_within_band() -> void:
+	# shooter 已在距离带内（≤132px 上沿）：无额外趋近——躲避分量不被反向抵消
+	#（弹逼近 → 斥力 -x 仍在，不被趋近翻转符号）。
+	var dir := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[{"pos": Vector2(90, 0), "vel": Vector2(-110, 0)}],
+		[Vector2(100, 0)], [], 1.0, [], [Vector2(100, 0)])
+	assert_float(dir.x).override_failure_message("dir=%s 带内不得施加趋近" % dir).is_less(0.0)
+
+func test_no_threat_shooter_param_zero_drift() -> void:
+	# 无威胁时既有距离带逻辑照旧趋近（shooters 参数不叠加、不改变无威胁行为）。
+	var base := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(180, 0)], [], 1.0)
+	var with_shooters := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(180, 0)], [], 1.0, [], [Vector2(180, 0)])
+	assert_vector(with_shooters).is_equal(base)
+	assert_float(base.x).is_greater(0.5)
+
+
+# ================================================================ m4-b3③ 实体斥力场（3271-a3 Seek 楔死柱面修法）
+
+func test_solid_repulsion_pushes_off_face() -> void:
+	# 站在柱右面外 12px（带宽 14px 内）：O(1) 寻的 +x 上叠加额外离面斥力
+	#（净 +x 大于纯归一化 seek 的 1.0）。
+	var dir := BalanceBotDecisions.seek_with_solids(
+		Vector2(1, 0), Vector2(44, 16), [Rect2(0, 0, 32, 32)], 1.0)
+	assert_float(dir.x).override_failure_message("dir=%s 应含离面斥力" % dir).is_greater(1.1)
+
+func test_solid_repulsion_slide_aligns_with_intent() -> void:
+	# 滑移方向取「沿面且与意图同侧」（帮助绕行而非对顶）：寻的 (1,0.5) 与面切向
+	# (0,1) 点积为正 → 滑移 +y；寻的 (1,-0.5) → 滑移 -y。
+	var s1 := BalanceBotDecisions.seek_with_solids(
+		Vector2(1, 0.5), Vector2(44, 16), [Rect2(0, 0, 32, 32)], 1.0)
+	var s2 := BalanceBotDecisions.seek_with_solids(
+		Vector2(1, -0.5), Vector2(44, 16), [Rect2(0, 0, 32, 32)], 1.0)
+	assert_float(s1.y).is_greater(0.0)
+	assert_float(s2.y).is_less(0.0)
+
+func test_solid_repulsion_slide_orthogonal_intent_falls_back_to_wander_sign() -> void:
+	# 意图与面切向正交（点积 0）：回落 wander_sign（确定性 = 同种子可复现）。
+	var s1 := BalanceBotDecisions.seek_with_solids(
+		Vector2(1, 0), Vector2(44, 16), [Rect2(0, 0, 32, 32)], 1.0)
+	var s2 := BalanceBotDecisions.seek_with_solids(
+		Vector2(1, 0), Vector2(44, 16), [Rect2(0, 0, 32, 32)], -1.0)
+	assert_float(s1.y).is_greater(0.0)
+	assert_float(s2.y).is_less(0.0)
+
+func test_solid_repulsion_decays_with_distance() -> void:
+	# 线性衰减：离面越近斥力越强（4px 处 > 12px 处；x 同为纯 +x 寻的，只比斥力差）。
+	var near := BalanceBotDecisions.seek_with_solids(
+		Vector2(1, 0), Vector2(36, 16), [Rect2(0, 0, 32, 32)], 1.0)
+	var far := BalanceBotDecisions.seek_with_solids(
+		Vector2(1, 0), Vector2(44, 16), [Rect2(0, 0, 32, 32)], 1.0)
+	assert_float(near.x).is_greater(far.x)
+
+func test_solid_repulsion_outside_band_is_zero() -> void:
+	# 带宽（14px）外无斥力：O(1) seek 原样直通（归一化不动点）。
+	var dir := BalanceBotDecisions.seek_with_solids(
+		Vector2(-1, 0), Vector2(120, 16), [Rect2(32, 0, 32, 32)], 1.0)
+	assert_vector(dir).is_equal(Vector2(-1, 0))
+
+func test_seek_with_solids_normalizes_large_magnitude_seek() -> void:
+	# 3230 复跑实证的契约：调用方可直传「目标-自身」距离向量（如 47px 寻的），
+	# 非 O(1) 的 seek 须归一——否则 O(1) 斥力/滑移被大模长淹没，8 向量化后
+	# 垂直分量低于 0.35 阈值、顶死柱面复发。带外时返回归一化 seek（无斥力叠加）。
+	var dir := BalanceBotDecisions.seek_with_solids(
+		Vector2(47, 0.5), Vector2(1050, 20), [Rect2(1056, 144, 16, 16)], 1.0)
+	assert_vector(dir).is_equal_approx(Vector2(47, 0.5).normalized(), Vector2(0.001, 0.001))
+
+func test_seek_with_solids_empty_or_zero_passthrough_exact() -> void:
+	# 空 solids / 零 seek：逐字节直通（存量调用路径零漂移）。
+	assert_vector(BalanceBotDecisions.seek_with_solids(
+		Vector2(-21.5, 0.5), Vector2.ZERO, [], 1.0)).is_equal(Vector2(-21.5, 0.5))
+	assert_vector(BalanceBotDecisions.seek_with_solids(
+		Vector2.ZERO, Vector2(44, 16), [Rect2(0, 0, 32, 32)], 1.0)).is_equal(Vector2.ZERO)
+
+func test_seek_with_solids_unwedges_realistic_pickup_seek() -> void:
+	# 3230-a3 复跑捕获形态（心寻的 47px + 16px 箱在正前方 6px）：归一化后斥力
+	# 与滑移同量级——顶死轴（+x）分量衰减到 8 向阈值下、切向滑移轴（-y）越过
+	# 阈值 → 沿箱面滑移绕行（楔死被打破）。
+	var dir := BalanceBotDecisions.seek_with_solids(
+		Vector2(47, 0.5), Vector2(1050, 148),
+		[Rect2(1072, 128, 16, 16), Rect2(1072, 144, 16, 16), Rect2(1056, 144, 16, 16)],
+		1.0)
+	assert_float(absf(dir.y)).override_failure_message("dir=%s 滑移轴未越过 8 向阈值" % dir).is_greater(0.35)
+	assert_float(dir.x).override_failure_message("dir=%s 顶死轴未释放" % dir).is_less(0.35)
+
+func test_seek_with_solids_nearest_slide_rounds_corner() -> void:
+	# 3230-a2 复跑捕获形态回归钉（心寻的 89px 西北向 + 贴身两枚错切向箱面）：
+	# 双面对齐滑移互拍（垂直净剩 0.245 < 0.35）+ 径向西推 → 单轴顶死箱面。
+	# 滑移改取最近面单源后：西轴释放、北轴（绕角方向）≥0.35 按压 → 斜滑绕角。
+	var dir := BalanceBotDecisions.seek_with_solids(
+		Vector2(-85.5, -26), Vector2(1094, 151),
+		[Rect2(1072, 128, 16, 16), Rect2(1072, 144, 16, 16)], 1.0)
+	assert_float(dir.y).override_failure_message("dir=%s 绕角轴未按压" % dir).is_less(-0.35)
+	assert_float(absf(dir.x)).override_failure_message("dir=%s 顶死轴未释放" % dir).is_less(0.35)
+
+func test_seek_with_solids_no_dead_zone_equilibrium() -> void:
+	# 3217-a2 复跑捕获形态回归钉（心寻的 85px 西南向 + 正北侧两枚平行箱面）：
+	# wander_sign 定向滑移曾同向叠加（+1.33x）对消寻的（-0.956x）→ 净向量
+	# (0.34,-0.27) 双轴落入 8 向死区 → 玩家零输入定死。滑移对齐意图后合成向量
+	# 恢复寻的侧按压（西行绕过箱列西端）。
+	var solids := [Rect2(-1024, -720, 16, 16), Rect2(-1008, -720, 16, 16),
+		Rect2(-992, -720, 16, 16), Rect2(-976, -720, 16, 16), Rect2(-960, -720, 16, 16)]
+	var dir := BalanceBotDecisions.seek_with_solids(
+		Vector2(-81.5, 25), Vector2(-982, -732), solids, 1.0)
+	assert_float(dir.x).override_failure_message("dir=%s 死区复现（x 轴未按压）" % dir).is_less(-0.35)
+
+func test_seek_with_solids_unwedges_head_on_seek() -> void:
+	# 3271-a3 形态：寻的 seek 顶死柱面（柱面在正前方 12px）——叠加斥力后出现
+	# 切向滑移（y≠0），同时寻的分量仍保留（斥力是带内附加，不是接管）。
+	var dir := BalanceBotDecisions.seek_with_solids(
+		Vector2(-1, 0), Vector2(76, 16), [Rect2(32, 0, 32, 32)], 1.0)
+	assert_float(absf(dir.y)).override_failure_message("dir=%s 楔死未破" % dir).is_greater(0.0001)
+	assert_float(dir.x).is_less(0.0)
+
+func test_combat_move_dir_default_args_zero_drift() -> void:
+	# 既有 7 参调用（缺省 shooters/solids）行为逐字节不变（B-3 硬验收：
+	# 既有决策契约零漂移）。
+	var bullets := [{"pos": Vector2(60, 0), "vel": Vector2(-110, 0)}]
+	var enemies: Array = [Vector2(-50, 0)]
+	var base := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192), bullets, enemies, [], 1.0)
+	var explicit := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192), bullets, enemies, [], 1.0, [], [], [])
+	assert_vector(explicit).is_equal(base)
+
+func test_combat_move_dir_applies_solid_repulsion_in_combat() -> void:
+	# 战斗走位同样吃斥力场：无弹无敌时站在柱面外 12px → 合力含离面 +x 分量。
+	var dir := BalanceBotDecisions.combat_move_dir(
+		Vector2(76, 16), Rect2(-160, -96, 320, 192),
+		[], [], [], 1.0, [], [], [Rect2(32, 0, 32, 32)])
+	assert_float(dir.x).is_greater(0.0)
+
+
+# ================================================================ m4-b3① 观测差分速度（lead 预判入参）
+
+func test_velocity_from_track_two_tick_window() -> void:
+	# 2 拍窗：位移 (1,-2)px / (2/60)s → 速度 (30,-60) px/s。
+	var v := BalanceBotDecisions.velocity_from_track(
+		Vector2(100, 100), 1000, Vector2(101, 98), 1002)
+	assert_vector(v).is_equal_approx(Vector2(30, -60), Vector2(0.001, 0.001))
+
+func test_velocity_from_track_rejects_noise_and_stale_windows() -> void:
+	# dt=1 逐拍抖动噪声拒收；dt>30 陈旧锚点拒收——均按「静止目标」处理
+	#（lead 退化为直瞄，不注入虚假预判）。
+	assert_vector(BalanceBotDecisions.velocity_from_track(
+		Vector2.ZERO, 1000, Vector2(5, 0), 1001)).is_equal(Vector2.ZERO)
+	assert_vector(BalanceBotDecisions.velocity_from_track(
+		Vector2.ZERO, 1000, Vector2(50, 0), 1035)).is_equal(Vector2.ZERO)

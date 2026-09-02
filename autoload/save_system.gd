@@ -49,8 +49,47 @@ var data: Dictionary = {}
 func _ready() -> void:
 	if DisplayServer.get_name() == "headless" and save_path == "user://save.json":
 		save_path = "user://save_headless.json"
+	_apply_cli_save_suffix(OS.get_cmdline_user_args())
 	load_save()
 	_apply_saved_rebinds()   # m3-sb：改键随档恢复（启动时 InputMap 运行时覆写）
+
+## ---- m4-b3：并行实例 save 隔离（--save-suffix 注入缝 + 会话级设置覆写） ----
+
+## headless 档命名单一事实源：空 suffix = 既有共享 save_headless.json（零漂移）；
+## 非空 = save_headless_<suffix>.json（并行 bot 实例各写各档，消除图鉴/成就/
+## Boss 首杀跨进程竞态——共享单档下 save_now 互覆盖=丢写 + 首杀标记互踩）。
+func headless_save_path(suffix: String) -> String:
+	if suffix.is_empty():
+		return "user://save_headless.json"
+	return "user://save_headless_%s.json" % suffix
+
+## save_path 注入缝（_ready 内消费；生产玩家不传该参数 → 行为零漂移）：用户命令行
+## 参数 --save-suffix=<s> 把 save_path 重定向到 headless_save_path(<s>)（随后
+## load_save 按新路径读档，本进程所有 SaveSystem 消费方自然落到隔离档）。
+## suffix 仅允许字母/数字/下划线/连字符（防路径逃逸）；非法值 push_error + 忽略
+## （fail-SOFT 同本系统基调，不半改路径）。
+func _apply_cli_save_suffix(args: PackedStringArray) -> void:
+	for arg in args:
+		if not arg.begins_with("--save-suffix="):
+			continue
+		var s := arg.trim_prefix("--save-suffix=").strip_edges()
+		if s.is_empty() or not _valid_save_suffix(s):
+			push_error("SaveSystem: bad --save-suffix '%s' — ignored" % s)
+			return
+		save_path = headless_save_path(s)
+		return
+
+func _valid_save_suffix(s: String) -> bool:
+	var re := RegEx.create_from_string("^[A-Za-z0-9_-]+$")
+	return re != null and re.search(s) != null
+
+## 会话级设置覆写（只改内存、不落盘）：与 set_setting 的唯一差别是不触发 save_now。
+## 消费方 = balance bot 的「手动瞄准 + lead 预判」模式（本进程关闭 auto_aim，
+## 真档/共享 headless 档零写入；进程退出由调用方还原）。
+func set_setting_session(key: String, value: Variant) -> void:
+	if typeof(data.get("settings")) != TYPE_DICTIONARY:
+		data["settings"] = DEFAULT_SETTINGS.duplicate()
+	data["settings"][key] = value
 
 ## 默认档：每次调用全新构造（调用方可自由改写，不与常量共享引用）。
 func _default_data() -> Dictionary:

@@ -9,8 +9,9 @@ extends Node
 ##   1. 移动   —— Input.action_press/release("move_*")，与真人按键同路径
 ##                （player._physics_process 的 Input.get_vector 消费）。
 ##   2. 开火   —— PlayerDriver.touch_mode_override = true（生产触屏模式测试缝）：
-##                PlayerDriver 以生产 auto_aim 逻辑选目标并自动开火——与手机玩家
-##                同路径；另在战斗期按住物理 fire 键兜底（无目标时沿当前朝向）。
+##                m4-b3① 起 bot 以「手动瞄准 + lead 预判」注入 Driver 的触屏
+##                current_aim 路径（生产 auto_aim 经会话级设置关闭，不落盘），
+##                战斗期按住物理 fire 键开火——与拨右杆预判的触屏玩家同路径。
 ##   3. 翻滚   —— player.roll_ready_at(f) 守卫 + player.start_roll(dir, f)
 ##                （与 player._physics_process 按键路径同一方法）。
 ##   4. 技能   —— Skill.cast(f)（can_cast 内含 CD/耗蓝守卫，同 PlayerDriver 路径）。
@@ -40,16 +41,27 @@ extends Node
 ## seed_base+i）；SaveSystem 保持原状（headless 自动重定向 save_headless.json，
 ## 不污染真档）——图鉴/成就/Boss 首杀标记跨局累积，模拟真实玩家成长；影响见
 ## 报告「蓝晶获取曲线」节（vine_colossus 首杀 +300 只落在批次首局）。
+## m4-b3：并行实例传 --save-suffix=<s>（SaveSystem 注入缝）各写
+## save_headless_<s>.json，消除图鉴/成就/首杀跨进程竞态。
 ##
 ## 运行：godot --headless --path . res://tools/balance_bot.tscn -- --runs=10 --seed-base=2001
 ##       可选 --time-scale=20 --max-frames-per-run=216000 --out-md=... --out-json=... --no-quit --debug
+##       --save-suffix=<s>（m4-b3 并行隔离档；缺省共享 save_headless.json 行为不变）
 ##       --hero=<id>（m4-c2 最小参数：GameDB.heroes 英雄 id，缺省 vanguard 行为逐字节不变；
-##       仅替换 start_run/start_trial_run 的英雄注入点，bot 能力本身不随英雄变化——
-##       lead 预判/shooter 贴近/绕障等能力缺口归 B-3 卡接手）
+##       仅替换 start_run/start_trial_run 的英雄注入点）
 ##       M3-B1 试炼因子局：--trial=YYYY-MM-DD（基日期；第 i 局业务日=基日期+i 天，
 ##       经生产 start_trial_run 注入当日因子对——因子对随局递增以扩覆盖度）
 ## 一键挂载：tools/run_balance.cmd（10 局 + 报告落 docs/superpowers/reports/）。
 ## 测试/冒烟以 configure() 注入参数后 add_child 复用本脚本（quit_when_done=false）。
+##
+## m4-b3 能力三修复（m3-fix2 §3 移交的 bot 侧三可修点，全部圈在本文件与
+## balance_bot_decisions.gd 决策层，生产战斗逻辑语义零改动）：
+##   ① lead 预判——会话级关闭生产 auto_aim（SaveSystem.set_setting_session，
+##      不落盘、退出还原），bot 经 Driver 的触屏「当前瞄准」路径逐拍注入
+##      恒速截击预判（AutoAim.aim_vector lead 可选参数，生产默认关+专测钉死）；
+##   ② shooter 接近带——弩兵等风筝原型纳入决策层接近带（威胁下超带趋近分量）；
+##   ③ 走位绕障初版——房内实体（柱/箱/墙）斥力场（离面线性衰减 + 切向滑移），
+##      战斗走位与已清房拾取寻的共用（3271-a3 Seek 楔死柱面实证修法）。
 
 signal finished
 
@@ -75,9 +87,12 @@ var opts := {
 	"runs": 10,
 	"seed_base": 2001,
 	"hero": "vanguard",                  # m4-c2 最小 --hero 参数（缺省 vanguard 零漂移；
-	                                     #   仅英雄注入点变化，bot 能力缺口归 B-3 卡接手）
+	                                     #   仅英雄注入点变化）
 	"seeds": "",                         # m3-fix1：定向种子列表 "a,b,c"（非空时优先于
 	                                     #   runs/seed_base）——B-1 停滞种子定向复跑等用途
+	"save_suffix": "",                   # m4-b3：save 隔离后缀（信息性记录；实际重定向
+	                                     #   单一事实源在 SaveSystem._apply_cli_save_suffix——
+	                                     #   同一用户参数 --save-suffix=<s> 两处可见）
 	"trial": "",                         # M3-B1 试炼因子局基日期 "YYYY-MM-DD"（空=普通局）；
 	                                     # 第 i 局业务日 = 基日期 + i 天（每局不同因子对，
 	                                     # 覆盖度优先；与生产「同日同因子」口径偏离在报告披露）
@@ -139,6 +154,14 @@ var _obs_enemy_last := {}             # instance_id -> {pos, frame}（敌移速�
 var _obs_hearts := {}                 # instance_id -> true（本局见过的红心拾取物）
 var _obs_loot_ids := {}               # weapon_id -> true（本局掉落台武器）
 
+# ---- m4-b3 bot 能力三修复（lead 预判 / shooter 接近带 / 实体斥力场）状态 ----
+var _lead_track := {}                 # instance_id -> [{pos, frame}×≤3]（目标速度环形轨，
+                                      #   恒定 dt=2 拍差分窗，见 BalanceBotDecisions.velocity_from_track）
+var _solids_cache := {}               # 房间节点 instance_id -> Array[Rect2]（房内实体矩形；
+                                      #   房内实体静态，按房缓存每拍零重扫；C-5 可破坏物
+                                      #   落地后如需动态性再失效化——初版披露）
+var _auto_aim_session_prev := true    # 会话级 auto_aim 原值（_exit_tree 还原，真档零写入）
+
 # ---- m3-fix2 停滞探针（--probe-stall）：B-2 新发现 11% 停滞残差的定向取证 ----
 ## 口径：复用停滞签名（floor|rooms|kills|room|活敌血量和），稳定满 PROBE_TRIGGER_TICKS
 ## 且当前房有活敌时进入取证：先落「触发快照」（几何/flow/敌态/bot 瞄准 vs 敌方位 +
@@ -165,8 +188,15 @@ func _ready() -> void:
 	Engine.max_fps = 0
 	Engine.max_physics_steps_per_frame = 64
 	Engine.time_scale = float(opts["time_scale"])
-	if not bool(SaveSystem.get_setting("auto_aim", true)):
-		push_warning("BalanceBot: headless 档 auto_aim=false——生产自动瞄准停用，bot 开火退化为当前朝向")
+	# m4-b3① 手动瞄准模式：会话级关闭生产 auto_aim（SaveSystem.set_setting_session
+	# 只改内存不落盘，_exit_tree 还原）。生产 auto_aim 锁定时每拍用「目标当前位置」
+	# 覆写 current_aim，bot 无法注入 lead（fix2 §2.1.3：锁定直瞄 × 弩兵 60px/s 横移
+	# → appr_min 9.7~14.2px 恒大于 9px 命中阈值）；关闭后 Driver 走触屏「当前瞄准」
+	# 路径逐拍消费 bot 的 lead 瞄准（真实触屏玩家拨右杆预判的同字段同路径）。
+	_auto_aim_session_prev = bool(SaveSystem.get_setting("auto_aim", true))
+	SaveSystem.set_setting_session("auto_aim", false)
+	print("BALANCE-BOT aim mode: manual+lead (session auto_aim %s->false, restore on exit; save_suffix='%s')" % [
+		_auto_aim_session_prev, String(opts["save_suffix"])])
 	EventBus.player_hit_resolved.connect(_on_player_hit_resolved)
 	EventBus.enemy_damaged.connect(_on_probe_enemy_damaged)
 	_run_all()
@@ -181,6 +211,7 @@ func configure(p_opts: Dictionary) -> void:
 func _exit_tree() -> void:
 	EventBus.player_hit_resolved.disconnect(_on_player_hit_resolved)
 	EventBus.enemy_damaged.disconnect(_on_probe_enemy_damaged)
+	SaveSystem.set_setting_session("auto_aim", _auto_aim_session_prev)   # m4-b3① 会话还原
 
 
 # ================================================================ 多局编排
@@ -732,6 +763,8 @@ func _reset_run_state(p_seed: int) -> void:
 	_obs_enemy_last = {}
 	_obs_hearts = {}
 	_obs_loot_ids = {}
+	_lead_track = {}                     # m4-b3①：目标速度轨跨局清空（实例 id 跨局复用会串）
+	_solids_cache = {}                   # m4-b3③：房间矩形缓存跨局清空（新楼层新节点）
 	_ttk_seen = {}
 	_track_room = -1
 	_track_room_type = ""
@@ -817,7 +850,11 @@ func _drive_floor(fs: FloorScene, player: Player) -> void:
 	if player.hp <= player.hp_max - 2:
 		var heart := _nearest_heart(room, player.global_position)
 		if heart != null:
-			_apply_move_input(heart.global_position - player.global_position)
+			# m4-b3③：寻的向量过实体斥力场（fix2 3271-a3 实证：原始 Seek 顶死
+			# 柱南面零位移——带内斥力+切向滑移破楔死）。
+			var seek := heart.global_position - player.global_position
+			_apply_move_input(BalanceBotDecisions.seek_with_solids(
+				seek, player.global_position, _room_solids(room), _wander_sign))
 			_set_fire_held(false)
 			return
 	var fkey := _facility_key(room_id)
@@ -904,14 +941,22 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 			_obs_enemy_last[ekey] = {"pos": e.brain_pos, "frame": frame}
 	var bombers := _bombers_observation(alive)
 	var enemies: Array = []
+	var shooters: Array = []                 # m4-b3②：风筝型射击原型单列（不进 bombers，
+	                                         #   照常进 enemies 距离带；另供威胁下超带趋近）
 	for e in alive:
-		if not _is_bomber_row(e.row):
-			enemies.append(e.brain_pos)
+		if _is_bomber_row(e.row):
+			continue
+		enemies.append(e.brain_pos)
+		if _is_shooter_row(e.row):
+			shooters.append(e.brain_pos)
 	var hazards := _hazard_zones(fs)
+	var solids := _room_solids(room)         # m4-b3③：房内实体矩形（按房缓存）
 
-	# 决策：走位（避弹/避爆炸域/避 hazard/近敌拉开/距离带）→ 8 向生产输入
+	# 决策：走位（避弹/避爆炸域/避 hazard/实体斥力/近敌拉开/距离带/shooter 趋近）
+	# → 8 向生产输入；逐敌 lead 速度轨（m4-b3①）同步更新。
+	_lead_track_update(alive)
 	var dir := BalanceBotDecisions.combat_move_dir(pos, bounds, bullets, enemies,
-		hazards, _wander_sign, bombers)
+		hazards, _wander_sign, bombers, shooters, solids)
 	_apply_move_input(dir)
 
 	# 决策：翻滚（贴弹/冲锋临身/近战贴脸 panic；概率采样来自 bot 确定性 rng）
@@ -973,28 +1018,71 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 			str((player.get_node_or_null("Driver") as Node).get("current_aim"))])
 
 
-## 瞄准摇杆等价注入（接口披露见头注 2）：生产 auto_aim 只在「当前瞄准向 60° 锥内」
-## 重锁目标（AutoAim.pick_target 契约），锥外敌人永远锁不上——真实触屏玩家此时会
-## 拨右摇杆换向。bot 在且仅在 Driver 本拍未锁目标（_auto_target_locked=false）时，
-## 把 driver.current_aim 转向最近活敌（与触屏摇杆同字段的同一消费路径），下一拍
-## 生产锥选自然重锁。锁着不动（不抢生产 auto_aim 的选择权）。
+## 瞄准注入（接口披露见头注 2）：m4-b3① 起为「手动瞄准 + lead 预判」模式——
+## bot 以 SaveSystem.set_setting_session 关闭生产 auto_aim（会话级，不落盘），
+## Driver 走触屏「无 auto_aim → 消费 current_aim」路径（真实触屏玩家拨右杆的
+## 同字段同消费路径），bot 每拍把 current_aim 设为最近活敌的**截击预判方向**：
+## 命中点 = 目标当前位置 + 目标速度 × 飞行时间（距离/当前武器弹速），预判数学
+## 单一事实源 = AutoAim.aim_vector（lead 可选参数，生产默认关）。
+## 目标速度来自 3 拍环形轨的 dt=2 拍差分（velocity_from_track 契约：噪声/陈旧
+## 窗按静止处理 → lead 退化直瞄）。仍在 Driver 锁定态时不动手（保留生产选择权，
+## auto_aim 被外部打开时行为自动回退为「仅锥外重定向」的旧语义）。
 func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector2) -> void:
 	if alive.is_empty():
 		return
 	var driver: Node = player.get_node_or_null("Driver")
 	if driver == null or bool(driver.get("_auto_target_locked")):
 		return
-	var target: EnemyBase = null
-	var best_d := INF
+	var targets: Array[Vector2] = []
+	var vels: Array = []
 	for e in alive:
 		if not is_instance_valid(e):
 			continue
-		var d := e.brain_pos.distance_to(pos)
-		if d < best_d:
-			best_d = d
-			target = e
-	if target != null and best_d > 1.0:
-		driver.set("current_aim", (target.brain_pos - pos).normalized())
+		targets.append(e.brain_pos)
+		vels.append(_lead_velocity(e))
+	if targets.is_empty():
+		return
+	var aim: Vector2 = AutoAim.aim_vector(pos, targets, driver.get("current_aim"),
+		360.0, vels, _player_bullet_speed(player))
+	if aim != Vector2.ZERO:
+		driver.set("current_aim", aim)
+
+
+## 当前武器弹速（lead 飞行时间入参；近战/空手/读不到 → 0 = lead 关闭直瞄）。
+func _player_bullet_speed(player: Player) -> float:
+	var rig: WeaponRig = player.get_node_or_null("WeaponRig") as WeaponRig
+	if rig == null:
+		return 0.0
+	var w := rig.current()
+	if w.is_empty() or bool(w.get("is_melee", false)):
+		return 0.0
+	return float(w.get("bullet_speed", 0.0))
+
+
+## m4-b3① 目标速度环形轨更新（每战斗拍；每敌保留最近 3 拍锚点 → 恒定 dt=2 拍
+## 差分窗，见 BalanceBotDecisions.velocity_from_track）。瞬移/闪现会注入虚假
+## 高速 ≤2 拍——初版披露，不滤。
+func _lead_track_update(alive: Array[EnemyBase]) -> void:
+	var frame := Engine.get_physics_frames()
+	for e in alive:
+		if not is_instance_valid(e):
+			continue
+		var key := e.get_instance_id()
+		var ring: Array = _lead_track.get(key, [])
+		ring.append({"pos": e.brain_pos, "frame": frame})
+		while ring.size() > 3:
+			ring.pop_front()
+		_lead_track[key] = ring
+
+
+## m4-b3① 目标速度读取（px/s；轨不足 3 拍 = ZERO → 直瞄）。
+func _lead_velocity(e: EnemyBase) -> Vector2:
+	var ring: Array = _lead_track.get(e.get_instance_id(), [])
+	if ring.size() < 3:
+		return Vector2.ZERO
+	var old: Dictionary = ring[0]
+	return BalanceBotDecisions.velocity_from_track(
+		old["pos"], int(old["frame"]), e.brain_pos, Engine.get_physics_frames())
 
 
 ## 房内最近红心掉落（缺血时顺路吃；combat 期不冒险绕路，只在本房已清时吃）。
@@ -1014,6 +1102,30 @@ func _nearest_heart(room: FloorScene.FloorRoom, pos: Vector2) -> Node2D:
 func _is_bomber_row(row: Dictionary) -> bool:
 	var arch := String(row.get("archetype", ""))
 	return arch == "suicide" or arch == "zibao_wangchong"
+
+
+## m4-b3②：风筝型射击原型判定（接近带纳入对象）——shooter（弩兵/遗迹弓手，
+## 140~200px 保距横向风筝）。barrage（种子投手/冰晶法师）speed=0 定点不动、
+## turret 定点炮台——贴近反而缩小躲避空间，均不纳入。
+func _is_shooter_row(row: Dictionary) -> bool:
+	return String(row.get("archetype", "")) == "shooter"
+
+
+## m4-b3③：房内实体矩形（世界坐标；墙 + 柱/箱 props 同一 StaticBody2D 通道，
+## 契约 = FloorScene._room_solid_rects 的按房缓存版——房内实体静态，缓存每拍
+## 零重扫；C-5 可破坏物落地后如需动态性再失效化，初版披露）。
+func _room_solids(room: FloorScene.FloorRoom) -> Array:
+	var key := room.get_instance_id()
+	if _solids_cache.has(key):
+		return _solids_cache[key]
+	var fs: FloorScene = null
+	if _run_root != null and is_instance_valid(_run_root):
+		fs = _run_root.floor_scene
+	var out: Array = []
+	if fs != null:
+		out = fs._room_solid_rects(room)
+	_solids_cache[key] = out
+	return out
 
 
 ## 自爆虫观测：全部自爆型进 bombers（未点燃=armed false 走保距；点燃=armed true
@@ -1794,9 +1906,9 @@ func _write_md_findings(f: FileAccess, wr: float, cr: float) -> void:
 func _write_md_disclosure(f: FileAccess) -> void:
 	f.store_line("## 接口边界与前提披露")
 	f.store_line("")
-	f.store_line("- **接口边界**：bot 只经由生产接口操作——Input 移动、`PlayerDriver.touch_mode_override`（生产触屏 auto_aim 自动开火，手机玩家同路径）+ 战斗期按住物理 fire、`player.start_roll`/`Skill.cast`（CD/耗蓝守卫在生产侧）、`FloorScene.enter_room`（生产 enter_room→_push_back 落位，走廊徒步不模拟，同 m1_loop_smoke 惯例）、`Shop.interact` + `_buy_item(\"heart\")`（RunState.spend_coins 扣款）、`EventRoom.accept`（bot 一律接受）、`Altar.interact` + `Altar.choose`（m4-c4 祭坛生产交互/选卡缝：增益分支同层间三选一贪心、elite_surge 分支交互即追加精英，逐局表 altars 列可查）、层间三回调。伤害/击杀/掉落/金币全部由生产战斗链路自然发生；bot 不使用熔铸台/雕像/饮料机（商店仅买红心）。")
+	f.store_line("- **接口边界**：bot 只经由生产接口操作——Input 移动、`PlayerDriver.touch_mode_override`（生产触屏模式测试缝；m4-b3① 起战斗期另经会话级设置 `SaveSystem.set_setting_session(\"auto_aim\", false)` 关闭生产 auto_aim——只改内存不落盘、进程退出还原，bot 经 Driver 的触屏「当前瞄准」路径逐拍注入 **lead 预判截击方向**（`AutoAim.aim_vector` lead 可选参数，生产默认关））+ 战斗期按住物理 fire、`player.start_roll`/`Skill.cast`（CD/耗蓝守卫在生产侧）、`FloorScene.enter_room`（生产 enter_room→_push_back 落位，走廊徒步不模拟，同 m1_loop_smoke 惯例）、`Shop.interact` + `_buy_item(\"heart\")`（RunState.spend_coins 扣款）、`EventRoom.accept`（bot 一律接受）、`Altar.interact` + `Altar.choose`（m4-c4 祭坛生产交互/选卡缝：增益分支同层间三选一贪心、elite_surge 分支交互即追加精英，逐局表 altars 列可查）、层间三回调。走位决策含 m4-b3②③：shooter 接近带 + 房内实体斥力场（柱/箱/墙，初版斥力场非完整寻路；实体矩形按房缓存，C-5 可破坏物落地后如需动态性再失效化）。伤害/击杀/掉落/金币全部由生产战斗链路自然发生；bot 不使用熔铸台/雕像/饮料机（商店仅买红心）。")
 	f.store_line("- **种子口径**：`RunState.start_run` 墙钟种子被 `RunState.run_seed = seed` + `RngSvc.setup_run(seed)` 确定性覆写（start_run 其余状态不变）；bot 决策采样用独立 `_rng`（同种子播种）——同 seed 可复现整局（bot 行为侧；敌人 AI 消费 RunState 盐流，同种子同确定性）。")
-	f.store_line("- **局间隔离**：每局 `start_run` 重置局内状态；SaveSystem 原状保留（headless 自动重定向 save_headless.json，真档不受影响）——图鉴/成就计数与 Boss 首杀标记跨局累积（真实玩家成长模拟），vine_colossus 首杀 +300 只落批次首局（逐局表「首杀可获」列可查）。多局会推进 save_headless.json 的图鉴/解锁进度，属产品正确行为（裁定㉒口径）。")
+	f.store_line("- **局间隔离**：每局 `start_run` 重置局内状态；SaveSystem 原状保留（headless 自动重定向 save_headless.json，真档不受影响）——图鉴/成就计数与 Boss 首杀标记跨局累积（真实玩家成长模拟），vine_colossus 首杀 +300 只落批次首局（逐局表「首杀可获」列可查）。m4-b3：并行实例经 `--save-suffix=<s>` 各写 `save_headless_<s>.json`（本批后缀='%s'），消除图鉴/成就/首杀跨进程竞态。" % String(opts["save_suffix"]))
 	f.store_line("- **胜/死捕获**：生产测试缝 `run_root.victory_route_override` / `DeathRecorder.open_summary_override`（死亡报告 = DeathRecorder.build_report 生产口径）；终局蓝晶**不入档**（无 DeathSummary/VictorySummary 确认路径）。")
 	f.store_line("- **内容缺口（前提，非本卡缺陷）**：本基线 A2/A3 层模板在 T26（并行在途）——本报告全部统计为第 1 层口径；A2/A3 就绪后波次仍为 A1 名录、Boss 恒 vine_colossus（T36 承接），届时报告继续注明该限制。")
 	f.store_line("")
@@ -1870,6 +1982,8 @@ func _parse_user_args() -> void:
 				opts["hero"] = kv[1]   # m4-c2 最小参数（GameDB.heroes id；非法值见尾注回落）
 			"seeds":
 				opts["seeds"] = kv[1]
+			"save-suffix":
+				opts["save_suffix"] = kv[1]   # m4-b3（重定向单一事实源在 SaveSystem._ready）
 			"trial":
 				opts["trial"] = kv[1]
 			"time-scale":

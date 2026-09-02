@@ -99,6 +99,53 @@ func test_aim_vector_zero_current_aim_fallback_is_zero() -> void:
 	var v := AutoAim.aim_vector(Vector2.ZERO, [] as Array[Vector2], Vector2.ZERO)
 	assert_vector(v).is_equal(Vector2.ZERO)
 
+# ---------- m4-b3① lead 预判（可选参数；默认关 = 生产零漂移） ----------
+
+func test_aim_vector_default_call_identical_across_signature_widths() -> void:
+	# 生产零漂移钉：4 参既有调用 与 6 参全默认（vels 空 + 弹速 0）逐 Case 同结果。
+	# 默认路径行为漂移时本测先红（auto_aim 生产参数面零漂移是 B-3 硬验收）。
+	var cases := [
+		{"pos": Vector2.ZERO, "aim": Vector2.RIGHT, "targets": [Vector2(160, 0)]},
+		{"pos": Vector2.ZERO, "aim": Vector2(1, 1), "targets": [Vector2(60, 30), Vector2(200, 20)]},
+		{"pos": Vector2(50, 50), "aim": Vector2.LEFT, "targets": [Vector2(-100, 50), Vector2(50, 300)]},
+		{"pos": Vector2.ZERO, "aim": Vector2.RIGHT, "targets": [Vector2(-100, 0)]},
+		{"pos": Vector2.ZERO, "aim": Vector2(2, 0), "targets": [Vector2(30, 40), Vector2(40, 30)]},
+	]
+	for c: Dictionary in cases:
+		var targets: Array[Vector2] = []
+		for t: Vector2 in c["targets"]:
+			targets.append(t)
+		var a4 := AutoAim.aim_vector(c["pos"], targets, c["aim"])
+		var a6 := AutoAim.aim_vector(c["pos"], targets, c["aim"], 60.0, [], 0.0)
+		assert_vector(a6).override_failure_message(str(c)).is_equal(a4)
+
+func test_aim_vector_lead_intercepts_moving_target() -> void:
+	# 目标 (160,0) 横移 60px/s、弹速 320px/s → 飞行 0.5s → 命中点 (160,30)。
+	# m3-fix2 §2.1.3 风筝残差签名（60px/s 横移 × 弹 320px/s）的同参数复现。
+	var aim := AutoAim.aim_vector(Vector2.ZERO, [Vector2(160, 0)] as Array[Vector2],
+		Vector2.RIGHT, 60.0, [Vector2(0, 60)], 320.0)
+	assert_vector(aim).is_equal_approx(Vector2(160, 30).normalized(), Vector2(0.001, 0.001))
+
+func test_aim_vector_lead_off_when_bullet_speed_zero() -> void:
+	# 弹速 ≤0 = lead 关（即便速度在场）→ 直瞄。
+	var aim := AutoAim.aim_vector(Vector2.ZERO, [Vector2(160, 0)] as Array[Vector2],
+		Vector2.RIGHT, 60.0, [Vector2(0, 60)], 0.0)
+	assert_vector(aim).is_equal_approx(Vector2.RIGHT, Vector2(0.001, 0.001))
+
+func test_aim_vector_stationary_target_lead_equals_direct() -> void:
+	# 静止目标（零速度）：lead 打开也与直瞄逐字节同（无预判位移）。
+	var direct := AutoAim.aim_vector(Vector2.ZERO, [Vector2(160, 0)] as Array[Vector2], Vector2.RIGHT)
+	var leaded := AutoAim.aim_vector(Vector2.ZERO, [Vector2(160, 0)] as Array[Vector2],
+		Vector2.RIGHT, 60.0, [Vector2.ZERO], 320.0)
+	assert_vector(leaded).is_equal(direct)
+
+func test_aim_vector_lead_missing_vel_entry_treated_stationary() -> void:
+	# vels 短于 targets：缺项按静止处理（不崩、不误 lead）。
+	# 锥内最近者 idx=1（160,0），vels[1] 缺 → 直瞄。
+	var aim := AutoAim.aim_vector(Vector2.ZERO, [Vector2(200, 0), Vector2(160, 0)] as Array[Vector2],
+		Vector2.RIGHT, 60.0, [Vector2(0, 60)], 320.0)
+	assert_vector(aim).is_equal_approx(Vector2.RIGHT, Vector2(0.001, 0.001))
+
 # ---------- GamepadAimScript.stick_output：阈值纯函数 ----------
 
 func test_stick_output_full_deflection_normalized() -> void:

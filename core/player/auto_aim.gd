@@ -30,11 +30,30 @@ static func pick_target(player_pos: Vector2, facing: float, enemies_pos: Array[V
 
 ## 自动瞄准方向：锥内选中目标 → 指向该目标的单位向量；
 ## 无目标/全锥外 → 回退 current_aim 归一化（零向量回退为零，调用方据零不开火）。
-static func aim_vector(player_pos: Vector2, targets: Array[Vector2], current_aim: Vector2, cone_deg := 60.0) -> Vector2:
+##
+## m4-b3① 弹道 lead 预判（可选参数，**生产默认关**——player_driver 调用不传
+## 两个新参数，行为逐字节不变，tests/unit/test_auto_aim.gd 专测钉死）：
+## targets_vel 与 targets 按索引对应（缺项/零向量 = 该目标静止，不预判）；
+## bullet_speed_px_s > 0 时按「命中点 = 目标当前位置 + 速度 × 飞行时间
+## （距离/弹速，恒速目标截击解）」取瞄准方向。当前消费方 = balance bot
+## （tools/balance_bot.gd 手动瞄准模式的风筝敌预判）；生产触屏路径关闭。
+static func aim_vector(player_pos: Vector2, targets: Array[Vector2], current_aim: Vector2,
+		cone_deg := 60.0, targets_vel: Array = [], bullet_speed_px_s := 0.0) -> Vector2:
 	var fallback := current_aim.normalized() if current_aim != Vector2.ZERO else Vector2.ZERO
 	var facing := current_aim.angle() if current_aim != Vector2.ZERO else 0.0
 	var idx := pick_target(player_pos, facing, targets, cone_deg)
 	if idx == -1:
 		return fallback
 	var dir: Vector2 = targets[idx] - player_pos
-	return dir.normalized() if dir != Vector2.ZERO else fallback
+	if dir == Vector2.ZERO:
+		return fallback
+	var aim := dir.normalized()
+	if bullet_speed_px_s > 0.0 and idx < targets_vel.size():
+		var vel_v: Variant = targets_vel[idx]
+		if vel_v is Vector2 and (vel_v as Vector2).length_squared() > 0.000001:
+			var intercept: Vector2 = targets[idx] + (vel_v as Vector2) \
+				* (dir.length() / bullet_speed_px_s)
+			var lead := intercept - player_pos
+			if lead.length_squared() > 0.000001:
+				aim = lead.normalized()
+	return aim
