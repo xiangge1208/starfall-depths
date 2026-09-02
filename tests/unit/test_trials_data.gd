@@ -170,3 +170,15 @@ func test_numeric_domains() -> void:
 				assert_bool(mods[bool_key] is bool) \
 					.override_failure_message("factor '%s': '%s' should be bool" % [id, bool_key]) \
 					.is_true()
+
+
+func test_all_factor_icons_exist_on_disk() -> void:
+	# m3-gate G-1（P0-6 素材接线完整性）：8 枚因子图标逐一在盘。
+	# 既有覆盖仅散点（test_trial_records.gd 断言当日两枚路径 + enemy_haste 的
+	# ResourceLoader.exists），此处按白名单全量封口（同 test_art_lookup.gd
+	# test_all_fx_strip_files_exist_on_disk 的表驱动防表腐坏模式）。
+	for id: String in FACTOR_IDS:
+		var path := "res://art/generated/trials/factor_%s.png" % id
+		assert_bool(FileAccess.file_exists(path)) \
+			.override_failure_message("factor icon missing on disk: %s" % path) \
+			.is_true()
