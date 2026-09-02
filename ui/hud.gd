@@ -9,6 +9,9 @@ extends CanvasLayer
 ##   var hud := HUD.new(); hud.player = player; add_child(hud)
 ## run 缺省时 _ready 自动取 /root/RunState。武器槽活真值取 WeaponRig（player 子节点），
 ## 无 rig（纯逻辑测试/极端剥离）时回退 RunState.weapons（record_weapon 聚合值）。
+## 暂停菜单挂钩（GDD §19 第 10 项，ui/pause_menu.gd）：本层 _ready 挂 PauseMenu 子节点
+## （回主菜单委托下方放弃试炼的既有结算退出路径）+ 右上「暂停」呼出钮（触屏可用；
+## 键盘/手柄走 InputMap `pause` 动作 Esc/Start，消费者在 PauseMenu）。
 
 const LOW_HP_THRESHOLD := 2         # GDD §19：hp ≤ 2 红晕呼吸
 ## J6 呼吸参数（Juice v2 规格 §2 J6 字面；J-D 缺口 D-4 对齐——原实现 0.12↔0.38 /
@@ -162,6 +165,8 @@ var _abandon_btn: Button = null              # M3-R-C 放弃试炼按钮（仅�
 var _abandon_fired := false                  # M3-R-C 防重入：淡入窗内双击只结一次
                                              # （同 VictorySummary._confirmed 模式——SceneRouter
                                              # 0.2s 淡入 + 黑场不挡输入，按钮仍可点）
+var _pause_menu: PauseMenu = null            # GDD §19 暂停菜单（本卡落地；右上「暂停」钮
+                                             # 与 Esc/Start 呼出共用其状态机）
 ## 回试炼面板路由接缝（M3-R-C 测试注入口，同 DeathSummary.exit_override 模式）：
 ## 有效时替代真实路由（生产 = SceneRouter.goto("menu")，试炼面板在主菜单）。
 var abandon_route_override: Callable = Callable()
@@ -180,6 +185,7 @@ func _ready() -> void:
 	_build_buff_row()
 	_build_top_right()
 	_build_bottom_center()
+	_build_pause_menu()
 	_start_breath_tween()
 
 func _process(_delta: float) -> void:
@@ -256,13 +262,21 @@ func _build_top_right() -> void:
 	_seed_label.modulate = Color(1, 1, 1, 0.6)
 	_coin_label = _hud_label(col, "金币 0")
 	_coin_label.modulate = COIN_COLOR
-	_abandon_btn = Button.new()               # M3-R-C：规格 §4「放弃试炼」（暂停菜单缺席，
-	_abandon_btn.name = "AbandonTrial"        # 编排者裁定入口在 HUD；仅试炼局显示）
+	_abandon_btn = Button.new()               # M3-R-C：规格 §4「放弃试炼」（暂停菜单已落地
+	_abandon_btn.name = "AbandonTrial"        # ——ui/pause_menu.gd；本 HUD 直呼入口保留
+	                                          # 不回退（试炼规格 §4），暂停菜单「回主菜单」
+	                                          # 委托同一路径共享防重入，不重复触发）
 	_abandon_btn.text = "放弃试炼"
 	_abandon_btn.add_theme_font_size_override("font_size", 8)
 	_abandon_btn.visible = run != null and bool(run.get("is_trial_run"))
 	_abandon_btn.pressed.connect(_on_abandon_pressed)
 	col.add_child(_abandon_btn)
+	var pause_btn := Button.new()             # GDD §19：局内暂停呼出钮（触屏可用入口；
+	pause_btn.name = "PauseBtn"               # 键盘/手柄 Esc/Start 走 `pause` 动作，
+	pause_btn.text = "暂停"                    # 消费者在 PauseMenu——四项菜单壳同层）
+	pause_btn.add_theme_font_size_override("font_size", 8)
+	pause_btn.pressed.connect(_on_pause_btn_pressed)
+	col.add_child(pause_btn)
 
 func _build_bottom_center() -> void:
 	_style_normal = StyleBoxFlat.new()
@@ -382,11 +396,28 @@ func _apply_bottom(snap: Dictionary) -> void:
 	_skill_ring.queue_redraw()
 	_roll_dot.color = DOT_READY if bool(snap["roll_ready"]) else DOT_DIM
 
-## 放弃试炼（M3-R-C，规格 §4；暂停菜单全库缺席——编排者裁定入口在 HUD）：按当前进度
-## 结算（已过层 + 击杀池现值 ×1.5 floored，无死亡减半——GDD §14 仅死亡减半）→
+## 暂停菜单挂钩（GDD §19 第 10 项；实现 ui/pause_menu.gd）：PauseMenu 挂本层下
+## （layer 45 遮罩盖住本 HUD 与 TouchControls(40)，黑场(100)/死亡去饱和(100)之下），
+## 「回主菜单」委托 _on_abandon_pressed 的既有结算退出路径（结算/落盘/records 与
+## 死亡·胜利·放弃三路口径一致，_abandon_fired 防重入共享——HUD 直呼钮与菜单项
+## 不会重复触发）。
+func _build_pause_menu() -> void:
+	_pause_menu = PauseMenu.new()
+	_pause_menu.hud = self
+	_pause_menu.quit_action = _on_abandon_pressed
+	add_child(_pause_menu)
+
+
+func _on_pause_btn_pressed() -> void:
+	if _pause_menu != null:
+		_pause_menu.try_open()
+
+
+## 放弃试炼（M3-R-C，规格 §4；暂停菜单已落地——本 HUD 直呼入口保留不回退，规格字面
+## 「回试炼面板」的偏离随 G-1 走查统一勘误；暂停菜单「回主菜单」复用本路径）：按当前
+## 进度结算（已过层 + 击杀池现值 ×1.5 floored，无死亡减半——GDD §14 仅死亡减半）→
 ## settlement_record（records 追加 + trial_completed + trials_total 并档落盘）→
-## 回主菜单（试炼面板在主菜单覆盖层，与死亡/胜利结算回菜单口径一致；规格字面
-## 「回试炼面板」的偏离随 G-1 走查统一勘误）。
+## 回主菜单（试炼面板在主菜单覆盖层，与死亡/胜利结算回菜单口径一致）。
 func _on_abandon_pressed() -> void:
 	if _abandon_fired:
 		return                                 # 防重入：二次点击零副作用（无幽灵 records 行）

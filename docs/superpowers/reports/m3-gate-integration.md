@@ -112,3 +112,30 @@ godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd \
 ## 门禁判定（自动化守卫侧）
 
 **Check 1~5、7 全 PASS；Check 3/4 对照 X-B/X-C 一致无偏差；Check 6 设置项齐全（GDD 条目全覆盖，1 项预存偏差注 d 移交裁定）。** 未发现 P0/P1 自动化可测缺陷。裁定（含 tag `m3` 与注 d 偏差处置）归编排者；真人主观项见 `m3-gate-user-checklist.md`。
+
+---
+
+## 门禁后补卡：暂停菜单（GDD §19 第 10 项收口 · 2026-09-01）
+
+> 本节为门禁裁定后的追加实现记录，不改上文任何已裁定内容。Check 6 表 #10 行的 ⚠️ 偏差（注 d，移交裁定「另立小卡」）由本卡闭合：**局内暂停菜单已落地，该项由 ⚠️ 转 ✅**。
+
+### 实现位置
+
+| 件 | 位置 | 内容 |
+|---|---|---|
+| 菜单壳（新） | `ui/pause_menu.gd`（PauseMenu，纯代码构建同 debug_hud 惯例，layer 45，PROCESS_MODE_ALWAYS） | 四项：继 续 / 设 置 / 重 开 / 回主菜单（140×18 · 12px，同 main_menu 按钮惯例，触屏可用）；Dim 遮罩（mouse STOP）盖 HUD(10) 与 TouchControls(40) = 暂停时 HUD 置灰、底层点击全挡；世界冻结 = `get_tree().paused`（试炼角标/危险地块倒计时等 60Hz 逻辑一并停），恢复只翻 paused 位（零 hitstop/屏震误发，测试钉死） |
+| HUD 钩子（最小改） | `ui/hud.gd` | `_build_pause_menu()` 挂 PauseMenu + 回主菜单委托 `_on_abandon_pressed`；右上「暂停」呼出钮（触屏）；:259/:385 放弃试炼注记更新为「暂停菜单已落地」——HUD 直呼入口保留不回退（试炼规格 §4），与菜单项共享 `_abandon_fired` 防重入同路，不重复触发 |
+| 设置内嵌 | PauseMenu 内嵌既有 `ui/settings_panel.tscn`（S-A 十键全量）+ Rows 末尾运行时追加「按 键」钮打开既有 `ui/rebind_panel.tscn`（S-B 九动作重映射） | GDD §19「设置含屏震、伤害数字、色弱形状编码、自动瞄准、按键重映射」自暂停菜单闭环；面板总高钉死在 270 视口内不溢出；主菜单入口不变 |
+| 呼出 | InputMap 既有 `pause` 动作（S-B 记录的「现无消费者」就此收口）：Esc 既有 + 手柄 Start 本卡补绑；`project.godot` 仅动 [input] 节（pause 事件数组一行） | 门控（呼出忽略）：Boss 死亡/玩家死亡演出链活跃、SceneRouter 过场 `_busy`、三选一/灾厄/商店式 `_ui` 弹层可见；平凡 hitstop 冻结拍中呼出先 `Fx.cancel_hitstop()` 掐导演的 ignore_time_scale 权威恢复定时器（防菜单开着世界被解冻复活）；死亡/胜利结算 overlay 是独立路由场景，天然无误触发面 |
+
+### 口径写明（任务卡要求的选择披露）
+
+- **重开 = 重开当前层**：core 无现成「层重开」公共入口，取既有路由键 `"game"` 重载 run_root——RunState 层号/种子不变 → 同种子同层重建（层重开语义）；局内金币/蓝晶/增益/试炼因子保留，玩家换满状态新实例，`RunRoot._begin` 自带 `DeathRecorder.reset()` 开局复位。core/** 零触碰。
+- **回主菜单结算时机**：委托 HUD 放弃试炼的既有退出路径（`settle_victory_gems` 全额/试炼 ×1.5 → `SaveSystem.add_gems` → `TrialPanelUI.settlement_record` → `goto("menu")`），与既有死亡/胜利/放弃三路的存档保存口径一致；试炼规格 §4 行为不回退。
+- 已知边界：暂停期间 BGM 随树暂停静默（AudioMgr 播放器为 pausable，与既有 hitstop 40~60ms 冻结同口径；autoload/** 禁改，不另行处理）。
+
+### 测试
+
+- 新增 `tests/unit/test_pause_menu.gd` **19 用例**：`pause` 动作 Esc/Start 绑定契约、四项菜单壳、呼出/恢复状态机（幂等/事件驱动）、暂停时世界整树冻结（60Hz 探针零推进）与恢复零演出误发（trauma/time_scale 不动）、hitstop 冻结拍排水、设置层往返 + 改键层经「按 键」可达 + Esc 逐层返回、面板 270 视口不溢出、重开 `"game"`/回主菜单 `"menu"` 路由调用（路由前已解冻；回主菜单委托 HUD 路径不直走路由）、五类呼出门控（三选一/灾厄/`_ui` 弹层/演出链注入口/路由器 `_busy`）、HUD 挂钩（PauseMenu/PauseBtn/防重入委托/遮罩 STOP/弃钮保留）。
+- 全量 `cmd //c "tools\\run_tests.cmd"`：**1654 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans，90/90 套件，(1654/1654)，exit 0**（门禁基线 1635 → +19，账目闭合）。
+- 改动面：`ui/pause_menu.gd`（新）、`ui/hud.gd`（钩子+注记）、`ui/rebind_panel.gd`（头注一行更正）、`project.godot`（仅 [input] pause 事件）、`tests/unit/test_pause_menu.gd`（新）、本报告 + 用户自测清单；**core/**、autoload/**、data/、export_presets.cfg 零触碰**。
