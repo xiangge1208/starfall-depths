@@ -17,6 +17,15 @@
                                   主体 256x256 居中——x4 整数放大，外沿台阶在 66% 安全区圆内）
     adaptive_monochrome_432.png   432x432 自适应单色层（前景白色剪影，Android 13 主题图标）
 
+m4-k1 ③ LOGO 方向变体（同目录新增，只交预览供用户定稿；不替换 icon.svg/项目配置）:
+    logo_variant_a_gate_256.png   方向 A 星空石门（= 现行 canonical 构图复刻）
+    logo_variant_b_crystal_256.png 方向 B 蓝晶星坠（星陨坠入蓝晶簇——深渊矿物母题）
+    logo_variant_c_knight_256.png  方向 C 星芒剑士（星芒下的骑士胸像+竖剑——英雄母题）
+    logo_variants_preview.png     三方向并排预览页（256px 面板 + 标注，用户圈选用）
+
+变体扩展色（仍全部出自 tools/spritegen_m3.py 项目调色板，未新增库外色值）:
+    #8ae8ff / #b8ecff / #e2f4ff = RAMP_ICE（elem_ice 家族青白）→ 蓝晶簇。
+
 设计（64x64 逻辑像素画，整数倍最近邻放大保持像素风）:
     - 背景: 调色板最暗色 #181420 夜空 + 确定性星野（白/灰 1px + 十字闪星）
     - 星陨: 金色流星自右上角坠向石门（白芯黄焰橙尾，双行斜线）
@@ -28,14 +37,16 @@ QA（脚本内自检，失败退出码 1）:
     2) 背景层全不透明（alpha==255），前景层主体外全透明；
     3) 所有不透明像素色值 ∈ 项目调色板（无新增色）；
     4) 确定性: 连续两次生成 SHA256 逐文件一致；
-    5) 前景/单色层主体外沿在自适应安全区圆（432 直径的 66.7%）内。
+    5) 前景/单色层主体外沿在自适应安全区圆（432 直径的 66.7%）内；
+    6) m4-k1 变体: 三方向 256 尺寸精确、扩展调色板封口、预览页尺寸精确、
+       变体层二次构建 SHA256 一致（同 4 口径）。
 """
 import hashlib
 import random
 import sys
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "art" / "generated" / "icon"
@@ -65,6 +76,13 @@ GREY = C("#d8d8d8")       # 暗星（SHARD_GREY）
 
 PALETTE = {BG_DEEP, STONE, STONE_D, PORTAL, GLOW, STAR_PALE, GOLD, GOLD_L,
            GOLD_D, YELLOW, ORANGE, WHITE, GREY}
+
+# m4-k1 ③ 变体扩展色（仍全部出自 tools/spritegen_m3.py 项目调色板，未新增库外色值）：
+# RAMP_ICE（elem_ice 家族青白）→ 蓝晶簇母题。
+ICE_D = C("#8ae8ff")      # RAMP_ICE 深青（晶体暗面）
+ICE_M = C("#b8ecff")      # RAMP_ICE 中青（晶体亮面）
+ICE_L = C("#e2f4ff")      # RAMP_ICE 浅青（晶体脊线高光）
+PALETTE_VARIANTS = PALETTE | {ICE_D, ICE_M, ICE_L}
 
 # ---------------------------------------------------------------- 像素助手
 def canvas(w, h, fill=(0, 0, 0, 0)):
@@ -207,7 +225,159 @@ def monochrome_of(img):
     return out
 
 
+# ---------------------------------------------------------------- m4-k1 ③ 方向变体
+# 三方向（64x64 逻辑画，×4 放大到 256）：A 星空石门（现行 canonical 构图）/ B 蓝晶星坠 /
+# C 星芒剑士。变体只产预览供用户定稿，不触碰 icon.svg / 项目配置 / export preset。
+
+def shard(img, cx, y_tip, y_wide, y_base, half_w):
+    """菱形晶柱：顶尖→最宽→底收。左半暗面 ICE_D、右半亮面 ICE_M、脊线 ICE_L。"""
+    span_top = max(1, y_wide - y_tip)
+    span_bot = max(1, y_base - y_wide)
+    for y in range(min(y_tip, y_base), max(y_tip, y_base) + 1):
+        if y <= y_wide:
+            w = int(round(half_w * (y - y_tip) / span_top))
+        else:
+            w = int(round(half_w * (y_base - y) / span_bot))
+        for x in range(cx - w, cx + w + 1):
+            px(img, x, y, ICE_D if x < cx else ICE_M)
+        px(img, cx, y, ICE_L)
+
+
+def draw_crystal_fg():
+    """变体 B 主体：蓝晶簇（中央主晶 + 左右伴晶 + 白芯闪点 + 石基线），主体外全透明。"""
+    img = canvas(64, 64)
+    shard(img, 32, 18, 40, 60, 9)     # 中央主晶
+    shard(img, 20, 32, 46, 56, 6)     # 左伴晶
+    shard(img, 45, 28, 46, 57, 6)     # 右伴晶
+    px(img, 32, 19, WHITE)            # 晶尖白芯
+    for x, y in ((29, 26), (36, 33), (17, 42), (48, 34), (31, 47)):
+        px(img, x, y, WHITE)          # 闪点
+    rect(img, 14, 58, 49, 58, STONE_D)  # 石基线（对齐方向 A 台阶的接地语言）
+    return img
+
+
+def draw_bg_knight():
+    """变体 C 背景层：静谧星野（无流星，避让星芒区）+ 金色大四芒星（骑士背光）。全不透明。"""
+    img = canvas(64, 64, BG_DEEP)
+    rng = random.Random(7)
+    cells = [(x, y) for y in range(0, 22) for x in range(64)]
+    rng.shuffle(cells)
+    placed = 0
+    for x, y in cells:
+        if placed >= 12:
+            break
+        if 20 <= x <= 44 and 8 <= y <= 36:
+            continue   # 星芒区避让
+        px(img, x, y, GREY if rng.random() < 0.7 else STAR_PALE)
+        placed += 1
+    cx, cy = 32, 22
+    for d in range(0, 15):   # 正交四芒: 白芯→暖白→黄→金
+        c = WHITE if d == 0 else (STAR_PALE if d <= 5 else (YELLOW if d <= 9 else GOLD))
+        for sx, sy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            px(img, cx + sx * d, cy + sy * d, c)
+    for d in range(3, 6):    # 对角短芒
+        c = YELLOW if d < 5 else GOLD
+        for sx, sy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
+            px(img, cx + sx * d, cy + sy * d, c)
+    return img
+
+
+def draw_knight_fg():
+    """变体 C 主体：星芒剑士（圆盔胸像 + 星徽 + 右侧竖剑 + 石阶基座），主体外全透明。"""
+    img = canvas(64, 64)
+    # 盔冠金饰 + 圆盔（逐行收宽成穹顶）
+    rect(img, 30, 24, 33, 25, GOLD_L)
+    rect(img, 27, 26, 37, 27, STONE)
+    rect(img, 26, 28, 38, 30, STONE)
+    rect(img, 25, 31, 39, 38, STONE)
+    for y in range(28, 39):
+        px(img, 38 if y < 31 else 39, y, STONE_D)   # 右缘暗面
+    # 面甲缝（暗槽 + 双白目点）
+    rect(img, 27, 33, 37, 34, PORTAL)
+    px(img, 30, 33, WHITE)
+    px(img, 34, 33, WHITE)
+    # 颈甲
+    rect(img, 28, 39, 36, 40, STONE_D)
+    # 肩甲 + 金缘 + 胸甲
+    rect(img, 20, 41, 44, 41, GOLD_D)
+    rect(img, 19, 42, 45, 43, STONE_D)
+    rect(img, 16, 44, 48, 56, STONE_D)
+    rect(img, 25, 44, 39, 56, STONE)
+    for x in (16, 48):
+        px(img, x, 44, STONE)                        # 肩头高光
+    # 胸前星徽（白芯暖白正芒金斜芒）
+    px(img, 32, 50, WHITE)
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        px(img, 32 + dx, 50 + dy, STAR_PALE)
+    for dx, dy in ((1, -1), (-1, -1)):
+        px(img, 32 + dx, 50 + dy, GOLD)
+    # 竖剑（右侧：白刃线 + 灰刃身 + 金护手/柄/首）
+    rect(img, 49, 14, 49, 40, GREY)
+    rect(img, 50, 15, 50, 40, WHITE)
+    px(img, 50, 13, WHITE)
+    px(img, 49, 13, WHITE)
+    px(img, 50, 14, GREY)
+    rect(img, 46, 41, 53, 41, GOLD_L)
+    rect(img, 46, 42, 53, 42, GOLD_D)
+    rect(img, 49, 43, 50, 49, GOLD_D)
+    rect(img, 49, 50, 50, 50, GOLD)
+    # 石阶基座（对齐方向 A 的接地语言）
+    rect(img, 14, 57, 49, 57, STONE)
+    rect(img, 12, 58, 51, 58, STONE_D)
+    return img
+
+
+def build_preview(panels):
+    """三方向并排预览页：夜空底 + 石框 + 融合像素字标注（缺失时回退默认字体 ASCII）。"""
+    from PIL import ImageDraw
+    margin, gutter, panel, label_h = 24, 24, 256, 40
+    width = margin * 2 + panel * 3 + gutter * 2
+    height = margin + panel + label_h + margin
+    page = canvas(width, height, BG_DEEP)
+    labels = ["A 星空石门（现行）", "B 蓝晶星坠", "C 星芒剑士"]
+    labels_fallback = ["A gate (current)", "B crystal", "C knight"]
+    font = None
+    try:
+        font_path = ROOT / "art" / "fonts" / "fusion-pixel-12px-monospaced-zh_hans.ttf"
+        font = ImageFont.truetype(str(font_path), 24)
+    except Exception:
+        font = None
+    for i, (name, img) in enumerate(panels.items()):
+        x0 = margin + i * (panel + gutter)
+        rect(page, x0 - 2, margin - 2, x0 + panel + 1, margin + panel + 1, STONE_D)  # 石框
+        page.alpha_composite(img, (x0, margin))
+        strip = Image.new("RGBA", (panel, label_h), (0, 0, 0, 0))
+        text = labels[i] if font is not None else labels_fallback[i]
+        ImageDraw.Draw(strip).text((panel // 2, label_h // 2 - 2), text, font=font,
+                                   fill=WHITE, anchor="mm")
+        page.alpha_composite(strip, (x0, margin + panel + 8))
+    return page
+
+
 # ---------------------------------------------------------------- QA 自检
+def qa_variants(variants, preview, expect_preview_size):
+    """m4-k1 变体 QA：三方向 256 尺寸精确 + 扩展调色板封口 + 预览页尺寸精确。失败退出码 1。"""
+    for name, img in variants.items():
+        if img.size != (256, 256):
+            print(f"[gen_icon] VARIANT QA FAIL: {name} size {img.size} != (256,256)")
+            return False
+        data = img.convert("RGBA").load()
+        stray = set()
+        for y in range(256):
+            for x in range(256):
+                c = data[x, y]
+                if c[3] != 0 and c not in PALETTE_VARIANTS:
+                    stray.add(c)
+        if stray:
+            print(f"[gen_icon] VARIANT QA FAIL: {name} 调色板外色值 x{len(stray)}: {sorted(stray)[:4]}")
+            return False
+    if preview.size != expect_preview_size:
+        print(f"[gen_icon] VARIANT QA FAIL: preview size {preview.size} != {expect_preview_size}")
+        return False
+    print("[gen_icon] VARIANT QA PASS: 三方向 256 尺寸/扩展调色板封口/预览页尺寸 全过")
+    return True
+
+
 def qa(products):
     """五项自检（详见模块 docstring），任何一条失败退出码 1。"""
     expect = {
@@ -278,6 +448,39 @@ def main():
         print(f"[gen_icon] wrote art/generated/icon/{name}  {img.width}x{img.height}")
     if not qa(products):
         return 1
+    # ---- m4-k1 ③ LOGO 方向变体（A 现行复刻 / B 蓝晶星坠 / C 星芒剑士）----
+    gate = bg64.copy()
+    gate.alpha_composite(fg)
+    vb = draw_bg(64).copy()
+    vb.alpha_composite(draw_crystal_fg())
+    vc = draw_bg_knight()
+    vc.alpha_composite(draw_knight_fg())
+    variants = {
+        "logo_variant_a_gate_256.png": upscale(gate, 4),
+        "logo_variant_b_crystal_256.png": upscale(vb, 4),
+        "logo_variant_c_knight_256.png": upscale(vc, 4),
+    }
+    # 变体层确定性: 重建一遍比对（同 canonical 口径）
+    vb2 = draw_bg(64).copy()
+    vb2.alpha_composite(draw_crystal_fg())
+    vc2 = draw_bg_knight()
+    vc2.alpha_composite(draw_knight_fg())
+    deterministic_v = (
+        hashlib.sha256(vb.tobytes()).hexdigest() == hashlib.sha256(vb2.tobytes()).hexdigest()
+        and hashlib.sha256(vc.tobytes()).hexdigest() == hashlib.sha256(vc2.tobytes()).hexdigest()
+    )
+    if not deterministic_v:
+        print("[gen_icon] VARIANT QA FAIL: 两次构建不一致（变体确定性破坏）")
+        return 1
+    preview = build_preview(variants)
+    for name, img in variants.items():
+        img.save(OUT / name)
+        print(f"[gen_icon] wrote art/generated/icon/{name}  {img.width}x{img.height}")
+    preview.save(OUT / "logo_variants_preview.png")
+    print(f"[gen_icon] wrote art/generated/icon/logo_variants_preview.png  {preview.width}x{preview.height}")
+    if not qa_variants(variants, preview, preview.size):
+        return 1
+    print("[gen_icon] LOGO-VARIANTS-OK: 3 directions + preview page, seed=42/7, palette=project DB16-derived")
     print("[gen_icon] DONE: 5 products, seed=42, palette=project DB16-derived, zero third-party assets")
     return 0
 

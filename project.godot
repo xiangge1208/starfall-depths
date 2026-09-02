@@ -14,6 +14,11 @@ config/name="StarfallDepths"
 run/main_scene="res://ui/main_menu.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
+; m4-k1 版本单源：与 export_presets.cfg 三处（Android version/name+code、Windows
+; file/product_version）强一致（tests/unit/test_version_consistency.gd 双向断言）。
+; code 递增规则见 docs/superpowers/reports/m3-export-final.md §1（100 = 1.0.0 基线）。
+config/version="1.0.0"
+config/version_code=100
 
 [autoload]
 
@@ -168,4 +173,7 @@ common/physics_ticks_per_second=60
 
 [rendering]
 
+; m4-k1 ②正式化：Android 导出必需的 ETC2/ASTC 纹理导入（原 export_android.cmd
+; 临时写入段收编入库；Windows 包仍走 s3tc/bptc，不受影响）。
+textures/vram_compression/import_etc2_astc=true
 textures/canvas_textures/default_texture_filter=0

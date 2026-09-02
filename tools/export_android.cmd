@@ -24,14 +24,12 @@ rem      gradle_build_directory.get_base_dir()/.build_version and compares again
 rem      FULL_CONFIG; wrong level or full string fails with "version information
 rem      does not exist / mismatched, please reinstall".
 rem      This script self-heals that file in the prereq stage.
-rem Special mechanism: both machine-level export-time switches use
-rem   "temp-write, export, unconditional restore"; zero drift on the delivered
-rem   branch, git diff self-check after restore:
-rem   a) Godot requires project.godot rendering/textures/vram_compression/
-rem      import_etc2_astc for Android export; project.godot is a no-touch file
-rem      for this card, so toggle it temporarily (G-1 may formalize the setting).
-rem   b) aab needs preset gradle_build/export_format=1 (apk is 0); flip it
-rem      temporarily right before the aab export.
+rem Special mechanism: aab needs preset gradle_build/export_format=1 (apk is 0);
+rem   flip it temporarily right before the aab export, then unconditional restore;
+rem   zero drift on the delivered branch, git diff self-check after restore.
+rem   (M4-K1: rendering/textures/vram_compression/import_etc2_astc is FORMALIZED in
+rem   project.godot [rendering] — the old temp-write/restore toggle is gone; the
+rem   script precondition-checks the key and fails honestly if it ever goes missing.)
 rem Flow: prereq checks (SDK/JDK/keystore.properties) -> inject env vars ->
 rem   export release apk -> flip export_format -> export release aab ->
 rem   unconditional restore of both files -> apksigner/jarsigner verification ->
@@ -105,35 +103,22 @@ if not exist "android\build\.gdignore" (
 rem --- Purge editor-scan pollution from the template before exporting ---
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -Path 'android\build' -Recurse -Filter '*.import' -File -ErrorAction SilentlyContinue | Remove-Item -Force; if(Test-Path 'android\build\src\main\assets'){Remove-Item -Recurse -Force 'android\build\src\main\assets'}; if(Test-Path 'android\build\src\instrumented'){Remove-Item -Recurse -Force 'android\build\src\instrumented'}"
 
-rem --- Backup both delivery files before temp edits (restored unconditionally) ---
-set "BAK_GODOT=user_export\project.godot.xa-bak"
+rem --- Backup delivery preset before temp edit (restored unconditionally) ---
 set "BAK_PRESET=user_export\export_presets.cfg.xa-bak"
-set "TOGGLED_ETC2="
 set "TOGGLED_FMT="
-findstr /C:"import_etc2_astc" project.godot >nul 2>&1
-if errorlevel 1 (
-    copy /Y project.godot "%BAK_GODOT%" >nul || (
-        echo [export_android] FAIL: cannot backup project.godot
-        exit /b 1
-    )
-    set "TOGGLED_ETC2=1"
-)
 findstr /C:"gradle_build/export_format=0" export_presets.cfg >nul 2>&1
 if errorlevel 1 (
     echo [export_android] FAIL: export_presets.cfg has no gradle_build/export_format=0, unsafe to flip
     exit /b 1
 )
 
-rem --- Temp-enable import_etc2_astc (insert one line under [rendering]) ---
-if defined TOGGLED_ETC2 (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='project.godot'; $t=[IO.File]::ReadAllText($p); $i=$t.IndexOf('[rendering]'); if($i -lt 0){exit 1}; $t=$t.Insert($i+11, \"`r`ntextures/vram_compression/import_etc2_astc=true\"); [IO.File]::WriteAllText($p,$t,(New-Object System.Text.UTF8Encoding($false)))"
-    if errorlevel 1 (
-        echo [export_android] FAIL: temp-write import_etc2_astc failed
-        call :do_restore
-        endlocal & exit /b 1
-    )
-    echo [export_android] temp toggle import_etc2_astc=ON
+rem --- Precondition (M4-K1): etc2 key formalized in project.godot — honest FAIL if missing ---
+findstr /C:"import_etc2_astc=true" project.godot >nul 2>&1
+if errorlevel 1 (
+    echo [export_android] FAIL: project.godot lacks rendering/textures/vram_compression/import_etc2_astc=true. Re-add the key; do NOT reintroduce the temp-write toggle.
+    exit /b 1
 )
+echo [export_android] etc2 precondition OK: import_etc2_astc=true in project.godot
 
 rem --- Gradle build env: JDK 21 runs gradle, SDK points at D:\dev\android-sdk ---
 set "JAVA_HOME=%JAVA_GRADLE%"
@@ -212,16 +197,11 @@ endlocal & exit /b 1
 
 :do_restore
 set "DRIFT="
-if defined TOGGLED_ETC2 (
-    copy /Y "%BAK_GODOT%" project.godot >nul
-    fc /b "%BAK_GODOT%" project.godot >nul 2>&1 || set "DRIFT=project.godot"
-)
 if defined TOGGLED_FMT (
     copy /Y "%BAK_PRESET%" export_presets.cfg >nul
     fc /b "%BAK_PRESET%" export_presets.cfg >nul 2>&1 || set "DRIFT=export_presets.cfg"
 )
 if defined DRIFT echo [export_android] WARNING: %DRIFT% drifted vs backup, manual check required!
-if defined TOGGLED_ETC2 del /Q "%BAK_GODOT%" >nul 2>&1
 if defined TOGGLED_FMT del /Q "%BAK_PRESET%" >nul 2>&1
 echo [export_android] temp edits restored, zero-drift verified against backups
 goto :eof
