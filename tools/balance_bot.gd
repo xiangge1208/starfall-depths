@@ -106,6 +106,7 @@ var _event_done := {}
 var _buff_picks: Array[String] = []
 var _wander_sign := 1.0
 var _wander_next_switch := 0
+var _last_move_dir := Vector2.ZERO      # m3-fix2 探针：最近一次注入的移动意图向量
 # 统计采样（跨局累积，行内自带 floor/room_type 维度）
 var _ttk_rows: Array[Dictionary] = []       # {floor, room_type, enemy_id, ttk_s}
 var _ttk_seen := {}                         # enemy instance_id -> first_seen frame
@@ -131,6 +132,26 @@ var _obs_enemy_last := {}             # instance_id -> {pos, frame}（敌移速�
 var _obs_hearts := {}                 # instance_id -> true（本局见过的红心拾取物）
 var _obs_loot_ids := {}               # weapon_id -> true（本局掉落台武器）
 
+# ---- m3-fix2 停滞探针（--probe-stall）：B-2 新发现 11% 停滞残差的定向取证 ----
+## 口径：复用停滞签名（floor|rooms|kills|room|活敌血量和），稳定满 PROBE_TRIGGER_TICKS
+## 且当前房有活敌时进入取证：先落「触发快照」（几何/flow/敌态/bot 瞄准 vs 敌方位 +
+## 前 15s 环形缓冲），再跑 PROBE_WINDOW_TICKS 密集窗（逐拍记录每颗玩家弹对每个活敌的
+## 线段最近逼近距离 + 命中事件流 + 敌 HP 曲线）。窗内签名若恢复变化（伤害/击杀/换房）
+## 判误触发，退出取证回常态（不提前收局）；窗内持续零伤害则定格「已冻结」证据，
+## 提前终止本局（outcome=stalled）省去 180s 空转。取证逐例落盘 JSON。
+var _probe := false
+var _probe_dir := "docs/superpowers/reports/m3-fix2-probe"
+var _probe_attempt_max := 3
+const PROBE_TRIGGER_TICKS := 900      # 签名稳定 15s 触发（保守：排除弩兵 cool 相等合法喘息）
+const PROBE_WINDOW_TICKS := 600       # 密集取证窗 10s（窗内零伤害 + 持续开火 = 冻结实证）
+const PROBE_GRIND_TICKS := 7200       # coarse 稳定 120s 触发（覆盖 miniboss 98s 合法长战）
+const PROBE_RING_CAP := 80            # 触发前环形缓冲（4Hz × 20s）
+const PROBE_SAMPLE_EVERY := 15        # 采样步长（0.25s）
+var _probe_captured := {}             # seed -> true（已取证种子跳过后续尝试）
+var _probe_seen := {}                 # seed -> 已跑尝试数
+var _probe_hits: Array = []           # 命中流（EventBus.enemy_damaged，环形 cap 400）
+var _probe_run := {}                  # 本局探针运行态（ring/sig/dense/逼近聚合）
+
 
 func _ready() -> void:
 	_parse_user_args()
@@ -140,6 +161,7 @@ func _ready() -> void:
 	if not bool(SaveSystem.get_setting("auto_aim", true)):
 		push_warning("BalanceBot: headless 档 auto_aim=false——生产自动瞄准停用，bot 开火退化为当前朝向")
 	EventBus.player_hit_resolved.connect(_on_player_hit_resolved)
+	EventBus.enemy_damaged.connect(_on_probe_enemy_damaged)
 	_run_all()
 
 
@@ -151,6 +173,7 @@ func configure(p_opts: Dictionary) -> void:
 
 func _exit_tree() -> void:
 	EventBus.player_hit_resolved.disconnect(_on_player_hit_resolved)
+	EventBus.enemy_damaged.disconnect(_on_probe_enemy_damaged)
 
 
 # ================================================================ 多局编排
@@ -164,10 +187,22 @@ func _run_all() -> void:
 	else:
 		for i in int(opts["runs"]):
 			seed_list.append(int(opts["seed_base"]) + i)
+	# m3-fix2 探针：每种子自动展开 N 次尝试（敌 AI 相位非确定性 → 单次尝试停滞
+	# 不保证复现，B-2 复跑实证 seed 3221 转正常死亡）；已取证种子跳过后续尝试。
+	if _probe:
+		var expanded: Array[int] = []
+		for s in seed_list:
+			for i in _probe_attempt_max:
+				expanded.append(s)
+		seed_list = expanded
 	var crashes := 0
 	var timeouts := 0
 	var stalls := 0
+	var skipped := 0
 	for seed_value in seed_list:
+		if _probe and _probe_captured.has(seed_value):
+			skipped += 1
+			continue
 		var outcome := await _run_one(seed_value)
 		if outcome == "crash":
 			crashes += 1
@@ -178,9 +213,9 @@ func _run_all() -> void:
 	aggregate = _aggregate(crashes)
 	aggregate["stalls"] = stalls
 	_write_outputs()
-	print("BALANCE-BOT DONE: %d runs, wins=%d milestones=%d deaths=%d timeouts=%d stalls=%d crashes=%d" % [
+	print("BALANCE-BOT DONE: %d runs, wins=%d milestones=%d deaths=%d timeouts=%d stalls=%d crashes=%d probe_skipped=%d" % [
 		results.size(), int(aggregate.get("wins", 0)), int(aggregate.get("milestones", 0)),
-		int(aggregate.get("deaths", 0)), timeouts, stalls, crashes])
+		int(aggregate.get("deaths", 0)), timeouts, stalls, crashes, skipped])
 	finished.emit()
 	if bool(opts["quit_when_done"]) and get_tree() != null:
 		# 门禁口径：崩溃或未走完（超时）即失败；死亡是合法对局结局。
@@ -203,6 +238,7 @@ func _arm_watchdog() -> void:
 func _run_one(seed: int) -> String:
 	_cur_seed = seed
 	_reset_run_state(seed)
+	_probe_run_reset(seed)
 	_arm_watchdog()
 	if String(opts["trial"]) != "":
 		# M3-B1 因子局注入口：生产 start_trial_run 单点（mods+SALT_TRIAL 抽取链）。
@@ -259,6 +295,13 @@ func _run_one(seed: int) -> String:
 			stall_since = Engine.get_physics_frames()
 		elif Engine.get_physics_frames() - stall_since >= BOT_STALL_TICKS:
 			outcome = "stalled"
+			break
+		# m3-fix2 停滞探针：早停取证（15s 签名稳定触发 + 10s 密集窗）；返回
+		# "captured" = 冻结证据已定格并落盘，提前收局。
+		if _probe and _probe_tick(sig) == "captured":
+			outcome = "stalled"
+			print("BALANCE-BOT PROBE CAPTURED seed=%d file=%s/probe-%d-a%d.json" % [
+				seed, _probe_dir, seed, int(_probe_seen.get(seed, 1))])
 			break
 		if Engine.get_physics_frames() % 1800 == 0:
 			var prog_hp := -1
@@ -361,6 +404,301 @@ func _alive_enemy_hp_sig() -> String:
 	for e in _alive_enemies(room):
 		total += int(e.hp)
 	return str(total)
+
+
+# ================================================================ m3-fix2 停滞探针
+
+## 命中流采集：take_hit 实际落地伤害（amount=0 的格挡/免疫也如实入账）。
+func _on_probe_enemy_damaged(amount: int, _is_crit: bool) -> void:
+	if not _probe:
+		return
+	_probe_hits.append({"f": Engine.get_physics_frames(), "a": amount})
+	if _probe_hits.size() > 400:
+		_probe_hits.pop_front()
+
+
+func _probe_run_reset(seed: int) -> void:
+	if not _probe:
+		return
+	_probe_seen[seed] = int(_probe_seen.get(seed, 0)) + 1
+	_probe_run = {
+		"seed": seed, "attempt": int(_probe_seen[seed]),
+		"sig": "", "sig_since": -1, "last_sample": -1,
+		"coarse": "", "coarse_since": -1,
+		"ring": [], "dense_kind": "", "dense_watch": "", "dense_start": -1,
+		"dense_samples": [], "approach": {}, "cross": {}, "false_triggers": 0,
+	}
+
+
+## 每拍入口（主循环签名计算之后调用）。返回 "captured" = 冻结证据已落盘，调用方收局。
+## 双触发器：A「签名冻结」= 完整签名（含活敌血量和）稳定 PROBE_TRIGGER_TICKS；
+## B「无击杀研磨」= coarse 签名（floor|rooms|kills|room，不含血量和）稳定
+## PROBE_GRIND_TICKS——捕捉「血量和振荡（虹吸回血）但永不击杀」的磨死局与
+## 「无活敌但房间永不清」的幽灵锁（两者 A 触发器都不可见）。
+func _probe_tick(sig: String) -> String:
+	if _run_root == null or not is_instance_valid(_run_root):
+		return ""
+	var fs: FloorScene = _run_root.floor_scene
+	if fs == null or not is_instance_valid(fs):
+		return ""
+	var room: FloorScene.FloorRoom = fs.room_node(fs.flow.current_room)
+	var player: Player = _run_root.player
+	if room == null or player == null or not is_instance_valid(player):
+		return ""
+	var frame := Engine.get_physics_frames()
+	var coarse := sig.substr(0, maxi(sig.rfind("|"), 0))
+	var dense_kind: String = _probe_run.get("dense_kind", "")
+	if dense_kind != "":
+		# 密集窗：对应签名恢复变化（伤害/击杀/换房）= 误触发，退回常态不收局。
+		var watch := sig if dense_kind == "sig_frozen" else coarse
+		var watch_ref: String = _probe_run.get("dense_watch", "")
+		if watch != watch_ref:
+			_probe_run["dense_kind"] = ""
+			_probe_run["false_triggers"] = int(_probe_run.get("false_triggers", 0)) + 1
+			_probe_run["sig"] = sig
+			_probe_run["coarse"] = coarse
+			_probe_run["sig_since"] = frame
+			_probe_run["coarse_since"] = frame
+			print("BALANCE-BOT PROBE false-trigger seed=%d a%d t=%.0fs (%s resumed)" % [
+				int(_probe_run["seed"]), int(_probe_run["attempt"]),
+				float(RunState.run_time_frames) / 60.0, dense_kind])
+			return ""
+		_probe_accumulate_approach(room)
+		_probe_maybe_sample(room, player, frame, true)
+		if frame - int(_probe_run.get("dense_start")) >= PROBE_WINDOW_TICKS:
+			_probe_run["trigger"] = dense_kind
+			_probe_dump(room, player, frame)
+			_probe_captured[int(_probe_run["seed"])] = true
+			return "captured"
+		return ""
+	_probe_maybe_sample(room, player, frame, false)
+	if sig != String(_probe_run.get("sig")):
+		_probe_run["sig"] = sig
+		_probe_run["sig_since"] = frame
+	if coarse != String(_probe_run.get("coarse")):
+		_probe_run["coarse"] = coarse
+		_probe_run["coarse_since"] = frame
+	var frozen_ticks := frame - int(_probe_run.get("sig_since"))
+	var grind_ticks := frame - int(_probe_run.get("coarse_since"))
+	if frozen_ticks < PROBE_TRIGGER_TICKS and grind_ticks < PROBE_GRIND_TICKS:
+		return ""
+	_probe_run["dense_kind"] = "sig_frozen" if frozen_ticks >= PROBE_TRIGGER_TICKS \
+		else "no_kill_grind"
+	_probe_run["dense_watch"] = sig if frozen_ticks >= PROBE_TRIGGER_TICKS else coarse
+	_probe_run["dense_start"] = frame
+	_probe_run["dense_samples"] = []
+	_probe_run["approach"] = {}
+	_probe_run["cross"] = {}
+	return ""
+
+
+## 4Hz 采样（触发前进环形缓冲；密集窗进 dense_samples）。
+func _probe_maybe_sample(room: FloorScene.FloorRoom, player: Player, frame: int,
+		dense: bool) -> void:
+	var last := int(_probe_run.get("last_sample", -1))
+	if last >= 0 and frame - last < PROBE_SAMPLE_EVERY:
+		return
+	_probe_run["last_sample"] = frame
+	var driver: Node = player.get_node_or_null("Driver")
+	var aim: Vector2 = driver.get("current_aim") if driver != null else Vector2.ZERO
+	var locked: bool = bool(driver.get("_auto_target_locked")) if driver != null else false
+	var pbullets := 0
+	var nenemy_b := 0
+	var combat: CombatSystem = room.combat
+	if combat != null and combat.pool != null:
+		for p in combat.pool.active:
+			if not is_instance_valid(p):
+				continue
+			if p.faction == Projectile.Faction.PLAYER:
+				pbullets += 1
+			else:
+				nenemy_b += 1
+	var enemies: Array = []
+	for e in _alive_enemies(room):
+		var to := e.global_position - player.global_position
+		var ad := -1.0
+		if to.length_squared() > 0.01 and aim != Vector2.ZERO:
+			ad = snappedf(rad_to_deg(absf(wrapf(to.angle() - aim.angle(), -PI, PI))), 0.1)
+		enemies.append({
+			"id": String(e.row.get("id", "?")), "arch": String(e.row.get("archetype", "")),
+			"st": int(e.state), "ph": str(e.get("_phase")), "hp": int(e.hp),
+			"bp": _v2p(e.brain_pos), "gp": _v2p(e.global_position),
+			"d": _f(to.length()), "aimdeg": ad,
+		})
+	var sample := {
+		"t": snappedf(float(RunState.run_time_frames) / 60.0, 0.1),
+		"pp": _v2p(player.global_position), "hp": int(player.hp), "en": int(player.energy),
+		"aim": _v2p(aim), "lock": locked, "pb": pbullets, "eb": nenemy_b,
+		"dir": _v2p(_last_move_dir), "vel": _v2p(player.velocity),
+		"alive": enemies,
+	}
+	var ring: Array = _probe_run.get("ring")
+	ring.append(sample)
+	if ring.size() > PROBE_RING_CAP:
+		ring.pop_front()
+	if dense:
+		(_probe_run.get("dense_samples") as Array).append(sample)
+
+
+## 密集窗逐拍聚合：每颗玩家弹「本拍位→下拍位」前瞻线段对活敌 global_position 的
+## 最近距离 —— 与 CombatSystem 下一子步的命中判定完全同口径（弹先 tick 前进，
+## 敌体用上一拍位置），即「引擎实际使用的命中距离」逐拍最小值：
+## min ≤ 弹半径+敌半径 而无 enemy_damaged 事件 ⇒ 产品侧命中链缺陷；
+## min > 弹+敌半径 ⇒ 弹确实未命中（瞄准/走位问题，bot 侧）。
+func _probe_accumulate_approach(room: FloorScene.FloorRoom) -> void:
+	var combat: CombatSystem = room.combat
+	if combat == null or combat.pool == null:
+		return
+	var alive := _alive_enemies(room)
+	if alive.is_empty():
+		return
+	var approach: Dictionary = _probe_run.get("approach")
+	var cross: Dictionary = _probe_run.get("cross")
+	for p in combat.pool.active:
+		if not is_instance_valid(p) or p.faction != Projectile.Faction.PLAYER:
+			continue
+		var nxt: Vector2 = p.position + p.vel / 60.0
+		for e in alive:
+			var eid := e.get_instance_id()
+			var d := _seg_point_distance(p.position, nxt, e.global_position)
+			if d < float(approach.get(eid, INF)):
+				approach[eid] = d
+			if d <= p.radius + e.combat_radius():
+				cross[eid] = int(cross.get(eid, 0)) + 1
+
+
+## 取证落盘：几何/flow/敌态/bot 瞄准快照 + 触发前环形缓冲 + 密集窗样本 + 命中流。
+func _probe_dump(room: FloorScene.FloorRoom, player: Player, frame: int) -> void:
+	var fs: FloorScene = _run_root.floor_scene
+	var flow := fs.flow
+	var driver: Node = player.get_node_or_null("Driver")
+	var rig := player.get_node_or_null("WeaponRig") as WeaponRig
+	var solids: Array = []
+	for c in room.get_children():
+		if c is StaticBody2D:
+			for cc in (c as StaticBody2D).get_children():
+				if cc is CollisionShape2D and (cc as CollisionShape2D).shape is RectangleShape2D:
+					solids.append({"c": _v2p(c.global_position),
+						"s": _v2p(((cc as CollisionShape2D).shape as RectangleShape2D).size)})
+					break
+	var rooms_flow: Array = []
+	for id in fs._rooms:
+		var r: FloorScene.FloorRoom = fs._rooms[id]
+		var alive_cnt := 0
+		var dead_cnt := 0
+		for e in r.enemies:
+			if is_instance_valid(e) and e.state != EnemyBase.State.DEAD:
+				alive_cnt += 1
+			else:
+				dead_cnt += 1
+		rooms_flow.append({"id": int(id), "type": fs.flow.room_type(int(id)),
+			"cleared": fs.flow.is_cleared(int(id)), "adj": fs.flow.adjacent(int(id)),
+			"flow_current": int(id) == flow.current_room,
+			"locked": r.room_flow.locked, "wave_cleared": r.room_flow.cleared,
+			"wave_index": r.room_flow.wave_index(), "spawned_wave": r.spawned_wave,
+			"enemies_alive": alive_cnt, "enemies_dead_flag": dead_cnt})
+	var pickups: Array = []
+	for c in room.get_children():
+		if c is Pickup and is_instance_valid(c):
+			pickups.append({"kind": String((c as Pickup).kind),
+				"pos": _v2p((c as Node2D).global_position)})
+	var enemies: Array = []
+	var approach: Dictionary = _probe_run.get("approach")
+	var cross: Dictionary = _probe_run.get("cross")
+	for e in _alive_enemies(room):
+		enemies.append({
+			"iid": e.get_instance_id(), "id": String(e.row.get("id", "?")),
+			"arch": String(e.row.get("archetype", "")), "st": int(e.state),
+			"ph": str(e.get("_phase")), "hp": int(e.hp), "hpmax": int(e.hp_max),
+			"bp": _v2p(e.brain_pos), "gp": _v2p(e.global_position),
+			"counts_for_wave": e.counts_for_wave,
+			"bounds": _rect_p(e.combat_bounds),
+			"approach_min": _f(float(approach.get(e.get_instance_id(), -1.0))),
+			"cross_hits": int(cross.get(e.get_instance_id(), 0)),
+		})
+	var win_start := int(_probe_run.get("dense_start", frame)) - PROBE_WINDOW_TICKS
+	var hits_window: Array = []
+	for h in _probe_hits:
+		if int(h["f"]) >= win_start:
+			hits_window.append(h)
+	var payload := {
+		"kind": "stall_probe",
+		"seed": int(_probe_run["seed"]), "attempt": int(_probe_run["attempt"]),
+		"trigger": String(_probe_run.get("trigger", "")),
+		"frame": frame, "t_s": snappedf(float(RunState.run_time_frames) / 60.0, 0.1),
+		"trigger_stable_ticks": PROBE_TRIGGER_TICKS, "window_ticks": PROBE_WINDOW_TICKS,
+		"false_triggers": int(_probe_run.get("false_triggers", 0)),
+		"run": {"floor": RunState.floor_idx, "rooms": RunState.rooms_cleared,
+			"kills": RunState.kills, "coins": RunState.coins, "gems": RunState.gems},
+		"player": {"pos": _v2p(player.global_position), "hp": int(player.hp),
+			"hp_max": int(player.hp_max), "energy": int(player.energy),
+			"aim": _v2p(driver.get("current_aim") if driver != null else Vector2.ZERO),
+			"auto_locked": bool(driver.get("_auto_target_locked")) if driver != null else false,
+			"weapon": String(rig.current().get("id", "")) if rig != null else "",
+			"fire_held": Input.is_action_pressed("fire"),
+			"physical_room": _player_room_id(fs),
+			"dir": _v2p(_last_move_dir), "vel": _v2p(player.velocity)},
+		"bot_plan": {"idx": _plan_idx, "plan": _plan,
+			"flow_current": flow.current_room},
+		"room": {"id": room.room_id, "type": room.type, "template": room.template_id,
+			"outer": _rect_p(room.outer), "interior": _rect_p(Rect2(
+				room.outer.position + Vector2(16, 16), room.outer.size - Vector2(32, 32))),
+			"locked": room.room_flow.locked, "cleared": room.room_flow.cleared,
+			"wave_index": room.room_flow.wave_index(), "spawned_wave": room.spawned_wave,
+			"waves": room.waves_cfg, "challenge": room.is_challenge,
+			"calamity": room.calamity_id, "solids": solids,
+			"spawn_points": room.spawn_points.map(_v2p)},
+		"floor": {"current": flow.current_room, "rooms": rooms_flow},
+		"pickups": pickups,
+		"enemies": enemies,
+		"hits_in_window": hits_window,
+		"ring_before_trigger": _probe_run.get("ring"),
+		"dense_samples": _probe_run.get("dense_samples"),
+	}
+	DirAccess.open("res://").make_dir_recursive(_probe_dir)
+	var path := "%s/probe-%d-a%d.json" % [_probe_dir, int(_probe_run["seed"]),
+		int(_probe_run["attempt"])]
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		push_error("BalanceBot probe: cannot write %s" % path)
+		return
+	f.store_string(JSON.stringify(payload, "\t"))
+	f.close()
+	var summary := "BALANCE-BOT PROBE-DUMP seed=%d a%d t=%.0fs trigger=%s room=%d(%s) alive=%d" % [
+		int(_probe_run["seed"]), int(_probe_run["attempt"]),
+		float(RunState.run_time_frames) / 60.0, String(_probe_run.get("trigger", "")),
+		room.room_id, room.type, enemies.size()]
+	for e: Dictionary in enemies:
+		summary += " | %s hp=%s gp=%s appr=%s cross=%s" % [e["id"], e["hp"],
+			str(e["gp"]), e["approach_min"], e["cross_hits"]]
+	summary += " | win_hits=%d" % hits_window.size()
+	print(summary)
+
+
+func _v2p(v: Vector2) -> Array:
+	if not v.is_finite():
+		return ["nan"]
+	return [snappedf(v.x, 0.5), snappedf(v.y, 0.5)]
+
+
+func _f(v: float) -> float:
+	if not is_finite(v):
+		return -1.0
+	return snappedf(v, 0.1)
+
+
+func _rect_p(r: Rect2) -> Array:
+	return _v2p(r.position) + _v2p(r.size)
+
+
+## 点到线段最近距离（弹道逐拍线段近似）。
+func _seg_point_distance(a: Vector2, b: Vector2, p: Vector2) -> float:
+	var ab := b - a
+	var len2 := ab.length_squared()
+	if len2 < 0.0001:
+		return a.distance_to(p)
+	var t := clampf((p - a).dot(ab) / len2, 0.0, 1.0)
+	return (a + ab * t).distance_to(p)
 
 
 func _reset_run_state(p_seed: int) -> void:
@@ -487,7 +825,8 @@ func _drive_floor(fs: FloorScene, player: Player) -> void:
 		# 徒步（头注 5）：flow 已进新房而玩家物理位滞留旧房时，锁房战斗将在「玩家
 		# 不在场」状态下进行（弹不可达/被封门隔绝 → 永久停滞）；生产 _detect_room_enter
 		# 还会把 flow 弹回玩家旧房（1↔2 每拍振荡，探针实证）。落位缝 push_player_back
-		# （生产 _push_back 同一实现）把玩家放进 flow 当前房中心，状态收敛。
+		# （生产 _push_back 同一实现）把玩家放进 flow 当前房的合法落位（m3-fix2 起
+		# 房心被柱/箱占用时自动弹到最近自由点，防卡缝），状态收敛。
 		var player_room := _player_room_id(fs)
 		if player_room >= 0 and player_room != fs.flow.current_room:
 			fs.push_player_back()
@@ -731,6 +1070,7 @@ func _alive_enemies(room: FloorScene.FloorRoom) -> Array[EnemyBase]:
 
 
 func _apply_move_input(dir: Vector2) -> void:
+	_last_move_dir = dir
 	# 8 向量化（规避 action deadzone 吞斜向小分量）；get_vector 消费端归一化斜向。
 	var dx := 0.0
 	var dy := 0.0
@@ -1469,6 +1809,8 @@ func _parse_user_args() -> void:
 					opts["quit_when_done"] = false
 				"debug":
 					_debug = true
+				"probe-stall":
+					_probe = true
 			continue
 		if kv.size() != 2:
 			continue
@@ -1493,3 +1835,7 @@ func _parse_user_args() -> void:
 				opts["quit_when_done"] = false
 			"debug":
 				_debug = true
+			"probe-dir":
+				_probe_dir = kv[1]
+			"probe-attempts":
+				_probe_attempt_max = int(kv[1])
