@@ -44,6 +44,11 @@ func equip(weapon_id: String) -> void:
 			target = i
 			break
 	slots[target] = w
+	# m4-c3 codex_seen 写入方（获取点收口）：equip 是全部武器获取路径的共同 choke——
+	# 默认池首取（floor_scene/inter_floor/training 初始枪 + HeroApplier）、掉落拾取
+	# （loot station）、商店购买（shop._buy_weapon）、熔铸产物（forge 装备）均经本口；
+	# 图鉴任务解锁侧在 CodexSystem.check_unlocks 内直写。幂等（已见过不重写盘）。
+	CodexSystem.mark_weapon_seen(weapon_id)
 	_sync_run_state()
 
 func current() -> Dictionary:

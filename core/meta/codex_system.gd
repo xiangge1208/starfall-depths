@@ -22,6 +22,9 @@ extends Node
 ## ★forge_only 4 把只进图鉴不回池（熔铸产出路径保留）。
 
 signal weapon_unlocked(id: String)
+## m4-c3 codex_seen 写入方播报（AchievementSystem 订阅 → collector/grand_collector
+## state_threshold 轮询点）：首次见过某武器时发（幂等，重复见不重发）。
+signal weapon_seen(weapon_id: String)
 
 const TASKS_PATH := "res://data/unlock_tasks.json"
 ## 条件类型白名单（J.2；与 test_unlock_data.TYPE_WHITELIST 一致，未知类型 fail-closed 计 0）
@@ -198,6 +201,7 @@ func check_unlocks() -> Array[String]:
 		if int(p["cur"]) < int(p["goal"]):
 			continue
 		save_system.unlock_weapon(weapon)
+		mark_weapon_seen(weapon)   # m4-c3：任务解锁侧同入见集（写入集=获取路径 ∪ 任务解锁）
 		_grant_if_poolable(weapon)
 		newly.append(weapon)
 		weapon_unlocked.emit(weapon)
@@ -213,6 +217,21 @@ func _grant_if_poolable(weapon: String) -> void:
 
 
 # ---- 计数 API（发射点：EventBus 订阅 / shop.gd 购买成功 / T25 熔铸 / T32-T33 蓝晶） ----
+
+## m4-c3 codex_seen 写入方（K.3/K.5 藏品家/大收藏家权威源）：写入集=默认池首取 ∪
+## 掉落/商店/熔铸（四路共同经 WeaponRig.equip 调入）∪ 任务解锁（check_unlocks 直写）。
+## 幂等：已见过不重写盘不重发信号。空 id/未知武器防御性忽略（equip 已做 GameDB 校验，
+## 直调方安全网）。save 缺席（直构未注入）时 no-op。首次见发 weapon_seen + 遥测
+## codex_seen 行（低频：每武器每存档至多一行）。
+func mark_weapon_seen(weapon_id: String) -> void:
+	if weapon_id.is_empty() or save_system == null \
+			or not save_system.has_method("record_codex_seen"):
+		return
+	if not save_system.record_codex_seen(weapon_id):
+		return                          # 已在见集：幂等去重
+	Telemetry.log_row(["codex_seen", Engine.get_physics_frames(), weapon_id])
+	weapon_seen.emit(weapon_id)
+
 
 func count_kill(_enemy_id: String) -> void:
 	counters["kills_total"] = int(counters.get("kills_total", 0)) + 1

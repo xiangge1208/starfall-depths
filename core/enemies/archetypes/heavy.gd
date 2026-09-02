@@ -51,7 +51,7 @@ func _engage(frame: int) -> void:
 		"idle":
 			_phase = "windup"
 			_phase_left = _windup_ticks(30)
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -63,7 +63,7 @@ func _engage(frame: int) -> void:
 			if _phase_left <= 0:
 				_phase = "windup"
 				_phase_left = _windup_ticks(30)
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 
 
 func _on_engage_start(frame: int) -> void:
@@ -84,7 +84,7 @@ func _tick_shell(frame: int) -> void:
 	if frame >= _shell_walk_until:
 		_shell_until = frame + int(row.get("shell_up_ticks", 0))
 		_shell_walk_until = _shell_until + int(row.get("shell_walk_ticks", 0))
-		Fx.on_enemy_hit(self, {"telegraph": true})   # 缩壳起步闪提示（免疫窗可读性）
+		telegraph_fx()   # 缩壳起步闪提示（免疫窗可读性）
 		Telemetry.log_row(["enemy_shell_up", frame, int(row["shell_up_ticks"])],
 			String(row.get("id", "")))
 
@@ -97,7 +97,7 @@ func _tick_pull(frame: int) -> void:
 		"idle":
 			_pull_phase = "windup"
 			_pull_left = _signature_windup("pull_windup_ticks", 30)
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_pull_left -= 1
 			if _pull_left <= 0:
@@ -110,7 +110,7 @@ func _tick_pull(frame: int) -> void:
 			if _pull_left <= 0:
 				_pull_phase = "windup"
 				_pull_left = _windup_ticks(int(row.get("pull_windup_ticks", 30)))
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 
 
 ## 拉拽执行：range 内玩家向自身位移 pull_px（目标点钳房间内域；apply_pull 尊重无敌帧）。
@@ -150,7 +150,7 @@ func _tick_claw(frame: int) -> void:
 			_claw_phase = "windup"
 			_claw_left = _signature_windup("claw_windup_ticks", 30)
 			_claw_facing = _facing
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_claw_left -= 1
 			if _claw_left <= 0:
@@ -164,7 +164,7 @@ func _tick_claw(frame: int) -> void:
 				_claw_phase = "windup"
 				_claw_left = _signature_windup("claw_windup_ticks", 30)
 				_claw_facing = _facing
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 
 
 ## 横扫结算：windup 起始锁定的扇区朝向 ±arc/2、range+6px（玩家名义半径）内玩家吃

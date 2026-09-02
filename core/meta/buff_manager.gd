@@ -4,10 +4,6 @@ extends RefCounted
 ## 并把已取效果聚合落地到 Player / WeaponRig 的公开字段与 buff_* meta。
 ## 数据源：GameDB.buffs（buffs.json，附录 C 全表 36 条 = 白15 + 绿11 + 蓝10）。
 ## m2-t12 新键无既有公开字段的，经 set_meta("buff_<key>") 落地（绝对值幂等重写）。
-## 【评审 Major 修复】新键当前无任何运行时消费方——消费方待接线 → T35
-## （编排者已立卡：meta 生效接线，含 player/pickup/shop_logic/drink_machine/
-## weapon_rig/fx 的 get_meta 读取）。原「M1 既有消费方」注记失实，已全部改真。
-
 const RARITY_ORDER: Array[String] = ["common", "uncommon", "rare"]
 const RARITY_WEIGHTS := {"common": 55, "uncommon": 30, "rare": 15}
 # 唯一增益（附录 C 标注「唯一」）：pick 后永久移出可抽池
@@ -41,7 +37,12 @@ const FLAG_KEYS: Array[String] = [
 	"anti_fire", "anti_ice", "anti_poison", "phoenix_flag",
 	"element_vision", "resonance_vision",
 ]
-# 落地到 player meta 的键（身体/防御/资源/功能侧）——消费方待接线 → T35
+# 落地到 player meta 的键（身体/防御/资源/功能侧）——消费端 m4-c3 起全量接线：
+# anti_fire→HazardMagma/magma_tyrant；anti_ice/anti_poison→player.take_hit；
+# hurt_iframe_bonus/bullet_dmg_taken/thorns/roll_distance/phoenix/kill_energy/
+# passive_energy→player；wealth/pickup_radius/haggle→pickup/shop_logic；
+# drink_effect→drink_machine；heart_sense→room_combat 掉落 roll；
+# element_vision/telegraph_bonus_ticks/resonance_vision→enemy_base 视界展示层。
 const PLAYER_META_KEYS: Array[String] = [
 	"anti_fire", "anti_ice", "anti_poison",
 	"hurt_iframe_bonus_ticks", "bullet_dmg_taken_pct", "thorns_contact_dmg",
@@ -52,7 +53,9 @@ const PLAYER_META_KEYS: Array[String] = [
 	"haggle_pct", "element_vision", "telegraph_bonus_ticks", "resonance_vision",
 ]
 # 落地到 rig meta 的键（输出放大侧；M1 WeaponRig 已是输出聚合点 rate_mult/crit_detonate_pct）
-# ——消费方待接线 → T35（CombatSystem 命中/共鸣结算路径 get_meta 读取）
+# ——消费端 m4-c3 起接线：dmg_vs_statused_pct/vengeance_pct→CombatSystem 全局乘区；
+# resonance_radius_pct/resonance_duration_ticks→CombatSystem 燎原毒火云（Resonance 读数）；
+# vengeance_ticks→Player 受击开窗。
 const RIG_META_KEYS: Array[String] = [
 	"dmg_vs_statused_pct", "resonance_radius_pct", "resonance_duration_ticks",
 	"vengeance_pct", "vengeance_ticks",
@@ -153,7 +156,7 @@ func aggregate() -> Dictionary:
 ## 覆盖 hp_max / shield_max / energy_max / move_speed；其余键经 aggregate() 暴露，
 ## 由后续任务接线（crit/状态/翻滚/盾延时暂无公开可写字段）。
 ## m2-t12：新增键以绝对值写入 buff_* meta（幂等重写，不叠加）。
-## 【评审改真】meta 消费方当前不存在——待接线 → T35（player 侧 get_meta 读取）。
+## m4-c3：player meta 消费端全量接线（各键读点见 PLAYER_META_KEYS 注）。
 func apply_to_player(p: Player) -> void:
 	if _p_base.is_empty():
 		_p_base = {"hp_max": p.hp_max, "shield_max": p.shield_max,
@@ -183,7 +186,8 @@ func apply_to_player(p: Player) -> void:
 ## 写 5 个共享字段：rate_mult / bullet_speed_mult / enchant_element /
 ## bonus_projectiles / crit_detonate_pct（字段为本任务在 weapon_rig.gd 声明）。
 ## m2-t12：输出放大侧新键（猎杀者/共鸣增幅/复仇者）以绝对值写入 rig buff_* meta。
-## 【评审改真】消费方当前不存在——待接线 → T35（CombatSystem/共鸣结算 get_meta 读取）。
+## m4-c3：rig meta 消费端接线（CombatSystem hunter/vengeance 乘区 + resonance_amp
+## 燎原毒火云读数；avenger 开窗读点在 Player.take_hit_ctx）。
 func apply_to_rig(rig: WeaponRig) -> void:
 	if _rig_base.is_empty():
 		_rig_base = {"enchant_element": rig.enchant_element,

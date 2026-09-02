@@ -137,7 +137,7 @@ func _start_move(m: String, frame: int) -> void:
 	_move_start = frame
 	_blink_rings_fired = 0
 	_shards_landed = false
-	Fx.on_enemy_hit(self, {"telegraph": true})   # 前摇进入拍红闪预警（同 shooter/charger/vine）
+	telegraph_fx()   # 前摇进入拍红闪预警（同 shooter/charger/vine）
 	match m:
 		"ray":
 			_ray_dir = _locked_dir()         # 方向前摇起始拍锁定

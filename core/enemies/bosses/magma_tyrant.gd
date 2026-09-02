@@ -180,7 +180,7 @@ func _start_move(m: String, frame: int) -> void:
 	_move_start = frame
 	_wave_hit_done = false
 	_rain_waves_scheduled = 0
-	Fx.on_enemy_hit(self, {"telegraph": true})   # 前摇进入拍红闪预警（同 shooter/charger/vine）
+	telegraph_fx()   # 前摇进入拍红闪预警（同 shooter/charger/vine）
 	match m:
 		"erupt":
 			_erupt_centers = _generate_erupt_centers()

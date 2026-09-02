@@ -75,6 +75,9 @@ var combat: CombatSystem = null:
 			combat.hero_passive_id = passive_id
 var rampage_active_until := -1     # 狂潮(升级)减伤窗：frame < 此值时受伤 ×0.7（技能写入）
 var tide_guard_until := -1         # 生命潮汐(升级)减伤窗：frame < 此值时受伤 ×0.8（技能每拍续写；m2-t11）
+## m4-c3 复仇者（avenger）复仇窗终帧：受击落地时按 rig meta buff_vengeance_pct/ticks
+## 开窗（take_hit_ctx 写入； CombatSystem 命中结算读窗 ×(1+pct)，GDD §7.1 全局乘区）。
+var vengeance_until := -1
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
 var passive_id := ""               # m4-c2：英雄被动 id（HeroApplier 注入；echo/blessing/spare_parts/shadow_reap 消费门控）
 var blessing_stacks := 0           # m4-c2 祝福叠层（run_root 层入口写入；run 内持续，新局随玩家实例重建归零）
@@ -220,6 +223,20 @@ func effective_roll_cd_ticks() -> int:
 	return maxi(0, int(round(float(ROLL_CD_TICKS) * (1.0 + roll_cd_pct))) \
 		- roll_cd_reduction_ticks)
 
+## m4-c3 复仇者（avenger，GDD 附录 C「受击后 3s 内伤害 +25%」）：受击落地即按 rig
+## buff_* meta 开复仇窗（pct ≤ 0 不开窗不读 ticks——无增益零开销零漂移；窗按最新
+## 受击顺延，同 CombatSystem 命中结算读点 frame < vengeance_until）。节流天然由受击
+## 无敌帧（0.8s）承担，非每帧路径。遥测 vengeance_trigger（Telemetry 既有清单无撞名）。
+func _open_vengeance_window(frame: int) -> void:
+	var rig := weapon_rig
+	if rig == null:
+		return
+	var pct := float(rig.get_meta("buff_vengeance_pct", 0.0))
+	if pct <= 0.0:
+		return
+	vengeance_until = frame + maxi(1, int(rig.get_meta("buff_vengeance_ticks", 0)))
+	Telemetry.log_row(["vengeance_trigger", frame, pct])
+
 ## m4-c2 玩家伤害出口聚合点：远程（weapon_rig._fire_slot → talent_scaled_damage）与
 ## 近战挥击（melee.gd）统一经此乘区。乘区 = (1 + 天赋 talent_dmg_pct) × (1 + 祝福
 ## blessing_stacks×5%)，round 取整沿袭 m2-t35 天赋先例；GDD §7.1 最终「向下取整、最小 1」
@@ -331,6 +348,13 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	var dmg := maxi(0, int(ctx.get("amount", 0)))
 	if dmg == 0:
 		return
+	# m4-c3 抗毒（anti_poison，0/1 flag）：POISON 元素归因来伤免疫——玩家侧无独立
+	# 「中毒」状态载体，POISON 归因来伤是唯一中毒向量（藤蔓巨像毒雨/星陨先知毒弹）。
+	# 免疫=完整 no-op（不吃无敌帧不进护盾结算，同 dmg==0 口径；anti_ice 先例仅免减速，
+	# 本键 desc「免疫中毒」无部分减免语义）。无增益（meta 缺省 0）逐字节零漂移。
+	if int(ctx.get("element", Elements.Id.NONE)) == Elements.Id.POISON \
+			and int(get_meta("buff_anti_poison", 0)) == 1:
+		return
 	if is_invincible_at(frame):
 		# m2-t33 成就补线（K.3 走位大师窗口源）：翻滚无敌帧内躲过「弹幕」计数
 		# （仅 source_type "projectile"；接触/状态伤害与受击无敌帧不属「躲弹幕」口径）。
@@ -353,6 +377,7 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 		incoming_slow_until = maxi(incoming_slow_until, frame + slow_ticks)
 	_iframe_until = frame + effective_hurt_iframe_ticks()
 	_last_damaged_frame = frame
+	_open_vengeance_window(frame)   # m4-c3：复仇者受击开窗（结算收尾前，先于减伤/护盾）
 	if frame < rampage_active_until:
 		dmg = maxi(1, int(floor(float(dmg) * RAMPAGE_DR)))   # 狂潮(升级)：-30%
 	if frame < tide_guard_until:

@@ -31,7 +31,7 @@ func _engage(frame: int) -> void:
 func _begin_windup() -> void:
 	_phase = "windup"
 	_phase_left = _windup_ticks(DEFAULT_WINDUP_TICKS)
-	Fx.on_enemy_hit(self, {"telegraph": true})
+	telegraph_fx()
 
 
 func _fire_spore_fan(_frame: int) -> void:

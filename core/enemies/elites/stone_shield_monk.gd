@@ -31,6 +31,6 @@ func take_hit(ctx: Dictionary) -> void:
 		# 正面近战 → 破势：自晕输出窗 + 格挡失效窗；本击不落血。
 		_guard_down_until = frame + GUARD_DOWN_TICKS
 		stun_until = maxi(stun_until, frame + int(row.get("guard_break_stun_ticks", DEFAULT_BREAK_STUN)))
-		Fx.on_enemy_hit(self, {"telegraph": true})
+		telegraph_fx()
 		return
 	super(ctx)

@@ -347,6 +347,10 @@ func _on_cleared(frame: int) -> void:
 	EventBus.room_cleared.emit(room_id)
 	Telemetry.log_row(["room_clear", frame, frame - entry_frame])
 
+# ---- m4-c3 红心感应（heart_sense，掉落侧奖励区） ----
+const SALT_HEART_SENSE := "heart_sense"   # 局内掷签独立盐（RunState.stream 任意盐串先例，同 player.SALT_KILL_ENERGY）
+var _heart_rng: RandomNumberGenerator = null   # 惰性缓存盐流（fresh-per-call 会退化成恒同掷签）
+
 func _spawn_rewards() -> void:
 	for i in int(flow.rewards.get("coins", 0)):
 		_spawn_pickup("coin", ROOM_CENTER + _scatter(i))
@@ -354,6 +358,25 @@ func _spawn_rewards() -> void:
 		_spawn_pickup("energy", ROOM_CENTER + _scatter(37 + i))
 	if int(flow.rewards.get("hearts", 0)) > 0:
 		_spawn_pickup("heart", ROOM_CENTER)
+	_heart_sense_bonus()
+
+## 红心感应（buff_heart_sense_pct，player meta）：房奖励红心掉率 roll——pct > 0 时
+## 每次清房奖励以 pct 概率追加 1 心（基线 1 心 → 期望 1+pct，desc「红心掉率 +50%」
+## 即期望 +50%）。pct ≤ 0 不掷签不建流（无增益零漂移：m0_loop_smoke 35 pickups
+## 断言不回归）；追加落点沿 _scatter 黄金角习语（确定性）。仅玩家身体带该 meta
+## （BuffManager PLAYER_META_KEYS 落点）；掷签走独立盐流（kill_energy 先例）。
+func _heart_sense_bonus() -> void:
+	var pct := 0.0
+	if player != null and player.has_meta("buff_heart_sense_pct"):
+		pct = float(player.get_meta("buff_heart_sense_pct"))
+	if pct <= 0.0:
+		return
+	if _heart_rng == null:
+		_heart_rng = RunState.stream(SALT_HEART_SENSE)
+	var won := _heart_rng.randf() < clampf(pct, 0.0, 1.0)
+	Telemetry.log_row(["heart_sense_roll", Engine.get_physics_frames(), 1 if won else 0])
+	if won:
+		_spawn_pickup("heart", ROOM_CENTER + _scatter(53))
 
 ## 确定性散布（黄金角），不引入随机。
 func _scatter(i: int) -> Vector2:

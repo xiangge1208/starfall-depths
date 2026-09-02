@@ -20,7 +20,7 @@ func _engage(_frame: int) -> void:
 			if not _answered and _player_fired_recently():
 				_phase = "windup"
 				_phase_left = _windup_ticks(30)
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:

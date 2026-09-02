@@ -17,3 +17,15 @@ static func compatible_partner(element: int, preferred: int = Elements.Id.NONE) 
 		if resolve(element, candidate) != R.NONE:
 			return candidate
 	return Elements.Id.NONE
+
+
+## m4-c3 resonance_amp 消费端读数（buff_resonance_radius_pct / resonance_duration_ticks，
+## WeaponRig buff_* meta 绝对值，CombatSystem 共鸣结算路径读取）：共鸣 AoE 半径按
+## (1+pct) 缩放、持续加算 ticks（行值 60 = +1s）。负值/零 clamp 恒等回落基线
+## （无增益/非法值零漂移）。static 纯函数直测。
+static func radius_px(base_px: float, radius_pct: float) -> float:
+	return base_px * (1.0 + maxf(radius_pct, 0.0))
+
+
+static func duration_ticks(base_ticks: int, bonus_ticks: int) -> int:
+	return base_ticks + maxi(bonus_ticks, 0)

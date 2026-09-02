@@ -123,7 +123,7 @@ func _start_move(m: String, frame: int) -> void:
 	_move_start = frame
 	_fan_waves_fired = 0
 	_dive_hit_done = false
-	Fx.on_enemy_hit(self, {"telegraph": true})   # 前摇进入拍红闪预警（同 shooter/charger/vine）
+	telegraph_fx()   # 前摇进入拍红闪预警（同 shooter/charger/vine）
 	match m:
 		"fan":
 			_fan_facing = _aim_at_player()   # 朝向前摇起始拍锁定

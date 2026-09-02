@@ -48,7 +48,7 @@ func _engage(frame: int) -> void:
 		"idle":
 			_phase = "windup"
 			_phase_left = _windup_ticks(30)
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -60,7 +60,7 @@ func _engage(frame: int) -> void:
 			if _phase_left <= 0:
 				_phase = "windup"
 				_phase_left = _windup_ticks(30)
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 
 
 func _fire_volley(frame: int) -> void:
