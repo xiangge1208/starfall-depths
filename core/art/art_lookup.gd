@@ -88,7 +88,9 @@ const GUEST_FALLBACK := {
 
 ## M3 J-C 粒子条带（Juice v2 §2 J3；路径/帧数唯一出处 art/generated/fx/MANIFEST_M3.md）。
 ## 条带为 16px 槽位横向帧序列（帧宽一律 16px），池化播放器（fx/particles_pool.gd）按
-## FX_STRIP_FRAMES 切帧；条带未入 m2-t37 全图集（gen_art_atlas 未收录），tex() 走逐文件路径。
+## FX_STRIP_FRAMES 切帧；m4-a1 起（--projectiles 窄通道重打包追平 M3 积欠源）条带
+## 已入全图集（整条带单条目），tex() 返回共享页 AtlasTexture，池端嵌套 region 步进
+## 语义不变（particles_pool 以条带自身 region 尺寸切帧）。
 const FX_STRIPS := {
 	"spark_hit": "fx/spark_hit_strip4.png",
 	"spark_crit": "fx/spark_crit_strip4.png",
@@ -113,6 +115,12 @@ const FX_STRIP_FRAMES := {
 
 const BULLET_PLAYER := "projectiles/bullet_player.png"
 const BULLET_ENEMY := "projectiles/bullet_enemy.png"
+## m4-a1 暴击弹专用帧（金描边/强化发光；生成器 save_crit_bullet）：
+## 必暴窗（CombatSystem.forced_crit_until）内玩家弹经 _sync_bullet_visuals 切换。
+## 敌方变体按 m2-t27 敌方元素弹先例对称备图（API 按阵营分化）；当前无敌方暴击源
+## （命中结算 cc≡0），未来敌方必暴机制经同参零改动接入。
+const BULLET_PLAYER_CRIT := "projectiles/bullet_player_crit.png"
+const BULLET_ENEMY_CRIT := "projectiles/bullet_enemy_crit.png"
 ## 元素弹（Elements.NAMES → projectiles/elem_<name>.png；NONE 走阵营底图）。
 const PICKUP_TEXTURES := {
 	"coin": "pickups/coin.png",
@@ -152,7 +160,8 @@ const TILES := {
 
 static var _cache: Dictionary = {}
 
-## 弹丸贴图备忘缓存（M2-T1）：键 = faction<<16 | element（int 复合键零分配）。
+## 弹丸贴图备忘缓存（M2-T1）：键 = faction<<17 | crit<<16 | element（int 复合键零
+## 分配；m4-a1 加 crit 位，bit16 隔离 element 低 16 位）。
 ## _path_cache_size 为累计 miss 计数（= 已缓存键数），热路径分配探针：
 ## 测试断言同参二次调用命中缓存（计数不变）。
 static var _proj_tex: Dictionary = {}
@@ -181,10 +190,14 @@ static func sprite_for_enemy(row: Dictionary) -> String:
 		return BASE + String(GUEST_FALLBACK[kind])
 	return ""
 
-## 弹丸路径（m2-t27 元素弹阵营分化）：元素弹（cfg element != NONE）玩家用
-## elem_<name>.png，敌方用 elem_<name>_enemy.png（暗边框变体，生成器 variant="enemy"）；
-## 无元素保持阵营底图。laser 谱系 M1 无弹形表现（projectiles/laser_seg.png 预留，暂不接线）。
-static func projectile_texture_path(is_player: bool, element: int) -> String:
+## 弹丸路径（m2-t27 元素弹阵营分化 + m4-a1 暴击专用帧）：crit=true 且无元素时走
+## 暴击帧（金描边/强化发光，bullet_<faction>_crit.png）；元素弹保持元素身份
+## （元素优先于暴击——元素色承载异常状态传播读点，暴击表现另有 spark_crit 粒子/
+## 暴击跳字）；无元素非暴击保持阵营底图。laser 谱系 M1 无弹形表现
+## （projectiles/laser_seg.png 预留，暂不接线）。
+static func projectile_texture_path(is_player: bool, element: int, crit: bool = false) -> String:
+	if crit and element == Elements.Id.NONE:
+		return BASE + (BULLET_PLAYER_CRIT if is_player else BULLET_ENEMY_CRIT)
 	if element != Elements.Id.NONE:
 		var name := String(Elements.NAMES.get(element, ""))
 		if not name.is_empty() and name != "none":
@@ -266,12 +279,15 @@ static func tex(path: String) -> Texture2D:
 
 ## 弹丸贴图热路径查询（M2-T1）：floor_scene/room_combat _sync_bullet_visuals
 ## 逐帧逐弹调用——静态字典备忘（int 复合键零分配），命中即零字符串拼装/零 load。
-static func bullet_texture(faction: int, element: int) -> Texture2D:
-	var key := (faction << 16) | (element & 0xFFFF)
+## m4-a1：crit 位入键（必暴窗内玩家弹走暴击帧），缺省 false = 旧两参调用逐字节同径。
+static func bullet_texture(faction: int, element: int, crit: bool = false) -> Texture2D:
+	var key := (faction << 17) | (element & 0xFFFF)
+	if crit:
+		key |= 1 << 16
 	if _proj_tex.has(key):
 		return _proj_tex[key] as Texture2D
 	_path_cache_size += 1
-	var t := tex(projectile_texture_path(faction == Projectile.Faction.PLAYER, element))
+	var t := tex(projectile_texture_path(faction == Projectile.Faction.PLAYER, element, crit))
 	_proj_tex[key] = t
 	return t
 

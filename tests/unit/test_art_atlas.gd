@@ -16,11 +16,12 @@ const PAGE_RELPATH := "res://art/generated/atlas/"
 const SRC_BASE := "res://art/generated/"
 
 # 区域钉值（确定性 shelf 装箱产物，tools/gen_art_atlas.py 同输入逐字节同输出；
-# 再打包若漂移即失败——保护 atlas 区域映射不悄悄变更。值取自 2026-08-31 首版图集）
+# 再打包若漂移即失败——保护 atlas 区域映射不悄悄变更。m4-a1：暴击弹两帧 + M3
+# 积欠 fx 条带 10 张首次入包（源集合法扩充 → 确定性重排），钉值随之刷新）
 const PIN_KULI_BUG := "enemies/kuli_bug.png"
-const PIN_KULI_BUG_RECT := Rect2i(2, 74, 16, 16)
+const PIN_KULI_BUG_RECT := Rect2i(42, 94, 16, 16)
 const PIN_BULLET_ENEMY := "projectiles/bullet_enemy.png"
-const PIN_BULLET_ENEMY_RECT := Rect2i(350, 274, 8, 8)
+const PIN_BULLET_ENEMY_RECT := Rect2i(426, 294, 8, 8)
 
 var manifest: Dictionary = {}
 
