@@ -1,0 +1,219 @@
+{
+	"aggregate": {
+		"avg_duration_s": 133.6,
+		"ceiling_rate": 0.0,
+		"crashes": 0,
+		"death_hot_rooms": {
+			"F1:combat": 1
+		},
+		"deaths": 1,
+		"floor_dur": [],
+		"median_duration_s": 188.7,
+		"milestones": 0,
+		"prophet_kills": 0,
+		"room_dur": {},
+		"runs": 2,
+		"stalls": 1,
+		"timeouts": 0,
+		"ttk": {
+			"boss": {},
+			"elite": {},
+			"miniboss": {},
+			"minion_a1": {
+				"median_s": 2.6,
+				"n": 5,
+				"p90_s": 7.2
+			},
+			"minion_a2": {},
+			"minion_a3": {}
+		},
+		"win_rate": 0.0,
+		"wins": 0
+	},
+	"calibration": [
+		{
+			"id": "thorn_turret",
+			"kind": "turret_dps",
+			"value": {
+				"cycle_ticks": 160,
+				"first_shot_ticks": 30,
+				"shots_per_cycle": 3,
+				"sustained_dps": 4.5
+			}
+		},
+		{
+			"id": "rock_crystal_turret",
+			"kind": "turret_dps",
+			"value": {
+				"cycle_ticks": 180,
+				"first_shot_ticks": 36,
+				"shots_per_cycle": 1,
+				"sustained_dps": 2.0
+			}
+		},
+		{
+			"id": "lava_turret",
+			"kind": "turret_dps",
+			"value": {
+				"cycle_ticks": 180,
+				"first_shot_ticks": 30,
+				"shots_per_cycle": 5,
+				"sustained_dps": 13.33
+			}
+		},
+		{
+			"id": "forge_cost_ladder",
+			"kind": "forge_cost",
+			"value": {
+				"common": 30,
+				"epic": 235,
+				"legend": 390,
+				"rare": 130,
+				"uncommon": 65
+			}
+		},
+		{
+			"id": "guardian_staff",
+			"kind": "guardian_weapon",
+			"value": {
+				"damage": 4,
+				"rarity": "epic",
+				"rate": 3.0,
+				"weapon": "xinghuizhang"
+			}
+		},
+		{
+			"id": "life_tide_circle",
+			"kind": "tide_heal",
+			"value": {
+				"duration_ticks": 180,
+				"heal_per_tick": 0.5,
+				"instant": 2,
+				"landed_hp": 1,
+				"nominal_hp": 1.5
+			}
+		},
+		{
+			"id": "oracle_economy",
+			"kind": "oracle_gems",
+			"value": {
+				"boss_first_kill": 300,
+				"boss_kill": 50,
+				"covered": false,
+				"in_run_prophet_kills": 0,
+				"prophet_drops_gems3": true,
+				"prophet_hp": 3200,
+				"prophet_on_main": true,
+				"settle_first": 350,
+				"settle_repeat": 50
+			}
+		}
+	],
+	"floor_durations": [],
+	"gems_curve": [
+		{
+			"floor": 1,
+			"frames": 4702,
+			"gems": 0,
+			"seed": 2211
+		},
+		{
+			"floor": 1,
+			"frames": 11321,
+			"gems": 0,
+			"seed": 2212
+		}
+	],
+	"opts": {
+		"hero": "guardian",
+		"max_frames_per_run": 64800,
+		"out_json": "docs/superpowers/reports/m4-c2-smoke-guardian.json",
+		"out_md": "docs/superpowers/reports/m4-c2-smoke-guardian.md",
+		"quit_when_done": true,
+		"runs": 2,
+		"seed_base": 2211,
+		"seeds": "",
+		"time_scale": 1.0,
+		"trial": ""
+	},
+	"results": [
+		{
+			"boss_first_kill_eligible": false,
+			"buffs": "",
+			"coins": 0,
+			"death_cause": "穴蝠的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "combat",
+			"duration_s": 78.4,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"kills": 3,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 39.7,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 0,
+			"seed": 2211,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"boss_first_kill_eligible": false,
+			"buffs": "",
+			"coins": 0,
+			"death_cause": "",
+			"death_floor": 0,
+			"death_room_type": "",
+			"duration_s": 188.7,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"kills": 2,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 49.8,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "stalled",
+			"rooms": 0,
+			"seed": 2212,
+			"trial_date": "",
+			"trial_factors": ""
+		}
+	],
+	"room_durations": [],
+	"ttk_rows": [
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"room_type": "combat",
+			"ttk_s": 2.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"room_type": "combat",
+			"ttk_s": 7.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"room_type": "combat",
+			"ttk_s": 2.8
+		}
+	],
+	"turret_intake": {}
+}

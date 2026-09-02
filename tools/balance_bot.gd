@@ -43,6 +43,9 @@ extends Node
 ##
 ## 运行：godot --headless --path . res://tools/balance_bot.tscn -- --runs=10 --seed-base=2001
 ##       可选 --time-scale=20 --max-frames-per-run=216000 --out-md=... --out-json=... --no-quit --debug
+##       --hero=<id>（m4-c2 最小参数：GameDB.heroes 英雄 id，缺省 vanguard 行为逐字节不变；
+##       仅替换 start_run/start_trial_run 的英雄注入点，bot 能力本身不随英雄变化——
+##       lead 预判/shooter 贴近/绕障等能力缺口归 B-3 卡接手）
 ##       M3-B1 试炼因子局：--trial=YYYY-MM-DD（基日期；第 i 局业务日=基日期+i 天，
 ##       经生产 start_trial_run 注入当日因子对——因子对随局递增以扩覆盖度）
 ## 一键挂载：tools/run_balance.cmd（10 局 + 报告落 docs/superpowers/reports/）。
@@ -71,6 +74,8 @@ const GDD_WIN_RATE := [0.20, 0.40]      # 本卡验收带（生产胜利口径�
 var opts := {
 	"runs": 10,
 	"seed_base": 2001,
+	"hero": "vanguard",                  # m4-c2 最小 --hero 参数（缺省 vanguard 零漂移；
+	                                     #   仅英雄注入点变化，bot 能力缺口归 B-3 卡接手）
 	"seeds": "",                         # m3-fix1：定向种子列表 "a,b,c"（非空时优先于
 	                                     #   runs/seed_base）——B-1 停滞种子定向复跑等用途
 	"trial": "",                         # M3-B1 试炼因子局基日期 "YYYY-MM-DD"（空=普通局）；
@@ -244,12 +249,12 @@ func _run_one(seed: int) -> String:
 		# M3-B1 因子局注入口：生产 start_trial_run 单点（mods+SALT_TRIAL 抽取链）。
 		# 随后种子仍被批次种子覆写（布局采样；与生产同日同布局的偏离见报告披露）。
 		var tdate := _trial_date(seed - int(opts["seed_base"]))
-		RunState.start_trial_run("vanguard", tdate)
+		RunState.start_trial_run(String(opts["hero"]), tdate)   # m4-c2：--hero 注入（缺省 vanguard 零漂移）
 		print("BALANCE-BOT TRIAL seed=%d date=%s factors=%s mods=%s" % [
 			seed, tdate, ",".join(RunState.trial_factors),
 			",".join(RunState.mods.keys())])
 	else:
-		RunState.start_run("vanguard")
+		RunState.start_run(String(opts["hero"]))   # m4-c2：--hero 注入（缺省 vanguard 零漂移）
 	RunState.run_seed = seed                 # 种子覆写（口径披露：start_run 的墙钟
 	RngSvc.setup_run(seed)                   # 种子被确定性种子替换，其余状态不变）
 	_run_root = RUN_ROOT_SCENE.instantiate()
@@ -1535,7 +1540,7 @@ func _write_md(path: String) -> void:
 	var cr: float = float(a.get("ceiling_rate", 0.0))
 	f.store_line("# M2 Balance Bot 全层回归报告（%s · Task 27 / H-1 · m2-t28）" % _today())
 	f.store_line("")
-	f.store_line("- 驱动：`tools/balance_bot.gd` 无头自动游玩（启发式走位/避弹/避爆炸域/避 hazard/环绕走位/索敌开火/概率翻滚/商店买红心/事件一律接受/三选一贪心），hero=vanguard，headless 墙钟速率（引擎 time_scale 对本作逐拍定步长逻辑无加速效用，物理拍=真实玩家体验时长）")
+	f.store_line("- 驱动：`tools/balance_bot.gd` 无头自动游玩（启发式走位/避弹/避爆炸域/避 hazard/环绕走位/索敌开火/概率翻滚/商店买红心/事件一律接受/三选一贪心），hero=%s（m4-c2 --hero 参数，缺省 vanguard），headless 墙钟速率（引擎 time_scale 对本作逐拍定步长逻辑无加速效用，物理拍=真实玩家体验时长）" % String(opts["hero"]))
 	f.store_line("- 决策纯逻辑：`tools/balance_bot_decisions.gd`（确定性，tests/unit/test_balance_bot_decisions.gd 钉死）；校准点机器值：tests/unit/test_balance_bot_calibration.gd 钉死")
 	f.store_line("- 局数：%d（种子 %s）｜崩溃：%d｜超时中止：%d" % [int(a.get("runs", 0)), _seed_span(),
 		int(a.get("crashes", 0)), int(a.get("timeouts", 0))])
@@ -1819,6 +1824,8 @@ func _parse_user_args() -> void:
 				opts["runs"] = int(kv[1])
 			"seed-base":
 				opts["seed_base"] = int(kv[1])
+			"hero":
+				opts["hero"] = kv[1]   # m4-c2 最小参数（GameDB.heroes id；非法值见尾注回落）
 			"seeds":
 				opts["seeds"] = kv[1]
 			"trial":
@@ -1839,3 +1846,8 @@ func _parse_user_args() -> void:
 				_probe_dir = kv[1]
 			"probe-attempts":
 				_probe_attempt_max = int(kv[1])
+	# m4-c2：--hero 校验（fail-safe 回落 vanguard——非法 id 不让批次静默跑错英雄）。
+	if not GameDB.heroes.has(String(opts["hero"])):
+		push_error("BalanceBot: unknown --hero '%s'（可选：%s）→ 回落 vanguard" % [
+			String(opts["hero"]), ",".join(GameDB.heroes.keys())])
+		opts["hero"] = "vanguard"

@@ -7,8 +7,9 @@ extends RangerShadowstep
 ## 其余行为全部继承：无敌窗 15t/36t（升级）、4s 必暴 + 弹速 +20% 窗、单帧位移披露取舍。
 ## 口径披露：GDD §6 残影斩的「路径 2×30 伤害 / 击杀刷新冷却」不在本卡变体范围
 ## （计划卡决议：影袭变体参数差异化，非新技能）。
-## 被动「掠影」（近战击杀返还 5 蓝 + 1s 内翻滚无冷却，passive_id=shadow_reap）
-## 为后续卡接线，本卡不实现（同 spare_parts/blessing 先例）。
+## 被动「掠影」（近战击杀返还 5 蓝 + 1s 内翻滚无冷却，passive_id=shadow_reap，
+## m4-c2 接线）：消费点 = melee.gd 击杀上报 → player.on_melee_kill（返蓝 + 60t 翻滚
+## 免冷却窗，roll_ready_at 门控）。
 
 const ASSASSIN_DASH_DIST_PX := 220.0   # GDD §6 刺客列（基类 const 不可遮蔽，独立命名）
 

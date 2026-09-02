@@ -10,6 +10,10 @@ extends SummonBase
 ##   落点为当前索敌目标，范围内敌方体直击结算）。
 ## 无附录出处的实现议定值（T28 Balance Bot 校准点）：SHOT_SPEED_PX/SHOT_LIFE_SECONDS/
 ## MISSILE_AOE_PX/行 hp；其余数值均出自计划卡或 GDD §6。
+## m4-c2 备件（工程师被动，GDD §6「开局带 1 台便携炮台（存活 12s，DPS 15）」）：
+## 备件炮台经 spare_parts_row() 行注入——存活/耐久/索敌与主动技炮台同一框架，
+## 差异仅射速/单发伤：DPS 15 = 5 伤 × 3/s（GDD 仅给 DPS，拆分议定同 SHOT_SPEED 先例，
+## T28 校准点）。行键 shot_damage/fire_interval_ticks 缺省回落主动技常量（零漂移）。
 
 const LIFETIME_TICKS := 720           # 12s（计划卡/GDD §6）
 const RANGE_PX := 240.0               # 索敌半径（计划卡契约）
@@ -22,8 +26,12 @@ const MISSILE_DAMAGE := 12            # GDD §6 强化（12 AoE）
 const MISSILE_AOE_PX := 48.0          # 议定：导弹爆心半径
 const TURRET_HP := 10                 # 议定：便携炮台耐久（无出处，框架字段）
 const TURRET_RADIUS := 7.0            # 议定：战斗体半径（视觉同尺寸）
+const SPARE_PARTS_SHOT_DAMAGE := 5            # m4-c2 备件：5 伤
+const SPARE_PARTS_FIRE_INTERVAL_TICKS := 20   # m4-c2 备件：3/s → DPS 15（GDD §6）
 
 var upgraded := false
+var shot_damage := SHOT_DAMAGE              # m4-c2：行键 shot_damage 可覆写（缺省主动技 4）
+var fire_interval_ticks := FIRE_INTERVAL_TICKS  # m4-c2：行键 fire_interval_ticks 可覆写
 var _next_shot_at := -1
 var _next_missile_at := -1
 
@@ -34,9 +42,20 @@ static func default_row(is_upgraded: bool = false) -> Dictionary:
 		"radius": TURRET_RADIUS, "upgraded": is_upgraded,
 	}
 
+## m4-c2 备件炮台部署行（run_root 层入口被动补台用）：存活 12s、DPS 15（GDD §6）。
+static func spare_parts_row() -> Dictionary:
+	return {
+		"id": "turret", "hp": TURRET_HP, "lifetime_ticks": LIFETIME_TICKS,
+		"radius": TURRET_RADIUS, "upgraded": false,
+		"shot_damage": SPARE_PARTS_SHOT_DAMAGE,
+		"fire_interval_ticks": SPARE_PARTS_FIRE_INTERVAL_TICKS,
+	}
+
 func setup(r: Dictionary) -> void:
 	super.setup(r)
 	upgraded = bool(r.get("upgraded", false))
+	shot_damage = maxi(1, int(r.get("shot_damage", SHOT_DAMAGE)))
+	fire_interval_ticks = maxi(1, int(r.get("fire_interval_ticks", FIRE_INTERVAL_TICKS)))
 
 ## 占位视觉（色块 + 炮管，同 RoomCombat 敌人回落习语；正式贴图归 M2-T17/T21 美术卡）。
 ## 纯表现层，不含玩法数值。
@@ -54,7 +73,7 @@ func _ready() -> void:
 	add_child(barrel)
 
 func _on_deploy(frame: int) -> void:
-	_next_shot_at = frame + FIRE_INTERVAL_TICKS
+	_next_shot_at = frame + fire_interval_ticks
 	_next_missile_at = frame + MISSILE_INTERVAL_TICKS
 
 ## 节拍驱动：非节拍帧零开销直接返回（组扫描只在 2/s + 3s 节拍上发生，热路径零分配）。
@@ -65,7 +84,7 @@ func _tick_ai(frame: int) -> void:
 		return
 	var target := _acquire_target()
 	if shot_due:
-		_next_shot_at = frame + FIRE_INTERVAL_TICKS
+		_next_shot_at = frame + fire_interval_ticks
 		if target != null:
 			_fire_shot(target)
 	if missile_due:
@@ -98,7 +117,7 @@ func _fire_shot(target: EnemyBase) -> void:
 		return
 	var dir := (target.brain_pos - global_position).normalized()
 	combat.spawn_projectile({
-		"pos": global_position, "vel": dir * SHOT_SPEED_PX, "damage": SHOT_DAMAGE,
+		"pos": global_position, "vel": dir * SHOT_SPEED_PX, "damage": shot_damage,
 		"faction": Projectile.Faction.PLAYER, "element": Elements.Id.NONE,
 		"pierce": 0, "bounce": 0, "life_seconds": SHOT_LIFE_SECONDS,
 		"radius": 3.0, "source_type": "summon", "source_id": id,
