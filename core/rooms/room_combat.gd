@@ -535,11 +535,15 @@ func _build_entry_zone() -> void:
 # ---- 弹幕可视化（表现层镜像：Projectile 本体无外观，逐帧同步共享 Sprite2D） ----
 ## m1-t28：弹丸贴图按阵营/元素换装（bullet_player/bullet_enemy/elem_*），
 ## p.modulate 保留反弹染色语义；laser 谱系 M1 无弹形（laser_seg.png 预留）。
+## m4-a1：必暴窗内玩家弹换暴击专用帧（金描边/强化发光）——forced_crit_until 为
+## CombatSystem 命中结算的既有暴击判定状态，本处只读镜像（零 RNG 消费零判定影响，
+## 暴击 roll 仍是全游戏唯一随机乘区）；元素弹保持元素身份（ArtLookup 内 element 优先）。
 
 func _sync_bullet_visuals() -> void:
 	if combat == null:
 		return
 	var active := combat.pool.active
+	var crit_window := Engine.get_physics_frames() < combat.forced_crit_until   # m4-a1 只读镜像
 	while _bullet_sprites.size() < active.size() and _bullet_sprites.size() < BULLET_VISUAL_CAP:
 		var vis := Sprite2D.new()
 		vis.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -552,7 +556,8 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
-			vis.texture = ArtLookup.bullet_texture(p.faction, p.element)   # M2-T1 备忘缓存
+			vis.texture = ArtLookup.bullet_texture(p.faction, p.element,
+				crit_window and p.faction == Projectile.Faction.PLAYER)   # M2-T1 备忘缓存（m4-a1 加 crit 位）
 			vis.modulate = p.modulate          # 反弹弹带 (1,1,0.4) 染色（setup 已重置为 WHITE）
 		else:
 			vis.visible = false

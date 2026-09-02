@@ -548,7 +548,9 @@ ENEMY_SPRITES = {
 }
 
 
-MANIFEST_PROJ_ANCHOR = "| `projectiles/elem_shock.png` |"
+# m4-a1：锚点后移至暴击帧前一行（elem_shock_enemy）——新缺行拼接位置与 SPEC
+# 顺序一致（暴击帧在元素敌方变体之后、laser_seg 之前），窄通道与全量重写行序一致。
+MANIFEST_PROJ_ANCHOR = "| `projectiles/elem_shock_enemy.png` |"
 
 
 def _manifest_splice_missing_rows():
@@ -758,6 +760,25 @@ def save_elem_bullet(elem, hexes, variant="player"):
          "autoload/fx.gd:18-21 元素色表（火/冰/毒/电）", "元素异常命中粒子同色系")
 
 
+CRIT_RIM = C("#ffd94a")   # m4-a1 暴击弹金描边（亮金，与基础弹 #e8a020 暗金边区分）
+
+
+def save_crit_bullet(variant="player"):
+    """暴击弹专用帧（m4-a1，复刻 m2-t27 元素弹管线）：金描边 + 强化发光变体。
+    player=金圈+亮金光晕芯+白热芯；enemy=金圈+赤芯+白热芯（阵营身份由内圈色承载，
+    同 m2-t27 敌方变体口径）。纯几何无随机项，输出确定（全局 RNG 流零消耗）。"""
+    img = canvas(8, 8)
+    disk(img, 4, 4, 3, CRIT_RIM)                  # 金色描边圈（外缘，强化发光观感）
+    disk(img, 4, 4, 2, C("#fff3b8") if variant == "player" else C("#ff6a55"))
+    px(img, 3, 3, C("#ffffff"))                   # 白热芯（强化发光）
+    px(img, 4, 4, C("#ffffff"))
+    purpose = ("玩家暴击弹（金描边·强化发光）" if variant == "player"
+               else "敌方暴击弹（金描边·赤芯）")
+    save(img, f"projectiles/bullet_{variant}_crit.png", purpose,
+         "room_combat.gd _sync_bullet_visuals 必暴窗（CombatSystem.forced_crit_until 只读）切换",
+         "m4-a1 表现层专用帧：暴击判定（DamageCalc 唯一随机乘区）零影响")
+
+
 def gen_projectiles():
     img = bullet(C("#ffffff"), C("#ffe86a"), C("#e8a020"))
     save(img, "projectiles/bullet_player.png", "玩家子弹（radius≈3px）",
@@ -773,6 +794,8 @@ def gen_projectiles():
     }.items():
         save_elem_bullet(elem, hexes)
         save_elem_bullet(elem, hexes, variant="enemy")   # m2-t27 敌方暗边框变体
+    save_crit_bullet()                                   # m4-a1 暴击弹专用帧（玩家/敌两套）
+    save_crit_bullet(variant="enemy")
     img = canvas(16, 6)
     rect(img, 0, 2, 15, 3, C("#ffe0b0", 200))
     rect(img, 2, 1, 13, 4, C("#ff9a3a", 150))

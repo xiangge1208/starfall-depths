@@ -103,6 +103,60 @@ func test_enemy_element_bullet_memo_distinct_and_stable() -> void:
 		ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.FIRE)
 	assert_int(ArtLookup._path_cache_size).is_equal(warm) # 零新增 miss
 
+# ---------- 暴击弹专用帧（m4-a1：crit 参数 + 金描边变体两套） ----------
+
+func test_projectile_texture_crit_frames_by_faction() -> void:
+	# 必暴窗内无元素弹走暴击专用帧（金描边/强化发光；玩家/敌两套按阵营分化）
+	assert_str(ArtLookup.projectile_texture_path(true, Elements.Id.NONE, true)) \
+		.is_equal("res://art/generated/projectiles/bullet_player_crit.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.NONE, true)) \
+		.is_equal("res://art/generated/projectiles/bullet_enemy_crit.png")
+
+func test_projectile_texture_crit_default_off_zero_drift() -> void:
+	# 非暴击零漂移钉：缺省（两参旧调用形态）与显式 crit=false 同径，
+	# 且回落 m2-t27 既有阵营底图路径（旧调用点逐字节不变）。
+	assert_str(ArtLookup.projectile_texture_path(true, Elements.Id.NONE)) \
+		.is_equal(ArtLookup.projectile_texture_path(true, Elements.Id.NONE, false))
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.NONE)) \
+		.is_equal(ArtLookup.projectile_texture_path(false, Elements.Id.NONE, false))
+	assert_str(ArtLookup.projectile_texture_path(true, Elements.Id.NONE)) \
+		.is_equal("res://art/generated/projectiles/bullet_player.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.NONE)) \
+		.is_equal("res://art/generated/projectiles/bullet_enemy.png")
+
+func test_projectile_texture_element_identity_wins_over_crit() -> void:
+	# 元素优先钉：元素弹在暴击窗内保持元素身份（元素色承载异常状态传播读点，
+	# m4-a1 不新增元素×暴击组合帧——暴击表现由 spark_crit 粒子/暴击跳字承载）。
+	assert_str(ArtLookup.projectile_texture_path(true, Elements.Id.FIRE, true)) \
+		.is_equal("res://art/generated/projectiles/elem_fire.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.ICE, true)) \
+		.is_equal("res://art/generated/projectiles/elem_ice_enemy.png")
+	assert_str(ArtLookup.projectile_texture_path(false, Elements.Id.SHOCK, true)) \
+		.is_equal("res://art/generated/projectiles/elem_shock_enemy.png")
+
+func test_crit_frame_files_exist_on_disk() -> void:
+	# 表驱动承诺：暴击帧两套必须真实存在（缺图 = tex() 回落 null 触发告警）
+	for name: String in ["bullet_player_crit", "bullet_enemy_crit"]:
+		assert_bool(FileAccess.file_exists("res://art/generated/projectiles/%s.png" % name)).is_true()
+
+func test_crit_bullet_memo_distinct_and_stable() -> void:
+	# 缓存键含 crit 位：暴击/非暴击/两阵营互不同实例；两参旧调用与 crit=false
+	# 同键（同实例，非暴击零漂移）；同参重复查询零新增 miss（热路径契约不变）。
+	var base := ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE)       # 两参旧形态
+	var enemy_base := ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.NONE)  # 预热
+	var crit := ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE, true)
+	var enemy_crit := ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.NONE, true)
+	assert_object(crit).is_not_null()
+	assert_object(enemy_crit).is_not_null()
+	assert_bool(crit == base).is_false()          # 暴击帧 ≠ 基础帧
+	assert_bool(crit == enemy_crit).is_false()    # 两套帧阵营分化
+	assert_bool(enemy_crit == enemy_base).is_false()
+	assert_bool(ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE, false) == base).is_true()
+	var warm: int = ArtLookup._path_cache_size
+	for _i in 100:
+		ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE, true)
+	assert_int(ArtLookup._path_cache_size).is_equal(warm)   # 零新增 miss
+
 # ---------- 层生物群系套件映射（m2-t27 I-3：A2/A3 瓦片接线验证） ----------
 
 func test_biome_set_floor1_cave_kit() -> void:
