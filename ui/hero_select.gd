@@ -1,7 +1,16 @@
 class_name HeroSelect
 extends Control
-## 选角界面（m1-t11）：两卡展示 GameDB.heroes（中文名/面板/被动/技能名+描述/初始武器中文名）。
-## ←→/A/D（复用 move_left/move_right 输入动作）切换高亮，Enter 或点击卡片选择。
+## 选角界面（m1-t11）：6 英雄卡展示 GameDB.heroes（中文名/面板/被动/技能名+描述/初始武器中文名）。
+## M4-K2 布局重排：卡行收进 CardScroll 横向滚动（卡 206px 固定宽不缩、12px 像素字体
+## 零缩放，撤 m3-font-walkthrough §3.6「1316px vs 480px」S-C 豁免）——三案取舍定横滚：
+## 缩卡网格在 270px 高度下容不下 6 卡文本量（必截字，破 12px 可读性下限）；分页翻页
+## 会把 3 张卡藏出树外（focus_neighbors 链物理断开 + 触屏翻页多打两跳）；横滚 6 卡
+## 全程在树（导航序闭合），滑动为触屏原生手势（与图鉴同款滚动容器惯例）。
+## 导航三路：①keyboard/gamepad——卡 FOCUS_ALL + focus_neighbors 闭环（卡 5 右跳回
+## 卡 0），follow_focus 自动把焦点卡滚进可视域，A/D/摇杆（move_left/right 动作）走
+## 既有 _move 并回写焦点（两路汇一）；确认 = Enter/Space/手柄 A（ui_accept）；
+## ②鼠标——按下记录、松开位移 ≤8px 才算点击选中（触摸滑动起手不再误触发选择）；
+## ③触屏——卡上滑动 = 滚动（ScrollContainer 原生），轻点 = 选中（同 ② 释放判定）。
 ## 选择落地：优先调 RunState autoload 的 select_hero 钩子（T15 未合并则节点不存在，
 ## 用 /root 路径探测——Engine.has_singleton 只认原生单例，对 GDScript autoload 恒 false）；
 ## 无钩子时落 HeroSelect.last_chosen 静态暂存（T15 合并时收编）。
@@ -10,6 +19,7 @@ extends Control
 signal hero_chosen(hero_id: String)
 
 const CARD_MIN := Vector2(206, 208)
+const TAP_SLOP := 8.0   # 点击判定位移阈（px）：内=轻点选中，外=滑动滚动不选中
 const CARD_BG := Color(0.07, 0.08, 0.1, 0.95)
 const SELECTED_BORDER := Color(0.95, 0.82, 0.35)
 const IDLE_BORDER := Color(0.25, 0.27, 0.32)
@@ -28,6 +38,8 @@ static var last_chosen := ""   # 静态暂存 fallback（RunState 未合并期�
 var _ids: Array = []
 var _selected := 0
 var _cards: Array[PanelContainer] = []
+var _press_idx := -1          # 按压中的卡索引（-1 = 无），释放时按位移判轻点/滑动
+var _press_pos := Vector2.ZERO
 
 func _ready() -> void:
 	_ids = GameDB.heroes.keys()
@@ -46,16 +58,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("move_right"):
 		get_viewport().set_input_as_handled()
 		_move(1)
-	elif event is InputEventKey and event.is_pressed() and not event.is_echo():
-		var key := event as InputEventKey
-		var code: int = key.keycode if key.keycode != KEY_NONE else key.physical_keycode
-		if code == KEY_ENTER or code == KEY_KP_ENTER:
-			get_viewport().set_input_as_handled()
-			_choose(_selected)
+	elif event.is_action_pressed("ui_accept"):
+		# Enter/KP Enter/Space/手柄 A（ui_accept 默认集）；焦点卡不吞 ui_accept
+		#（PanelContainer 非按钮），落到此处确认当前高亮。
+		get_viewport().set_input_as_handled()
+		_choose(_selected)
 
 func _move(dir: int) -> void:
 	_selected = wrap(_selected + dir, 0, _ids.size())
 	_refresh()
+	# 焦点回写：A/D 与焦点导航两路汇一（焦点跟随自动滚出可视域）；
+	# 已聚焦同一卡时幂等（focus_entered 里 _selected 相等不重刷）。
+	if _selected < _cards.size():
+		_cards[_selected].grab_focus()
 
 func _choose(idx: int) -> void:
 	if idx < 0 or idx >= _ids.size():
@@ -74,18 +89,37 @@ func _choose(idx: int) -> void:
 	if sr != null and get_tree() != null and get_tree().current_scene == self:
 		sr.goto("game")
 
+## 焦点即选中（keyboard/gamepad 单一事实源）：焦点链移动 → 高亮同步，
+## 滚动交给 CardScroll.follow_focus，不在焦点回调里手动 ensure_control_visible。
+func _on_card_focus(idx: int) -> void:
+	if _selected != idx:
+		_selected = idx
+		_refresh()
+
 func _on_card_input(event: InputEvent, idx: int) -> void:
+	# 轻点判定：按下记录、松开对账。位移 ≤ TAP_SLOP 才算点击选中——横滚布局下
+	# 触摸滑动起手若按「按下即选」会立刻误触发选择，故对齐 BaseButton 默认的
+	# 释放激活语义（与图鉴按钮一致），滚动中的释放（位移超阈）不选。
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
-			_choose(idx)
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mb.pressed:
+			_press_idx = idx
+			_press_pos = mb.position
+		elif _press_idx == idx:
+			_press_idx = -1
+			if mb.position.distance_to(_press_pos) <= TAP_SLOP:
+				_choose(idx)
 
 func _build_cards() -> void:
-	var row: HBoxContainer = $Cards
+	var row: HBoxContainer = $CardScroll/Cards
 	for i in _ids.size():
 		var card := PanelContainer.new()
 		card.custom_minimum_size = CARD_MIN
+		card.focus_mode = Control.FOCUS_ALL          # keyboard/gamepad 焦点可落卡
 		card.gui_input.connect(_on_card_input.bind(i))
+		card.focus_entered.connect(_on_card_focus.bind(i))
 		row.add_child(card)
 		_cards.append(card)
 		var box := VBoxContainer.new()
@@ -107,6 +141,19 @@ func _build_cards() -> void:
 		skill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		box.add_child(skill)
 		box.add_child(_label("初始 %s" % _weapon_names(hero.get("start_weapons", [])), 12, Color(0.85, 0.8, 0.6)))
+	_wire_focus_chain()
+
+## focus_neighbors 闭环（导航序完整）：左/右指向相邻卡、卡 5 右跳回卡 0（横滚下
+## 焦点链不因视口裁剪断开，follow_focus 负责滚出可视域）；上/下指向自身（单行布局
+## 无纵向邻卡，钉死防自动搜索逃逸出卡行）。
+func _wire_focus_chain() -> void:
+	var n := _cards.size()
+	for i in n:
+		var card := _cards[i]
+		card.focus_neighbor_left = card.get_path_to(_cards[(i - 1 + n) % n])
+		card.focus_neighbor_right = card.get_path_to(_cards[(i + 1) % n])
+		card.focus_neighbor_top = card.get_path_to(card)
+		card.focus_neighbor_bottom = card.get_path_to(card)
 
 ## 高亮刷新：选中卡描边金字，其余灰（样式整体重建，与 BuffPick 同手法）
 func _refresh() -> void:

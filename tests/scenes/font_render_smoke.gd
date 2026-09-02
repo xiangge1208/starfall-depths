@@ -46,12 +46,13 @@ func _run() -> void:
 		_check(pt.default_font_size == 12, "project theme default_font_size == 12")
 
 	# ---- ③ 代表场景实例化 + ④ 视口收下 ----
-	# hero_select 走查裁定：6 英雄 × 固定卡宽 206px = 1316px 行宽，场景按 2 英雄设计、
-	# M2 扩到 6 英雄后恒超界（与字号无关，font-independent 预存项）——卡片行豁免视口
-	# 断言，另加「卡内文案不破卡」专项断言；结构性重排（分页/滚动）上报后续卡。
+	# hero_select M4-K2 重排落地：卡行改 CardScroll 横向滚动（卡 206px 固定宽不缩、
+	# 12px 像素字体零缩放；触屏滑动 + follow_focus 焦点跟随），S-C「卡行超界」豁免
+	# 撤销，恢复全量视口断言（滚动容器内内容按 ④ 总则归 ScrollContainer 裁剪豁免）；
+	# 另保「卡内文案不破卡」专项 + 新增「6 卡 focus_neighbors 导航序闭合」专项。
 	print("SMOKE 2: scene cases")
 	await _scene_case("res://ui/main_menu.tscn", "", true)          # 主菜单（含挂接的设置/试炼层）
-	await _scene_case("res://ui/hero_select.tscn", "", "Cards")     # 选角（真实英雄卡文案）
+	await _scene_case("res://ui/hero_select.tscn", "", true, _check_hero_select_cards)  # 选角（横滚 6 卡 + 专项）
 	await _scene_case("res://ui/codex.tscn", "open", true)          # 图鉴（115 格长条件）
 	await _scene_case("res://ui/talents.tscn", "", true)            # 天赋树（3 系列 dense 布局）
 	await _scene_case("res://ui/settings_panel.tscn", "open", true) # 设置面板（打开态量测）
@@ -71,10 +72,10 @@ func _run() -> void:
 
 # ================================================================ helpers
 
-## 场景用例：实例化 →（可选）打开态 → 字体落实抽检 → 视口收下断言 → 释放。
-## waived 非空时豁免该名字子树的视口断言（hero_select 卡片行预存超界，见 SMOKE 2 注），
-## 改为专项断言「卡内文案不破卡」。
-func _scene_case(path: String, open_action: String, check_fit: Variant) -> void:
+## 场景用例：实例化 →（可选）打开态 → 字体落实抽检 → 视口收下断言 →（可选）场景
+## 专项断言 → 释放。视口断言按 ④ 总则：ScrollContainer 裁剪域内内容豁免（由滚动承载）。
+func _scene_case(path: String, open_action: String, check_fit: bool,
+		extra: Callable = Callable()) -> void:
 	var tag := path.get_file()
 	var ps: PackedScene = load(path)
 	if ps == null:
@@ -96,10 +97,10 @@ func _scene_case(path: String, open_action: String, check_fit: Variant) -> void:
 		inst.call("open", ids.slice(0, 3))
 		await _frames(2)
 	_check(_labels_use_fusion_font(inst), tag + " labels resolve fusion-pixel default font")
-	if typeof(check_fit) == TYPE_BOOL and check_fit:
+	if check_fit:
 		await _check_tree_fits(inst, tag)
-	elif typeof(check_fit) == TYPE_STRING:
-		_check_subtree_content_confined(inst, check_fit, tag)
+	if extra.is_valid():
+		await extra.call(inst)
 	inst.queue_free()
 	await _frames(1)
 
@@ -165,27 +166,52 @@ func _in_clipped_scope(c: Control, root: Node) -> bool:
 	return false
 
 
-## 豁免子树（waived 名字节点）内：每个 Label 须收在其最近 PanelContainer 卡片矩形内
-## （字号归一后长中文断行不破卡；卡片行整体超视口属预存项，另行上报）。
-func _check_subtree_content_confined(root: Node, waived: String, tag: String) -> void:
-	var row := root.find_child(waived, true, false)
-	if row == null:
-		_check(false, tag + " has waived subtree " + waived)
-		return
+## hero_select 专项断言（M4-K2 撤豁免后保留 + 新增）：
+## ① 横滚容器接线——卡行收在 CardScroll 内、横向可滚且 follow_focus（焦点移动自动
+##    滚出可视域，键盘/手柄导航逐卡可达）；
+## ② 卡内文案不破卡——每个 Label 收在其所属 PanelContainer 卡片矩形内（12px 长中文
+##    断行不破卡，沿 S-C 专项口径）；
+## ③ 导航序闭合——6 卡 FOCUS_ALL 且 focus_neighbor_right 自卡 0 起 6 跳回到卡 0、
+##    途中不重复地遍历全部 6 卡（keyboard/gamepad 导航链无断点）。
+func _check_hero_select_cards(root: Node) -> void:
+	var scroll := root.find_child("CardScroll", true, false) as ScrollContainer
+	_check(scroll != null and scroll.follow_focus
+		and scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED,
+		"hero_select cards in horizontal scroll container (follow_focus)")
 	var bad: Array[String] = []
-	for child in row.find_children("*", "Label", true, false):
-		var l := child as Label
-		var card := l.get_parent() as Control
-		while card != null and not card is PanelContainer:
-			card = card.get_parent() as Control
-		if card == null:
-			continue
-		var lr := l.get_global_rect()
-		var cr := (card as Control).get_global_rect().grow(2.0)
-		if not cr.encloses(lr):
-			bad.append("%s %s outside %s" % [l.name, lr, cr])
-	_check(bad.is_empty(), tag + " card labels stay inside cards" +
+	var cards: Array[Control] = []
+	var row := root.find_child("Cards", true, false)
+	if row != null:
+		for child in row.get_children():
+			var c := child as Control
+			if c != null and c.focus_mode == Control.FOCUS_ALL:
+				cards.append(c)
+		for child in row.find_children("*", "Label", true, false):
+			var l := child as Label
+			var card := l.get_parent() as Control
+			while card != null and not card is PanelContainer:
+				card = card.get_parent() as Control
+			if card == null:
+				continue
+			var lr := l.get_global_rect()
+			var cr := (card as Control).get_global_rect().grow(2.0)
+			if not cr.encloses(lr):
+				bad.append("%s %s outside %s" % [l.name, lr, cr])
+	_check(bad.is_empty(), "hero_select card labels stay inside cards" +
 		("" if bad.is_empty() else " overflow: " + ", ".join(bad.slice(0, 4))))
+	_check(cards.size() == 6, "hero_select 6 focusable cards (got %d)" % cards.size())
+	if not cards.is_empty():
+		var visited: Array[Control] = []
+		var cur := cards[0]
+		for _i in cards.size():
+			if cur == null or not cards.has(cur) or visited.has(cur):
+				cur = null
+				break
+			visited.append(cur)
+			var np: NodePath = cur.focus_neighbor_right
+			cur = null if np.is_empty() else cur.get_node_or_null(np) as Control
+		_check(cur == cards[0] and visited.size() == cards.size(),
+			"hero_select focus chain closed over all cards (%d visited)" % visited.size())
 
 
 ## 布局回退防护：全部树内可见 Control 的全局矩形收在 480×270 内。

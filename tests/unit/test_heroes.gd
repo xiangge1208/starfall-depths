@@ -360,18 +360,93 @@ func test_hero_select_keyboard_navigation_and_enter() -> void:
 	_reset_last_chosen()
 
 func test_hero_select_click_card_chooses() -> void:
+	# M4-K2：轻点激活语义（按下记录、松开对账）——对齐 BaseButton 释放激活 +
+	# 横滚滑动起手防误选（滑动释放位移超阈不选，另见 tap_vs_drag 用例）
 	_reset_last_chosen()
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
 	var chosen: Array = []
 	ui.hero_chosen.connect(func(id: String) -> void: chosen.append(id))
-	var click := InputEventMouseButton.new()
-	click.button_index = MOUSE_BUTTON_LEFT
-	click.pressed = true
-	ui._on_card_input(click, 1)
+	ui._on_card_input(_click(1, true), 1)
+	assert_array(chosen).is_empty()                  # 仅按下不选（释放对账）
+	ui._on_card_input(_click(1, false), 1)
 	assert_array(chosen).contains_exactly(["ranger"])
 	_reset_last_chosen()
+
+func test_hero_select_tap_vs_drag_release_displacement() -> void:
+	# 轻点（位移 ≤ 8px）选中；拖动（位移 > 8px，触摸滑动滚动起手）不选中
+	_reset_last_chosen()
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	var chosen: Array = []
+	ui.hero_chosen.connect(func(id: String) -> void: chosen.append(id))
+	ui._on_card_input(_click(2, true, Vector2(40.0, 30.0)), 2)
+	ui._on_card_input(_click(2, false, Vector2(200.0, 30.0)), 2)   # 横扫 160px：滚动非选择
+	assert_array(chosen).is_empty()
+	ui._on_card_input(_click(2, true, Vector2(10.0, 10.0)), 2)
+	ui._on_card_input(_click(2, false, Vector2(15.0, 12.0)), 2)    # 位移 ~5.4px：轻点
+	assert_array(chosen).contains_exactly(["engineer"])
+	# 串扰防护：A 卡按下后 B 卡释放（松开别处）不选
+	ui._on_card_input(_click(0, true, Vector2.ZERO), 0)
+	ui._on_card_input(_click(0, false, Vector2.ZERO), 1)
+	assert_array(chosen).contains_exactly(["engineer"])
+	_reset_last_chosen()
+
+func test_hero_select_scroll_layout_and_focus_chain_closed() -> void:
+	# M4-K2 撤 S-C 豁免的落地验收（单测侧结构断言；像素视口断言归 font_render_smoke）：
+	# 卡行收进 CardScroll 横滚 + follow_focus；6 卡 FOCUS_ALL；focus_neighbors 右向
+	# 6 跳闭合遍历全卡（卡 5 → 卡 0 环回），左向对称；上/下自锚防纵向逃逸
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	var scroll := ui.get_node("CardScroll") as ScrollContainer
+	assert_object(scroll).is_not_null()
+	assert_bool(scroll.follow_focus).is_true()
+	assert_int(scroll.horizontal_scroll_mode).is_not_equal(ScrollContainer.SCROLL_MODE_DISABLED)
+	var cards: Array = ui._cards
+	assert_int(cards.size()).is_equal(6)
+	for c: Control in cards:
+		assert_int(c.focus_mode).is_equal(Control.FOCUS_ALL)
+	for dir: String in ["focus_neighbor_right", "focus_neighbor_left"]:
+		var visited := {}
+		var cur: Control = cards[0]
+		for i in 6:
+			assert_bool(visited.has(cur)).is_false()   # 未走满 6 卡即成环 = 链断
+			visited[cur] = true
+			assert_bool((cur as Control).has_node(cur.get(dir))).is_true()
+			cur = cur.get_node(cur.get(dir)) as Control
+		assert_object(cur).is_same(cards[0])           # 6 跳后回到起点（闭环）
+		assert_int(visited.size()).is_equal(6)
+	for c: Control in cards:
+		assert_object(c.get_node(c.focus_neighbor_top) as Control).is_same(c)
+		assert_object(c.get_node(c.focus_neighbor_bottom) as Control).is_same(c)
+
+func test_hero_select_focus_and_selection_single_source() -> void:
+	# 双路汇一：A/D 动作（move_right/move_left）→ _selected 移动 + 焦点回写；
+	# 焦点链移动（grab_focus 模拟手柄 ui_left/right 落点）→ 高亮同步
+	_reset_last_chosen()
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	var cards: Array = ui._cards
+	ui._unhandled_input(_key(KEY_D))
+	assert_int(ui._selected).is_equal(1)
+	assert_object(ui.get_viewport().gui_get_focus_owner()).is_same(cards[1])   # 焦点回写
+	cards[3].grab_focus()
+	assert_int(ui._selected).is_equal(3)               # 焦点移动 → 高亮同步
+	ui._unhandled_input(_key(KEY_A))
+	assert_int(ui._selected).is_equal(2)
+	assert_object(ui.get_viewport().gui_get_focus_owner()).is_same(cards[2])
+	_reset_last_chosen()
+
+func _click(idx: int, pressed: bool, pos := Vector2.ZERO) -> InputEventMouseButton:
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = pressed
+	click.position = pos
+	return click
 
 func _key(code: Key) -> InputEventKey:
 	var ev := InputEventKey.new()
