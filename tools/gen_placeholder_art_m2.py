@@ -920,6 +920,8 @@ def gen_ui_m2():
 
 
 def main():
+    # 独立入口与全量入口同一条管线：prune 豁免（m4-a2 P0 keep-set 修复）与美术 QA
+    # 三重校验尾部自检（m4-a2，fail-closed）都在 gen_placeholder_art.main() 尾部统一生效。
     import gen_placeholder_art as _b
     _b.main()
 

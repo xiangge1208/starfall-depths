@@ -1835,6 +1835,55 @@ def write_preview():
     sheet.save(OUT / "_preview.png")
 
 
+# ---------------------------------------------------------------- prune（m4-a2 keep-set 修复）
+# 非 M1 管线（M1+M2 批次+图集）拥有的子树豁免清理（m4-a2 P0 前置，2026-08-31 prelude
+# 审查遗留）：
+#   - fx/、trials/ 归 M3 所有（tools/spritegen_m3.py，清单标记 fx/MANIFEST_M3.md）；
+#   - icon/ 归 X-C 所有（tools/gen_icon.py，无清单文件故走显式登记）。
+# 此前 keep 集只含 M1 SPEC + MANIFEST.md/_preview.png/.gitkeep，全量跑 M1 管线会把
+# 这三棵子树当"陈旧残留"静默删除。豁免为双保险：
+#   1) 显式豁免集 PRUNE_FOREIGN_DIRS（无标记文件的子树在此登记）；
+#   2) 通用规则：子树内存在其他生成器的清单标记（MANIFEST_*.md）即整树豁免——
+#      未来新生成器在自家子树放一枚 MANIFEST_<名>.md 即自动免登记。
+# 约定：非本管线的生成器二选一（子树放 MANIFEST_*.md 标记 / 在 PRUNE_FOREIGN_DIRS
+# 登记），否则全量重跑会把该子树当残留清理。
+# 另：*.import sidecar 归 Godot 导入器所有，一律保留（此前全量重跑会删光全部 sidecar，
+# 下次打开编辑器/跑测试需整库重导入）。
+PRUNE_FOREIGN_DIRS = frozenset({"fx", "trials", "icon"})
+
+
+def _prune_exempt_dirs():
+    """豁免子树集合 = 显式登记 ∪ 含 MANIFEST_*.md 清单标记的顶层子树。"""
+    exempt = set(PRUNE_FOREIGN_DIRS)
+    if OUT.is_dir():
+        for p in OUT.iterdir():
+            if p.is_dir() and any(
+                    q.is_file() and q.suffix == ".md" and q.name.startswith("MANIFEST_")
+                    for q in p.iterdir()):
+                exempt.add(p.name)
+    return exempt
+
+
+def _prune_plan():
+    """dry-run：返回将被清理的相对路径清单（不动磁盘），供回归测试与 _prune_stale 复用。"""
+    keep = {"MANIFEST.md", "_preview.png"}
+    for rel, *_rest in SPEC:
+        keep.add(rel)
+    exempt = _prune_exempt_dirs()
+    removed = []
+    for p in OUT.rglob("*"):
+        # .gitkeep 按 p.name 匹配（任意嵌套层级都保留，m2-t21），不在 keep 集里按路径比对
+        if not p.is_file() or p.name == ".gitkeep" or p.suffix == ".import":
+            continue
+        rel = p.relative_to(OUT).as_posix()
+        if rel in keep:
+            continue
+        if "/" in rel and rel.split("/", 1)[0] in exempt:
+            continue
+        removed.append(rel)
+    return removed
+
+
 def _prune_stale():
     """成功全量生成后清掉不在 SPEC 的残留（m2-t21 时序修复）。
 
@@ -1843,17 +1892,11 @@ def _prune_stale():
     - 生成失败时旧文件保持可用（可重跑修复），不再有"清空后写一半"窗口；
     - 全量成功后按 SPEC 清单清除陈旧残留（如 m2-t21 废除的 75 武器暂定 slug），
       终态与"清空重建"逐字节等价（每个 SPEC 条目每轮都被覆盖重写）。
-    保留项：MANIFEST.md/_preview.png（本轮末统一重写）与 .gitkeep。"""
-    keep = {"MANIFEST.md", "_preview.png"}
-    for rel, *_rest in SPEC:
-        keep.add(rel)
-    removed = []
-    for p in OUT.rglob("*"):
-        # .gitkeep 按 p.name 匹配（任意嵌套层级都保留，m2-t21），不在 keep 集里按路径比对
-        if p.is_file() and p.name != ".gitkeep" \
-                and p.relative_to(OUT).as_posix() not in keep:
-            removed.append(p.relative_to(OUT).as_posix())
-            p.unlink()
+    保留项：MANIFEST.md/_preview.png（本轮末统一重写）、.gitkeep、*.import sidecar、
+    以及豁免子树（fx/trials/icon 等，见 PRUNE_FOREIGN_DIRS 注释，m4-a2 P0）。"""
+    removed = _prune_plan()
+    for rel in removed:
+        (OUT / rel).unlink()
     return removed
 
 
@@ -1933,6 +1976,12 @@ def main():
     removed = _prune_after_m2(m2_joined)
     write_manifest()
     write_preview()
+    # m4-a2: 生成完即自检——美术 QA 三重校验全库（对比度/剪影/接缝，fail-closed）。
+    # 存量超阈按 tools/art_qa_baseline.json 棘轮放行（清单已交编排者裁定：修资产或
+    # 调阈值）；新增/恶化项直接抛错，绝不让劣化的产物静默入库。
+    import art_qa_check as _qa
+    _waived = _qa.wire_check(OUT)
+    print(f"美术 QA 三重校验: PASS（存量超阈 {_waived} 项按基线棘轮放行，待编排者裁定）")
     print(f"生成 {len(SPEC)} 个素材 -> {OUT}（清理陈旧残留 {len(removed)} 项）")
 
 
