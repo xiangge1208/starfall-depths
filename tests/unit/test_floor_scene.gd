@@ -820,13 +820,18 @@ const A2_TRASH_IDS := ["crystal_bat", "ice_mage", "magnet_golem", "ghost_jelly",
 const A3_TRASH_IDS := ["lava_hound", "ash_shooter", "firerain_priest", "magma_slime",
 	"obsidian_guard", "sulfur_moth", "lava_turret", "ember_summoner",
 	"scorch_stomper", "flame_lich", "magma_wyvern", "starmarrow_blob"]
+# m4-wire：C-1 移交 4 特技敌落位 F2 池（附录 B.2 设计楼层=A1，F1 池冻结 → 最近
+# 语义相邻层；与 A2_TRASH_IDS 合成 F2 波次合法名录，见 floor_scene.gd FLOOR_TRASH 注）。
+const A1_GUEST_TRASH_IDS := ["hardshell_turtle", "thorn_turret", "moss_slime",
+	"seed_pitcher"]
 
 
 func test_scene_waves_floor_rosters() -> void:
 	# m2-audit：A2/A3 波次名录分层（附录 B.2 特有种 12 行；此前恒 A1）。
 	# 规模契约不变（2 波各 3 只）；缺省 floor=1 = M1 契约（A1 小池）。
+	# m4-wire：F2 名录并入 4 特技敌嘉宾行。
 	for fl in [2, 3]:
-		var roster := A2_TRASH_IDS if fl == 2 else A3_TRASH_IDS
+		var roster: Array = (A2_TRASH_IDS + A1_GUEST_TRASH_IDS) if fl == 2 else A3_TRASH_IDS
 		for rid in [1, 5, 9]:
 			var cfg: Dictionary = FloorScene.waves_for(rid, "combat", fl)
 			assert_int(cfg["waves"].size()).is_equal(2)
@@ -840,13 +845,13 @@ func test_scene_waves_floor_rosters() -> void:
 		for id in elite_w2:
 			if id != "elite_charger":
 				assert_array(roster).contains(id)
-	for id: String in A2_TRASH_IDS + A3_TRASH_IDS:
+	for id: String in A2_TRASH_IDS + A1_GUEST_TRASH_IDS + A3_TRASH_IDS:
 		assert_dict(GameDB.get_enemy(id)).is_not_empty()   # id 转录无漂移
 	# 挑战房随层（复用本层战斗配置）
 	var ch: Dictionary = FloorScene.challenge_waves_for(3, 2)
 	for w in ch["waves"]:
 		for id in w:
-			assert_array(A2_TRASH_IDS).contains(id)
+			assert_array(A2_TRASH_IDS + A1_GUEST_TRASH_IDS).contains(id)
 
 
 func test_scene_floor_pool_enemies_constructible() -> void:
@@ -856,6 +861,28 @@ func test_scene_floor_pool_enemies_constructible() -> void:
 		for id: String in FloorScene.FLOOR_TRASH[fl]:
 			var e: EnemyBase = auto_free(EnemyFactory.create(GameDB.get_enemy(id)))
 			assert_object(e).is_not_null()
+
+
+func test_scene_floor_pool_signature_guests_wired() -> void:
+	# m4-wire：C-1 移交 4 特技敌（附录 B.2 设计楼层=A1 翠绿遗迹）落位 F2 池——
+	# F1 池为 M1 门禁校准/B-3 残差基线对照冻结不动、F3 不动；池无重复、无空引用；
+	# 行数值零改动（A1 基准 hp 原样进池，钉死防「顺手缩放」）。
+	for id: String in A1_GUEST_TRASH_IDS:
+		assert_array(FloorScene.FLOOR_TRASH[2]).contains(id)
+		assert_array(FloorScene.FLOOR_TRASH[1]).not_contains(id)
+		assert_array(FloorScene.FLOOR_TRASH[3]).not_contains(id)
+	for fl in [1, 2, 3]:
+		var pool: Array = FloorScene.FLOOR_TRASH[fl]
+		assert_array(pool).is_not_empty()
+		var seen := {}
+		for id: String in pool:
+			assert_bool(seen.has(id)).is_false()               # 池无重复
+			seen[id] = true
+			assert_dict(GameDB.get_enemy(id)).is_not_empty()   # 无空引用
+	assert_int(GameDB.get_enemy("hardshell_turtle")["hp"]).is_equal(45)
+	assert_int(GameDB.get_enemy("thorn_turret")["hp"]).is_equal(30)
+	assert_int(GameDB.get_enemy("moss_slime")["hp"]).is_equal(22)
+	assert_int(GameDB.get_enemy("seed_pitcher")["hp"]).is_equal(20)
 
 
 func test_scene_elite_affixes_progression() -> void:

@@ -60,11 +60,17 @@ const FIRE_RAIN_BOOM_COLOR := Color(1.0, 0.5, 0.15, 0.8)     # 火雨落点爆�
 ## m2-audit：A2/A3 波次此前误用 A1 名录（T26 披露「移交 T36 评估」未承接），按
 ## 附录 B.2 各生态特有种 12 行分层修复——行内即该层缩放值（B.2 口径 A2 ×2.2 /
 ## A3 ×4.84），不做运行时再缩放。A1 沿 M1 门禁校准的 4 行小池（通用 3 + 藤蔓冲锋者）。
+## m4-wire：C-1 移交的 4 个特技敌（hardshell_turtle/thorn_turret/moss_slime/
+## seed_pitcher）接入 F2 池尾部。设计楼层口径=附录 B.2「A1 翠绿遗迹」特有种
+## （task-33 §6.1 复核表同源），但 F1 池被 M1 门禁校准/B-3 残差基线对照冻结
+## 不动 → 按最近语义落位相邻层 F2；行内 A1 基准值原样进池（无运行时再缩放，
+## 池结构无权重——确定性轮转对追加行均匀覆盖，既有 12 行轮转相位不回碰）。
 const FLOOR_TRASH: Dictionary = {
 	1: ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"],
 	2: ["crystal_bat", "ice_mage", "magnet_golem", "ghost_jelly", "frost_crab",
 		"crystal_rat", "rock_crystal_turret", "crystal_summoner", "prism_ranger",
-		"ice_spider", "echo_lurker", "crystal_dragon"],
+		"ice_spider", "echo_lurker", "crystal_dragon",
+		"hardshell_turtle", "thorn_turret", "moss_slime", "seed_pitcher"],
 	3: ["lava_hound", "ash_shooter", "firerain_priest", "magma_slime",
 		"obsidian_guard", "sulfur_moth", "lava_turret", "ember_summoner",
 		"scorch_stomper", "flame_lich", "magma_wyvern", "starmarrow_blob"],
