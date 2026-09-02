@@ -40,20 +40,20 @@
     "doors": ["W", "E", "N"],
     "spawn_points": [[6, 4], [15, 4], [6, 9], [15, 9]],
     "props": [
-      {"kind": "crate", "grid": [4, 7], "hp": 8},
-      {"kind": "crate", "grid": [5, 7], "hp": 8},
-      {"kind": "crate", "grid": [6, 7], "hp": 8},
-      {"kind": "crate", "grid": [7, 7], "hp": 8},
-      {"kind": "crate", "grid": [8, 7], "hp": 8},
-      {"kind": "crate", "grid": [9, 7], "hp": 8},
-      {"kind": "crate", "grid": [10, 7], "hp": 8},
-      {"kind": "crate", "grid": [12, 7], "hp": 8},
-      {"kind": "crate", "grid": [13, 7], "hp": 8},
-      {"kind": "crate", "grid": [14, 7], "hp": 8},
-      {"kind": "crate", "grid": [15, 7], "hp": 8},
-      {"kind": "crate", "grid": [16, 7], "hp": 8},
-      {"kind": "crate", "grid": [17, 7], "hp": 8},
-      {"kind": "crate", "grid": [18, 7], "hp": 8}
+      {"kind": "crate", "grid": [4, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [5, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [6, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [7, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [8, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [9, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [10, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [12, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [13, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [14, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [15, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [16, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [17, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [18, 7], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": []
   },
@@ -92,10 +92,10 @@
       {"kind": "pillar", "grid": [7, 9], "hp": 20},
       {"kind": "pillar", "grid": [14, 4], "hp": 20},
       {"kind": "pillar", "grid": [14, 9], "hp": 20},
-      {"kind": "crate", "grid": [11, 5], "hp": 8},
-      {"kind": "crate", "grid": [11, 6], "hp": 8},
-      {"kind": "crate", "grid": [11, 7], "hp": 8},
-      {"kind": "crate", "grid": [11, 8], "hp": 8}
+      {"kind": "crate", "grid": [11, 5], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [11, 6], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [11, 7], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [11, 8], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": []
   },
@@ -108,11 +108,11 @@
     "doors": ["N", "E", "W"],
     "spawn_points": [[10, 5], [12, 8], [6, 7], [15, 6]],
     "props": [
-      {"kind": "crate", "grid": [5, 5], "hp": 8},
-      {"kind": "crate", "grid": [9, 8], "hp": 8},
-      {"kind": "crate", "grid": [13, 4], "hp": 8},
-      {"kind": "crate", "grid": [16, 9], "hp": 8},
-      {"kind": "crate", "grid": [7, 10], "hp": 8},
+      {"kind": "crate", "grid": [5, 5], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [9, 8], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [13, 4], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [16, 9], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [7, 10], "hp": 8, "drops": ["coin"]},
       {"kind": "bush", "grid": [11, 10], "hp": 4}
     ],
     "hazards": [
@@ -154,8 +154,8 @@
       {"kind": "pillar", "grid": [6, 6], "hp": 20},
       {"kind": "pillar", "grid": [15, 8], "hp": 20},
       {"kind": "pillar", "grid": [15, 9], "hp": 20},
-      {"kind": "crate", "grid": [7, 5], "hp": 8},
-      {"kind": "crate", "grid": [14, 9], "hp": 8}
+      {"kind": "crate", "grid": [7, 5], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [14, 9], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": []
   },
