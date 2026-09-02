@@ -20,6 +20,10 @@ extends Control
 ##
 ## 键盘/触屏：行式布局对齐 main_menu 尺寸惯例（滑条可拖动、开关/按钮可点）；
 ## open() 焦点落「返 回」，↑↓/Tab 导航 + Enter 确认（容器自动焦点邻接）。
+## 版本行（m4-k1 ①）：面板底部 `v1.0.0 (100)` 一行，文本读 ProjectSettings 单源键
+## （application/config/version + config/version_code，与 export_presets.cfg 三处
+## 强一致见 tests/unit/test_version_consistency.gd）；Label 由本脚本在 _ready 构建
+## （不触碰 .tscn，本卡所有权仅 settings_panel.gd）。
 ## 测试注入缝：settings_host（缺省探测 /root/SaveSystem）、audio（缺省探测 /root/AudioMgr）。
 
 signal setting_changed(key: String, value: Variant)
@@ -40,6 +44,10 @@ const KEY_VIBRATION := "vibration"
 const KEY_VOLUME_MASTER := "volume_master"
 const KEY_VOLUME_MUSIC := "volume_music"
 const KEY_VOLUME_SFX := "volume_sfx"
+
+# ---- 版本单源键（m4-k1 ①；与 export_presets.cfg 三处一致性强测试绑定）----
+const VERSION_KEY := "application/config/version"          # semver（Godot 内建高级键）
+const VERSION_CODE_KEY := "application/config/version_code"  # Android code 交付基线（定制键）
 
 var settings_host: Node = null   # 测试注入缝（临时路径档替身）；_ready 兜底探测 /root/SaveSystem
 var audio: Node = null           # 测试注入缝（AudioMgr 替身）；_ready 兜底探测 /root/AudioMgr
@@ -76,6 +84,38 @@ func _ready() -> void:
 	_sfx.value_changed.connect(_on_sfx_volume_changed)
 	_back.pressed.connect(_on_back_pressed)
 	_init_controls()
+	_init_version_label()
+
+
+## 底部版本行：`v1.0.0 (100)`——文本读 ProjectSettings 单源键（非第三处硬编码）。
+## Label 在 _ready 构建（追加为 Rows 末子节点 = 底部落点），面板关闭/重开不重建。
+## 垂直预算：暂停菜单路径 Rows 还会被注入「按 键」行（pause_menu.gd），面板受
+## test_pause_menu「270 视口内不溢出」钉死——此处收边距 8→3、行距 3→2 并用 9 号字
+## 把版本行的净增高压回预算内（基础路径反得 ~9px 余量）。
+func _init_version_label() -> void:
+	var margin: MarginContainer = $Center/Panel/Margin
+	var rows: VBoxContainer = $Center/Panel/Margin/Rows
+	margin.add_theme_constant_override("margin_bottom", 2)
+	rows.add_theme_constant_override("separation", 2)
+	var label := Label.new()
+	label.name = "VersionLabel"
+	label.text = _version_text()
+	label.add_theme_font_size_override("font_size", 9)
+	label.add_theme_color_override("font_color", Color(0.85, 0.82, 0.9))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_child(label)
+
+
+## 单源拼装：`v<semver> (<code>)`。内建键缺省值为 ""，此处回落钉值档并交
+## 强一致测试钉死在位（面板自身不做第三处版本事实源）。
+func _version_text() -> String:
+	var ver := str(ProjectSettings.get_setting(VERSION_KEY, "1.0.0"))
+	if ver.is_empty():
+		ver = "1.0.0"
+	var code := int(ProjectSettings.get_setting(VERSION_CODE_KEY, 100))
+	return "v%s (%d)" % [ver, code]
 
 
 ## 打开面板：可见 + 焦点落「返 回」（键盘可达的安全出口；↑↓/Tab 导航其余控件）。
