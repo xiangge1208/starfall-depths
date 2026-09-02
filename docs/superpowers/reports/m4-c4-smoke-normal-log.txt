@@ -1,0 +1,50 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BALANCE-BOT ALTAR seed=2308 floor=1 room=1 branch=buff pick=element_vision
+BOT-PROG seed=2308 t=30s floor=1 rooms=1 kills=8 hp=8
+BOT-PROG seed=2308 t=60s floor=1 rooms=2 kills=17 hp=3
+BOT-PROG seed=2308 t=90s floor=1 rooms=5 kills=26 hp=3
+BOT-PROG seed=2308 t=119s floor=1 rooms=5 kills=30 hp=3
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 48px (door>=16, player>=72), 2 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1134)
+       [2] _start_room_combat (res://core/rooms/floor_scene.gd:1125)
+       [3] choose_calamity (res://core/rooms/floor_scene.gd:2156)
+       [4] _drive_floor (res://tools/balance_bot.gd:807)
+       [5] _drive_tick (res://tools/balance_bot.gd:782)
+       [6] _run_one (res://tools/balance_bot.gd:284)
+BALANCE-BOT CALAMITY seed=2308 room=7 chose=enemy_speed
+BOT-PROG seed=2308 t=149s floor=1 rooms=6 kills=36 hp=7
+BOT-PROG seed=2308 t=179s floor=1 rooms=7 kills=42 hp=3
+BALANCE-BOT report written: docs/superpowers/reports/m4-c4-smoke-normal.md
+BALANCE-BOT RUN 1/2: seed=2308 outcome=death floor=1 rooms=7 kills=44 dur=193.3s coins=27 gems=5 hearts=0 death=苦力虫的自爆(combat)
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 64px (door>=0, player>=56), 4 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1134)
+       [2] _start_room_combat (res://core/rooms/floor_scene.gd:1125)
+       [3] choose_calamity (res://core/rooms/floor_scene.gd:2156)
+       [4] _drive_floor (res://tools/balance_bot.gd:807)
+       [5] _drive_tick (res://tools/balance_bot.gd:782)
+       [6] _run_one (res://tools/balance_bot.gd:284)
+BALANCE-BOT CALAMITY seed=2309 room=1 chose=enemy_speed
+WARNING: RoomCombat.filter_spawn_points: all points filtered at full thresholds — progressive relax 24px (door>=40, player>=96), 1 point(s), farthest-first
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] filter_spawn_points (res://core/rooms/room_combat.gd:118)
+       [1] _spawn_wave (res://core/rooms/floor_scene.gd:1134)
+       [2] _physics_process (res://core/rooms/floor_scene.gd:308)
+BOT-PROG seed=2309 t=16s floor=1 rooms=0 kills=5 hp=8
+BOT-PROG seed=2309 t=46s floor=1 rooms=1 kills=11 hp=4
+BOT-PROG seed=2309 t=75s floor=1 rooms=2 kills=18 hp=2
+BALANCE-BOT report written: docs/superpowers/reports/m4-c4-smoke-normal.md
+BALANCE-BOT RUN 2/2: seed=2309 outcome=death floor=1 rooms=2 kills=20 dur=84.5s coins=0 gems=0 hearts=0 death=双刀蜥人的接触冲撞(elite)
+BALANCE-BOT report written: docs/superpowers/reports/m4-c4-smoke-normal.md
+BALANCE-BOT DONE: 2 runs, wins=0 milestones=0 deaths=2 timeouts=0 stalls=0 crashes=0 probe_skipped=0
+WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

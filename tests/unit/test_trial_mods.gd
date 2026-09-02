@@ -188,6 +188,22 @@ func test_elite_wave_expansion_marks_only_elite_guests() -> void:
 	assert_int(out.count("kuli_bug")).is_equal(2)
 	assert_int(out.count("cave_bat")).is_equal(1)
 
+# ---------------------------------------------------------------- 9b) altar_elite_surge（m4-c4 祭坛分支读点）
+
+func test_altar_elite_surge_zero_drift_and_activation() -> void:
+	# 祭坛 elite_surge 分支唯一读点（消费端 = Altar.interact）：普通局 mods 恒 {}
+	# → 恒 false（零漂移）；elite_surge 因子（mods 键 elite_bonus_pct > 0）激活；
+	# 无关因子不串扰。
+	assert_bool(TrialMods.altar_elite_surge()).is_false()
+	_mods_set({"elite_bonus_pct": 100})
+	assert_bool(TrialMods.altar_elite_surge()).is_true()
+	_mods_set({"elite_bonus_pct": 1})
+	assert_bool(TrialMods.altar_elite_surge()).is_true()
+	_mods_set({"elite_bonus_pct": 0})
+	assert_bool(TrialMods.altar_elite_surge()).is_false()
+	_mods_set({"enemy_speed_pct": 20, "bullet_speed_pct": 25})
+	assert_bool(TrialMods.altar_elite_surge()).is_false()
+
 # ---------------------------------------------------------------- 10) force_element
 
 func test_force_element_none_by_default_and_deterministic_per_floor() -> void:

@@ -18,6 +18,7 @@ extends RefCounted
 ##   no_hearts              Shop（货架不出红心）+ FloorScene._spawn_pickup（红心掉落位→等值金币）
 ##   vision_scale           FloorScene._apply_trial_vision（BiomeFx 暗视野，整层；与 A2 叠加取更暗者）
 ##   elite_bonus_pct        TrialMods.elite_bonus_wave_ids（精英房波次精英数 ×(1+pct%)）
+##                          + TrialMods.altar_elite_surge（m4-c4：战斗房祭坛交互分支切精英）
 ##   force_element          WeaponRig.element_hit_profile（本层一切元素附魔统一转为层元素）
 
 const ENEMY_BULLET_SPEED_CAP_PX := 150.0   # GDD §7.5：敌方弹速上限（bullet_haste 封顶口径）
@@ -102,6 +103,13 @@ static func elite_extra_copies() -> int:
 	if pct <= 0.0:
 		return 0
 	return int(round(pct))
+
+## elite_surge 祭坛分支读点（m4-c4）：elite_bonus_pct 因子激活（>0）时，战斗房增益
+## 祭坛的交互分支改为「追加 1 精英」（消费端 = Altar.interact）。与 elite_extra_copies
+## 同 mods 键单点（trials.json 因子 elite_surge → mods 键 elite_bonus_pct），
+## 普通局/无因子恒 false（零漂移）。
+static func altar_elite_surge() -> bool:
+	return _pct("elite_bonus_pct") > 0.0
 
 # ---- 10) force_element（元素独尊） ----
 ## 本层强制元素（Elements.Id；NONE = 无因子/非 random 值域）。层元素由

@@ -108,6 +108,8 @@ var _plan_idx := 0                       # M3-B1：按计划索引推进（修 M
 var _plan_fs: FloorScene = null
 var _shop_done := {}
 var _event_done := {}
+var _altar_done := {}                        # m4-c4：祭坛交互一次性键（层号×房号）
+var _altar_events: Array[String] = []        # m4-c4：逐次祭坛交互记录（buff:<id>/elite）
 var _buff_picks: Array[String] = []
 var _wander_sign := 1.0
 var _wander_next_switch := 0
@@ -342,6 +344,7 @@ func _run_one(seed: int) -> String:
 		"gems": RunState.gems,
 		"hearts": _hearts_bought,
 		"buffs": ",".join(_buff_picks),
+		"altars": ",".join(_altar_events),
 		"death_floor": int(_death_report.get("stats", {}).get("floor", 0)) if _fatal else 0,
 		"death_cause": String(_death_report.get("cause", "")) if _fatal else "",
 		"death_room_type": _death_room_type if _fatal else "",
@@ -717,6 +720,8 @@ func _reset_run_state(p_seed: int) -> void:
 	_plan_fs = null
 	_shop_done = {}
 	_event_done = {}
+	_altar_done = {}
+	_altar_events = []
 	_buff_picks = []
 	_wander_sign = 1.0
 	_wander_next_switch = 0
@@ -824,6 +829,14 @@ func _drive_floor(fs: FloorScene, player: Player) -> void:
 		_event_done[fkey] = true
 		_do_event(room)
 		return
+	# m4-c4：战斗房增益祭坛（已清房交互，同商店/事件一次性键语义；elite 分支追加的
+	# 精英不计波次 → 下一拍 guests 非空回战斗驱动，战完继续走图）。
+	if rtype == "combat" and not _altar_done.has(fkey):
+		var altar := _altar_in_room(room)
+		if altar != null and altar.can_interact(player):
+			_altar_done[fkey] = true
+			_do_altar(altar, player, room_id)
+			return
 	var nxt := _next_room(fs)
 	if nxt >= 0 and nxt != room_id and fs.enter_room(nxt):
 		# m3-fix1：落位补齐（停滞残余家族，探针实证 seed 3010/3021）。bot 无走廊
@@ -1130,6 +1143,35 @@ func _do_event(room: FloorScene.FloorRoom) -> void:
 		if c is EventRoom and (c as EventRoom).ui_visible():
 			(c as EventRoom).accept()   # bot 策略：一律接受（正负事件同权重，披露）
 			return
+
+
+## m4-c4：祭坛交互（生产接口路径，同 Shop.interact 惯例）。增益分支走
+## BalanceBotDecisions.greedy_pick（同层间三选一贪心策略）；elite_surge 分支交互即
+## 追加精英（波次外嘉宾），交由后续战斗驱动自然清场。
+func _altar_in_room(room: FloorScene.FloorRoom) -> Altar:
+	for c in room.get_children():
+		if c is Altar:
+			return c
+	return null
+
+
+func _do_altar(altar: Altar, player: Player, room_id: int) -> void:
+	altar.interact(player)
+	if not altar.offerings().is_empty():
+		var rows := {}
+		for id: String in altar.offerings():
+			rows[id] = GameDB.get_buff(id)
+		var pick: String = BalanceBotDecisions.greedy_pick(altar.offerings(), rows,
+			player.hp_max - player.hp)
+		_buff_picks.append(pick)
+		_altar_events.append("buff:%s" % pick)
+		altar.choose(altar.offerings().find(pick))
+		print("BALANCE-BOT ALTAR seed=%d floor=%d room=%d branch=buff pick=%s"
+			% [_cur_seed, RunState.floor_idx, room_id, pick])
+	else:
+		_altar_events.append("elite")
+		print("BALANCE-BOT ALTAR seed=%d floor=%d room=%d branch=elite"
+			% [_cur_seed, RunState.floor_idx, room_id])
 
 
 # ---------------- 层间（三选一贪心 → 喷泉 → 门） ----------------
@@ -1752,7 +1794,7 @@ func _write_md_findings(f: FileAccess, wr: float, cr: float) -> void:
 func _write_md_disclosure(f: FileAccess) -> void:
 	f.store_line("## 接口边界与前提披露")
 	f.store_line("")
-	f.store_line("- **接口边界**：bot 只经由生产接口操作——Input 移动、`PlayerDriver.touch_mode_override`（生产触屏 auto_aim 自动开火，手机玩家同路径）+ 战斗期按住物理 fire、`player.start_roll`/`Skill.cast`（CD/耗蓝守卫在生产侧）、`FloorScene.enter_room`（生产 enter_room→_push_back 落位，走廊徒步不模拟，同 m1_loop_smoke 惯例）、`Shop.interact` + `_buy_item(\"heart\")`（RunState.spend_coins 扣款）、`EventRoom.accept`（bot 一律接受）、层间三回调。伤害/击杀/掉落/金币全部由生产战斗链路自然发生；bot 不使用熔铸台/雕像/饮料机（商店仅买红心）。")
+	f.store_line("- **接口边界**：bot 只经由生产接口操作——Input 移动、`PlayerDriver.touch_mode_override`（生产触屏 auto_aim 自动开火，手机玩家同路径）+ 战斗期按住物理 fire、`player.start_roll`/`Skill.cast`（CD/耗蓝守卫在生产侧）、`FloorScene.enter_room`（生产 enter_room→_push_back 落位，走廊徒步不模拟，同 m1_loop_smoke 惯例）、`Shop.interact` + `_buy_item(\"heart\")`（RunState.spend_coins 扣款）、`EventRoom.accept`（bot 一律接受）、`Altar.interact` + `Altar.choose`（m4-c4 祭坛生产交互/选卡缝：增益分支同层间三选一贪心、elite_surge 分支交互即追加精英，逐局表 altars 列可查）、层间三回调。伤害/击杀/掉落/金币全部由生产战斗链路自然发生；bot 不使用熔铸台/雕像/饮料机（商店仅买红心）。")
 	f.store_line("- **种子口径**：`RunState.start_run` 墙钟种子被 `RunState.run_seed = seed` + `RngSvc.setup_run(seed)` 确定性覆写（start_run 其余状态不变）；bot 决策采样用独立 `_rng`（同种子播种）——同 seed 可复现整局（bot 行为侧；敌人 AI 消费 RunState 盐流，同种子同确定性）。")
 	f.store_line("- **局间隔离**：每局 `start_run` 重置局内状态；SaveSystem 原状保留（headless 自动重定向 save_headless.json，真档不受影响）——图鉴/成就计数与 Boss 首杀标记跨局累积（真实玩家成长模拟），vine_colossus 首杀 +300 只落批次首局（逐局表「首杀可获」列可查）。多局会推进 save_headless.json 的图鉴/解锁进度，属产品正确行为（裁定㉒口径）。")
 	f.store_line("- **胜/死捕获**：生产测试缝 `run_root.victory_route_override` / `DeathRecorder.open_summary_override`（死亡报告 = DeathRecorder.build_report 生产口径）；终局蓝晶**不入档**（无 DeathSummary/VictorySummary 确认路径）。")
