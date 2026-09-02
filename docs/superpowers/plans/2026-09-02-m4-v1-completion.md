@@ -29,7 +29,7 @@
 | 2 | 英雄被动 4 条 data-only（spare_parts/echo/blessing/shadow_reap） | M2-T33 + m2-gate §5 | C-2 |
 | 3 | 10 个无消费者增益键（rig 5 + 展示 3 + heart_sense + anti_poison） | M2-T35 + m2-gate §5 | C-3 |
 | 4 | codex_seen 无写入方（collector/grand_collector 成就事实不可达） | M2-T33 §2.4 | C-3 |
-| 5 | 暴击弹专用帧（元素弹帧已随 M3 落地，核对无缺） | M2 审计美术 I 束 | A-1 |
+| 5 | 暴击弹专用帧（元素弹帧已随 M2-T27 落地并核对在库；本卡复刻其管线） | M2 审计美术 I 束 | A-1 |
 | 6 | 美术 QA 三重校验（对比度/剪影/接缝）仅覆盖 fx+trials，M1/M2 产物零覆盖 | GDD §16.1/§21 | A-2 |
 | 7 | 增益祭坛设施不存在 → elite_surge 因子半边悬置 | m3-fix1 §残留 | C-4 |
 | 8 | 可破坏物机制不存在 → demolition 成就 BLOCKED | M2-T33 §2.4 | C-5 |
@@ -43,7 +43,7 @@
 | 16 | 蓝晶经济模拟（门禁操作化明文要求，零执行） | M2 审计 + GDD §14.3 | B-4 |
 | 17 | 胜率/单层/单局三带 bot 不可评 → bot 过层能力 | M3-B2 终判 | B-3/B-4 |
 | 18 | A1 TTK 4.5s 出带 2.25×（超窗，真人数据优先） | M3-B1/B-2 | TTK-R 协议 |
-| 19 | Android 真机 60fps + 触屏全流程 | M3 附条件 | 用户侧（有设备时） |
+| 19 | Android 真机 60fps + 触屏全流程；核显笔记本真测；节流窗 60fps 静默会话复测（X-B 三项移交） | M3 附条件 | 用户侧（有设备/环境时） |
 
 ## 执行期波次总表（依赖 tag `m3`；每波 ≤3 实现者，束间文件所有权互不相交）
 
@@ -63,28 +63,38 @@
 | W5 | B-4 | 经济模拟（三点带判定）+ bot 100 局全量复跑（残差率+过层数据） | B-3, C-1~C-5(内容全上) | `tools/`(economy_sim 新), `docs/superpowers/reports/m4-*.md/json`, `data/*.json`(仅窗口内修订) |
 | W6 | G-1 | **M4 门禁**：全量绿 + 消费端零孤儿审计 + 经济带判定 + 集成守卫 + tag `m4` | 全部 | `docs/superpowers/reports/m4-gate-*.md` |
 
-> 计 13 卡 = C×5 / A×2 / K×3 / B×2 / G×1。TTK-R 为数据触发协议卡（非排期）；Android 真机与 LOGO 定稿为用户侧动作项。
+> 计 13 卡 = C×5 / A×2 / K×3 / B×2 / G×1。TTK-R 为数据触发协议卡（非排期）；Android 真机/核显本/静默会话复测与 LOGO 定稿为用户侧动作项。
+
+## 不在 M4 范围的已记录偏差（防静默丢失，均有出处）
+
+| 偏差 | 出处 | 处置 |
+|---|---|---|
+| 敌 AI 相位非确定性（同种子结局有分布漂移，跨批对比只有分布意义） | fix1/B-2 披露 | 记录为已知偏差，M4 不修（RNG 穿透 AI 相位属深改，收益限 bot 回归精度） |
+| AudioMgr 自有 float 音量键与面板 int 键双轨 | settings_panel.gd 头注已声明 | 已声明实现细节，不判双源冲突 |
+| A2 光圈为折叠口径非真实光照（K-3 修复后覆盖弹幕+预警纹+伤害数字+粒子，仍非全场景光照） | T37/fix1 探针矩阵（真实光照 +47 draw 被否决） | 设计取舍入档，等真机观感反馈再议 |
+| save 竞态仅存在于 headless 并行多进程（单进程产品路径无竞态） | B-1/fix1 披露 | B-3 以 per-process 隔离解决 bot 侧；产品侧无需动作 |
+| bot 与真人能力差（瞄准/走位/无成长学习） | B-2 终判 | 结构性：胜率/手感带以真人数据为权威（TTK-R 与用户自测清单承载） |
 
 ---
 
 ### Task C-1: 敌人派味特技 ×8+3
 
 **Files:** `core/enemies/archetypes/*`（行为段）、`core/combat/projectile.gd`（抛物线参数）、`core/rooms/`（水洼 zone/落地生怪/拉拽钩子）、`data/enemies.json`（行为参数键 + `tools/` schema 同步）、`tests/unit/test_signature_moves.gd`（新）
-**规格:** task-33 §6.1 表 8 项逐条实现：`hardshell_turtle` 龟缩（缩壳免疫窗口）、`thorn_turret` 抛物线弹（重力弹道）、`moss_slime` 水洼提速（zone 生成与增益）、`seed_pitcher` 落地生怪（弹着点生成苗）、`magnet_golem` 拉拽（对玩家位移力）、`frost_crab` 钳击（横扫预警+高伤）、`crystal_rat` 偷币（接触窃取金币）、`echo_lurker` 模仿武器（复制玩家武器弹形）。相邻 3 项（幽光水母电弧链/熔岩犬两段咬/火雨祭司火雨区）一并实现；确属超范围者经编排者裁定豁免并记录。每项带遥测事件 + 单测；行为参数 data 驱动（schema fail-closed）；弹幕走既有预算/预警规范（§7.5）。
+**规格:** 规格源=task-33 §6.1 表 + task-9 原表（:77-91），逐条实现：`hardshell_turtle` 龟缩（缩壳免疫态，正面减伤 0.8 已存在、其上叠加）、`thorn_turret` 抛物线弹（projectile 重力/弧线参数）、`moss_slime` 水洼提速（zone 生成与增益）、`seed_pitcher` 落地生怪（弹着点 30% 生苗，表参数）、`magnet_golem` 拉拽（对玩家位移力）、`frost_crab` 钳击（预警扇区横扫+高伤）、`crystal_rat` 偷币（接触窃取金币+逃跑）、`echo_lurker` 模仿武器（复制玩家武器弹形）。相邻 3 项（幽光水母电弧链/熔岩犬两段咬/火雨祭司火雨区，task-33 尾注）一并实现；确属超范围者经编排者裁定豁免并记录。每项带遥测事件 + 单测；行为参数 data 驱动（schema fail-closed）；弹幕走既有预算/预警规范（§7.5）。task-33 定性提醒：属敌型风味打磨、非门禁链路依赖——**不得破坏房间可清不变量**（bot 冒烟验证）。
 - [ ] 验收：11 项行为可玩可测（或豁免裁定入档）+ 全量绿 + bot 冒烟 10 局无新停滞（新行为不卡死房间可清不变量）。
 - [ ] Commit `feat(m4-c1): enemy signature mechanics ×11`
 
 ### Task C-2: 英雄被动 ×4
 
 **Files:** `core/combat/combat_system.gd`（echo 伤害 roll）、`core/rooms/run_root.gd`（blessing 层入口/spare_parts 换层）、`core/summons/turret.gd`（spare_parts 补台，cap=heroes.summon_cap）、`core/player/melee.gd`+`core/player/player.gd`（shadow_reap 近战击杀返蓝+翻滚 CD 门控）、`tests/unit/test_hero_passives.gd`（新）
-**规格:** GDD §6 表 + hero_select.gd:18-23 文案：**echo**（mage）法杖/激光类（weapons.json category）伤害 +15%；**blessing**（guardian）每层入口回满盾 + 5% 全伤每层叠加至 4 层；**spare_parts**（engineer）开局/每层补 1 台炮台（尊重 summon_cap，超 cap 不补或替换最旧——按 summons 既有语义）；**shadow_reap**（assassin）近战击杀返 5 蓝 + 下 1s 翻滚无 CD。先例参照：defiance（player.gd:66,397-411）、hawk_eye（ranger_shadowstep.gd:43-81 EventBus 监听模式）。每被动单测钉死数值与触发边界；`tests/unit/test_heroes.gd:65-106` 数据钉不可回退。
+**规格:** GDD §6 表逐字：**echo**（法师·烬）法杖/激光类（weapons.json category）伤害 +15%；**blessing**（守护者·萄）每进入新层回满护盾 + 5% 全伤害单局叠至 4 层；**spare_parts**（工程师·铆）开局带 1 台便携炮台（存活 12s/DPS 15）+ 每层补 1 台，**与主动技能共用库存上限 2**（GDD 明文，超限不补或替换最旧按 summons 既有语义）；**shadow_reap**（刺客·蝉）近战击杀返 5 蓝 + 下 1s 翻滚无 CD。先例参照：defiance（player.gd:66,397-411）、hawk_eye（ranger_shadowstep.gd:43-81 EventBus 监听模式）。每被动单测钉死数值与触发边界；`tests/unit/test_heroes.gd:65-106` 数据钉不可回退。
 - [ ] 验收：4 被动真人可感（bot 冒烟含 4 英雄各 ≥2 局无异常）+ 全量绿。
 - [ ] Commit `feat(m4-c2): hero passives ×4 live`
 
 ### Task C-3: 增益消费端 ×10 键 + codex_seen 写入方
 
 **Files:** `core/combat/combat_system.gd`（rig 5 键伤害/复仇 roll）、`core/combat/resonance.gd`（共振半径/时长）、`core/enemies/archetypes/*`（展示 3 键：telegraph 强化/高亮描边）、`core/rooms/`掉落侧（heart_sense 红心掉率）、`core/player/player.gd`（anti_poison 毒免疫，仿 anti_ice:317 模式）、`core/meta/codex_system.gd` + 获取点（codex_seen 写入：默认池首取 ∪ 掉落/商店/熔铸/任务解锁）、`tests/unit/`（扩展）
-**规格:** buff_manager.gd:184-186「消费方待接线」注记清账：RIG_META_KEYS ×5 与 PLAYER_META_KEYS 全键按 buffs.json 行效果接线（hunter=对异常状态敌伤害%、avenger=受击后复仇%、resonance_amp=共振半径/时长、展示 3 键=预警纹可见性/元素标记/共振范围提示，按行 desc 落地）；heart_sense=红心掉率 roll；anti_poison=中毒免疫。codex_seen 写入方落地后 collector/grand_collector 成就自动切权威口径（achievement_system.gd:405-413 回落逻辑不删，验证切换）；两成就达成路径单测（模拟 50/115 见集）。
+**规格:** buff_manager.gd:184-186「消费方待接线」注记清账，**10 键全列**（buff_id → meta 键映射在 buffs.json 行）：rig 5 = `dmg_vs_statused_pct`（hunter，对异常状态敌伤害%）、`resonance_radius_pct` + `resonance_duration_ticks`（resonance_amp 共振半径/时长）、`vengeance_pct` + `vengeance_ticks`（avenger 受击后复仇）；展示 3 = `element_vision`、`telegraph_bonus_ticks`、`resonance_vision`（按行 desc 落地预警纹/元素标记/共振范围提示）；`heart_sense_pct`（红心掉率 roll，掉落侧）；`anti_poison`（毒免疫，仿 player.gd:317 anti_ice 模式）。codex_seen 写入方落地后 collector/grand_collector 成就自动切权威口径（achievement_system.gd:405-413 回落逻辑不删，验证切换，写入集=默认池首取 ∪ 掉落/商店/熔铸/任务解锁）；两成就达成路径单测（模拟 50/115 见集）。
 - [ ] 验收：10 键 grep 消费端齐 + codex_seen 写入方 + 两成就可达性单测 + 全量绿。
 - [ ] Commit `feat(m4-c3): buff consumers ×10 + codex_seen writer`
 
@@ -98,21 +108,21 @@
 ### Task C-5: 可破坏物机制 + demolition 成就
 
 **Files:** `core/rooms/`（props 伤害入口/破坏结算/掉落）、`core/meta/achievement_system.gd`（1 行 notify）、`fx/`（破坏表现，走粒子预算）、`tests/unit/`
-**规格:** task-33 §2.4：props（pillar/crate/bush）从静态阻挡升级为可破坏——伤害入口接 combat_system 判定流（固定伤害制）、HP 入 data、破坏结算（阻挡消失 + 小额掉落/无掉落按行）+ `notify_prop_destroyed()` 遥测；demolition 成就（拆迁办，gems 50）1 行接线激活。Boss 战蜂巢柱（可破坏掩体）既有特例不回归。可破坏物不进弹幕预算（独立池小上限）。
+**规格:** task-33 §2.4：props（pillar/crate/bush）从静态阻挡升级为可破坏——伤害入口接 combat_system 判定流（固定伤害制）、HP 入 data、破坏结算（阻挡消失 + 小额掉落/无掉落按行）+ `notify_prop_destroyed()` 遥测；demolition 成就（拆迁办，gems 50）1 行接线激活。Boss 战蜂巢柱（可破坏掩体）既有特例不回归。可破坏物不进弹幕预算（独立池小上限）。成就计数口径：M2 末 21/22 非试炼激活（demolition blocked）+ M3 试炼 2 条 = 现 23/24，本卡后 **24/24**。
 - [ ] 验收：demolition 成就 24/24 全激活口径达成（22+1 试炼 2 已在 M3 活 → 本卡后全活）+ 全量绿 + perf 抽验 draw 无回归。
 - [ ] Commit `feat(m4-c5): destructible props + demolition achievement`
 
 ### Task A-1: 暴击弹专用帧
 
 **Files:** `tools/gen_placeholder_art*.py`（crit 变体生成）、`core/art/art_lookup.gd`（projectile_texture_path crit 参数）、`core/rooms/room_combat.gd`（_sync_bullet_visuals 消费）、`tests/unit/test_art_lookup.gd`（追加）
-**规格:** 元素弹帧（elem_*.png）先例复刻：暴击弹专用帧（金色描边/强化发光变体，玩家+敌弹两套）；消费端在既有暴击判定点切换纹理（暴击 roll 已是唯一随机乘区，纹理切换零判定影响）；A-2 校验管线自动纳入新帧。
+**规格:** M2-T27 元素弹帧（`save_elem_bullet`，gen_placeholder_art.py 弹丸节）先例复刻：暴击弹专用帧（金色描边/强化发光变体，玩家+敌弹两套）；优先走 `gen_projectiles_scoped()` 窄通道再生（不触发全量 main，prune 风险隔离；A-2 已在前波落地 keep 集修复则不受限）；消费端 `room_combat.gd:535-549 _sync_bullet_visuals` 在既有暴击判定点切换纹理（暴击 roll 已是唯一随机乘区，纹理切换零判定影响）；A-2 校验管线自动纳入新帧。
 - [ ] 验收：暴击弹可视可辨（暴击时弹体变体切换）+ 校验过 + 全量绿。
 - [ ] Commit `feat(m4-a1): crit bullet frames`
 
 ### Task A-2: 美术 QA 三重校验全管线
 
 **Files:** `tools/`(新 `art_qa_check.py` 或扩展 spritegen_m3)、`tools/gen_placeholder_art.py`/`gen_placeholder_art_m2.py`（校验接线）、`tests/unit/test_art_pipeline.gd`（扩展）
-**规格:** GDD §16.1/§21 + roadmap 口径：对比度（前景/背景亮度差 ≥30）、剪影（30% 亮度轮廓可辨，IoU ≥0.85）、接缝（瓦片/walk 帧序列邻接连续性——spritegen_m3 现有帧序列项对齐 roadmap「接缝」命名）；覆盖面从 fx+trials 扩到**全部 art/generated/**（M1/M2 产物：瓦片/角色/敌人/弹幕/UI）；失败 fail-closed（生成管线退出码）；测试化（test_art_pipeline 挂 venv python）。存量产物先跑基线，超阈值项列清单交编排者裁定（修资产或调阈值，不许静默放过）。
+**规格:** **前置必修（P0，2026-08-31 prelude 审查遗留、从未落卡）**：`gen_placeholder_art.py` `_prune_stale()`（:1838-1857）keep 集仅含 M1 SPEC + MANIFEST/preview/.gitkeep——全量跑 M1 管线会**静默删除 M3/M4 资产子树**（`art/generated/fx/`、`trials/`、`icon/`）。先扩展 prune 豁免非本管线子树（或 keep 集纳入），配回归测试（dry-run prune 清单断言三子树零删除），此后全量 main() 方可解禁（裁定⑪保留至本项落地）。主体：GDD §16.1/§21 + roadmap 口径三重校验——对比度（前景/背景亮度差 ≥30）、剪影（30% 亮度轮廓可辨，IoU ≥0.85）、接缝（瓦片/walk 帧序列邻接连续性——spritegen_m3 现有帧序列项对齐 roadmap「接缝」命名）；覆盖面从 fx+trials 扩到**全部 art/generated/**（M1/M2 产物：瓦片/角色/敌人/弹幕/UI）；失败 fail-closed（生成管线退出码）；测试化（test_art_pipeline 挂 venv python）。存量产物先跑基线，超阈值项列清单交编排者裁定（修资产或调阈值，不许静默放过）。
 - [ ] 验收：全量产物三重校验 PASS（或超阈清单有裁定）+ 测试化 + 全量绿。
 - [ ] Commit `feat(m4-a2): art QA triple-check pipeline`
 
@@ -147,7 +157,7 @@
 ### Task B-4: 经济模拟 + bot 全量复跑
 
 **Files:** `tools/economy_sim.py`（新，读 balance JSON gems_curve + SaveSystem 价格表）、`docs/superpowers/reports/m4-economy.md`、`docs/superpowers/reports/m4-balance-rerun.md/json`
-**规格:** ①经济模拟（GDD §14.3 三点带判定）：产出侧=bot 局蓝晶产出率（gems_curve 逐层快照 + §14.1 规则：层通过 60/120/200、Boss 首杀 300、成就 50~500、试炼 ×1.5、死亡保留 50%）；消费侧=价格表（角色 2000/2000/5000/5000/8000、强化 1500/名、天赋树/图鉴成本从 SaveSystem/GameDB 读实值）；模拟 20h 时间序列 → 三点判定：2~3h 解锁第 1 角色 / 10h 天赋树 60% / 20h 图鉴 80%。出带→修订窗口内调产出/价格（≤±20%）或记录超限意向。②bot 100 局全量复跑（种子 3401..3500）：残差率终验 + bot 过层能力数据（若可达 F2/F3 → 单层/单局时长带首次 bot 可评；不可达则记录能力边界，时长带维持用户自测口径）。
+**规格:** ①经济模拟（GDD §14.3 三点带判定）——**模型策略防虚假精度**：产出侧以 §14.1 规则解析模型为主（层通过 60/120/200、Boss 首杀 300、成就 50~500、试炼 ×1.5、死亡保留 50%），bot 局 `gems_curve` 数据为辅校准；**过层率参数必须扫参**（当前 bot 89/100 死于 F1、F1 gems 多为 0——bot 直接实测层通过收入不可行，过层能力依赖 B-3 结果），对过层分布做敏感性区间（乐观/悲观/目标 §14.3 胜率曲线三档），三点判定（2~3h 解锁第 1 角色 / 10h 天赋树 60% / 20h 图鉴 80%）按区间结论汇报而非单点；消费侧=价格表实值（角色 2000/2000/5000/5000/8000、强化 1500/名、天赋/图鉴成本从 SaveSystem/GameDB 读）。出带→修订窗口内调产出/价格（≤±20%）或记录超限意向。②bot 100 局全量复跑（种子 3401..3500）：残差率终验 + bot 过层能力数据（若可达 F2/F3 → 单层/单局时长带首次 bot 可评；不可达则记录能力边界，时长带维持用户自测口径）。
 - [ ] 验收：经济三点带判定表（带内/出带+修订台账）+ 100 局复跑报告 + 全量绿。
 - [ ] Commit `feat(m4-b4): economy sim + balance rerun`
 
