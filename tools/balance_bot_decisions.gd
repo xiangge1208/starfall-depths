@@ -36,6 +36,18 @@ const BOMBER_ROLL_PROB := 0.9        # 爆炸临身翻滚概率（到点必炸�
 const WALL_AVOID_PX := 20.0          # 软避墙带（贴墙风筝即挨打）
 const WALL_AVOID_W := 0.8            # 软避墙分量（弱于出界强拉回，压过微弱漂移）
 
+# ---------------- m4-b3② shooter 接近带（弩兵等风筝型；m3-fix2 §2.1.3 残差主因） ----------------
+const SHOOTER_APPROACH_W := 1.2      # 威胁下向超带 shooter 的趋近主分量（1.2 压过单弹
+                                     # 斥力中段的 -0.64 与反向 juke 的 -0.7：8 向量化后
+                                     # 趋近轴仍被按下，净距离收敛；近距弹斥力 2.0 级
+                                     # 仍优先——躲避优先级不变）
+
+# ---------------- m4-b3③ 实体斥力场（柱/箱/墙；3271-a3 Seek 楔死柱面实证修法） ----------------
+const SOLID_AVOID_PX := 14.0         # 实体面外斥力带宽（玩家 r=6 + 8px 缓冲）
+const SOLID_WEIGHT := 1.4            # 垂直离面分量（带宽内线性衰减）
+const SOLID_SLIDE_W := 0.7           # 切向滑移分量（纯径向斥力与 Seek 对顶时合力为零
+                                     # 仍楔死——滑移保证沿面绕行，符号随 wander_sign 确定）
+
 # ---------------- 翻滚（概率触发，受玩家翻滚 CD 自然限频） ----------------
 const ROLL_RADIUS_PX := 28.0         # 贴弹触发半径（省 CD——翻滚优先留给确定性大伤：
                                      # 自爆 AoE / 冲锋；普通弹多数靠走位已能甩掉）
@@ -61,12 +73,16 @@ const OFFENSE_EFFECT_KEYS := ["atk_speed_pct", "extra_projectiles", "crit_pct",
 ## bullets: [{pos: Vector2, vel: Vector2}]；enemies: [Vector2]（brain_pos）；
 ## hazard_zones: [Rect2]（世界坐标判定域）；bounds: 已收缩的可玩内域；
 ## bombers: [{pos: Vector2, radius: float, armed: bool}]（自爆型敌人；armed=引信
-## 已点燃——未点燃走温和保距，点燃走强逃，缺省 armed=true）。
-## 优先级：出界强拉回 > 弹幕斥力 > 爆炸域斥力 > hazard 斥力 > 近敌拉开 > 距离带维持
-## > 软避墙（贴墙带内向分量）。
+## 已点燃——未点燃走温和保距，点燃走强逃，缺省 armed=true）；
+## shooters: [Vector2]（m4-b3② 风筝型射击敌人 brain_pos，弩兵等；威胁下超带趋近）；
+## solids: [Rect2]（m4-b3③ 房内实体矩形，世界坐标——柱/箱/墙，同
+## FloorScene._room_solid_rects 契约）。
+## 优先级：出界强拉回 > 弹幕斥力 > 爆炸域斥力 > hazard 斥力 > 实体斥力场
+## > 近敌拉开 > 距离带维持（威胁下超带 shooter 趋近）> 软避墙（贴墙带内向分量）。
 static func combat_move_dir(pos: Vector2, bounds: Rect2,
 		bullets: Array, enemies: Array, hazard_zones: Array,
-		wander_sign: float, bombers: Array = []) -> Vector2:
+		wander_sign: float, bombers: Array = [], shooters: Array = [],
+		solids: Array = []) -> Vector2:
 	var dir := Vector2.ZERO
 
 	# 1) 弹幕斥力：只躲正在逼近的弹（距离越近权重越大，线性衰减）+ 切向 juke。
@@ -104,7 +120,7 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 					and db > 0.1:
 				dir += away_b.normalized() * BOMBER_KEEPAWAY_WEIGHT
 
-	# 2) hazard 域斥力（地刺/岩浆/间歇泉/藤蔓）：域最近点方向的固定权重。
+	# 3) hazard 域斥力（地刺/岩浆/间歇泉/藤蔓）：域最近点方向的固定权重。
 	for zone: Rect2 in hazard_zones:
 		var closest := Vector2(
 			clampf(pos.x, zone.position.x, zone.end.x),
@@ -117,7 +133,12 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 		if dz < HAZARD_AVOID_PX:
 			dir += away.normalized() * HAZARD_WEIGHT
 
-	# 3) 敌人相对位：近敌拉开（退避+切向）；带内环绕走位；带外趋近/拉开。
+	# 4) m4-b3③ 实体斥力场：带宽内线性离面斥力 + 最近面切向滑移（Seek/走位顶死
+	#    柱面时「径向斥力与寻的分量对顶 → 合力为零」的楔死被滑移打破，沿面绕行）。
+	#    滑移以「本步之前的意图向量」定向（帮助绕行而非对顶）。
+	dir += _solid_repulsion(pos, solids, dir, wander_sign)
+
+	# 5) 敌人相对位：近敌拉开（退避+切向）；带内环绕走位；带外趋近/拉开。
 	if not enemies.is_empty():
 		var nearest_d := INF
 		var nearest := Vector2.ZERO
@@ -138,7 +159,22 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 				dir -= away_e
 			dir += orbit                     # 带内/带外调整都叠加环绕（永不停步）
 
-	# 4) 软避墙：贴墙带内先离墙（风筝被逼到墙角 = 挨打面最大化；硬拉回见 5）。
+	# 5.5) m4-b3② shooter 接近带：威胁下上面整段距离带逻辑被跳过（has_threat 分支），
+	#      弩兵等风筝原型把 bot 拖入 150~200px 恒距（fix2 §2.1.3 实证）。超带最近
+	#      shooter 给恒定趋近主分量——近距弹斥力（2.0 级）仍优先，中远距净趋近；
+	#      距离 ≤ 带上沿即停（不推入对方风筝保距域内应）。
+	if has_threat and not shooters.is_empty():
+		var ns_d := INF
+		var ns_v := Vector2.ZERO
+		for s: Vector2 in shooters:
+			var d: float = s.distance_to(pos)
+			if d < ns_d:
+				ns_d = d
+				ns_v = s - pos
+		if ns_d > RANGED_BAND_MAX_PX and ns_d > 1.0:
+			dir += ns_v / ns_d * SHOOTER_APPROACH_W
+
+	# 6) 软避墙：贴墙带内先离墙（风筝被逼到墙角 = 挨打面最大化；硬拉回见 7）。
 	if pos.x - bounds.position.x < WALL_AVOID_PX:
 		dir.x += WALL_AVOID_W
 	elif bounds.end.x - pos.x < WALL_AVOID_PX:
@@ -148,7 +184,7 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 	elif bounds.end.y - pos.y < WALL_AVOID_PX:
 		dir.y -= WALL_AVOID_W
 
-	# 5) 出界拉回（近墙时该轴强制至少 1.0，压过其它分量——卡墙即挨打）。
+	# 7) 出界拉回（近墙时该轴强制至少 1.0，压过其它分量——卡墙即挨打）。
 	if pos.x < bounds.position.x:
 		dir.x = maxf(dir.x, 1.0)
 	elif pos.x > bounds.end.x:
@@ -158,6 +194,76 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 	elif pos.y > bounds.end.y:
 		dir.y = minf(dir.y, -1.0)
 	return dir
+
+
+## m4-b3③ 实体斥力场内部：rep = 全部带内实体的线性衰减离面分量之和；
+## slide = 仅最近实体的切向滑移（方向与 intent 同侧——帮助绕行而非对顶；
+## intent 切向投影为 0 时回落 wander_sign）。滑移只取最近面：多面滑移按
+## intent 各自对齐后仍会互拍抵消（probe-3230-a2 实证：两枚错切向箱面的
+## 对齐滑移相加后垂直分量净剩 0.245 < 8 向 0.35 阈值 → 玩家单轴按压顶死
+## 箱面）；单滑移的切向轴分量结构性 ≥ SOLID_SLIDE_W（|b+0.7σ| ≥ 0.7）。
+static func _solid_field(pos: Vector2, solids: Array, intent: Vector2,
+		wander_sign: float) -> Dictionary:
+	var rep := Vector2.ZERO
+	var slide := Vector2.ZERO
+	var slide_d := INF
+	for r: Rect2 in solids:
+		var closest := Vector2(
+			clampf(pos.x, r.position.x, r.end.x),
+			clampf(pos.y, r.position.y, r.end.y))
+		var away := pos - closest
+		var d := away.length()
+		if d >= SOLID_AVOID_PX:
+			continue
+		if d < 1.0:
+			away = pos - r.get_center()
+			d = maxf(away.length(), 1.0)
+		var n := away / d
+		rep += n * (SOLID_WEIGHT * (1.0 - d / SOLID_AVOID_PX))
+		if d < slide_d:
+			slide_d = d
+			var t := Vector2(-n.y, n.x)
+			var s := signf(t.dot(intent))
+			if s == 0.0:
+				s = wander_sign
+			slide = t * (SOLID_SLIDE_W * s)
+	return {"rep": rep, "slide": slide}
+
+
+static func _solid_repulsion(pos: Vector2, solids: Array, intent: Vector2,
+		wander_sign: float) -> Vector2:
+	var f := _solid_field(pos, solids, intent, wander_sign)
+	return (f["rep"] as Vector2) + (f["slide"] as Vector2)
+
+
+## m4-b3③ 寻的向量过实体斥力场（已清房拾取/走位寻的共用；combat_move_dir 内嵌
+## 同一场）。seek 允许任意模长（调用方可直传「目标−自身」距离向量），非空 solids
+## 时归一为 O(1) 意图向量再加斥力——斥力/滑移分量是 O(1) 量级，未归一的大模长
+## seek 会把它们淹没（3230 复跑实证：47px seek 吞掉 ±0.7 滑移 → 8 向量化垂直
+## 分量低于 0.35 阈值 → 依旧顶死柱面）。solids 空 / seek 零向量 = 原样直通。
+## 死区兜底：合成向量双轴都落入 8 向 0.35 阈值时（径向污染吃掉滑移轴的极端
+## 几何），整体退到「最近面滑移方向」——切向轴 ≥0.7 保底运动。
+static func seek_with_solids(seek: Vector2, pos: Vector2, solids: Array,
+		wander_sign: float) -> Vector2:
+	if solids.is_empty() or seek == Vector2.ZERO:
+		return seek
+	var intent := seek.normalized()
+	var f := _solid_field(pos, solids, intent, wander_sign)
+	var out := intent + (f["rep"] as Vector2) + (f["slide"] as Vector2)
+	if absf(out.x) < 0.35 and absf(out.y) < 0.35:
+		out = f["slide"] as Vector2
+	return out
+
+
+## m4-b3① 观测差分速度（bot lead 预判的入参）：帧窗 <2 拍拒收（逐拍抖动噪声）、
+## >30 拍拒收（陈旧锚点）——均按「静止目标」处理（lead 退化为直瞄）。
+## 返回 px/s。
+static func velocity_from_track(prev: Vector2, prev_frame: int, cur: Vector2,
+		cur_frame: int) -> Vector2:
+	var dt := cur_frame - prev_frame
+	if dt < 2 or dt > 30:
+		return Vector2.ZERO
+	return (cur - prev) * (60.0 / float(dt))
 
 
 ## 翻滚决策。ctx 键（全部显式注入，无隐藏随机）：

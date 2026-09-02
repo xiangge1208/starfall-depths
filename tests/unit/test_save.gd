@@ -357,3 +357,82 @@ func test_unlock_tasks_dirty_save_filtered() -> void:
 	assert_dict(s.unlock_tasks().get("floor_clears", {})).is_empty()
 	assert_int(int(s.unlock_tasks().get("gems_earned_total", 0))).is_equal(7)
 	_wipe(path)
+
+
+# ================================================================ m4-b3：save 并行隔离（--save-suffix 注入缝 + 会话级设置）
+
+func test_headless_save_path_convention() -> void:
+	# 命名单一事实源：空 suffix = 既有共享档（零漂移）；非空 = save_headless_<s>.json。
+	var s: Variant = auto_free(load("res://autoload/save_system.gd").new())
+	assert_str(String(s.headless_save_path(""))).is_equal("user://save_headless.json")
+	assert_str(String(s.headless_save_path("botA"))).is_equal("user://save_headless_botA.json")
+
+
+func test_cli_save_suffix_redirects_path_for_valid_suffix() -> void:
+	var s: Variant = auto_free(load("res://autoload/save_system.gd").new())
+	s._apply_cli_save_suffix(PackedStringArray(["--runs=3", "--save-suffix=botA"]))
+	assert_str(String(s.save_path)).is_equal("user://save_headless_botA.json")
+
+
+func test_cli_save_suffix_ignores_invalid_values() -> void:
+	# 空值 / 路径逃逸字符（/ \ . 空格混入）：push_error + 忽略（fail-SOFT，
+	# save_path 保持原值不半改）。
+	var s: Variant = auto_free(load("res://autoload/save_system.gd").new())
+	var original := String(s.save_path)
+	s._apply_cli_save_suffix(PackedStringArray(["--save-suffix="]))
+	assert_str(String(s.save_path)).is_equal(original)
+	s._apply_cli_save_suffix(PackedStringArray(["--save-suffix=../evil"]))
+	assert_str(String(s.save_path)).is_equal(original)
+	s._apply_cli_save_suffix(PackedStringArray(["--save-suffix=a b/c"]))
+	assert_str(String(s.save_path)).is_equal(original)
+
+
+func test_parallel_suffixed_instances_do_not_crosstalk() -> void:
+	# 双实例同跑无串写（并行 bot 进程竞态的进程内模型）：A/B 各自 suffixed 档，
+	# 交错写入窗口后内存与落盘互不可见——共享单档下这是图鉴/成就/首杀互踩。
+	var s0: Variant = auto_free(load("res://autoload/save_system.gd").new())
+	var pa := String(s0.headless_save_path("b3a"))
+	var pb := String(s0.headless_save_path("b3b"))
+	_wipe(pa)
+	_wipe(pb)
+	var a: Variant = _fresh(pa)
+	var b: Variant = _fresh(pb)
+	# 交错写（模拟两进程同时落盘窗口）
+	a.add_gems(10)
+	b.add_gems(99)
+	# 首杀标记：各自档内都应是「新首杀」（共享档会把另一实例的标记误判为已存在）
+	assert_bool(a.record_boss_first_kill("vine_colossus")).is_true()
+	assert_bool(b.record_boss_first_kill("vine_colossus")).is_true()
+	a.unlock_achievement("ach_a")
+	b.unlock_achievement("ach_b")
+	# 内存互不可见
+	assert_int(a.gems()).is_equal(10)
+	assert_int(b.gems()).is_equal(99)
+	assert_bool(a.is_achievement_unlocked("ach_b")).is_false()
+	assert_bool(b.is_achievement_unlocked("ach_a")).is_false()
+	# 落盘往返：各档案只含自己的写入
+	var a2: Variant = _fresh(pa)
+	var b2: Variant = _fresh(pb)
+	assert_int(a2.gems()).is_equal(10)
+	assert_int(b2.gems()).is_equal(99)
+	assert_bool(a2.boss_first_kills().has("vine_colossus")).is_true()
+	assert_bool(b2.boss_first_kills().has("vine_colossus")).is_true()
+	assert_bool(a2.unlocked_achievements().has("ach_a")).is_true()
+	assert_bool(a2.unlocked_achievements().has("ach_b")).is_false()
+	assert_bool(b2.unlocked_achievements().has("ach_b")).is_true()
+	assert_bool(b2.unlocked_achievements().has("ach_a")).is_false()
+	_wipe(pa)
+	_wipe(pb)
+
+
+func test_set_setting_session_does_not_write_disk() -> void:
+	# 会话级覆写只改内存：盘上档不受影响（bot 手动瞄准模式不开盘写口子）。
+	var path := _tmp_path("session")
+	_wipe(path)
+	var s: Variant = _fresh(path)
+	s.save_now()
+	s.set_setting_session("auto_aim", false)
+	assert_bool(bool(s.get_setting("auto_aim", true))).is_false()
+	var reread: Variant = _fresh(path)
+	assert_bool(bool(reread.get_setting("auto_aim", true))).is_true()
+	_wipe(path)
