@@ -1,6 +1,8 @@
 {
   "combat_a1_01": {
     "id": "combat_a1_01",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E", "W"],
@@ -15,6 +17,8 @@
   },
   "combat_a1_02": {
     "id": "combat_a1_02",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E"],
@@ -29,6 +33,8 @@
   },
   "combat_a1_03": {
     "id": "combat_a1_03",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["W", "E", "N"],
@@ -53,6 +59,8 @@
   },
   "combat_a1_04": {
     "id": "combat_a1_04",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "S", "E", "W"],
@@ -73,6 +81,8 @@
   },
   "combat_a1_05": {
     "id": "combat_a1_05",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["E", "W", "S"],
@@ -91,6 +101,8 @@
   },
   "combat_a1_06": {
     "id": "combat_a1_06",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "E", "W"],
@@ -109,6 +121,8 @@
   },
   "combat_a1_07": {
     "id": "combat_a1_07",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["N", "W", "S"],
@@ -129,6 +143,8 @@
   },
   "combat_a1_08": {
     "id": "combat_a1_08",
+    "altar_chance": 0.15,
+    "altar_excludes": ["shop", "forge", "shrine", "drink", "event"],
     "forge": [0, 56],
     "size": [22, 14],
     "doors": ["S", "E", "W"],

@@ -30,7 +30,7 @@ const ROOM_SCHEMA := {
 	"id": TYPE_STRING, "size": TYPE_ARRAY, "doors": TYPE_ARRAY,
 	"spawn_points": TYPE_ARRAY, "props": TYPE_ARRAY, "hazards": TYPE_ARRAY,
 }
-const ROOM_OPTIONAL := {"biome": "", "forge": []}
+const ROOM_OPTIONAL := {"biome": "", "forge": [], "altar_chance": 0.0, "altar_excludes": []}
 # biome 值白名单（validate_room_row 语义校验）：A1 行缺省 ""（无群系特效）；
 # A2 crystal（暗视野 + 冰面）/ A3 magma（岩浆基调，瓦片套件仍按 floor_idx）。
 const BIOME_TAGS: Array[String] = ["", "crystal", "magma"]
@@ -41,6 +41,12 @@ const BIOME_TAGS: Array[String] = ["", "crystal", "magma"]
 # 岩浆系（m2-t10）/ ice=A2 冰面（m2-t26，同 vine/magma 需 radius）/ spikes=A2 地刺、
 # rock=A1 滚石（FloorScene 组件分派 m2-t7 已有，白名单 m2-t26 随 A2/A3 模板落库扩展）。
 const HAZARD_KINDS: Array[String] = ["vine", "magma", "geyser", "ice", "spikes", "rock"]
+# m4-c4 增益祭坛（optional，缺省不生成）：altar_chance = 战斗房掷签生成概率 [0,1]
+# （combat_* 模板行录 0.15，start/boss 缺省 0.0）；altar_excludes = 与祭坛互斥的
+# 房内设施 kind 清单（combat 行录 5 类）。消费端 Altar.roll_pending（纯函数收口）。
+const FACILITY_KINDS: Array[String] = [
+	"shop", "forge", "shrine", "drink", "event", "chest", "fountain",
+]
 # 增益（t9）：5 键必填；稀有度与 effects 键白名单由 validate_buff_row 语义校验（同 rooms fail-closed 路径）
 const BUFF_SCHEMA := {
 	"id": TYPE_STRING, "name": TYPE_STRING, "rarity": TYPE_STRING,
@@ -393,7 +399,8 @@ func _deep_int_restore(value: Variant) -> Variant:
 ## 房间模板语义校验（几何/布局约束），作为 rooms 表 _load_table 的 extra_check。
 ## 约束：size 固定 [22,14]；doors 为 N/S/E/W 无重复非空子集（起始房允许仅 1 门）；
 ## 刷怪点界内且距任一门 >= 64px；props 界内且不得压门格；hazards 形状合法（data-only）；
-## biome（m2-t26 optional）值 ∈ BIOME_TAGS 白名单。
+## biome（m2-t26 optional）值 ∈ BIOME_TAGS 白名单；
+## altar_chance/altar_excludes（m4-c4 optional）数值域 [0,1] + 设施 kind 白名单无重复。
 func validate_room_row(row: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	# size
@@ -415,6 +422,26 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 			and (typeof(forge[1]) == TYPE_INT or typeof(forge[1]) == TYPE_FLOAT)
 		if not forge_ok:
 			errors.append("forge must be [x,y] numeric pixel offset")
+	# altar_chance（optional，缺省 0.0 = 不生成）：数值域 [0,1]
+	var altar_chance: Variant = row.get("altar_chance", 0.0)
+	if typeof(altar_chance) != TYPE_INT and typeof(altar_chance) != TYPE_FLOAT:
+		errors.append("altar_chance must be number")
+	elif float(altar_chance) < 0.0 or float(altar_chance) > 1.0:
+		errors.append("altar_chance must be in [0, 1]: %s" % str(altar_chance))
+	# altar_excludes（optional，缺省 []）：元素 ∈ FACILITY_KINDS 且无重复
+	var altar_excludes: Variant = row.get("altar_excludes", [])
+	if typeof(altar_excludes) != TYPE_ARRAY:
+		errors.append("altar_excludes must be array")
+	else:
+		var seen_kinds := {}
+		for i: int in (altar_excludes as Array).size():
+			var kind: Variant = (altar_excludes as Array)[i]
+			if typeof(kind) != TYPE_STRING or not FACILITY_KINDS.has(kind):
+				errors.append("altar_excludes[%d] bad facility kind: %s" % [i, str(kind)])
+			elif seen_kinds.has(kind):
+				errors.append("altar_excludes duplicate kind: %s" % str(kind))
+			else:
+				seen_kinds[kind] = true
 	# doors
 	var doors: Variant = row.get("doors")
 	var door_px: Array[Vector2] = []

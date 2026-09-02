@@ -203,6 +203,7 @@ var _spawn_frames: Dictionary = {}    # enemy instance_id -> 刷出帧（ttk）
 ## 防把玩家从层间中转房抢回楼层；层重建 = 新实例，标志自然复位）。
 var _flow_suspended := false
 var _facility_rng: RandomNumberGenerator
+var _altar_rng: RandomNumberGenerator          # m4-c4：祭坛掷签独立盐流（不扰动 facility 流）
 var _drink_state := {"uses_left": DrinkMachine.USES_PER_FLOOR}
 var _used_shrine_kinds: Dictionary = {}
 ## m2-t24 隐藏门携带判定（宽松口径）：本层任意共鸣触发计数（EventBus 订阅，
@@ -338,6 +339,7 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	_rig_rng = RunState.stream(RunState.SALT_RIG)
 	_loot_rng = RunState.stream(RunState.SALT_EVENT)   # M2-T1：事件/房间抽取独立盐（不再共享掉落流）
 	_facility_rng = RngSvc.stream(floor_idx, "facility")
+	_altar_rng = RngSvc.stream(floor_idx, "altar")   # m4-c4：战斗房祭坛掷签独立盐
 	_calamity_rng = RngSvc.stream(floor_idx, "calamity")   # m2-t26：挑战房择一独立盐（不扰动既有流）
 	_pick_miniboss_row()                                   # m2-t26：小 Boss 抽取池按层接线（独立盐）
 	_pick_boss_row()                                       # m2-t36：Boss 行按层路由（裁定⑳）
@@ -353,6 +355,7 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 		_mark_used(int(corridor["b"]), _opp(String(corridor["dir"])))
 	for id in build["rooms"]:
 		_build_room(int(id), build["rooms"][id])
+	_roll_combat_altars(build)             # m4-c4：战斗房增益祭坛掷签（房间实体齐备后）
 	for c in build["corridors"]:
 		_build_corridor(c)
 	refresh_gates()
@@ -1022,6 +1025,7 @@ func enter_room(id: int) -> bool:
 	room.entry_frame = Engine.get_physics_frames()
 	Telemetry.log_row(["floor_enter", room.entry_frame, room.template_id])
 	if room.combat != null and not flow.is_cleared(id):
+		_open_facility("combat", room)     # m4-c4：战斗房增益祭坛（掷签命中时首进搭建）
 		if room.is_challenge and room.calamity_id.is_empty():
 			_open_calamity_panel(room)     # m2-t26：进门先灾厄 4 选 1（选定才开战）
 		else:
@@ -1568,6 +1572,8 @@ func _on_flow_room_event(room_type: String, room_id: int) -> void:
 ## m1-t27 设施接线（room_event 首进恰一次）：shop=真商店（RunState 钱包 + 当层货单 +
 ## 副手回收回调）；event=EventRoom 进房即开事件面板（全屏弹层，Esc=拒绝）。
 ## treasure 走 _place_guests 既有宝箱；elite/miniboss/boss 为嘉宾战斗房无设施。
+## m4-c4："combat" 分支 = 战斗房增益祭坛（setup 掷签 altar_pending 命中时首进搭建；
+## 战斗房不发 room_event，由 enter_room 战斗分支直接调本分发缝）。
 func _open_facility(room_type: String, room: FloorRoom) -> void:
 	if room == null or room.facility_built:
 		return
@@ -1578,6 +1584,97 @@ func _open_facility(room_type: String, room: FloorRoom) -> void:
 		"event":
 			room.facility_built = true
 			_build_event(room)
+		"combat":
+			if not room.altar_pending:
+				return
+			room.facility_built = true
+			_build_altar(room)
+
+
+## m4-c4：战斗房增益祭坛掷签（m3-fix1 §残留收口）。独立 "altar" 盐流（不扰动
+## facility/loot 流）；房间 id 升序遍历保证同 seed 恒同判定。生成条件 = 房型 combat
+## （elite/miniboss/boss 嘉宾战斗房沿用「无设施」语义）+ 模板 altar_chance 掷签
+## （schema optional，缺省 0.0 = 不生成）+ altar_excludes 与房内既有设施无交集
+## （Altar.roll_pending 纯函数收口）。命中仅记 altar_pending，实体在首进由
+## _open_facility "combat" 分支搭建。
+func _roll_combat_altars(build: Dictionary) -> void:
+	if _altar_rng == null:
+		_altar_rng = RngSvc.stream(floor_idx, "altar")
+	var ids: Array = build["rooms"].keys()
+	ids.sort()
+	for id: Variant in ids:
+		var room: FloorRoom = _rooms.get(int(id))
+		if room == null or room.type != "combat":
+			continue
+		var row := RoomTemplate.get_room(room.template_id)
+		if Altar.roll_pending(_altar_rng.randf(), float(row.get("altar_chance", 0.0)),
+				row.get("altar_excludes", []), _room_facility_kinds(room)):
+			room.altar_pending = true
+
+
+## 房内既有设施 kind 清单（互斥判定的 present 侧；class → kind 映射与
+## GameDB.FACILITY_KINDS 白名单对齐）。战斗房在 build 时刻恒无设施 → 恒空数组；
+## 规则面向数据表达与未来设施扩展 fail-closed（test_altar 钉死映射）。
+func _room_facility_kinds(room: FloorRoom) -> Array[String]:
+	var out: Array[String] = []
+	for c in room.get_children():
+		if c is Shop:
+			out.append("shop")
+		elif c is Forge:
+			out.append("forge")
+		elif c is Shrine:
+			out.append("shrine")
+		elif c is DrinkMachine:
+			out.append("drink")
+		elif c is EventRoom:
+			out.append("event")
+	return out
+
+
+## 增益祭坛设施（m4-c4）：非试炼局 = 纯增益（BuffManager.roll_three 三选一，BuffPick
+## 浮层，选中经 _apply_altar_buff 落地）；试炼局 elite_surge 因子激活 = 交互改追加
+## 1 精英（_spawn_altar_elite，走既有嘉宾生成缝）。落位复用 m3-fix2 safe placement
+## 缝（房心被柱/箱占用时弹到最近合法空位），非固体不挡弹幕预算。
+func _build_altar(room: FloorRoom) -> void:
+	var at := _safe_room_placement(room, room.outer.get_center())
+	var altar := Altar.new()
+	altar.name = "BuffAltar"
+	altar.position = at - room.position
+	altar.setup(buffs_manager, _altar_rng, _apply_altar_buff,
+		func(wp: Vector2) -> void: _spawn_altar_elite(room, wp))
+	altar.add_child(_altar_visual())
+	room.add_child(altar)
+	Telemetry.log_row(["altar_spawn", Engine.get_physics_frames(), room.template_id])
+
+
+func _altar_visual() -> Polygon2D:
+	var vis := Polygon2D.new()
+	vis.polygon = PackedVector2Array([
+		Vector2(0, -11), Vector2(10, 0), Vector2(0, 11), Vector2(-10, 0)])
+	vis.color = Altar.VIS_COLOR
+	return vis
+
+
+## 祭坛增益落地（Altar.apply_buff_cb）：与 inter_floor._on_buff_chosen 同一落地序
+## （RunState.add_buff 局内记账 → apply_to_player/apply_to_rig → talent 六键成对修补）。
+func _apply_altar_buff(id: String) -> void:
+	if buffs_manager == null:
+		push_error("FloorScene._apply_altar_buff: no buffs_manager")
+		return
+	buffs_manager.pick(id)
+	RunState.add_buff(id)
+	buffs_manager.apply_to_player(player)
+	if player.weapon_rig != null:
+		buffs_manager.apply_to_rig(player.weapon_rig)
+	player.repair_talent_absolute_keys()
+
+
+## 祭坛 elite_surge 分支（m3-fix1 §残留另一半边）：交互点追加 1 精英嘉宾
+## （elite_charger 标记 → 真实行 + 楼层词缀，同 _spawn_wave 生成路径）。恒不计波次
+## （RoomFlow 按波次表计数，表外 id 死亡为 no-op——同召唤体口径，清房判定不被拖住，
+## 击杀照常入 RunState.kills）。
+func _spawn_altar_elite(room: FloorRoom, world_pos: Vector2) -> void:
+	_spawn_enemy(room, "elite_charger", world_pos, {}, false)
 
 
 ## 商店设施（T14 Shop 契约）：货单 ShopLogic.roll_stock（RunState loot 盐流，当层确定），
@@ -2306,6 +2403,7 @@ class FloorRoom extends Node2D:
 	var spawned_wave := -1
 	var guests_placed := false
 	var facility_built := false               # m1-t27：设施已接（shop/event 真设施占位）
+	var altar_pending := false                # m4-c4：祭坛掷签命中（首进由 _open_facility 搭建）
 	var cleared_emitted := false
 	var coins := 0
 	var is_challenge := false                 # m2-t26：挑战房（combat 房行级标记承载）
