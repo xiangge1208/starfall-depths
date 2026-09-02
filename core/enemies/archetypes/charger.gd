@@ -22,7 +22,7 @@ func _engage(frame: int) -> void:
 			_phase_left = _windup_ticks(int(row["windup_ticks"]))   # m1-t12：狂暴激活时 ×0.7
 			_dash_dir = Vector2.RIGHT if player_ref == null else (player_ref.brain_pos - brain_pos).normalized()
 			_bite_stage = 0
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -58,7 +58,7 @@ func _after_dash(frame: int) -> void:
 	if stages > 1 and _bite_stage < stages:
 		_phase = "bite_windup"
 		_phase_left = maxi(int(row.get("bite_gap_ticks", 18)), 1)
-		Fx.on_enemy_hit(self, {"telegraph": true})
+		telegraph_fx()
 		return
 	_bite_stage = 0
 	_self_stun_after_dash(frame)

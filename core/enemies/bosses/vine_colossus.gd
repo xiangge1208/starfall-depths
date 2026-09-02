@@ -144,7 +144,7 @@ func _start_move(m: String, frame: int) -> void:
 	_ring_waves_fired = 0
 	_sweep_hit_done = false
 	_sweep_travel_started = false
-	Fx.on_enemy_hit(self, {"telegraph": true})   # 前摇进入拍红闪预警（同 shooter/charger）
+	telegraph_fx()   # 前摇进入拍红闪预警（同 shooter/charger）
 	match m:
 		"slap":
 			_slap_facing = (_player_pos() - brain_pos).angle()   # 朝向前摇起始拍锁定

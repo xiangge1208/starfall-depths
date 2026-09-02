@@ -176,7 +176,7 @@ func _start_move(m: String, frame: int) -> void:
 	_cage_landed = false
 	_cage_hit_done = false
 	_spikes_fired = false
-	Fx.on_enemy_hit(self, {"telegraph": true})   # 前摇进入拍红闪预警（同 shooter/charger/vine）
+	telegraph_fx()   # 前摇进入拍红闪预警（同 shooter/charger/vine）
 	match m:
 		"carpet":
 			var bands := _carpet_bands()

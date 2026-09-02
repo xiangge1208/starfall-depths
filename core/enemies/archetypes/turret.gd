@@ -19,7 +19,7 @@ func _engage(frame: int) -> void:
 		"idle":
 			_phase = "windup"
 			_phase_left = _windup_ticks(30)
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -38,7 +38,7 @@ func _engage(frame: int) -> void:
 			if _phase_left <= 0:
 				_phase = "windup"
 				_phase_left = _windup_ticks(30)
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 
 ## windup 结束拍：扇形一次性齐射；连发先落第 1 发（间隔从下一拍起算）。
 ## m2-t7：行键 laser=true → 激光形态（A2 岩晶炮台）：改发 EnemyLaser（直线激光束，

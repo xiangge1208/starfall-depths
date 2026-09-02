@@ -22,13 +22,13 @@ func _engage(_frame: int) -> void:
 			if _phase_left <= 0:
 				_phase = "swallow"
 				_phase_left = int(row.get("swallow_ticks", 120))
-				Fx.on_enemy_hit(self, {"telegraph": true})   # 张口预警
+				telegraph_fx()   # 张口预警
 		"swallow":
 			_phase_left -= 1   # 张口定身（挪步停住，靶子换打法）
 			if _phase_left <= 0:
 				_phase = "windup"
 				_phase_left = _windup_ticks(30)
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:

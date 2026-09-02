@@ -38,7 +38,7 @@ func _tick_fire(frame: int) -> void:
 		"idle":
 			_fire_phase = "windup"
 			_fire_left = _windup_ticks(30)
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_fire_left -= 1
 			if _fire_left <= 0:
@@ -50,7 +50,7 @@ func _tick_fire(frame: int) -> void:
 			if _fire_left <= 0:
 				_fire_phase = "windup"
 				_fire_left = _windup_ticks(30)
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 
 ## 死亡爆晶针（键控 death_burst_count）：die() 先落弹再走基类退场（单一死亡源不变）。
 func die() -> void:

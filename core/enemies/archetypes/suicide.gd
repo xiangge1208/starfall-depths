@@ -49,10 +49,10 @@ func _try_arm_fuse(frame: int, to_player: Vector2) -> void:
 			RunState.spend_coins(_stolen)
 			_fleeing = true
 			Telemetry.log_row(["coin_steal", frame, _stolen], String(row.get("id", "")))
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 			return
 	_fuse_deadline = frame + int(row.get("fuse_ticks", 30))
-	Fx.on_enemy_hit(self, {"telegraph": true})
+	telegraph_fx()
 
 
 ## m4-c1 死亡返还：窃走金币全额回到 RunState（偷币永不净损失——可清不变量的返还半边）。

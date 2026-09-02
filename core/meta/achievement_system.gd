@@ -179,6 +179,10 @@ func _ready() -> void:
 	var codex := get_node_or_null("/root/CodexSystem")
 	if codex != null and codex.has_signal("weapon_unlocked"):
 		codex.weapon_unlocked.connect(func(_weapon_id: String) -> void: recheck())
+		# m4-c3：codex_seen 写入方落地——首次见过武器（获取/任务解锁）同为轮询点，
+		# 权威口径切换后见集增长即触发重判（回落逻辑 _state_value 不删不惑）。
+		if codex.has_signal("weapon_seen"):
+			codex.weapon_seen.connect(func(_weapon_id: String) -> void: recheck())
 
 
 # ---- 查询 ----

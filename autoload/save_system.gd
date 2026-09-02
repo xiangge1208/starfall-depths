@@ -134,6 +134,15 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 			if typeof(e) == TYPE_STRING:
 				warr.append(e)
 		out["unlocked_weapons"] = warr
+	# m4-c3：图鉴见集（codex_seen）同口径合并——仅在档内已有该键时并入（legacy 档
+	# 缺键保持缺席 → 成就回落口径继续生效，见 record_codex_seen 注）。
+	var seen_v: Variant = saved.get("codex_seen")
+	if typeof(seen_v) == TYPE_ARRAY:
+		var sarr: Array[String] = []
+		for e: Variant in seen_v:
+			if typeof(e) == TYPE_STRING:
+				sarr.append(e)
+		out["codex_seen"] = sarr
 	# m2-t31：Boss 首杀名录同口径合并（数组内非 String 元素静默丢弃）
 	var boss_kills_v: Variant = saved.get("boss_first_kills")
 	if typeof(boss_kills_v) == TYPE_ARRAY:
@@ -323,6 +332,34 @@ func unlock_weapon(id: String) -> bool:
 func unlocked_weapons() -> Array[String]:
 	var out: Array[String] = []
 	var saved: Variant = data.get("unlocked_weapons")
+	if typeof(saved) == TYPE_ARRAY:
+		for e: Variant in saved:
+			if typeof(e) == TYPE_STRING:
+				out.append(e)   # 非法元素静默丢弃（fail-SOFT）
+	return out
+
+## m4-c3 图鉴见集（codex_seen，K.3/K.5 藏品家/大收藏家权威源）：持久化键与访问器。
+## 写入方唯一 = CodexSystem.mark_weapon_seen（写入集=默认池首取 ∪ 掉落/商店/熔铸
+## 经 WeaponRig.equip ∪ 任务解锁）。additive 键位：默认档骨架不含此键（档内缺席 =
+## legacy，AchievementSystem 沿用 unlocked_weapons 回落口径——测试
+## test_state_threshold_collector_50_grand_115 钉死的契约，不做缺键回填）；首次写入
+## 后随 save_now 入盘、_merge_saved 读回，此后即为权威口径。
+
+## 见过武器入库：幂等 append + 落盘（口径同 unlock_weapon——已见过 → false 不重复
+## 入库不重写盘；新见 → true）。调用方 CodexSystem.mark_weapon_seen。
+func record_codex_seen(id: String) -> bool:
+	var arr: Array = data.get("codex_seen", [])
+	if arr.has(id):
+		return false
+	arr.append(id)
+	data["codex_seen"] = arr
+	save_now()
+	return true
+
+## 图鉴见集读取（防御性读取，恒 Array[String]；键缺席 = legacy 空表）。
+func codex_seen() -> Array[String]:
+	var out: Array[String] = []
+	var saved: Variant = data.get("codex_seen")
 	if typeof(saved) == TYPE_ARRAY:
 		for e: Variant in saved:
 			if typeof(e) == TYPE_STRING:

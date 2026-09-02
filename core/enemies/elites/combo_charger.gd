@@ -49,7 +49,7 @@ func _start_windup(phase: String, ticks: int) -> void:
 		_dash_dir = to_player.normalized()
 	elif _dash_dir == Vector2.ZERO:
 		_dash_dir = Vector2.RIGHT
-	Fx.on_enemy_hit(self, {"telegraph": true})
+	telegraph_fx()
 
 ## 停顿/前摇倒数；到点切下一相（dash 直接起跑，前摇再蓄力）。
 func _tick_phase(next: String) -> void:

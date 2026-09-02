@@ -16,7 +16,7 @@ func _engage(frame: int) -> void:
 		"idle":
 			_chain_phase = "windup"
 			_chain_left = _windup_ticks(30)
-			Fx.on_enemy_hit(self, {"telegraph": true})
+			telegraph_fx()
 		"windup":
 			_chain_left -= 1
 			if _chain_left <= 0:
@@ -31,7 +31,7 @@ func _engage(frame: int) -> void:
 			if _chain_left <= 0:
 				_chain_phase = "windup"
 				_chain_left = _windup_ticks(30)
-				Fx.on_enemy_hit(self, {"telegraph": true})
+				telegraph_fx()
 
 ## 电弧弹（SHOCK）：命中玩家侧由元素状态机把感电/麻痹接进来；小蛛全灭时本函数不可达。
 func _zap_at_player() -> void:

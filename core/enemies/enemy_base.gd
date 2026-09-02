@@ -8,6 +8,16 @@ const VISION_PX := 240.0    # 视距（物理表现层用）
 
 const BERSERK_WINDUP_SCALE := 0.7   # m1-t12 狂暴：50% 血后攻速 ×1.3（设计 §12.3）→ windup ×0.7
 
+# ---- m4-c3 视界系展示键（表现判定分离，零判定影响；元素视界/共鸣视界） ----
+const VISION_MARK_TICKS := 21       # 元素视界：预警进入拍高亮描边淡出窗（0.35s，§7.5 预警下限同源）
+const STATUS_OUTLINE_COLORS := {    # 异常状态描边色（GDD §5.1：红火/青冰/绿毒/紫电）
+	Elements.Id.FIRE: Color(1.0, 0.35, 0.25, 0.9),
+	Elements.Id.ICE: Color(0.4, 0.9, 1.0, 0.9),
+	Elements.Id.POISON: Color(0.45, 0.95, 0.4, 0.9),
+	Elements.Id.SHOCK: Color(0.75, 0.5, 1.0, 0.9),
+}
+const VISION_MARK_COLOR := Color(1.0, 0.92, 0.55, 0.95)   # 元素视界预警高亮（亮黄，区别于红闪）
+
 var row: Dictionary
 var hp := 10
 var hp_max := 0                     # m1-t12 虹吸/狂暴基准：_test_init 时取行 hp（坚甲词缀同步 ×3）
@@ -32,6 +42,10 @@ var has_berserk := false           # 狂暴门控：仅带词缀者 berserk_acti
 var _seen_frame := -1
 var _slow_action_credit := 0.0     # 冰缓以 0.7 行动频率推进，不永久改写敌人行数据
 var _nan_reset_done := false       # fix1：非有限坐标重置只告警/留痕一次（防警告洪水重现）
+# m4-c3 视界系展示层状态（_draw/queue_redraw 专用，判定不读）
+var _vision_mark_until := -1       # 元素视界：预警高亮窗终帧（telegraph_fx 写入）
+var _status_outline := false       # 共鸣视界：异常状态描边当前态（变化拍 queue_redraw）
+var _status_outline_element := -1  # 当前描边元素（取色用；active 首个激活态）
 
 ## fix1（m3-b1 报告 69/100 停滞的下游症状防御）：brain_pos 是权威位置，一旦非有限
 ## （NaN/inf）即经表现层 `velocity = (brain_pos - global_position) * FPS` 传播到
@@ -268,11 +282,14 @@ func berserk_active() -> bool:
 ## 蓄力拍数取值：行 windup_ticks（缺省用 default_ticks），狂暴激活时 ×0.7（截断取整）。
 ## charger/shooter 的 windup 计算统一经此钩子（设计 §12.3「50% 血后攻速 ×1.3」）。
 ## m3-fix1 试炼 enemy_attack_speed_pct 消费端（半边）：蓄力拍 ÷攻速倍率（÷1.0 恒等）。
+## m4-c3 元素视界（telegraph_bonus_ticks，player meta）：预警（windup）窗绝对 +flat ticks
+## （试炼/狂暴缩放后加算，desc「弹幕/激光预警 +0.15s」= +9t；冷却节奏
+## _attack_cooldown_ticks 不受影响——只延预警窗）。无增益 meta 缺省 0 恒等。
 func _windup_ticks(default_ticks: int) -> int:
 	var w := int(row.get("windup_ticks", default_ticks))
 	if berserk_active():
 		w = int(float(w) * BERSERK_WINDUP_SCALE)
-	return _scaled_attack_ticks(w)
+	return _scaled_attack_ticks(w) + _player_buff_meta("buff_telegraph_bonus_ticks")
 
 ## m3-fix1 试炼 enemy_attack_speed_pct 消费端：攻击节奏拍数 ÷攻速倍率
 ## （攻速 ×1.2 ⇔ 拍数 ÷1.2；≤0 原样（0 拍语义保持）；÷1.0 为精确恒等零漂移）。
@@ -295,6 +312,61 @@ func enemy_bullet_speed(default_px: float) -> float:
 
 func combat_faction() -> int:
 	return Projectile.Faction.ENEMY
+
+
+# ---- m4-c3 视界系展示键（element_vision / telegraph_bonus_ticks / resonance_vision） ----
+
+## 玩家 buff meta 读缝（player_ref 两态：PlayerProxy 镜像替身 / 直注入 Player；测试
+## 替身无 player/无 meta → 0）。仅预警/描边低频路径调用，非每帧热路径。
+func _player_buff_meta(key: String) -> int:
+	var p: Node = null
+	if player_ref is PlayerProxy:
+		p = player_ref.player
+	elif player_ref is Player:
+		p = player_ref
+	if p == null:
+		return 0
+	return int(p.get_meta(key, 0))
+
+## 预警（蓄力/引信/前摇）进入拍统一出口：既有红闪 Fx telegraph 通道原样保留；
+## 玩家持有元素视界（buff_element_vision flag）时叠敌侧自绘高亮描边（更醒目，
+## VISION_MARK_TICKS 淡出窗，纯表现零判定影响）。19 处原型/精英/Boss 预警纹路径
+## 统一改呼本口（行为等价替换）。
+func telegraph_fx() -> void:
+	Fx.on_enemy_hit(self, {"telegraph": true})
+	if _vision_mark_until < 0 and _player_buff_meta("buff_element_vision") > 0:
+		_vision_mark_until = Engine.get_physics_frames() + VISION_MARK_TICKS
+		queue_redraw()
+
+## 视界系描边每拍维护（_physics_process 拍内调用；纯逻辑可无头直测）：
+## ①预警高亮窗过期清位；②共鸣视界（buff_resonance_vision flag）——目标处于异常
+## 状态（StatusComponent.active 非空）时描边，状态集变化拍 queue_redraw（恒等帧零重绘）。
+func update_vision_outlines(frame: int) -> void:
+	if _vision_mark_until > 0 and frame >= _vision_mark_until:
+		_vision_mark_until = -1
+		queue_redraw()
+	var outlined := false
+	var element := -1
+	if status is StatusComponent and not (status as StatusComponent).active.is_empty() \
+			and _player_buff_meta("buff_resonance_vision") > 0:
+		outlined = true
+		for e: int in (status as StatusComponent).active:
+			element = e
+			break                       # 确定性取首个激活元素（ELEMENT_ORDER 内层序）
+	if outlined != _status_outline or (outlined and element != _status_outline_element):
+		_status_outline = outlined
+		_status_outline_element = element
+		queue_redraw()
+
+func _draw() -> void:
+	# 表现层自绘（脑层测试无树不触发；draw 预算：描边仅在有增益时存在，同屏 ≤ 敌数）
+	var r := combat_radius() + 2.0
+	if Engine.get_physics_frames() < _vision_mark_until:
+		draw_arc(Vector2.ZERO, r, 0.0, TAU, 20, VISION_MARK_COLOR, 1.5)
+	if _status_outline:
+		var col: Color = STATUS_OUTLINE_COLORS.get(_status_outline_element,
+			Color(0.9, 0.9, 0.9, 0.9))
+		draw_arc(Vector2.ZERO, r + 2.0, 0.0, TAU, 20, col, 1.5)
 
 
 ## m4-c1 接触伤害元素归因钩子（缺省 NONE 不变）：熔岩犬「两段扑咬，附带燃烧」覆写为
@@ -353,6 +425,7 @@ func _physics_process(_delta: float) -> void:
 	# 权威位与实际位同拍归正，NaN/inf 不跨拍存活。
 	if not ensure_finite_position():
 		return
+	update_vision_outlines(Engine.get_physics_frames())   # m4-c3：视界系描边每拍维护
 	if player_ref != null and state == State.IDLE \
 			and global_position.distance_to(player_ref.brain_pos) <= VISION_PX:
 		on_player_seen(Engine.get_physics_frames())

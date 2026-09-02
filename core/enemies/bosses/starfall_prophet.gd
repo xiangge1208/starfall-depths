@@ -148,7 +148,7 @@ func _start_move(m: String, frame: int) -> void:
 	_galaxy_waves_fired = 0
 	_cycle_rounds_fired = 0
 	_galaxy_waves.clear()
-	Fx.on_enemy_hit(self, {"telegraph": true})   # 前摇进入拍红闪预警（同 shooter/vine）
+	telegraph_fx()   # 前摇进入拍红闪预警（同 shooter/vine）
 	match m:
 		"slash":
 			_slash_facing = (_player_pos() - brain_pos).angle()   # 朝向前摇起始拍锁定

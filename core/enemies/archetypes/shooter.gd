@@ -18,7 +18,7 @@ func _engage(frame: int) -> void:
 		"idle":
 			_phase = "windup"
 			_phase_left = _windup_ticks(30)              # m1-t12：狂暴激活时 ×0.7
-			Fx.on_enemy_hit(self, {"telegraph": true})   # t10 定影：windup 进入拍预警（镜像 charger）
+			telegraph_fx()   # t10 定影：windup 进入拍预警（镜像 charger）
 		"windup":
 			_phase_left -= 1
 			if _phase_left <= 0:
@@ -38,7 +38,7 @@ func _engage(frame: int) -> void:
 			if _phase_left <= 0:
 				_phase = "windup"
 				_phase_left = _windup_ticks(30)          # 同上：狂暴激活时 ×0.7
-				Fx.on_enemy_hit(self, {"telegraph": true})   # 同上：cool→windup 亦为 windup 进入拍
+				telegraph_fx()   # 同上：cool→windup 亦为 windup 进入拍
 
 ## m2-t9：单发行（burst_count 缺省 1）保持原「发射即冷却」；连发行进入 burst 相续发。
 func _after_volley_shot() -> void:

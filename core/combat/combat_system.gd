@@ -5,6 +5,8 @@ extends Node
 const BODY_HIT_COOLDOWN_TICKS := 6   # 同一弹对同一体的重复命中抑制（穿透用）
 const ENEMY_BULLET_CAP := 400        # m1-t18 GDD §7.5：敌方场上弹上限（总池 MAX_PROJECTILES 500 不变）
 const ECHO_WEAPON_DMG_MULT := 1.15   # m4-c2 回响（法师被动，GDD §6）：法杖/激光类武器伤害 ×1.15
+const BLAZE_CLOUD_RADIUS_PX := 100.0 # m0 燎原毒火云基线半径（GDD §7.3「100px 内传播」）
+const BLAZE_CLOUD_TICKS := 180       # m0 燎原毒火云基线持续（3s）
 
 var pool: ProjectilePool
 var crit_chance := 0.05
@@ -14,6 +16,10 @@ var forced_crit_until := -1        # m1-t5 影袭：frame < 此值时玩家弹�
 ## m4-c2 回响读点：当前英雄被动 id（player.combat 注入时经 setter 回写；HeroApplier
 ## 对装配晚于注入的次序兜底回填）。缺省 "" → 回响乘区恒不触发（非法师零漂移）。
 var hero_passive_id := ""
+## m4-c3 rig 5 键读点玩家捕获：register_body 首个 Player 阵营体即玩家（每房重注册
+## 刷新；复刻 floor_scene._wire_room_combat 既有注入习语，无需楼层侧新接线）。
+## 缺省 null（纯弹幕测试/无玩家房）→ hunter/vengeance/resonance_amp 全部恒等回落。
+var player_body: Player = null
 var _hash := SpatialHash.new(32.0)
 var _bodies: Dictionary = {}          # instance_id -> {node, faction, radius}
 var _max_body_radius := 12.0          # m0-final fix2：查询松弛按已注册体最大半径（单调不缩）
@@ -28,6 +34,8 @@ func _init(root: Node, combat_rng: RandomNumberGenerator) -> void:
 	_rng = combat_rng
 
 func register_body(node: Node2D, faction: int) -> void:
+	if faction == Projectile.Faction.PLAYER and node is Player:
+		player_body = node             # m4-c3：rig 5 键读点玩家捕获（ summons/替身不命中此门）
 	_max_body_radius = maxf(_max_body_radius, node.combat_radius())   # fix2：候选门按最大体半径
 	_bodies[node.get_instance_id()] = {"node": node, "faction": faction, "radius": node.combat_radius(), "hash_id": _next_id}
 	_hash.insert(_next_id, node.global_position)
@@ -35,6 +43,8 @@ func register_body(node: Node2D, faction: int) -> void:
 
 func unregister_body(node: Node2D) -> void:
 	var id := node.get_instance_id()
+	if node == player_body:
+		player_body = null             # 玩家退房注销（换房重注册刷新，跨房不滞留旧引用）
 	if _bodies.has(id):
 		_hash.remove(_bodies[id]["hash_id"])
 		_bodies.erase(id)
@@ -104,7 +114,8 @@ func _physics_process(_delta: float) -> void:
 			if player_shot and Engine.get_physics_frames() < forced_crit_until:
 				cc = 1.0                        # m1-t5 影袭：玩家弹必暴窗（帧口径同上物理帧）
 			var roll: Dictionary = DamageCalc.compute(p.damage, _rng, cc,
-				crit_multiplier if player_shot else 2.0, _player_global_mult(player_shot, meta))
+				crit_multiplier if player_shot else 2.0,
+				_player_global_mult(player_shot, meta, node, frame))
 			if p.faction == Projectile.Faction.PLAYER and roll["is_crit"]:
 				EventBus.player_crit_landed.emit(roll["amount"], p.position)   # m1-t2：玩家弹暴击落地
 			# 附录 C 的附魔在「有效命中」才掷签；没有附魔时 helper 不消费 RNG。
@@ -144,15 +155,43 @@ func _physics_process(_delta: float) -> void:
 ## == "echo" 且 ②弹源为武器（source_type "weapon"，source_id=weapons.json 行 id）且
 ## ③武器行 category ∈ {staff, laser} 时 ×1.15；其余路径恒 1.0（含召唤物/反弹弹/
 ## 非法杖激光武器/非法师英雄，零漂移）。武器类判别纯数据（GameDB.get_weapon），无新键。
-func _player_global_mult(player_shot: bool, meta: Dictionary) -> float:
-	if not player_shot or hero_passive_id != "echo":
+## m4-c3 rig 键追加两乘区（同属 §7.1 全局乘区，暴击前、向下取整在 DamageCalc 收口）：
+## - 猎杀者 hunter（buff_dmg_vs_statused_pct，rig meta）：目标处于异常状态
+##   （StatusComponent.active 非空——已达阈值激活态；未达阈值的层数不算）时 ×(1+pct)；
+## - 复仇者 avenger（vengeance 窗）：frame < player.vengeance_until（受击落地时由
+##   Player.take_hit_ctx 按 rig meta buff_vengeance_ticks 开窗）时 ×(1+buff_vengeance_pct)。
+## 无玩家注册/无 rig/meta 缺省 → 各乘区恒 1.0（零漂移）。热路径仅 meta/字段读，零分配。
+func _player_global_mult(player_shot: bool, meta: Dictionary, target: Node2D = null,
+		frame := -1) -> float:
+	if not player_shot:
 		return 1.0
-	if String(meta.get("source_type", "")) != "weapon":
-		return 1.0
-	if _is_echo_weapon_category(String(GameDB.get_weapon(
-			String(meta.get("source_id", ""))).get("category", ""))):
-		return ECHO_WEAPON_DMG_MULT
-	return 1.0
+	var mult := 1.0
+	if hero_passive_id == "echo" \
+			and String(meta.get("source_type", "")) == "weapon" \
+			and _is_echo_weapon_category(String(GameDB.get_weapon(
+				String(meta.get("source_id", ""))).get("category", ""))):
+		mult *= ECHO_WEAPON_DMG_MULT
+	var hunter_pct := _rig_buff_pct("buff_dmg_vs_statused_pct")
+	if hunter_pct > 0.0 and _target_statused(target):
+		mult *= 1.0 + hunter_pct
+	if player_body != null and frame >= 0 and frame < player_body.vengeance_until:
+		mult *= 1.0 + _rig_buff_pct("buff_vengeance_pct")
+	return mult
+
+## rig buff_* meta 读数（player_body.weapon_rig；缺玩家/缺 rig → 0.0）。每命中读一次
+## （增益可局中变化——C-4 增益祭坛局中拾取，禁缓存）。
+func _rig_buff_pct(key: String) -> float:
+	if player_body == null or player_body.weapon_rig == null:
+		return 0.0
+	return float(player_body.weapon_rig.get_meta(key, 0.0))
+
+## 目标异常状态判定（GDD「处于异常状态」= 已触发激活态）：duck 读 target.status
+## （EnemyBase/BossBase 持有；玩家/props/测试替身缺该字段 → 未异常）。
+static func _target_statused(target: Node2D) -> bool:
+	if target == null:
+		return false
+	var st: Node = target.get("status")
+	return st is StatusComponent and not (st as StatusComponent).active.is_empty()
 
 ## 回响武器类判别（GDD §6「法杖/激光类」= weapons.json category staff/laser）。纯函数直测。
 static func _is_echo_weapon_category(category: String) -> bool:
@@ -253,9 +292,15 @@ func bodies_in_radius(origin: Vector2, range_px: float, faction: int, exclude: N
 	return out
 
 ## 燎原毒火云独立于触发目标存活：3 秒，每秒对 100px 内全部敌人造成 4 点。
+## m4-c3 resonance_amp 消费端（buff_resonance_radius_pct/resonance_duration_ticks，
+## rig meta）：共鸣 AoE 半径 ×(1+pct)、持续 +ticks（Resonance 静态读数，clamp 恒等回落）
+## ——燎原是 GDD §7.3 共鸣反应中唯一的持续 AoE（半径/时长双键基线载体）。
 func spawn_blaze_cloud(center: Vector2, now: int) -> void:
+	var radius_pct := _rig_buff_pct("buff_resonance_radius_pct")
+	var bonus_ticks := int(_rig_buff_pct("buff_resonance_duration_ticks"))
 	_blaze_clouds.append({
-		"center": center, "until": now + TimeConst.ticks(3.0),
+		"center": center, "radius": Resonance.radius_px(BLAZE_CLOUD_RADIUS_PX, radius_pct),
+		"until": now + Resonance.duration_ticks(BLAZE_CLOUD_TICKS, bonus_ticks),
 		"next_tick": now + TimeConst.ticks(1.0),
 	})
 
@@ -265,7 +310,7 @@ func tick_environment(now: int) -> void:
 func _tick_blaze_clouds(now: int) -> void:
 	for cloud in _blaze_clouds.duplicate():
 		while now >= int(cloud["next_tick"]) and int(cloud["next_tick"]) <= int(cloud["until"]):
-			for body in bodies_in_radius(cloud["center"], 100.0, Projectile.Faction.ENEMY):
+			for body in bodies_in_radius(cloud["center"], float(cloud["radius"]), Projectile.Faction.ENEMY):
 				if body.get("state") == EnemyBase.State.DEAD:
 					continue
 				body.take_hit({
