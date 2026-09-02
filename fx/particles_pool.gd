@@ -61,6 +61,9 @@ class Unit extends Sprite2D:
 var _pool: Array[Unit] = []          # 启动建满，运行期不增减
 var _active_count := 0
 var _degrade := false
+## m4-k3：存在非 WHITE 光圈折叠色的活跃单元（光圈消失后的回落复位依据；复位完成
+## 即清零回到常态零成本早退）。
+var _aid_tinted := false
 ## 条带注册表（启动时从 ArtLookup 构建一次；tex 为 null → 该条带 fail-closed 跳过）。
 var _strips: Dictionary = {}         # id -> {tex: Texture2D, frames: int}
 
@@ -151,6 +154,13 @@ func play(strip_id: String, pos: Vector2, scale := 1.0, tint := Color.WHITE, rot
 	u.rotation = rot
 	u.scale = Vector2(scale, scale)
 	u.modulate = tint
+	# m4-k3（K-3 披露收口）：A2 光圈内粒子增亮折叠（BiomeFx.bullet_aid 同形，状态源/
+	# 半径/强度走既有口径）。粒子不进光照参与集（T37 探针 +47 draw 已否决）——表现侧
+	# self_modulate 写入零批处理成本、零判定影响；与 modulate tint 相乘互不覆盖。
+	# 无光圈 = WHITE（frame-0 正确 + 池化复用复位安全）。随 bullet_aid 先例不发遥测。
+	u.self_modulate = BiomeFx.light_aid_at(pos)
+	if u.self_modulate != Color.WHITE:
+		_aid_tinted = true
 	u.visible = true
 	u.playing = true
 	_active_count += 1
@@ -196,9 +206,17 @@ func step(delta: float) -> void:
 		_degrade = false                    # 活跃回落至预算内 → 恢复帧动画
 	if _active_count == 0:
 		return                              # 热路径早退
+	# m4-k3：折叠色逐帧刷新（跟随玩家/光圈位移与 _vision_factor 缩径）；光圈消失后
+	# 复位 WHITE 并清零 _aid_tinted（回落完成即回常态零成本）。仅活跃单元写入。
+	var aid := BiomeFx.light_aid_active() or _aid_tinted
+	var tinted := false
 	for u in _pool:
 		if not u.playing:
 			continue
+		if aid:
+			u.self_modulate = BiomeFx.light_aid_at(u.global_position)
+			if u.self_modulate != Color.WHITE:
+				tinted = true
 		u.t += delta
 		if u.t >= u.duration:
 			_recycle(u)
@@ -211,6 +229,7 @@ func step(delta: float) -> void:
 			var tex := s.get("tex") as Texture2D
 			if tex != null:
 				_set_frame(u, tex, tex.get_width() / maxi(u.frames, 1), f)
+	_aid_tinted = tinted
 
 
 func _set_frame(u: Unit, tex: Texture2D, frame_w: int, f: int) -> void:
@@ -231,6 +250,7 @@ func _recycle(u: Unit) -> void:
 	u.visible = false
 	u.strip = ""
 	u.degraded = false
+	u.self_modulate = Color.WHITE        # m4-k3：回收复位（池化跨层不泄漏；play 侧亦覆写）
 	_active_count -= 1
 
 

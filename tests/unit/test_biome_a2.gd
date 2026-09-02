@@ -432,6 +432,126 @@ func test_floor_bullet_visuals_get_aura_brightness_aid() -> void:
 		assert_object(fs._bullet_sprites[0].self_modulate).is_equal(Color.WHITE)
 
 
+# ---------------------------------------------------------------- m4-k3（K-3 披露收口）：伤害数字/FX 粒子增亮折叠
+## T37 报告 §四.2 披露：伤害数字/FX 粒子留在默认位 1，不再被光圈照亮。K-3 以
+## bullet_aid 同形 self_modulate 折叠收口（弹幕先例：逐项 modulate 写入零批处理
+## 成本，f2_nomod 实证；真实光照参与集 +47 draw 已被否决）。状态源/半径/强度全走
+## BiomeFx 既有口径（light_radius_px 含 _vision_factor 缩径），不建第二套。
+## 表现侧折叠：零判定影响；随 bullet_aid 先例不发遥测（先查无既有事件口径）。
+
+func test_light_aid_at_matches_bullet_aid_curve_and_falls_back() -> void:
+	# 只读查询（m4-k3）：无暗视野组件（F1/F3/训练房/测试树常态）→ WHITE 零漂移
+	assert_object(BiomeFx.light_aid_at(Vector2.ZERO)).is_equal(Color.WHITE)
+	var fs := _make_scene(_typed_chain(["combat"]))
+	fs.set_biome_a2(true)
+	fs.enter_room(1)
+	fs.player.global_position = fs.room_rect(1).get_center()
+	var center := fs.player.global_position
+	var radius: float = fs.biome_fx.light_radius_px
+	# 光圈内逐点与 bullet_aid 曲线逐值一致（同 aura_gradient / LIGHT_ENERGY / 缩径口径）
+	assert_object(BiomeFx.light_aid_at(center)).is_equal(BiomeFx.bullet_aid(0.0, radius))
+	assert_object(BiomeFx.light_aid_at(center + Vector2(radius * 0.5, 0.0))) \
+		.is_equal(BiomeFx.bullet_aid(radius * 0.5, radius))
+	# 圈外零漂移：WHITE（增亮不低于原亮度、不产生圈外亮度差）
+	assert_object(BiomeFx.light_aid_at(center + Vector2(radius + 10.0, 0.0))) \
+		.is_equal(Color.WHITE)
+	# 光圈消失回落：unmount 走 queue_free（延迟一帧），组件消亡（_exit_tree）后查询回落
+	fs.set_biome_a2(false)
+	assert_object(BiomeFx.light_aid_at(center)).is_not_equal(Color.WHITE)  # 消亡前一帧仍在（unmount 语义）
+	await get_tree().process_frame
+	assert_object(BiomeFx.light_aid_at(center)).is_equal(Color.WHITE)
+
+
+func test_damage_numbers_get_aura_brightness_aid_and_fall_back() -> void:
+	var settings_before: Dictionary = (SaveSystem.data.get("settings", {}) as Dictionary) \
+		.duplicate(true)
+	SaveSystem.data["settings"] = settings_before.duplicate(true)
+	SaveSystem.data["settings"]["damage_numbers"] = true
+	var fs := _make_scene(_typed_chain(["combat"]))
+	fs.set_biome_a2(true)
+	fs.enter_room(1)
+	fs.player.global_position = fs.room_rect(1).get_center()
+	var center := fs.player.global_position
+	var radius: float = fs.biome_fx.light_radius_px
+	# J4 视野裁剪缝：注入大矩形（无头/相机位不确定，与裁剪测试同缝，与本案无关）
+	Fx.visible_world_rect_provider = func() -> Rect2:
+		return Rect2(-100000.0, -100000.0, 200000.0, 200000.0)
+	var in_label := Fx.spawn_damage_number(center, 12, false)
+	assert_object(in_label).is_not_null()
+	if in_label != null:
+		assert_int(in_label.light_mask).is_equal(1)              # 不进光照参与集（折叠前提）
+		assert_float(in_label.self_modulate.r).is_greater(1.0)   # 光圈内增亮（spawn 即生效）
+	# 圈外零漂移：WHITE
+	var out_label := Fx.spawn_damage_number(center + Vector2(radius + 40.0, 0.0), 7, false)
+	assert_object(out_label).is_not_null()
+	if out_label != null:
+		assert_object(out_label.self_modulate).is_equal(Color.WHITE)
+	# 逐帧刷新跟随：玩家移到原圈外点 → 原圈内数字回落、原圈外数字增亮（表现跟随光圈）
+	fs.player.global_position = center + Vector2(radius + 40.0, 0.0)
+	Fx._refresh_damage_number_aid()
+	if in_label != null:
+		assert_object(in_label.self_modulate).is_equal(Color.WHITE)
+	if out_label != null:
+		assert_float(out_label.self_modulate.r).is_greater(1.0)
+	# 光圈消失回落：卸载（queue_free 延迟一帧）→ 刷新复位 WHITE（池化/跨层不泄漏）
+	fs.set_biome_a2(false)
+	await get_tree().process_frame
+	Fx._refresh_damage_number_aid()
+	if in_label != null:
+		assert_object(in_label.self_modulate).is_equal(Color.WHITE)
+	Fx.visible_world_rect_provider = Callable()
+	SaveSystem.data["settings"] = settings_before
+	if in_label != null:
+		in_label.queue_free()
+	if out_label != null:
+		out_label.queue_free()
+
+
+func test_particles_get_aura_brightness_aid_and_fall_back() -> void:
+	var fs := _make_scene(_typed_chain(["combat"]))
+	fs.set_biome_a2(true)
+	fs.enter_room(1)
+	fs.player.global_position = fs.room_rect(1).get_center()
+	var center := fs.player.global_position
+	var radius: float = fs.biome_fx.light_radius_px
+	Fx.particles.play("spark_hit", center)
+	var u: ParticlesPool.Unit = null
+	for cand: ParticlesPool.Unit in Fx.particles.units():
+		if cand.playing:
+			u = cand
+			break
+	assert_object(u).is_not_null()
+	if u != null:
+		assert_int(u.light_mask).is_equal(1)                     # 不进光照参与集（折叠前提）
+		assert_float(u.self_modulate.r).is_greater(1.0)          # 光圈内增亮（play 首帧写入）
+	# 圈外零漂移：WHITE
+	Fx.particles.play("spark_hit", center + Vector2(radius + 40.0, 0.0))
+	var v: ParticlesPool.Unit = null
+	for cand: ParticlesPool.Unit in Fx.particles.units():
+		if cand.playing and cand != u:
+			v = cand
+			break
+	assert_object(v).is_not_null()
+	if v != null:
+		assert_object(v.self_modulate).is_equal(Color.WHITE)
+	# 逐帧刷新跟随：玩家移到原圈外点 → 原圈内单元回落、原圈外单元增亮
+	fs.player.global_position = center + Vector2(radius + 40.0, 0.0)
+	Fx.particles.step(1.0 / 60.0)
+	if u != null:
+		assert_object(u.self_modulate).is_equal(Color.WHITE)
+	if v != null:
+		assert_float(v.self_modulate.r).is_greater(1.0)
+	# 光圈消失回落：卸载（queue_free 延迟一帧）→ step 复位 WHITE（池化不泄漏）
+	fs.set_biome_a2(false)
+	await get_tree().process_frame
+	Fx.particles.step(1.0 / 60.0)
+	if u != null:
+		assert_object(u.self_modulate).is_equal(Color.WHITE)
+	if v != null:
+		assert_object(v.self_modulate).is_equal(Color.WHITE)
+	Fx.particles.step(1.0)   # 回收清理：不向后续用例/套件泄漏活跃单元
+
+
 func test_hazard_telegraph_visuals_opt_into_lit_mask() -> void:
 	# 地面预警纹（地刺瓦片/滚石预警道/间歇泉瓦片）创建即 opt-in——伤害预告刺激
 	# 在暗视野下保持 T37 前亮度；火雨红圈同口径（schedule_fire_rain 楼层级）。

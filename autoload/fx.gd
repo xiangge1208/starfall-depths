@@ -493,6 +493,9 @@ const TICK_NUMBER_SCALE := 0.8         # 元素 tick 小号 0.8×
 ## 视野裁剪注入缝（J4 屏外目标不生成跳字）：测试注入返回世界矩形的 Callable；
 ## 未注入（生产默认）→ 视口 + 相机推导，无相机（脑测/工具场景）→ 不裁剪。
 var visible_world_rect_provider := Callable()
+## m4-k3：存在非 WHITE 光圈折叠色的存量伤害数字（光圈消失后的回落复位依据；
+## 复位完成即清零回到常态零成本早退）。
+var _aid_tinted := false
 
 func _pos_on_screen(pos: Vector2) -> bool:
 	var r := Rect2()
@@ -527,7 +530,8 @@ func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool,
 		return null                       # J4 视野裁剪：屏外目标不生成跳字
 	var label := Label.new()
 	label.name = "DamageNumber"
-	label.text = str(amount)
+	label.set_meta("aid_damage_number", true)   # m4-k3：折叠刷新的识别标记（同名兄弟会被
+	label.text = str(amount)                    # 引擎自动改名 @Label@N，name 匹配不可靠）
 	label.position = pos + Vector2(-4.0, -14.0)
 	label.z_index = 50
 	label.add_theme_font_size_override("font_size", 8)
@@ -544,6 +548,13 @@ func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool,
 	else:
 		label.add_theme_color_override("font_color", Color.WHITE)
 	add_child(label)
+	# m4-k3（K-3 披露收口）：A2 光圈内伤害数字增亮折叠（BiomeFx.bullet_aid 同形，
+	# 状态源/半径/强度走既有口径）。伤害数字不进光照参与集（T37 探针 +47 draw 已
+	# 否决）——表现侧 self_modulate 写入零批处理成本、零判定影响；与下方既有
+	# modulate:a 淡出 tween 正交（modulate × self_modulate 相乘）。无光圈 = WHITE。
+	label.self_modulate = BiomeFx.light_aid_at(label.global_position)
+	if label.self_modulate != Color.WHITE:
+		_aid_tinted = true                   # 存量增亮标记：光圈消失后的回落复位依据
 	if is_crit and not is_tick:
 		# J4 暴击弹跳：1.0 → 1.6 → 1.3 共 0.18s（替代 v1 定值 1.5×；金描边既有保留）
 		var bounce := label.create_tween()
@@ -557,6 +568,27 @@ func spawn_damage_number(pos: Vector2, amount: int, is_crit: bool,
 	tw.tween_property(label, "modulate:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
 	tw.tween_callback(label.queue_free).set_delay(0.55)
 	return label
+
+
+## m4-k3：伤害数字折叠色逐帧刷新（跟随玩家/光圈位移与 _vision_factor 缩径；光圈
+## 消失后复位 WHITE——跳字挂本 autoload 不随楼层回收，跨层残留须回落）。常态
+## （无光圈且无存量增亮）零成本早退；遍历用 get_child 索引式访问（热路径零分配），
+## 以 meta 标记识别跳字（同名兄弟节点会被引擎自动改名 @Label@N，name 匹配不可靠；
+## 元素形状/爆散粒子无标记，天然排除）。
+func _refresh_damage_number_aid() -> void:
+	var live := BiomeFx.light_aid_active()
+	if not live and not _aid_tinted:
+		return
+	var tinted := false
+	var n := get_child_count()
+	for i in n:
+		var c := get_child(i)
+		if c is Label and (c as Label).has_meta("aid_damage_number"):
+			var lbl := c as Label
+			lbl.self_modulate = BiomeFx.light_aid_at(lbl.global_position)
+			if lbl.self_modulate != Color.WHITE:
+				tinted = true
+	_aid_tinted = tinted
 
 ## 枪口焰消费入口（J3）：weapon_rig._fire_slot 开火缝调用；条带与类别 tint 预设在池内。
 func spawn_muzzle_flash(pos: Vector2, angle: float, weapon_category: String) -> void:
@@ -604,6 +636,7 @@ func _process(delta: float) -> void:
 		_director.tick(Time.get_ticks_msec())   # J-A：逐帧注入真实毫秒（热路径空闲即 O(1) 早退）
 	_poll_boss_death_skip()                     # J7/D-2：演出链期间连按攻击键快进
 	_step_death_desat()                         # J1/D-3a：玩家死亡去饱和渐入（真实毫秒）
+	_refresh_damage_number_aid()                # m4-k3：A2 光圈内伤害数字折叠色逐帧刷新/回落
 	if _flash.is_empty():
 		return
 	var done: Array[int] = []
