@@ -407,6 +407,8 @@ func _build_room(id: int, data: Dictionary) -> void:
 		room.add_child(pool_root)
 		room.combat = CombatSystem.new(pool_root, _combat_rng)
 		room.add_child(room.combat)
+		for prop in room.destructibles:            # m4-c5：可破坏体进本房 combat 判定流
+			prop.attach_combat(room.combat)
 
 
 ## 房内几何：地板贴图 + 四面墙（模板门方向留 32px 门洞）。M0 _solid 习语。
@@ -499,20 +501,56 @@ func _build_unused_door_frames(room: FloorRoom, w: float, h: float, doors: Array
 ## GDD §10「晶柱折射敌方激光」）专属——登记 refraction_pillars 组供 EnemyLaser
 ## 折射判定；石柱（pillar，A1/A3）只挡弹不折射。crystal_pillar 贴图
 ## prop_crystal_pillar.png（T28 生成器已产出）。
+## m4-c5 可破坏物（task-33 §2.4 demolition 缺口收口）：pillar/crate/bush 升级为
+## DestructibleProp（伤害入口走 CombatSystem 判定流、HP/掉落入 data 行 hp/drops 键；
+## 战斗房在 combat 建制后 attach_combat，非战斗房保持纯静态陈设）。crystal_pillar
+## 仍为静态折射体（Boss 蜂巢柱 HivePillar 特例亦不动，test_boss_floor_routing 守护）。
+## 独立池小上限：props 行数经 DestructibleProp.bounded 截断（不进弹幕预算）。
 func _build_props(room: FloorRoom, tpl: Dictionary) -> void:
-	for p: Dictionary in tpl.get("props", []):
+	var rows: Array = tpl.get("props", [])
+	if rows.size() > DestructibleProp.PER_ROOM_CAP:
+		push_warning("FloorScene: props rows %d over cap %d in '%s' — truncated"
+			% [rows.size(), DestructibleProp.PER_ROOM_CAP, String(tpl.get("id", "?"))])
+	for p: Dictionary in DestructibleProp.bounded(rows, DestructibleProp.PER_ROOM_CAP):
 		var center := _tile_center(p.get("grid", [0, 0]))
 		match String(p.get("kind", "")):
 			"pillar":
-				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_pillar")
+				_build_destructible(room, p, center, true)
+			"crate":
+				_build_destructible(room, p, center, true)
+			"bush":
+				_build_destructible(room, p, center, false)   # 灌木不阻挡（静态期语义保持）
 			"crystal_pillar":
 				var body := _solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)),
 					"prop_crystal_pillar")
 				body.add_to_group(EnemyLaser.PILLAR_GROUP)
-			"crate":
-				_solid_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_crate")
-			"bush":
-				_vis_child(room, Rect2(center - Vector2(8, 8), Vector2(16, 16)), "prop_bush")
+
+
+## 可破坏陈设构建：数据行 hp（缺省 1 防御，schema 已 fail-closed）+ drops 白名单键。
+func _build_destructible(room: FloorRoom, p: Dictionary, center: Vector2, blocks: bool) -> void:
+	var rect := Rect2(center - Vector2(8, 8), Vector2(16, 16))
+	var drops: Array[String] = []
+	for d: Variant in p.get("drops", []):
+		drops.append(String(d))
+	var prop := DestructibleProp.new()
+	prop.setup(String(p.get("kind", "")), int(p.get("hp", 1)), drops, blocks, rect,
+		_prop_visual("prop_" + String(p.get("kind", "")), rect.size))
+	prop.destroyed.connect(_on_prop_destroyed.bind(room))
+	room.add_child(prop)
+	room.destructibles.append(prop)
+
+
+## 可破坏物破坏结算（DestructibleProp.destroyed 信号承接）：破坏表现（既有粒子池
+## 预算，不新增 draw 大户）+ 小额掉落按行 + 遥测（事件名查既有清单不撞名，约束 12）
+## + demolition 成就 1 行接线（task-33 §2.4：判定器在表，本卡补事件流）。
+func _on_prop_destroyed(prop: DestructibleProp, room: FloorRoom) -> void:
+	if Fx.particles != null:
+		Fx.particles.play_kill_shard(prop.global_position)
+	for drop_kind: String in prop.drops:
+		_spawn_pickup(room, drop_kind, prop.global_position)
+	Telemetry.log_row(["prop_destroyed", Engine.get_physics_frames(),
+		prop.kind, prop.max_hp, prop.drops.size()])
+	AchievementSystem.notify_prop_destroyed(prop.kind)
 
 
 ## m2-t7/m2-t10/m2-t26 危险地块实例化（模板 hazards 字段驱动，GDD §10）：vine=藤蔓
@@ -2408,6 +2446,7 @@ class FloorRoom extends Node2D:
 	var coins := 0
 	var is_challenge := false                 # m2-t26：挑战房（combat 房行级标记承载）
 	var calamity_id := ""                     # m2-t26：已选灾厄 id（"" = 未选/已还原）
+	var destructibles: Array[DestructibleProp] = []   # m4-c5：可破坏陈设（存活跟踪）
 
 	func wave_ids(index: int) -> Array:
 		var waves: Array = waves_cfg.get("waves", [])
@@ -2453,17 +2492,21 @@ func _solid_child(room: FloorRoom, rect: Rect2, tile_name: String = "") -> Stati
 	cs.shape = shape
 	body.add_child(cs)
 	room.add_child(body)
-	var vis: Node2D = null
-	if not tile_name.is_empty():
-		vis = ArtLookup.make_tiled(ArtLookup.tile_path(tile_name),
-			Rect2(-rect.size / 2.0, rect.size))
+	body.add_child(_prop_visual(tile_name, rect.size))
+	return body
+
+
+## 陈设视觉（m4-c5 从 _solid_child 抽出共用）：tile_name 贴图优先，缺图回落
+## _prop_fallback_color 染色块（空名同色）。
+func _prop_visual(tile_name: String, size: Vector2) -> Node2D:
+	var vis: Node2D = ArtLookup.make_tiled(ArtLookup.tile_path(tile_name),
+		Rect2(-size / 2.0, size))
 	if vis == null:
 		var poly := Polygon2D.new()
-		poly.polygon = _rect_poly(Rect2(-rect.size.x / 2.0, -rect.size.y / 2.0, rect.size.x, rect.size.y))
-		poly.color = Color(0.36, 0.3, 0.28) if tile_name.is_empty() else _prop_fallback_color(tile_name)
+		poly.polygon = _rect_poly(Rect2(-size.x / 2.0, -size.y / 2.0, size.x, size.y))
+		poly.color = _prop_fallback_color(tile_name)
 		vis = poly
-	body.add_child(vis)
-	return body
+	return vis
 
 
 func _solid_world(rect: Rect2) -> void:

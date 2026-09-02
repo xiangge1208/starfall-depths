@@ -218,6 +218,13 @@ const PROP_KINDS: Array[String] = ["pillar", "crate", "bush", "crystal_pillar"]
 # m2-t26 晶柱（A2 混排 kind 拆分，T7 评审移交）：挡弹 + 登记折射组（石柱不折射），
 # 贴图 prop_crystal_pillar.png（生成器已产出，M4 接线）
 const PROP_BLOCKS_BULLETS := {"pillar": true, "crate": true, "bush": false, "crystal_pillar": true}
+# m4-c5 可破坏物：pillar/crate/bush 为可破坏 kind（消费端 DestructibleProp +
+# FloorScene 破坏结算），hp 键必填正整数（fail-closed）；crystal_pillar 非可破坏，
+# hp 仅存档数据（既有行已录 20），出现时同样须正整数。drops（optional 小额掉落，
+# 按行配置）：Pickup kind 白名单，条目 ≤ PROP_DROPS_MAX（防滥用）。
+const PROP_DESTRUCTIBLE: Array[String] = ["pillar", "crate", "bush"]
+const PROP_DROP_KINDS: Array[String] = ["coin", "energy", "heart"]
+const PROP_DROPS_MAX := 4
 const TABLES := {
 	"weapons": "res://data/weapons.json", "enemies": "res://data/enemies.json",
 	"rooms": "res://data/rooms/a1_templates.json",
@@ -478,7 +485,7 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 				if px.distance_to(dp) < SPAWN_DOOR_MIN_PX:
 					errors.append("spawn_points[%d] %s within %dpx of door" \
 						% [i, str(sp), int(SPAWN_DOOR_MIN_PX)])
-	# props：kind 合法 + 界内 + 不压门格
+	# props：kind 合法 + 界内 + 不压门格；m4-c5 hp/drops fail-closed（可破坏契约）
 	var props: Variant = row.get("props", [])
 	if typeof(props) != TYPE_ARRAY:
 		errors.append("props must be array")
@@ -488,8 +495,27 @@ func validate_room_row(row: Dictionary) -> Array[String]:
 			if typeof(p) != TYPE_DICTIONARY:
 				errors.append("props[%d] must be object" % i)
 				continue
+			var pkind: String = String(p.get("kind", ""))
 			if not PROP_KINDS.has(p.get("kind")):
 				errors.append("props[%d] bad kind: %s" % [i, str(p.get("kind"))])
+			# hp：可破坏 kind 必填正整数；crystal_pillar（非可破坏）出现时同样须正整数
+			var hp: Variant = p.get("hp")
+			if PROP_DESTRUCTIBLE.has(pkind):
+				if typeof(hp) != TYPE_INT or int(hp) < 1:
+					errors.append("props[%d] %s requires positive int hp" % [i, pkind])
+			elif typeof(hp) != TYPE_INT or int(hp) < 1:
+				errors.append("props[%d] hp must be positive int: %s" % [i, str(hp)])
+			# drops（optional，缺省 []）：白名单 kind + 条目上限
+			var prop_drops: Variant = p.get("drops", [])
+			if typeof(prop_drops) != TYPE_ARRAY:
+				errors.append("props[%d] drops must be array" % i)
+			else:
+				if (prop_drops as Array).size() > PROP_DROPS_MAX:
+					errors.append("props[%d] drops over %d entries" % [i, PROP_DROPS_MAX])
+				for di: int in (prop_drops as Array).size():
+					var dk: Variant = (prop_drops as Array)[di]
+					if typeof(dk) != TYPE_STRING or not PROP_DROP_KINDS.has(dk):
+						errors.append("props[%d] drops[%d] bad kind: %s" % [i, di, str(dk)])
 			var grid: Variant = p.get("grid")
 			if not _is_grid(grid):
 				errors.append("props[%d] grid must be [x,y] grid" % i)

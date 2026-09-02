@@ -34,7 +34,7 @@
     "props": [
       {"kind": "pillar", "grid": [3, 7], "hp": 20},
       {"kind": "pillar", "grid": [18, 7], "hp": 20},
-      {"kind": "crate", "grid": [11, 3], "hp": 8}
+      {"kind": "crate", "grid": [11, 3], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": [
       {"kind": "magma", "grid": [6, 7], "radius": 32},
@@ -55,8 +55,8 @@
     "props": [
       {"kind": "pillar", "grid": [8, 2], "hp": 20},
       {"kind": "pillar", "grid": [13, 2], "hp": 20},
-      {"kind": "crate", "grid": [3, 8], "hp": 8},
-      {"kind": "crate", "grid": [18, 8], "hp": 8}
+      {"kind": "crate", "grid": [3, 8], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [18, 8], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": [
       {"kind": "magma", "grid": [11, 6], "radius": 56},
@@ -76,7 +76,7 @@
     "props": [
       {"kind": "pillar", "grid": [3, 6], "hp": 20},
       {"kind": "pillar", "grid": [18, 8], "hp": 20},
-      {"kind": "crate", "grid": [10, 11], "hp": 8}
+      {"kind": "crate", "grid": [10, 11], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": [
       {"kind": "magma", "grid": [11, 5], "radius": 24},
@@ -97,7 +97,7 @@
     "props": [
       {"kind": "pillar", "grid": [5, 6], "hp": 20},
       {"kind": "pillar", "grid": [16, 6], "hp": 20},
-      {"kind": "crate", "grid": [18, 3], "hp": 8}
+      {"kind": "crate", "grid": [18, 3], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": [
       {"kind": "magma", "grid": [11, 11], "radius": 40},
@@ -117,8 +117,8 @@
     "props": [
       {"kind": "pillar", "grid": [10, 6], "hp": 20},
       {"kind": "pillar", "grid": [11, 7], "hp": 20},
-      {"kind": "crate", "grid": [4, 4], "hp": 8},
-      {"kind": "crate", "grid": [17, 4], "hp": 8}
+      {"kind": "crate", "grid": [4, 4], "hp": 8, "drops": ["coin"]},
+      {"kind": "crate", "grid": [17, 4], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": [
       {"kind": "magma", "grid": [4, 9], "radius": 32},
@@ -139,7 +139,7 @@
     "props": [
       {"kind": "pillar", "grid": [5, 7], "hp": 20},
       {"kind": "pillar", "grid": [16, 7], "hp": 20},
-      {"kind": "crate", "grid": [11, 10], "hp": 8}
+      {"kind": "crate", "grid": [11, 10], "hp": 8, "drops": ["coin"]}
     ],
     "hazards": [
       {"kind": "magma", "grid": [11, 6], "radius": 32},
