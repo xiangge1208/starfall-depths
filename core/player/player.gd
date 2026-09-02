@@ -16,6 +16,11 @@ const TIDE_DR := 0.8               # 生命潮汐(升级)：法阵内受伤 ×0.
 const DEFIANCE_RADIUS_PX := 60.0   # 坚守：AoE 半径
 const DEFIANCE_KNOCKBACK_PX := 8.0 # 坚守：击退距离
 const DEFIANCE_STUN_TICKS := 30    # 坚守：眩晕 0.5s
+# m4-c2 英雄被动 ×4 消费端数值（GDD §6 逐字）。
+const BLESSING_STACK_CAP := 4             # 祝福：单局叠层上限（至多 4 层）
+const BLESSING_DMG_PCT_PER_STACK := 0.05  # 祝福：每层 +5% 全伤害
+const SHADOW_REAP_ENERGY := 5             # 掠影：近战击杀返还蓝量
+const SHADOW_REAP_ROLL_FREE_TICKS := 60   # 掠影：击杀后翻滚免冷却窗（1s）
 # m2-t26 灾厄「治疗无效」meta 键单一出处（FloorScene 挂载/摘除；heal() 前置拦截一切治疗源）
 const CALAMITY_HEAL_DISABLED_META := "calamity_heal_disabled"
 # m2-t35 meta 生效接线（裁定⑨）：T12 增益键消费读数。
@@ -60,15 +65,25 @@ var energy_free_until := -1
 var incoming_slow_pct := 0.0
 var incoming_slow_until := -1
 var weapon_rig: WeaponRig = null   # tscn 子节点（_ready 解析；测试可手工注入）
-var combat: CombatSystem = null    # m1-t5：技能经 player.combat 写必暴窗（房间注入，同 rig.combat 契约）
+# m4-c2：房间 CombatSystem 引用（RoomCombat/FloorScene/训练房注入）。setter 把英雄
+# 被动 id 回写到 combat（echo 伤害乘区读点）——floor_scene._wire_room_combat 每次进房
+# 重注入时同步刷新；HeroApplier 装配晚于 combat 注入的次序由其侧兜底回填。
+var combat: CombatSystem = null:
+	set(value):
+		combat = value
+		if combat != null:
+			combat.hero_passive_id = passive_id
 var rampage_active_until := -1     # 狂潮(升级)减伤窗：frame < 此值时受伤 ×0.7（技能写入）
 var tide_guard_until := -1         # 生命潮汐(升级)减伤窗：frame < 此值时受伤 ×0.8（技能每拍续写；m2-t11）
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
+var passive_id := ""               # m4-c2：英雄被动 id（HeroApplier 注入；echo/blessing/spare_parts/shadow_reap 消费门控）
+var blessing_stacks := 0           # m4-c2 祝福叠层（run_root 层入口写入；run 内持续，新局随玩家实例重建归零）
 var friction_mult := 1.0           # m2-t4 冰面接缝：IceZone 进域写 0.25 / 出域回 1.0（MoveMath 摩擦参数临时替换）
 var _roll_left := 0
 var _roll_vel := Vector2.ZERO
 var _roll_end_frame := -999
 var _roll_cd_until := -999
+var _reap_roll_free_until := -999  # m4-c2 掠影：翻滚免冷却窗终帧（默认 -999 → 非刺客路径零漂移）
 var _iframe_until := -999
 var _last_damaged_frame := -999
 var _shield_next_at := -999
@@ -198,11 +213,29 @@ func _update_walk_anim(dir: Vector2, frame: int) -> void:
 		_anim_frame = idx
 
 func roll_ready_at(frame: int) -> bool:
-	return frame >= _roll_cd_until
+	# m4-c2 掠影（刺客被动）：免冷却窗内无视翻滚 CD（多次击杀顺延，窗口语义见 on_melee_kill）。
+	return frame >= _roll_cd_until or frame < _reap_roll_free_until
 
 func effective_roll_cd_ticks() -> int:
 	return maxi(0, int(round(float(ROLL_CD_TICKS) * (1.0 + roll_cd_pct))) \
 		- roll_cd_reduction_ticks)
+
+## m4-c2 玩家伤害出口聚合点：远程（weapon_rig._fire_slot → talent_scaled_damage）与
+## 近战挥击（melee.gd）统一经此乘区。乘区 = (1 + 天赋 talent_dmg_pct) × (1 + 祝福
+## blessing_stacks×5%)，round 取整沿袭 m2-t35 天赋先例；GDD §7.1 最终「向下取整、最小 1」
+## 在命中结算侧（DamageCalc.compute / CombatSystem 回响乘区）完成。
+func scaled_damage(base: int) -> int:
+	return int(round(float(base) * (1.0 + talent_effect_value("talent_dmg_pct")) \
+		* (1.0 + float(blessing_stacks) * BLESSING_DMG_PCT_PER_STACK)))
+
+## m4-c2 掠影（刺客被动，GDD §6）：近战击杀 → 返还 5 蓝 + 1s（60t）翻滚免冷却窗。
+## 窗口按最新击杀顺延（frame+60）；被动门控在 Player（melee.gd 击杀路径只负责上报）。
+## 翻滚自身仍写常规 CD（start_roll 语义不变）：窗内可连续翻滚，窗外恢复 0.7s 冷却。
+func on_melee_kill(frame: int) -> void:
+	if passive_id != "shadow_reap":
+		return
+	add_energy(SHADOW_REAP_ENERGY)
+	_reap_roll_free_until = frame + SHADOW_REAP_ROLL_FREE_TICKS
 
 ## m2-t35 受击无敌帧：基线 ×(1+天赋 talent_hurt_iframe_pct) + 增益加算
 ## （nerve_reflex 的 hurt_iframe_bonus_ticks）。技能侧 apply_iframes 保持绝对 tick 语义不变。

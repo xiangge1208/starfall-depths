@@ -9,7 +9,9 @@ extends SkillBase
 ## Boss 免疫由状态侧统一持有；精英减半（GDD §6「冻结 1.2s（精英减半）」→ 36t）。
 ## 升级版（heroes 行 upgraded，GDD §6 强化列）：半径 ×1.4（120→168px）且冻结 120t（2s）。
 ## 寻敌沿用 M0 分组（"enemies" 组，RoomCombat 刷怪即入组；位置以 brain_pos 为权威，
-## 同坚守被动/自动炮台习语）。被动「回响」（passive_id=echo）为后续卡接线，本卡不实现。
+## 同坚守被动/自动炮台习语）。被动「回响」（passive_id=echo，m4-c2 接线）：法杖/激光类
+## 武器伤害 +15%，消费点在 CombatSystem 命中结算全局乘区（core/combat/combat_system.gd
+## _player_global_mult）——本技能直击伤害不经武器弹通路，不在回响口径内。
 
 const RADIUS_PX := 120.0                 # 冰霜新星半径（GDD §6）
 const RADIUS_UPGRADED_PX := 168.0        # 升级版 120 × 1.4（GDD §6 强化「半径 +40%」）

@@ -4,12 +4,16 @@ extends Node
 
 const BODY_HIT_COOLDOWN_TICKS := 6   # 同一弹对同一体的重复命中抑制（穿透用）
 const ENEMY_BULLET_CAP := 400        # m1-t18 GDD §7.5：敌方场上弹上限（总池 MAX_PROJECTILES 500 不变）
+const ECHO_WEAPON_DMG_MULT := 1.15   # m4-c2 回响（法师被动，GDD §6）：法杖/激光类武器伤害 ×1.15
 
 var pool: ProjectilePool
 var crit_chance := 0.05
 var crit_multiplier := 2.0         # 玩家暴击倍率（Buff/楼层接线写入）
 var status_rate_mult := 1.0        # 玩家元素状态积累倍率
 var forced_crit_until := -1        # m1-t5 影袭：frame < 此值时玩家弹命中必暴（技能经 player.combat 写入）
+## m4-c2 回响读点：当前英雄被动 id（player.combat 注入时经 setter 回写；HeroApplier
+## 对装配晚于注入的次序兜底回填）。缺省 "" → 回响乘区恒不触发（非法师零漂移）。
+var hero_passive_id := ""
 var _hash := SpatialHash.new(32.0)
 var _bodies: Dictionary = {}          # instance_id -> {node, faction, radius}
 var _max_body_radius := 12.0          # m0-final fix2：查询松弛按已注册体最大半径（单调不缩）
@@ -100,7 +104,7 @@ func _physics_process(_delta: float) -> void:
 			if player_shot and Engine.get_physics_frames() < forced_crit_until:
 				cc = 1.0                        # m1-t5 影袭：玩家弹必暴窗（帧口径同上物理帧）
 			var roll: Dictionary = DamageCalc.compute(p.damage, _rng, cc,
-				crit_multiplier if player_shot else 2.0)
+				crit_multiplier if player_shot else 2.0, _player_global_mult(player_shot, meta))
 			if p.faction == Projectile.Faction.PLAYER and roll["is_crit"]:
 				EventBus.player_crit_landed.emit(roll["amount"], p.position)   # m1-t2：玩家弹暴击落地
 			# 附录 C 的附魔在「有效命中」才掷签；没有附魔时 helper 不消费 RNG。
@@ -134,6 +138,25 @@ func _physics_process(_delta: float) -> void:
 			else:
 				_kill(p)
 				break
+
+## m4-c2 回响（法师被动，GDD §6「法杖/激光类武器伤害 +15%」）：玩家弹命中结算的全局
+## 乘区（GDD §7.1「全局乘区=增益/角色被动/Boss 减伤」）。仅当 ①当前英雄 passive_id
+## == "echo" 且 ②弹源为武器（source_type "weapon"，source_id=weapons.json 行 id）且
+## ③武器行 category ∈ {staff, laser} 时 ×1.15；其余路径恒 1.0（含召唤物/反弹弹/
+## 非法杖激光武器/非法师英雄，零漂移）。武器类判别纯数据（GameDB.get_weapon），无新键。
+func _player_global_mult(player_shot: bool, meta: Dictionary) -> float:
+	if not player_shot or hero_passive_id != "echo":
+		return 1.0
+	if String(meta.get("source_type", "")) != "weapon":
+		return 1.0
+	if _is_echo_weapon_category(String(GameDB.get_weapon(
+			String(meta.get("source_id", ""))).get("category", ""))):
+		return ECHO_WEAPON_DMG_MULT
+	return 1.0
+
+## 回响武器类判别（GDD §6「法杖/激光类」= weapons.json category staff/laser）。纯函数直测。
+static func _is_echo_weapon_category(category: String) -> bool:
+	return category == "staff" or category == "laser"
 
 func _bodies_by_hash(hid: int) -> Dictionary:
 	# M0（≤300 实体）线性反查可接受；若 t13 门禁压测超标，

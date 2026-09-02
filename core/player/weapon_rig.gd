@@ -140,11 +140,11 @@ func _fire_slot(w: Dictionary, aim: Vector2, mirrored: bool, frame: int) -> void
 			"source_name": String(w.get("name", w.get("id", ""))), "attack_name": "射击",
 		})
 
-## m2-t35 天赋伤害乘区（talent_dmg_pct，附录 I.4「同 rate_mult 模式」）：远程落弹伤害
-## ×(1+pct)，四舍五入取整。meta 缺省（未 apply/未购）= 原伤害。
-## 披露：近战路径（core/player/melee.gd 直读 w["damage"]）不在本卡文件所有权内 → 未接。
+## m2-t35 天赋伤害乘区（talent_dmg_pct）+ m4-c2 祝福叠层乘区：统一走玩家伤害出口
+## 聚合点 player.scaled_damage（round 语义沿袭；meta/叠层缺省 = 原伤害零漂移）。
+## m4-c2 起：近战挥击路径（core/player/melee.gd）同步接入同一出口（原披露的未接线收口）。
 func talent_scaled_damage(base_damage: int, player: Player) -> int:
-	return int(round(float(base_damage) * (1.0 + player.talent_effect_value("talent_dmg_pct"))))
+	return player.scaled_damage(base_damage)
 
 func _spawn(cfg: Dictionary) -> void:
 	combat.spawn_projectile(cfg)         # 测试以子类覆写 _spawn 捕获参数

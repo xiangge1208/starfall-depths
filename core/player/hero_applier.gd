@@ -17,6 +17,13 @@ static func apply(hero: Dictionary, player: Player) -> void:
 	player.shield = player.shield_max
 	player.energy = player.energy_max
 	player.has_defiance = bool(hero["has_defiance"])
+	# m4-c2：被动 id 注入（消费门控读点：combat_system 回响乘区 / run_root 层入口
+	# blessing+spare_parts / player.on_melee_kill 掠影）。
+	player.passive_id = String(hero.get("passive_id", ""))
+	# 装配晚于 combat 注入的次序（training_room 装配序）兜底回填——常规次序由
+	# player.combat setter 在房间注入时回写（player.gd m4-c2 注）。
+	if player.combat != null:
+		player.combat.hero_passive_id = player.passive_id
 	# 初始武器按行内顺序装备：第一把占槽 0，其余填下一空槽（WeaponRig.equip 契约）
 	if player.weapon_rig != null:
 		for wid: Variant in hero["start_weapons"]:

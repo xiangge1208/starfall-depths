@@ -7,7 +7,10 @@ extends SkillBase
 ## 库存上限（GDD §6「与被动共用库存上限 2」）：heroes 行 summon_cap 附加键
 ## （HeroApplier meta "hero" 接缝读出，缺省 2）；满编时最旧炮台提前退场（树序 FIFO），
 ## 新炮台照常部署——总数恒 ≤ 上限。
-## 被动「备件」（开局/每层补 1 台，passive_id=spare_parts）为后续卡接线，本卡不实现。
+## 被动「备件」（m4-c2 接线，GDD §6：开局/每进入新一层补 1 台便携炮台，存活 12s、
+## DPS 15）：经 deploy_spare_parts(frame) 走本技能的统一部署通路（_retire_over_cap →
+## _deploy），与主动技共用 summon_cap 库存与满编顶替语义；调用点 = run_root 层入口钩子
+## （core/rooms/run_root.gd _apply_floor_entry_passives）。
 
 const DEFAULT_SUMMON_CAP := 2   # GDD §6 库存上限（heroes 行 summon_cap 可覆写）
 
@@ -38,6 +41,15 @@ func _activate(frame: int) -> void:
 	_retire_over_cap()
 	_deploy(frame)
 
+## m4-c2 被动「备件」补台入口（run_root 层入口钩子调用）：开局带 1 台/每进入新一层
+## 补 1 台便携炮台（GDD §6：存活 12s，DPS 15，行见 TurretSummon.spare_parts_row）。
+## 与主动技能共用库存上限（summon_cap）与满编顶替语义（summons 既有 FIFO 先退最旧）。
+func deploy_spare_parts(frame: int) -> void:
+	if player == null or not player.is_inside_tree():
+		return
+	_retire_over_cap()
+	_deploy(frame, TurretSummon.spare_parts_row())
+
 ## 存活召唤物（"summons" 组；跨技能/被动共享的上限计数口径）。
 ## 剔除已失效与已排定退场（queue_free 尚未落地）的实例。
 func living_summons() -> Array[SummonBase]:
@@ -57,7 +69,8 @@ func _retire_over_cap() -> void:
 		(living.pop_front() as SummonBase).despawn("replaced")
 
 ## 部署：挂玩家父节点（房间/楼层根，坐标同层）；无父兜底随玩家（生产不可达，纯逻辑环境）。
-func _deploy(frame: int) -> void:
+## m4-c2：row 缺省 = 主动技行；备件被动经 deploy_spare_parts 注入 spare_parts_row。
+func _deploy(frame: int, row: Dictionary = {}) -> void:
 	var turret := TurretSummon.new()
 	var host := player.get_parent()
 	if host != null:
@@ -66,7 +79,7 @@ func _deploy(frame: int) -> void:
 	else:
 		player.add_child(turret)
 		turret.position = Vector2.ZERO
-	turret.setup(TurretSummon.default_row(upgraded))
+	turret.setup(row if not row.is_empty() else TurretSummon.default_row(upgraded))
 	turret.combat = player.combat
 	turret.player = player
 	turret.add_to_group("summons")

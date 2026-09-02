@@ -53,6 +53,7 @@ var victory_route_override: Callable = Callable()
 var _overlay: CanvasLayer = null
 var _a2_entry: Node2D = null
 var _facility_run_seed := 0
+var _floor_entry_max := 0                  # m4-c2：层入口被动去重（已触发过的最大层号；0=尚未进层）
 var _drink_states: Dictionary = {}         # floor_idx -> {uses_left}; 同层重建不补次数
 var _used_shrine_kinds: Dictionary = {}    # 四类雕像整局一次
 var _talents_applied := false              # m2-t35：开局 talents.apply 恰一次；此后 wipe→repair
@@ -85,7 +86,7 @@ func _begin() -> void:
 	AchievementSystem.reset_session()      # m2-t33 补线：成就单局口径同点清零（K.1/K.4）
 	if player == null:
 		_spawn_hero_player()
-	_start_floor(RunState.floor_idx)
+	_start_floor(RunState.floor_idx)   # m4-c2：层入口被动在 _start_floor 尾部（玩家落位后）触发
 
 
 ## m2-t35：天赋系统惰性构造（后端读真实档）；注入缝在 _begin 前仍然生效。
@@ -107,6 +108,7 @@ func _reset_runtime_for_new_run() -> void:
 	_a2_entry = null
 	player = null
 	buffs = BuffManager.new()
+	_floor_entry_max = 0                     # m4-c2：新局层入口去重基线复位（开局首层可再触发）
 	_drink_states.clear()
 	_used_shrine_kinds.clear()
 	_talents_applied = false
@@ -151,6 +153,53 @@ func _start_floor(idx: int) -> void:
 			_talents_applied = true
 		else:
 			player.repair_talent_absolute_keys()
+	# m4-c2：层入口被动（blessing 回盾叠层 / spare_parts 补台）。置于玩家落位
+	# （floor_scene.setup → _place_player_at_start）之后：备件台落在开局/新层玩家
+	# 实际站位，而非旧层坐标（跨层重建会整体搬运房间几何，落位前部署会搁浅在
+	# 旧坐标、240px 索敌够不到新层怪——实测语义等价于没有这台台子）。
+	_apply_floor_entry_passives(idx)
+
+
+## m4-c2 英雄被动层入口钩子（GDD §6）：blessing（守护者）= 回满护盾 + 5% 全伤害叠层；
+## spare_parts（工程师）= 开局/每进入新一层补 1 台便携炮台（与主动技共用库存上限 2，
+## 语义经 EngineerTurret.deploy_spare_parts 统一通路）。frame 参数为测试注入缝，
+## <0 时取当前物理帧（生产路径）。非三被动英雄为恒等 no-op。
+## 「每进入新层」按层号去重（_floor_entry_max 单调记录已触发层）：同层重复触发
+## （层间重入/测试复用根节点）不重复叠层、不重复补台；护盾回满幂等、每次入口都执行。
+func _apply_floor_entry_passives(new_floor: int, frame: int = -1) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if frame < 0:
+		frame = Engine.get_physics_frames()
+	var is_new_entry := new_floor > _floor_entry_max
+	if is_new_entry:
+		_floor_entry_max = new_floor
+	if player.passive_id == "blessing":
+		_apply_blessing_floor_entry(new_floor, is_new_entry)
+	elif player.passive_id == "spare_parts" and is_new_entry:
+		_apply_spare_parts_floor_entry(frame)
+
+
+## 祝福（守护者被动，GDD §6「每进入新层回满护盾并 +5% 全伤害（单局至多叠 4 层）」）。
+## 保守读法（任务卡钉死）：首层开局不叠层；「每进入新层」= 进入第 2 层起每层 +1，
+## 至多 4 层（+20%，第 5 层起封顶）。叠层持久整个单局（跨层不清；新局随玩家实例重建归零）。
+## 护盾回满对首层开局幂等（HeroApplier 装配即满值）。
+func _apply_blessing_floor_entry(new_floor: int, is_new_entry: bool) -> void:
+	if is_new_entry and new_floor >= 2:
+		player.blessing_stacks = mini(player.blessing_stacks + 1, Player.BLESSING_STACK_CAP)
+	player.shield = player.shield_max
+
+
+## 备件（工程师被动，GDD §6「开局带 1 台便携炮台……每进入新一层补 1 台」）：
+## 部署走玩家 Skill 节点（EngineerTurret）统一通路——库存上限/满编顶替与主动技同源；
+## Skill 缺席（裸玩家测试）静默跳过。披露：开战接线（turret.combat）在进首房时由
+## floor_scene._wire_room_combat 的 summons 组重接缝（m2-t26）补齐——层入口时刻
+## player.combat 尚为 null（房间未进），炮台先待机、进房即恢复开火，与跨房残留
+## 炮台的既有语义一致（体注册随部署房，跨房不重注）。
+func _apply_spare_parts_floor_entry(frame: int) -> void:
+	var skill := player.get_node_or_null("Skill") as EngineerTurret
+	if skill != null:
+		skill.deploy_spare_parts(frame)
 
 
 ## boss 死亡（FloorScene.boss_defeated，boss 房清时发出）：嵌层间中转于楼层之上。
@@ -224,6 +273,8 @@ func _on_next_floor_requested(new_floor: int) -> void:
 	# 随后 floor_reached(抵达层号) 吸收新层窗口重置（深入者判定 + 赤手空拳本层口径）。
 	AchievementSystem.notify_floor_cleared(new_floor - 1)
 	AchievementSystem.notify_floor_reached(new_floor)
+	# m4-c2：层入口被动改由 _start_floor 尾部统一触发（有当层数据才真正"进入新层"；
+	# A2 里程碑/M1 浮层路径无楼层构建，不触发）。
 	if inter_floor != null and is_instance_valid(inter_floor):
 		inter_floor.queue_free()
 	inter_floor = null

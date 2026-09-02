@@ -10,7 +10,9 @@ extends SkillBase
 ##   向下取整 min 1）；留在阵内每拍 +2 续窗，离阵/法阵结束后 ≤2 拍自然过期。
 ## 法阵半径 60px：GDD §6 未给半径，议定值（同坚守 60px AoE 先例；T28 Balance Bot 校准点）。
 ## 生产侧 _physics_process 自驱 tick（同 SummonBase 习语）；测试可注入任意帧直驱。
-## 被动「祝福」（passive_id=blessing）为后续卡接线，本卡不实现。
+## 被动「祝福」（passive_id=blessing，m4-c2 接线）：每进入新层回满护盾 + 5% 全伤害
+## （单局叠至 4 层），消费点 = run_root 层入口钩子（_apply_floor_entry_passives）+
+## player.scaled_damage 玩家伤害出口聚合点。
 
 const INSTANT_HEAL := 2             # 立即回 2 HP（GDD §6）
 const DURATION_TICKS := 180         # 法阵持续 3s（GDD §6；末拍含——第 3 秒节拍在窗内）
