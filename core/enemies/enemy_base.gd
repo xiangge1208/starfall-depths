@@ -260,6 +260,7 @@ func _spawn_delayed_blast(delay_ticks: int) -> void:
 func _death_explosion() -> void:
 	if int(row.get("aoe_radius", 0)) <= 0 or int(row.get("aoe_dmg", 0)) <= 0:
 		return
+	AudioMgr.play_once("explosion")   # m4p-w2a：起爆拍（有 AoE 行即爆；命中与否由下方结算）
 	if player_ref == null or not player_ref.has_method("take_hit"):
 		return
 	if player_ref.brain_pos.distance_to(brain_pos) > float(row["aoe_radius"]):

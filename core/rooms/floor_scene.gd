@@ -220,6 +220,11 @@ var _used_shrine_kinds: Dictionary = {}
 ## m2-t24 隐藏门携带判定（宽松口径）：本层任意共鸣触发计数（EventBus 订阅，
 ## 楼层实例重建 = 新层自然清零；实例释放时 Godot 自动断开信号连接）。
 var _floor_resonances := 0
+## m4p-w2a 门音状态：_gates_seeded = 首轮 refresh_gates（构建拍）已完成，此后闸门
+## 闭合→开启的状态变迁才算「开门拍」；_clear_audio_frame = 最近一次清房 stinger 帧
+## （同拍闸门开启让位 room_clear，避免叠音——裁定：清房拍只播 room_clear）。
+var _gates_seeded := false
+var _clear_audio_frame := -1
 
 
 # ================================================================ 生命周期
@@ -825,6 +830,7 @@ func _tick_hazards(frame: int) -> void:
 	if hazard_magma != null:
 		var magma_dmg := hazard_magma.tick(player)
 		if magma_dmg > 0:
+			AudioMgr.play("lava_burn")   # m4p-w2a：岩浆 DOT 实扣血拍（脉冲 1s，天然满足 0.5s 节流上限）
 			player.take_hit({
 				"amount": magma_dmg, "is_crit": false,
 				"element": Elements.Id.FIRE, "from": player_pos,
@@ -843,6 +849,8 @@ func _tick_hazards(frame: int) -> void:
 				vis.visible = true
 				# m4p-u2：贴图态伸出=原色（刺形由图承载）；色块回落态沿用红块语义。
 				vis.modulate = SPIKE_OUT_COLOR if vis is Polygon2D else Color.WHITE
+				if s.just_extended():
+					AudioMgr.play_once("spikes")   # m4p-w2a：伸出拍（每簇每周期一次；同帧限一声）
 			_:
 				vis.visible = false
 		if s.damage_at(player_pos) > 0:
@@ -1195,6 +1203,7 @@ func push_player_back() -> void:
 func _start_room_combat(room: FloorRoom) -> void:
 	room.room_flow.setup(room.waves_cfg)
 	room.room_flow.on_entered(room.entry_frame)
+	AudioMgr.play("door_lock")   # m4p-w2a：战斗房锁门拍（on_entered 置 locked 即全楼封门）
 	_spawn_wave(room)
 
 
@@ -1399,6 +1408,7 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 		kill_kind = "boss"
 	RunState.settle_kill_gems(kill_kind, enemy_id)
 	if kill_kind == "boss":
+		AudioMgr.play("crystal_get")   # m4p-w2a：Boss 击杀蓝晶大额入账拍（settle_kill_gems 同拍）
 		Fx.request_boss_death()   # J7：Boss 死亡定格链（表现层；总开关/前台门在 Fx/导演内）
 	var notify_id := String(e.row.get("wave_id", enemy_id))
 	var killed_row: Dictionary = (e.row as Dictionary).duplicate(true)
@@ -1583,6 +1593,11 @@ func _emit_room_clear(room: FloorRoom) -> void:
 	var frame := Engine.get_physics_frames()
 	Telemetry.log_row(["floor_clear", frame, room.template_id, frame - room.entry_frame])
 	EventBus.room_cleared.emit(room.template_id)
+	# m4p-w2a：清房奖励爆发 stinger——仅战斗系房（combat 注入）清房响；shop/event 等
+	# 非战斗房首进也走本函数但不算「清房」。同拍闸门开启不播 door_open（防叠音裁定）。
+	if room.combat != null:
+		AudioMgr.play("room_clear")
+		_clear_audio_frame = frame
 	var rewards := room.room_flow.rewards
 	if not rewards.is_empty():
 		_spawn_rewards(room, rewards)
@@ -1681,6 +1696,7 @@ func _on_flow_room_event(room_type: String, room_id: int) -> void:
 	room_event.emit(room_type, room_id)
 	if room_type == "boss":
 		AudioMgr.boss_layer(true)   # m2-t22：Boss 房首进 → Boss 曲层（AudioMgr 幂等）
+		AudioMgr.play("boss_roar")  # m4p-w2a：Boss 房首进/Boss 出生咆哮（room_event 恰一次）
 	_open_facility(room_type, _rooms.get(room_id))
 
 
@@ -1948,10 +1964,16 @@ func _mark_used(id: int, dir: String) -> void:
 ## 规则锁（boss 未解 / 双未清）红门，战斗封门棕门——brief「未达房间门显示锁形」）。
 ## m1-t18：可见性瞬切改统一 DoorAnim（开 = 滑出后隐藏，终态等价原瞬隐）。
 func refresh_gates() -> void:
+	var seeded := _gates_seeded            # 首轮（构建拍）不播开门音——门初始成形非「开启」事件
+	var clear_frame := _clear_audio_frame  # 清房同拍的闸门开启让位 room_clear（防叠音）
 	for key in _gates:
 		var g: Dictionary = _gates[key]
 		var open: bool = flow.doors_open_between(int(g["a"]), int(g["b"]))
+		var was_open: bool = bool(g["open"])
 		g["open"] = open
+		if seeded and open and not was_open \
+				and Engine.get_physics_frames() != clear_frame:
+			AudioMgr.play("door_open")     # m4p-w2a：闸门闭合→开启变迁拍（与 DoorAnim.open 同步）
 		var cs: CollisionShape2D = g["shape"]
 		cs.set_deferred("disabled", open)
 		var panel: Node2D = g["panel"]
@@ -1965,6 +1987,7 @@ func refresh_gates() -> void:
 		var t := ArtLookup.tex(ArtLookup.tile_path(tile))
 		if t != null and panel is Sprite2D:
 			(panel as Sprite2D).texture = t
+	_gates_seeded = true
 
 
 func _rule_locked(a: int, b: int) -> bool:

@@ -110,11 +110,14 @@ func _on_node_pressed(id: String) -> void:
 		_show_detail(id, "已购买")
 		return
 	if not system.is_available(id):
+		AudioMgr.play("ui_error")   # m4p-w2a：前置未满足拒绝（非法操作）
 		_show_detail(id, "前置未满足：%s" % _require_names(row_data))
 		return
 	if system.buy(id):
+		AudioMgr.play("ui_buy")     # m4p-w2a：天赋购买成功拍
 		_show_detail(id, "购买成功")
 	else:
+		AudioMgr.play("empty")      # m4p-w2a：蓝晶不足（资源空）
 		_show_detail(id, "蓝晶不足（还需 ◆%d）" % (int(row_data["cost"]) - int(system.save_system.gems())))
 	_refresh()
 

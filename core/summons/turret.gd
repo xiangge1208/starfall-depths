@@ -116,6 +116,7 @@ func _fire_shot(target: EnemyBase) -> void:
 	if combat == null or not is_instance_valid(combat):
 		return
 	var dir := (target.brain_pos - global_position).normalized()
+	AudioMgr.play_once("turret_shot")   # m4p-w2a：炮台开火拍（多台同帧限一声）
 	combat.spawn_projectile({
 		"pos": global_position, "vel": dir * SHOT_SPEED_PX, "damage": shot_damage,
 		"faction": Projectile.Faction.PLAYER, "element": Elements.Id.NONE,
@@ -129,6 +130,7 @@ func _fire_missile(target: EnemyBase, frame: int) -> void:
 	if combat == null or not is_instance_valid(combat):
 		return
 	var at := target.brain_pos
+	AudioMgr.play_once("missile")       # m4p-w2a：升级导弹发射拍（多台同帧限一声）
 	for body in combat.bodies_in_radius(at, MISSILE_AOE_PX, Projectile.Faction.ENEMY):
 		if body.get("state") == EnemyBase.State.DEAD:
 			continue

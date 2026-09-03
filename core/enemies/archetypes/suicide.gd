@@ -52,6 +52,7 @@ func _try_arm_fuse(frame: int, to_player: Vector2) -> void:
 			telegraph_fx()
 			return
 	_fuse_deadline = frame + int(row.get("fuse_ticks", 30))
+	AudioMgr.play("fuse_beep")   # m4p-w2a：引信点燃拍（_fuse_deadline 门保证每敌一次）
 	telegraph_fx()
 
 

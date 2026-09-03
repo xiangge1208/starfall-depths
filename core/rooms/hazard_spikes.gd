@@ -49,6 +49,12 @@ func phase() -> Phase:
 	return phase_at(_t + offset_ticks)
 
 
+## m4p-w2a：本拍恰为 WARN→OUT 伸出边界（posmod == WARN_TICKS）——宿主据此播伸出音。
+## 纯函数零新增状态（_t 推进语义不变，每周期恰真一次）。
+func just_extended() -> bool:
+	return posmod(_t + offset_ticks, cycle_ticks()) == WARN_TICKS
+
+
 ## 伤害结算查询：仅伸出相位且命中 zone（>0 = 宿主应结算伤害）。
 func damage_at(pos: Vector2) -> int:
 	if phase() != Phase.OUT or not zone.has_point(pos):

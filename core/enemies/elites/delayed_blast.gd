@@ -40,6 +40,7 @@ func _physics_process(_delta: float) -> void:
 ## 爆炸结算：与 EnemyBase._death_explosion 同语义（半径内玩家 take_hit，爆毕自毁）。
 ## fix1：player_ref 可能已被释放——先 is_instance_valid 守卫再访问。
 func _detonate() -> void:
+	AudioMgr.play_once("explosion")   # m4p-w2a：延迟大爆起爆拍（与即刻爆同一音源，同帧限一声）
 	if is_instance_valid(_player) and _player.has_method("take_hit") \
 			and _player.brain_pos.distance_to(global_position) <= _radius:
 		_player.take_hit({

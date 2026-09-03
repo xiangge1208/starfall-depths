@@ -4,6 +4,15 @@ extends Node
 
 const SWITCH_LOCK_TICKS := 15      # 0.25s
 
+## m4p-w2a：开火音按 weapons.json category 分音（表外 pistol/special 维持 shoot_player；
+## 近战 is_melee 不经 try_fire，挥击音在 melee.gd 既有 melee_swing）。经 AudioMgr.play_once
+## 消费——双持齐射同拍两枪仍只一声（卡约束「一拍一音源一次」）。
+const CATEGORY_SHOOT_KEY := {
+	"bow": "shoot_bow", "laser": "shoot_laser", "rifle": "shoot_rifle",
+	"shotgun": "shoot_shotgun", "smg": "shoot_smg", "sniper": "shoot_sniper",
+	"staff": "shoot_staff", "throw": "shoot_throw",
+}
+
 var combat: CombatSystem
 var combat_rng: RandomNumberGenerator
 var slots: Array[Dictionary] = []
@@ -110,7 +119,8 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 			var aw: Dictionary = slots[alt]
 			if not aw.is_empty() and not aw["is_melee"]:
 				_fire_slot(aw, aim, true, frame)
-	AudioMgr.play("shoot_player")         # m2-t5：开火成功音（双持齐射仍只一声）
+	# m4p-w2a：开火音按武器 category 分音（表外回落 shoot_player；play_once 保证双持同拍一声）
+	AudioMgr.play_once(String(CATEGORY_SHOOT_KEY.get(String(w.get("category", "")), "shoot_player")))
 	return true
 
 ## 单侧齐射：mirrored 时枪口取反（副手位于朝向另一舷），弹道角与主手同源。

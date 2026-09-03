@@ -181,6 +181,7 @@ func _buy_weapon(idx: int) -> void:
 	_stock_state["weapons_sold"] = _sold
 	_weapon_price_labels[idx].text = "已售"
 	_refresh_coins()
+	AudioMgr.play("ui_buy")   # m4p-w2a：购买成功拍（武器/道具/饮料三路共用成功点）
 	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
 	shop_purchase.emit("weapon")   # m2-t35：T3 K 表同名购买信号（成功点）
 
@@ -210,6 +211,7 @@ func _buy_item(kind: String) -> void:
 	_stock_state["items_sold"] = _item_sold
 	(_item_price_labels[kind] as Label).text = "已售"
 	_refresh_coins()
+	AudioMgr.play("ui_buy")   # m4p-w2a：购买成功拍（武器/道具/饮料三路共用成功点）
 	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
 	shop_purchase.emit(kind)   # m2-t35：T3 K 表同名购买信号（成功点）
 
@@ -243,6 +245,7 @@ func _buy_drink() -> void:
 	_stock_state["drink_sold"] = true
 	_drink_price_label.text = "已售"
 	_refresh_coins()
+	AudioMgr.play("ui_buy")   # m4p-w2a：购买成功拍（武器/道具/饮料三路共用成功点）
 	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
 	shop_purchase.emit("drink")   # m2-t35：T3 K 表同名购买信号（成功点）
 
@@ -526,6 +529,7 @@ func _haggled_price(price_value: int) -> int:
 
 func _flash(label: Label) -> void:
 	label.modulate = FAIL_FLASH
+	AudioMgr.play("empty")   # m4p-w2a：资源空拒绝音（余额不足=empty；_flash 仅扣款失败路径调用）
 	var tw := label.create_tween()
 	tw.tween_property(label, "modulate", Color.WHITE, 0.45)
 

@@ -145,6 +145,7 @@ func start_roll(dir: Vector2, frame: int) -> void:
 	_roll_left = ROLL_TICKS
 	_roll_end_frame = frame + ROLL_TICKS
 	_roll_cd_until = _roll_end_frame + effective_roll_cd_ticks()
+	AudioMgr.play_once("roll")   # m4p-w2a：翻滚成功起始音（同拍限流）
 	Fx.on_roll(self)
 
 # ---- m2-t17 四向行走动画（帧表驱动，纯整数运算零分配） ----
@@ -400,6 +401,7 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	var actual := mini(maxi(0, dmg), effective_before)
 	_shield_next_at = frame + maxi(0, SHIELD_DELAY_TICKS - shield_delay_reduction_ticks)
 	if shield_before > 0 and shield == 0:
+		AudioMgr.play("shield_break")                        # m4p-w2a：护盾破碎拍（与广播同拍）
 		EventBus.shield_broken.emit()                        # 破碎拍广播（坚守被动在此挂钩）
 	var fatal := hp <= 0
 	# 不修改调用方共享 ctx；将实际结算伤害、帧和来源补齐后发详细归因信号。
@@ -418,6 +420,7 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 	EventBus.player_hit_resolved.emit(actual, fatal, resolved)
 	EventBus.player_damaged.emit(actual, fatal)   # 旧两参契约仍只发一次
 	Telemetry.log_row(["hurt", frame, actual, hp])   # m1-t18：hurt 行收口至玩家受击路径（原 training_room 本地行）
+	AudioMgr.play("player_hurt")   # m4p-w2a：实际掉血落地拍（同 Fx.on_player_hurt 拍；无敌帧 no-op 不响）
 	Fx.on_player_hurt(self, actual, ctx.get("from", global_position))   # from → J6 方向指示（D-3b）
 	_reflect_thorns(ctx)                             # m2-t35：荆棘护甲接触反伤（命中结算后）
 

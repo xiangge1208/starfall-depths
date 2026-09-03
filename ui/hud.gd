@@ -159,6 +159,9 @@ var run: Node = null
 var boss_target: EnemyBase = null
 
 var _vignette: CanvasItem
+## m4p-w2a 低血心跳：与红晕同条件（is_low_hp）下每 1.2s 一声（delta 累加器节流的
+## 间隔重复口径；回满血即停——表现层零判定影响）。
+var _lowhp_beat_cd := 0.0
 var _hearts: HBoxContainer
 var _hearts_textured := false                # 红心贴图可用（false = 色块回落路径）
 var _heart_full_tex: Texture2D
@@ -203,7 +206,7 @@ func _ready() -> void:
 	_build_pause_menu()
 	_start_breath_tween()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var snap := hud_snapshot(player, run)
 	_apply_top_left(snap)
 	_apply_buffs(snap)
@@ -211,6 +214,15 @@ func _process(_delta: float) -> void:
 	_apply_bottom(snap)
 	_apply_boss_bar()
 	_vignette.visible = bool(snap["low_hp"])
+	# m4p-w2a：低血心跳（红晕同条件 hp≤2）：进低血即一声，此后每 1.2s 重复。
+	if bool(snap["low_hp"]):
+		if _lowhp_beat_cd <= 0.0:
+			AudioMgr.play("lowhp_heartbeat")
+			_lowhp_beat_cd = 1.2
+		else:
+			_lowhp_beat_cd -= delta
+	else:
+		_lowhp_beat_cd = 0.0
 
 # ---- 构建 ----
 

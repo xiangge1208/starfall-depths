@@ -97,6 +97,7 @@ func buy(idx: int) -> bool:
 	uses_left -= 1
 	_state["uses_left"] = uses_left       # 状态回写（跨楼层持久归调用方）
 	drink_bought.emit(applied_id)
+	AudioMgr.play("drink")                # m4p-w2a：饮料机出杯拍（购买落地即出杯）
 	shop_purchase.emit("drink")           # m2-t35：T3 K 表同名购买信号（成功点）
 	_refresh_panel()
 	return true

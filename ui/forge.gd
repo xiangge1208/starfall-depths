@@ -89,12 +89,15 @@ func _on_fuse_pressed() -> void:
 	var look := ForgeLogic.preview(a, b, pool)
 	var kind := String(look.get("kind", "none"))
 	if kind == "none":
+		AudioMgr.play("ui_error")   # m4p-w2a：非法配方拒绝（empty=资源空、ui_error=非法操作分工）
 		return
 	if kind == "upgrade" and _upgrades_used() >= ForgeLogic.UPGRADE_LIMIT_PER_RUN:
+		AudioMgr.play("ui_error")   # m4p-w2a：升级次数用尽拒绝（非法操作）
 		return
 	var cost := ForgeLogic.fuse_cost(_rarity_of(a), _rarity_of(b))
 	if wallet == null or not wallet.spend_coins(cost):
 		_flash(_cost, FAIL_FLASH)
+		AudioMgr.play("empty")      # m4p-w2a：金币不足（资源空，与商店 _flash 同口径）
 		return
 	var out := ForgeLogic.fuse(a, b, pool, _resolve_rng())
 	if out.is_empty():
@@ -110,6 +113,7 @@ func _on_fuse_pressed() -> void:
 	# 配方熔铸与通用升级都算一次熔铸；先例见 Core/interact/shop.gd 的 CodexSystem.count_buy()。
 	CodexSystem.count_craft()
 	AchievementSystem.notify_item_forged()   # m2-t33 补线：熔铸匠轮询点（裁定㉗）
+	AudioMgr.play("forge")                   # m4p-w2a：熔铸成交拍
 	_flash(_preview, OK_FLASH)
 
 

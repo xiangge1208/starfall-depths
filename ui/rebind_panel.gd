@@ -111,6 +111,7 @@ func _capture_key(key: InputEventKey) -> void:
 	if holder != "":
 		_status.text = "该键已用于 %s，已拒绝" % String(ACTION_NAMES.get(holder, holder))
 		_refresh_rows()
+		AudioMgr.play("ui_error")   # m4p-w2a：改键冲突拒绝（非法操作）
 		conflict_rejected.emit(action, holder)
 		return
 	_write_rebind(action, key)
