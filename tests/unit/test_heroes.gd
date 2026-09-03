@@ -454,3 +454,108 @@ func _key(code: Key) -> InputEventKey:
 	ev.physical_keycode = code
 	ev.pressed = true
 	return ev
+
+# ---- M4.5 u3：选角卡立绘/技能/被动图标接线 + 解锁状态视觉标签 ----
+
+func test_hero_select_portraits_wired() -> void:
+	# 6 卡各有非空 portrait 纹理：生成器原生 32x32、×2 整数放大、最近邻、
+	# 鼠标穿透（不吞 PanelContainer 的轻点判定）
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	assert_int(ui._portraits.size()).is_equal(6)
+	for i in 6:
+		var p: TextureRect = ui._portraits[i]
+		assert_object(p.texture).is_not_null()
+		assert_int(p.texture.get_width()).is_equal(32)
+		assert_int(p.texture.get_height()).is_equal(32)
+		assert_vector(p.custom_minimum_size).is_equal(Vector2(64, 64))
+		assert_int(p.texture_filter).is_equal(CanvasItem.TEXTURE_FILTER_NEAREST)
+		assert_int(p.mouse_filter).is_equal(Control.MOUSE_FILTER_IGNORE)
+
+func test_hero_select_icon_maps_cover_all_heroes_and_files_exist() -> void:
+	# 表驱动映射全覆盖 6 英雄（passive 按 passive_id、skill 按英雄 id），且每条
+	# 映射指向的贴图文件真实存在（同 ArtLookup「表驱动路径必须存在」契约）
+	assert_int(HeroSelect.PASSIVE_ICONS.size()).is_equal(6)
+	assert_int(HeroSelect.SKILL_ICONS.size()).is_equal(6)
+	for id: String in GameDB.heroes:
+		var pid := String(GameDB.heroes[id].get("passive_id", ""))
+		assert_bool(HeroSelect.PASSIVE_ICONS.has(pid)).is_true()
+		assert_bool(FileAccess.file_exists(
+			"res://art/generated/ui/%s.png" % HeroSelect.PASSIVE_ICONS[pid])).is_true()
+		assert_bool(HeroSelect.SKILL_ICONS.has(id)).is_true()
+		assert_bool(FileAccess.file_exists(
+			"res://art/generated/ui/%s.png" % HeroSelect.SKILL_ICONS[id])).is_true()
+
+func test_hero_select_cards_show_skill_and_passive_icons() -> void:
+	# 卡内被动/技能行各挂非空图标：原生 12x12/16x16 ×2 整数放大、最近邻
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	assert_int(ui._passive_icons.size()).is_equal(6)
+	assert_int(ui._skill_icons.size()).is_equal(6)
+	for i in 6:
+		var pi: TextureRect = ui._passive_icons[i]
+		assert_object(pi.texture).is_not_null()
+		assert_vector(pi.custom_minimum_size).is_equal(Vector2(24, 24))
+		assert_int(pi.texture_filter).is_equal(CanvasItem.TEXTURE_FILTER_NEAREST)
+		var si: TextureRect = ui._skill_icons[i]
+		assert_object(si.texture).is_not_null()
+		assert_vector(si.custom_minimum_size).is_equal(Vector2(32, 32))
+		assert_int(si.texture_filter).is_equal(CanvasItem.TEXTURE_FILTER_NEAREST)
+
+func test_hero_select_unlock_badges_follow_unlocked_list() -> void:
+	# 解锁标签与解锁名单一致（unlocked_override 注入确定态，不触碰环境档——
+	# headless 共享档残留态不得造成跨用例漂移）：仅 vanguard 已解锁时其余 5 卡
+	# 角标可见 + 立绘半透明；角标文案含「待解锁」「开放体验」。过渡语义：未解锁
+	# 卡保持可点可玩（不锁 _choose，购买流裁定前的开放试玩标注）。
+	_reset_last_chosen()
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	ui.unlocked_override = ["vanguard"] as Array[String]
+	add_child(ui)
+	for i in 6:
+		var locked := String(ui._ids[i]) != "vanguard"
+		assert_bool(ui._badges[i].visible).is_equal(locked)
+		assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_equal(not locked)
+		assert_float(ui._portraits[i].modulate.a).is_equal_approx(0.45 if locked else 1.0, 0.001)
+	var texts: Array[String] = []
+	for l: Node in (ui._badges[1] as Control).find_children("*", "Label", true, false):
+		texts.append((l as Label).text)
+	assert_array(texts).contains("待解锁")
+	assert_array(texts).contains("开放体验")
+	var chosen: Array = []
+	ui.hero_chosen.connect(func(id: String) -> void: chosen.append(id))
+	ui._choose(1)                                     # 未解锁（ranger）仍可选中
+	assert_array(chosen).contains_exactly(["ranger"])
+	_reset_last_chosen()
+
+func test_hero_select_save_absent_renders_all_unlocked_zero_drift() -> void:
+	# SaveSystem 缺席（ignore_save 模拟缺席路径）按全解锁渲染：无角标、立绘不
+	# 透明、is_hero_unlocked 恒真——测试/无头环境零漂移基线
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	ui.ignore_save = true
+	add_child(ui)
+	for i in 6:
+		assert_bool(ui._badges[i].visible).is_false()
+		assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_true()
+		assert_float(ui._portraits[i].modulate.a).is_equal_approx(1.0, 0.001)
+
+func test_hero_select_unlock_labels_match_ambient_save_when_present() -> void:
+	# 环境存在 SaveSystem（GdUnit 进程 autoload 恒载）时：构建期解析与档内
+	# unlocked_heroes 键逐英雄一致（只读；键损/缺席 fail-SOFT 全解锁）
+	var ss := get_node_or_null("/root/SaveSystem")
+	if ss == null:
+		return                # 无 autoload 环境：缺席路径已由 ignore_save 用例覆盖
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	var saved: Variant = (ss.get("data") as Dictionary).get("unlocked_heroes")
+	if typeof(saved) != TYPE_ARRAY:
+		for i in 6:
+			assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_true()
+		return
+	for i in 6:
+		var id := String(ui._ids[i])
+		assert_bool(ui.is_hero_unlocked(id)).is_equal((saved as Array).has(id))
