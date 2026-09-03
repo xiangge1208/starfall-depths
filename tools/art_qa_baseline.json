@@ -6,7 +6,6 @@
   "characters/hero_mage_sheet.png:contrast": "characters/hero_mage_sheet.png: f7 对比度 26.6 < 30.0",
   "characters/hero_ranger_sheet.png:contrast": "characters/hero_ranger_sheet.png: f7 对比度 26.9 < 30.0",
   "characters/hero_ranger_sheet.png:share": "characters/hero_ranger_sheet.png: f11 主连通域 0.833 < 0.85",
-  "enemies/crystal_golem.png:share": "enemies/crystal_golem.png: f0 主连通域 0.747 < 0.85",
   "enemies/lava_turret.png:contrast": "enemies/lava_turret.png: f0 对比度 22.9 < 30.0",
   "enemies/lava_turret_sheet.png:contrast": "enemies/lava_turret_sheet.png: f1 对比度 22.9 < 30.0",
   "enemies/magma_tyrant.png:contrast": "enemies/magma_tyrant.png: f0 对比度 15.1 < 30.0",
@@ -47,6 +46,7 @@
   "weapons/jishulei.png:contrast": "weapons/jishulei.png: f0 对比度 28.2 < 30.0",
   "weapons/shoulei.png:contrast": "weapons/shoulei.png: f0 对比度 28.5 < 30.0",
   "weapons/tantiaokuwu.png:contrast": "weapons/tantiaokuwu.png: f0 对比度 28.2 < 30.0",
-  "weapons/xingheliudan.png:contrast": "weapons/xingheliudan.png: f0 对比度 28.3 < 30.0"
+  "weapons/xingheliudan.png:contrast": "weapons/xingheliudan.png: f0 对比度 28.3 < 30.0",
+  "enemies/prism_golem.png:share": "enemies/prism_golem.png: f0 主连通域 0.747 < 0.85"
  }
 }

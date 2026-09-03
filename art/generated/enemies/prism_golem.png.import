@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7qac13qmnhdo"
-path="res://.godot/imported/frost_spider_mother.png-7000a8b553bcf51252a87b87569634da.ctex"
+uid="uid://bfm1x5f4gu8y3"
+path="res://.godot/imported/prism_golem.png-a3691fff8aad28a7dc1efb40c774fc34.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/generated/enemies/frost_spider_mother.png"
-dest_files=["res://.godot/imported/frost_spider_mother.png-7000a8b553bcf51252a87b87569634da.ctex"]
+source_file="res://art/generated/enemies/prism_golem.png"
+dest_files=["res://.godot/imported/prism_golem.png-a3691fff8aad28a7dc1efb40c774fc34.ctex"]
 
 [params]
 

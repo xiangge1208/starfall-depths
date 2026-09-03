@@ -35,6 +35,7 @@ var _cards: Array[PanelContainer] = []
 func _ready() -> void:
 	super()
 	action_label = "饮料机"
+	mount_facility_sprite("drink_machine")    # m4p-u2：饮料机世界贴图（缺图无装饰）
 
 ## 绑定楼层级持久状态而不自动打开面板。FloorScene 在创建生产实例时调用，
 ## 从而保证同一层重建/重进不会把 3 次购买机会悄悄补满；新楼层传入新字典。

@@ -64,7 +64,16 @@ var _recycle_label: Label = null
 func _ready() -> void:
 	super()
 	action_label = TITLE
+	_refresh_shopkeeper()                     # m4p-u2：商人世界形象（black 旗缺席=普通款）
 	_build_ui()
+
+
+## 商人世界形象（m4p-u2）：普通 shopkeeper.png / 黑市 shopkeeper_black.png（兜帽款）。
+## black 可在 _ready 后经 open() 注入——两处都刷新；缺图无装饰（fail-soft）。
+func _refresh_shopkeeper() -> void:
+	if mount_facility_sprite("shopkeeper_black" if black else "shopkeeper") == null \
+			and black:
+		mount_facility_sprite("shopkeeper")
 
 
 ## 交互入口：用预设字段开层（FloorScene 接线约定）。
@@ -80,6 +89,7 @@ func open(stock_in: Dictionary, wallet_in: Object, player: Node2D,
 	_player = player
 	black = black_flag
 	drop_weapon = drop_cb
+	_refresh_shopkeeper()                     # m4p-u2：黑市旗注入晚于 _ready 的路径同刷
 	_fill()
 
 

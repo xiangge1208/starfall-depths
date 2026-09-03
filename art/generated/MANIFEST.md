@@ -447,11 +447,11 @@
 | `enemies/stone_shield_monk.png` | 16x16 | 敌人「石盾武僧(小Boss)」(MINIBOSS/tank) | 附录 B（MINIBOSS）暂无 data 行; M1 为 ARCHETYPE_COLORS 纯色块 | 正面格挡一切, 绕背破势; slug 暂定待 data 落地对齐 |
 | `enemies/volt_spider.png` | 16x16 | 敌人「电磁蛛(小Boss)」(MINIBOSS/splitter) | 附录 B（MINIBOSS）暂无 data 行; M1 为 ARCHETYPE_COLORS 纯色块 | 电弧链场, 杀小蛛断链; slug 暂定待 data 落地对齐 |
 | `enemies/marsh_toad.png` | 16x16 | 敌人「腐沼巨蛙(小Boss)」(MINIBOSS/splitter) | 附录 B（MINIBOSS）暂无 data 行; M1 为 ARCHETYPE_COLORS 纯色块 | 吞弹存伤害后吐还; slug 暂定待 data 落地对齐 |
-| `enemies/gem_queen.png` | 48x48 | Boss「宝石蜂后（A1-②）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 召唤蜂群+冲锋; P2 蜂巢柱可破坏掩体 |
-| `enemies/crystal_golem.png` | 48x48 | Boss「晶棱魔像（A2-①）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 激光借晶柱折射; P3 瞬移弹幕 |
-| `enemies/frost_spider_mother.png` | 48x48 | Boss「寒渊蛛母（A2-②）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 铺冰面+蛛网禁锢; P3 冰晶牢笼 |
-| `enemies/magma_tyrant.png` | 48x48 | Boss「熔核暴君（A3-①）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 岩浆喷区+火雨; P3 地裂火浪 |
-| `enemies/starfall_prophet.png` | 48x48 | Boss「星陨先知（A3-②隐藏）」48x48 | 附录 E 招式规格; 现无 data 行/脚本 | 全元素轮回+共鸣攻击 |
+| `enemies/gem_queen.png` | 48x48 | Boss「宝石蜂后（A1-②）」48x48 | data/enemies.json gem_queen 行 + boss_script gem_queen.gd | 召唤蜂群+冲锋; P2 蜂巢柱可破坏掩体 |
+| `enemies/prism_golem.png` | 48x48 | Boss「晶棱魔像（A2-①）」48x48 | data/enemies.json prism_golem 行 + boss_script prism_golem.gd | 激光借晶柱折射; P3 瞬移弹幕 |
+| `enemies/frost_widow.png` | 48x48 | Boss「寒渊蛛母（A2-②）」48x48 | data/enemies.json frost_widow 行 + boss_script frost_widow.gd | 铺冰面+蛛网禁锢; P3 冰晶牢笼 |
+| `enemies/magma_tyrant.png` | 48x48 | Boss「熔核暴君（A3-①）」48x48 | data/enemies.json magma_tyrant 行 + boss_script magma_tyrant.gd | 岩浆喷区+火雨; P3 地裂火浪 |
+| `enemies/starfall_prophet.png` | 48x48 | Boss「星陨先知（A3-②隐藏）」48x48 | data/enemies.json starfall_prophet 行 + boss_script starfall_prophet.gd | 全元素轮回+共鸣攻击 |
 | `enemies/kuli_bug_sheet.png` | 32x16 | 敌人「苦力虫」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
 | `enemies/cave_bat_sheet.png` | 32x16 | 敌人「穴蝠」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |
 | `enemies/crossbowman_sheet.png` | 32x16 | 敌人「弩兵」2 帧动画表（列=idle+walk, 16px/帧） | room_combat.gd _tick_enemy_anim 帧驱动; Sprite hframes=2 vframes=1 | m2-t21：移动中 8t/帧交替 idle/walk；静止恒 idle 列0；缺表敌种回落单帧图 |

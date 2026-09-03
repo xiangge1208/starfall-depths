@@ -35,7 +35,7 @@ var talents_system: TalentSystem = null
 var _buff_pick: BuffPick = null
 var _fountain: FlowFixture = null
 var _door: FlowFixture = null
-var _fountain_vis: Polygon2D = null
+var _fountain_vis: CanvasItem = null       # m4p-u2：贴图态 Sprite2D / 缺图回落 Polygon2D
 var _built := false
 
 
@@ -103,9 +103,17 @@ func _build_chamber() -> void:
 	_fountain.action_label = "饮用喷泉（回2HP·一次）"
 	_fountain.gate = func(_p: Node2D) -> bool: return flow.phase == InterFloorFlow.Phase.FOUNTAIN
 	_fountain.add_child(_fixture_body())
-	_fountain_vis = Polygon2D.new()
-	_fountain_vis.polygon = _rect_poly(Rect2(-10, -10, 20, 20))
-	_fountain_vis.color = Color(0.3, 0.6, 0.9)
+	# m4p-u2：喷泉贴图两态（满水 fountain_full.png → 用尽 fountain_used.png，切换在
+	# _on_fountain_interact；色块回落态沿用原染色+变暗）。中心对齐交互格，节点名
+	# "Sprite" 同交互物贴图约定。
+	_fountain_vis = ArtLookup.make_sprite(ArtLookup.facility_texture_path("fountain_full"))
+	if _fountain_vis == null:
+		var poly := Polygon2D.new()
+		poly.polygon = _rect_poly(Rect2(-10, -10, 20, 20))
+		poly.color = Color(0.3, 0.6, 0.9)
+		_fountain_vis = poly
+	else:
+		_fountain_vis.name = "Sprite"
 	_fountain.add_child(_fountain_vis)
 	_fountain.on_interact_cb = _on_fountain_interact
 	add_child(_fountain)
@@ -117,9 +125,15 @@ func _build_chamber() -> void:
 	_door.action_label = "进入下一层"
 	_door.gate = func(_p: Node2D) -> bool: return flow.phase == InterFloorFlow.Phase.DOOR
 	_door.add_child(_fixture_body())
-	var door_vis := Polygon2D.new()
-	door_vis.polygon = _rect_poly(Rect2(-10, -14, 20, 28))
-	door_vis.color = Color(0.62, 0.4, 0.22)
+	# m4p-u2：层间出口水晶贴图（exit_crystal.png 12x18 中心对齐门格；缺图回落原门色块）。
+	var door_vis: CanvasItem = ArtLookup.make_sprite(ArtLookup.facility_texture_path("exit_crystal"))
+	if door_vis == null:
+		var dpoly := Polygon2D.new()
+		dpoly.polygon = _rect_poly(Rect2(-10, -14, 20, 28))
+		dpoly.color = Color(0.62, 0.4, 0.22)
+		door_vis = dpoly
+	else:
+		door_vis.name = "Sprite"
 	_door.add_child(door_vis)
 	_door.on_interact_cb = _on_door_interact
 	add_child(_door)
@@ -183,7 +197,13 @@ func _on_fountain_interact(_p: Node2D) -> void:
 	if not flow.use_fountain(player):
 		return
 	_fountain.enabled = false                   # 一次性：用完禁用
-	_fountain_vis.color = Color(0.25, 0.4, 0.5) # 用尽变暗
+	# m4p-u2 两态切换：贴图态换 fountain_used.png；色块回落态沿用变暗（兜底表现两态共用）。
+	var spr := _fountain_vis as Sprite2D
+	if spr != null:
+		var used := ArtLookup.tex(ArtLookup.facility_texture_path("fountain_used"))
+		if used != null:
+			spr.texture = used
+	_fountain_vis.modulate = Color(0.25, 0.4, 0.5) # 用尽变暗
 
 
 func _on_door_interact(_p: Node2D) -> void:

@@ -1829,7 +1829,7 @@ def write_manifest():
         "",
         "- 脚本：`tools/gen_placeholder_art.py`（M1 批次+公共库，自动串联 `tools/gen_placeholder_art_m2.py`）",
         "- M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40 单帧+2 帧动画表/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。",
-        "- **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；仅 M2 Boss 5 种 slug 为附录 E 暂定名（data 行未落地）。",
+        "- **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；M2 Boss slug 已对齐 data/enemies.json 行 id（m4p-u2 收编：prism_golem/frost_widow 原附录 E 暂定名 crystal_golem/frost_spider_mother）。",
         "- Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；全量再生=先生成后按本清单清理陈旧（失败不毁库）。",
         "- 联络表：`_preview.png`（4x 放大，人工检查用，勿在游戏内引用）。",
     ]
