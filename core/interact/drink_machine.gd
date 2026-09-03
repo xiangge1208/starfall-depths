@@ -1,6 +1,6 @@
 class_name DrinkMachine
 extends Interactable
-## 饮料机（m1-t16，附录 F.1）：每层 3 次购买机会，8 张饮料卡（名称/效果/价格），
+## 饮料机（m1-t16，附录 F.1）：每层 3 次购买机会，8 张饮料卡（顶部图标/名称/效果/价格），
 ## 购买 → wallet.spend_coins(行内价格) → _apply_drink 效果落地 → 次数 -1，0 次 = 售罄。
 ## UI 走 buff_pick 卡片模式（代码构建 PanelContainer 卡片，点击购买）；
 ## 神秘混合 = 从 7 条具体饮料均匀现抽（rng 字段可注入保测试确定性）。
@@ -196,6 +196,18 @@ func _refresh_panel() -> void:
 		var box := VBoxContainer.new()
 		box.add_theme_constant_override("separation", 1)
 		card.add_child(box)
+		## m4p-w2b：卡顶接 ui/drinks/<id>.png（12x12 最近邻居中；售罄灰化随 card.modulate
+		## 整卡生效）。8 行 id 全名录约定寻址，表外/缺图 tex() null 不占位回落纯文字卡。
+		var icon: Texture2D = ArtLookup.tex(ArtLookup.drink_texture_path(str(info.get("id", ""))))
+		if icon != null:
+			var ic := TextureRect.new()
+			ic.texture = icon
+			ic.custom_minimum_size = Vector2(12, 12)
+			ic.stretch_mode = TextureRect.STRETCH_KEEP
+			ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			box.add_child(ic)
 		box.add_child(_label(str(info.get("name", "?")), CARD_FONT, tint))
 		var desc := _label(effect_desc(str(info.get("effect", "")), info.get("value", 0)), CARD_FONT, tint)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

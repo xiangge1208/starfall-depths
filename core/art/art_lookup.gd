@@ -169,6 +169,50 @@ const UI_TEXTURES := {
 	"icon_energy": "ui/icon_energy.png",
 	"icon_coin": "ui/icon_coin.png",
 	"vignette_lowhp": "ui/vignette_lowhp.png",
+	## m4p-w2b 天赋节点两态（ui/talents.gd 按购买态寻址：已购=filled/未购=empty）。
+	"talent_node_filled": "ui/talents/node_filled.png",
+	"talent_node_empty": "ui/talents/node_empty.png",
+}
+
+## m4p-w2b Buff 图标（ui/buffs/<id>.png，data/buffs.json 行 id 寻址，12x12 最近邻）。
+## 已知空帧 5 张（avenger/energy_siphon/glutton/resonance_amp/thorn_armor，全透明
+## 72 字节占位）**不接线**——空帧图标显示空白比文字缩写 chip 更糟：缺行 = 调用方
+## 回落既有文字 chip（同本表缺图回落契约）；美术补图后把行加回即可
+## （test_art_wiring_w2b 空帧 tripwire 钉住「未补图不接」与「补图即提醒接线」两头）。
+## 盘上另有 5 张非行 id 资产（big_eater/energy_leech/resonance_amplify/thorns/
+## vengeance，按效果键命名的历史占位），GameDB.buffs 无行可寻址，不入本表。
+const BUFF_TEXTURES := {
+	"fire_enchant": "ui/buffs/fire_enchant.png",
+	"ice_enchant": "ui/buffs/ice_enchant.png",
+	"poison_enchant": "ui/buffs/poison_enchant.png",
+	"shock_enchant": "ui/buffs/shock_enchant.png",
+	"bullet_speed": "ui/buffs/bullet_speed.png",
+	"precision": "ui/buffs/precision.png",
+	"vigor": "ui/buffs/vigor.png",
+	"shield_tune": "ui/buffs/shield_tune.png",
+	"swift_trigger": "ui/buffs/swift_trigger.png",
+	"deadly": "ui/buffs/deadly.png",
+	"status_erode": "ui/buffs/status_erode.png",
+	"quick_charge": "ui/buffs/quick_charge.png",
+	"energy_max": "ui/buffs/energy_max.png",
+	"roll_master": "ui/buffs/roll_master.png",
+	"extra_projectiles": "ui/buffs/extra_projectiles.png",
+	"crit_detonate": "ui/buffs/crit_detonate.png",
+	"hunter": "ui/buffs/hunter.png",
+	"anti_fire": "ui/buffs/anti_fire.png",
+	"anti_ice": "ui/buffs/anti_ice.png",
+	"anti_poison": "ui/buffs/anti_poison.png",
+	"nerve_reflex": "ui/buffs/nerve_reflex.png",
+	"carapace": "ui/buffs/carapace.png",
+	"dash_extend": "ui/buffs/dash_extend.png",
+	"phoenix": "ui/buffs/phoenix.png",
+	"wealth": "ui/buffs/wealth.png",
+	"pickup_magnet": "ui/buffs/pickup_magnet.png",
+	"heart_sense": "ui/buffs/heart_sense.png",
+	"ammo_convert": "ui/buffs/ammo_convert.png",
+	"haggle": "ui/buffs/haggle.png",
+	"element_vision": "ui/buffs/element_vision.png",
+	"resonance_vision": "ui/buffs/resonance_vision.png",
 }
 
 ## 地块/门/陈设（16x16 无缝可平铺；按房间生物群系选 floor_*/wall_*）。
@@ -264,6 +308,20 @@ static func ui_texture_path(name: String) -> String:
 	if UI_TEXTURES.has(name):
 		return BASE + String(UI_TEXTURES[name])
 	return ""
+
+## Buff 图标路径（m4p-w2b）：未接线 id（表外/已知空帧 5 张）返回 ""，
+## 调用方回落既有文字缩写 chip，不 push_warning（空帧接线缺席是登记过的稳态）。
+static func buff_texture_path(buff_id: String) -> String:
+	if BUFF_TEXTURES.has(buff_id):
+		return BASE + String(BUFF_TEXTURES[buff_id])
+	return ""
+
+## 饮料图标路径（m4p-w2b）：ui/drinks/<id>.png 按 data/drinks.json 行 id 约定寻址
+## （8/8 全名录盘上齐，同 weapon_icon_path 约定式；表外 id 由 tex() fail-closed 回落）。
+static func drink_texture_path(drink_id: String) -> String:
+	if drink_id.is_empty():
+		return ""
+	return BASE + "ui/drinks/%s.png" % drink_id
 
 ## fx 粒子条带路径（M3 J-C）：未知 id 返回 ""（池端 fail-closed 跳过，同其他表契约）。
 static func fx_strip_path(strip_id: String) -> String:
