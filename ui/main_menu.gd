@@ -3,7 +3,8 @@ extends Control
 ## 主菜单（m1-t23）：GDD §19 流程入口。
 ## 开始 → SceneRouter.goto("hero_select")（接续 T11 选角卡）；m2-t20 起图鉴 = 正式入口
 ## （SceneRouter.goto("codex")）；m2-t35 起天赋 = 正式入口（SceneRouter.goto("talents")，
-## T15 天赋页）；成就 = M2 占位灰钮；
+## T15 天赋页）；m4p-u1 起成就 = 正式入口（SceneRouter.goto("achievements")，
+## ui/achievements.tscn 成就页）；
 ## 设置 = m3-sa 起改开独立设置面板（ui/settings_panel.tscn，十键：旧 5 键 + 打击停顿/
 ## 振动/三路音量）；旧内联面板 tscn 不动、运行时隐藏退役（handler 保留）；设置项经
 ## SaveSystem get_setting/set_setting 读写即时落盘；启动时先 apply_audio_settings
@@ -52,6 +53,12 @@ func _ready() -> void:
 	talents_btn.disabled = false
 	talents_btn.text = "天 赋"
 	talents_btn.pressed.connect(_on_talents_pressed)
+	# m4p-u1：成就入口点亮（成就页 ui/achievements.tscn 已在盘 → SceneRouter "achievements" 键；
+	# 判定引擎 AchievementSystem 24 条 defs 全活，展示页数据源 = defs() + SaveSystem 解锁集）
+	var achievements_btn: Button = $Menu/AchievementsBtn
+	achievements_btn.disabled = false
+	achievements_btn.text = "成 就"
+	achievements_btn.pressed.connect(_on_achievements_pressed)
 	# m3-rb：试炼入口（main_menu.tscn 禁改 → 运行时构建按钮加入 $Menu，尺寸/字号对齐
 	# 既有按钮排，同 CodexBtn 灰钮点亮手法；插「开 始」之下，入口优先级次高）
 	var trial_btn := Button.new()
@@ -117,6 +124,10 @@ func _on_codex_pressed() -> void:
 func _on_talents_pressed() -> void:
 	if _router != null:
 		_router.goto("talents")
+
+func _on_achievements_pressed() -> void:
+	if _router != null:
+		_router.goto("achievements")
 
 func _on_trial_pressed() -> void:
 	# m3-rb：试炼面板打开即刷新（日期/因子/今日最佳/历史）；「开 始」在面板内 arm+路由

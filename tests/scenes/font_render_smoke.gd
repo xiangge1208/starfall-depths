@@ -2,7 +2,7 @@ extends Node
 ## M3-S-C 像素中文字体全局接线无头冒烟（机检部分）：
 ##   ① fusion-pixel FontFile 可载且 12px 度量完好；
 ##   ② gui/theme/custom 项目主题生效（默认字体指向 fusion-pixel、default_font_size=12）；
-##   ③ 代表场景 headless 实例化不崩（主菜单/选角/图鉴/天赋/设置/试炼/死亡/胜利/
+##   ③ 代表场景 headless 实例化不崩（主菜单/选角/图鉴/天赋/成就/设置/试炼/死亡/胜利/
 ##      三选一/灾厄/熔铸/toast/战斗 HUD）；
 ##   ④ 布局回退防护：可见控件全部收在 480×270 视口内（ScrollContainer 裁剪内容豁免）。
 ## 边界披露：中文文本位图级渲染断言不做（headless 无 GPU 栅格保障）；字形锐利度、
@@ -55,6 +55,7 @@ func _run() -> void:
 	await _scene_case("res://ui/hero_select.tscn", "", true, _check_hero_select_cards)  # 选角（横滚 6 卡 + 专项）
 	await _scene_case("res://ui/codex.tscn", "open", true)          # 图鉴（115 格长条件）
 	await _scene_case("res://ui/talents.tscn", "", true)            # 天赋树（3 系列 dense 布局）
+	await _scene_case("res://ui/achievements.tscn", "open", true)   # 成就页（24 卡网格 + 详情区，m4p-u1）
 	await _scene_case("res://ui/settings_panel.tscn", "open", true) # 设置面板（打开态量测）
 	await _scene_case("res://ui/trial_panel.tscn", "open", true)    # 试炼面板（打开态量测）
 	await _scene_case("res://ui/death_summary.tscn", "", true)      # 死亡结算
