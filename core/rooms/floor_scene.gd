@@ -193,6 +193,9 @@ var _boss_row_id := "vine_colossus"
 var boss_override := ""
 var _ui_layer: CanvasLayer = null
 var _calamity_panel: CalamityPanel = null
+## m4p-u2 Boss 血条钩子：本层 HUD 引用（_wire_player_common 建）——Boss 房注册
+## BossBase 时注入 hud.boss_target，死亡/换层清除（HUD 每帧按存活态显隐血条）。
+var hud: HUD = null
 
 var _rooms: Dictionary = {}           # int id -> FloorRoom
 var _gates: Dictionary = {}           # "min|max" -> {shape, panel, a, b, open}
@@ -547,11 +550,19 @@ func _build_destructible(room: FloorRoom, p: Dictionary, center: Vector2, blocks
 
 
 ## 可破坏物破坏结算（DestructibleProp.destroyed 信号承接）：破坏表现（既有粒子池
-## 预算，不新增 draw 大户）+ 小额掉落按行 + 遥测（事件名查既有清单不撞名，约束 12）
-## + demolition 成就 1 行接线（task-33 §2.4：判定器在表，本卡补事件流）。
+## 预算，不新增 draw 大户）+ 残骸贴花（m4p-u2 prop_debris.png 落破坏点：z 序地面
+## 之上/实体之下、无碰撞、随房存续；缺图静默跳过）+ 小额掉落按行 + 遥测（事件名查
+## 既有清单不撞名，约束 12）+ demolition 成就 1 行接线（task-33 §2.4：判定器在表，
+## 本卡补事件流）。
 func _on_prop_destroyed(prop: DestructibleProp, room: FloorRoom) -> void:
 	if Fx.particles != null:
 		Fx.particles.play_kill_shard(prop.global_position)
+	var debris := ArtLookup.make_sprite(ArtLookup.facility_texture_path("prop_debris"))
+	if debris != null:
+		debris.name = "PropDebris"
+		debris.position = prop.global_position - room.position   # 世界破坏点 → 房间局部
+		debris.z_index = -3
+		room.add_child(debris)
 	for drop_kind: String in prop.drops:
 		_spawn_pickup(room, drop_kind, prop.global_position)
 	Telemetry.log_row(["prop_destroyed", Engine.get_physics_frames(),
@@ -676,6 +687,8 @@ func _apply_template_biome(tpl: Dictionary) -> void:
 
 
 ## 周期地刺（A2）：一瓦片判定域；错峰偏移 = 网格确定性散列（同层多簇不同步）。
+## m4p-u2：视觉接 hazard_spikes.png（相位语义不变：预警=半透明红 modulate、
+## 伸出=原色、缩回=隐藏，见 _tick_hazards；缺图回落原色块 Polygon2D）。
 func _build_spikes(room: FloorRoom, grid: Array, world: Vector2) -> void:
 	var zone := Rect2(world - Vector2(SPIKE_TILE_PX / 2.0, SPIKE_TILE_PX / 2.0),
 		Vector2(SPIKE_TILE_PX, SPIKE_TILE_PX))
@@ -683,10 +696,15 @@ func _build_spikes(room: FloorRoom, grid: Array, world: Vector2) -> void:
 	var s := HazardSpikes.new()
 	s.setup(zone, stagger)
 	_spikes.append(s)
-	var vis := Polygon2D.new()
-	vis.polygon = _rect_poly(Rect2(-SPIKE_TILE_PX / 2.0, -SPIKE_TILE_PX / 2.0,
-		SPIKE_TILE_PX, SPIKE_TILE_PX))
-	vis.position = world - room.position
+	var vis: CanvasItem = ArtLookup.make_sprite(ArtLookup.facility_texture_path("hazard_spikes"))
+	if vis != null:
+		(vis as Sprite2D).position = world - room.position
+	else:
+		var poly := Polygon2D.new()
+		poly.polygon = _rect_poly(Rect2(-SPIKE_TILE_PX / 2.0, -SPIKE_TILE_PX / 2.0,
+			SPIKE_TILE_PX, SPIKE_TILE_PX))
+		poly.position = world - room.position
+		vis = poly
 	vis.z_index = -4
 	vis.visible = false
 	vis.light_mask = BiomeFx.LIT_ITEM_MASK   # m2-t37 fix1：地面预警纹保持光圈增亮
@@ -748,6 +766,8 @@ func _build_magma(room: FloorRoom, local: Vector2, radius: float) -> void:
 
 
 ## m2-t10 间歇喷口（A3）：一瓦片判定域；错峰偏移 = 网格确定性散列（同地刺习语）。
+## m4p-u2：视觉接 hazard_vent.png（预警=半透明橙 modulate、喷发=原色、间歇=隐藏，
+## 见 _tick_hazards；缺图回落原色块 Polygon2D）。
 func _build_geyser(room: FloorRoom, grid: Array, world: Vector2) -> void:
 	var zone := Rect2(world - Vector2(GEYSER_TILE_PX / 2.0, GEYSER_TILE_PX / 2.0),
 		Vector2(GEYSER_TILE_PX, GEYSER_TILE_PX))
@@ -755,10 +775,15 @@ func _build_geyser(room: FloorRoom, grid: Array, world: Vector2) -> void:
 	var g := HazardMagma.MagmaGeyser.new()
 	g.setup(zone, stagger)
 	_geysers.append(g)
-	var vis := Polygon2D.new()
-	vis.polygon = _rect_poly(Rect2(-GEYSER_TILE_PX / 2.0, -GEYSER_TILE_PX / 2.0,
-		GEYSER_TILE_PX, GEYSER_TILE_PX))
-	vis.position = world - room.position
+	var vis: CanvasItem = ArtLookup.make_sprite(ArtLookup.facility_texture_path("hazard_vent"))
+	if vis != null:
+		(vis as Sprite2D).position = world - room.position
+	else:
+		var poly := Polygon2D.new()
+		poly.polygon = _rect_poly(Rect2(-GEYSER_TILE_PX / 2.0, -GEYSER_TILE_PX / 2.0,
+			GEYSER_TILE_PX, GEYSER_TILE_PX))
+		poly.position = world - room.position
+		vis = poly
 	vis.z_index = -4
 	vis.visible = false
 	vis.light_mask = BiomeFx.LIT_ITEM_MASK   # m2-t37 fix1：间歇泉预警纹保持光圈增亮
@@ -814,7 +839,8 @@ func _tick_hazards(frame: int) -> void:
 				vis.modulate = SPIKE_WARN_COLOR
 			HazardSpikes.Phase.OUT:
 				vis.visible = true
-				vis.modulate = SPIKE_OUT_COLOR
+				# m4p-u2：贴图态伸出=原色（刺形由图承载）；色块回落态沿用红块语义。
+				vis.modulate = SPIKE_OUT_COLOR if vis is Polygon2D else Color.WHITE
 			_:
 				vis.visible = false
 		if s.damage_at(player_pos) > 0:
@@ -849,7 +875,9 @@ func _tick_hazards(frame: int) -> void:
 				gvis.modulate = GEYSER_WARN_COLOR
 			HazardMagma.MagmaGeyser.Phase.ERUPT:
 				gvis.visible = true
-				gvis.modulate = GEYSER_ERUPT_COLOR
+				# m4p-u2：贴图态喷发=原色（喷口形由图承载，喷发叠加粒子另计）；
+				# 色块回落态沿用橙红块语义。
+				gvis.modulate = GEYSER_ERUPT_COLOR if gvis is Polygon2D else Color.WHITE
 			_:
 				gvis.visible = false
 		if g.damage_at(player_pos) > 0:
@@ -1003,7 +1031,7 @@ func _wire_player_common() -> void:
 		driver.set_script(DRIVER_SCRIPT)
 		player.add_child(driver)
 	# m1-hygiene：T24 完整战斗 HUD 是楼层/层间共用的唯一常驻 HUD。
-	var hud := HUD.new()
+	hud = HUD.new()
 	hud.player = player
 	add_child(hud)
 
@@ -1262,6 +1290,10 @@ func _register_enemy(room: FloorRoom, e: EnemyBase, row: Dictionary, counts_for_
 	room.enemies.append(e)
 	_spawn_frames[e.get_instance_id()] = Engine.get_physics_frames()
 	e.died.connect(_on_enemy_died.bind(room))
+	# m4p-u2 Boss 血条：Boss 房真 Boss（BossBase 子类，召唤/分裂体不为 BossBase）
+	# 注册即上条；同房多 BossBase 极少见（后注册覆盖，条随最后一个存活 Boss）。
+	if e is BossBase and hud != null:
+		hud.boss_target = e
 
 
 func _spawn_summoned_enemy(row_id: String, world_pos: Vector2, row_override: Dictionary,
@@ -1343,6 +1375,9 @@ func _dress_enemy(e: EnemyBase, row: Dictionary) -> void:
 ## 匹配错体的歧义。召唤体照常移出 CombatSystem/房间跟踪并记遥测，但 counts_for_wave=false
 ## 时不通知 RoomFlow，也不触发嘉宾掉落；原始波次计数与召唤生态严格隔离。
 func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
+	# m4p-u2 Boss 血条：Boss 死亡即摘条（HUD 侧 DEAD/释放守卫为双保险）。
+	if hud != null and hud.boss_target == e:
+		hud.boss_target = null
 	if not _built:
 		return
 	if room == null or not is_instance_valid(room) or not room.enemies.has(e):
@@ -1785,12 +1820,35 @@ func _drop_offhand(p: Node2D) -> Dictionary:
 
 ## 事件设施（T19 EventRoom 契约）：进房即 4 选 1 开面板（每房一次由 flow 单发 +
 ## EventRoom._used 双守卫）；抽取确定性 = RunState loot 盐流。
+## m4p-u2：事件设施世界贴图——按掷中事件挂对应 NPC/装置图（event_merchant/beggar/
+## spring/graffiti），未掷中（守卫拒绝/重入）回落事件装置图 event_device.png。
+## 落位复用 safe placement 缝（房心被柱/箱占用时弹到最近合法空位）；纯视觉无碰撞。
 func _build_event(room: FloorRoom) -> void:
 	var ev := EventRoom.new()
 	ev.setup(player, _facility_rng)
 	ev.apply_effect = _apply_event_drink_effect
 	room.add_child(ev)                        # _ready 建面板 UI
-	ev.open_random_event()
+	var rolled := ev.open_random_event()
+	var vis := ArtLookup.make_sprite(ArtLookup.facility_texture_path(
+		_event_art_name(rolled)))
+	if vis != null:
+		vis.name = "Sprite"
+		vis.position = _safe_room_placement(room, room.outer.get_center()) - room.position
+		room.add_child(vis)
+
+
+## 事件 id → 设施贴图键（未知/空回落 event_device；映射与 EventRoom.EVENT_IDS 对齐）。
+func _event_art_name(event_id: String) -> String:
+	match event_id:
+		"mystery_merchant":
+			return "event_merchant"
+		"beggar":
+			return "event_beggar"
+		"star_spring":
+			return "event_spring"
+		"graffiti":
+			return "event_graffiti"
+	return "event_device"
 
 
 ## 神秘商人复用真实饮料消费者。事件表的百分比用分数表示；翻滚项的 value

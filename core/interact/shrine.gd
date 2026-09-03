@@ -28,6 +28,7 @@ var combat = null                   # 可选 CombatSystem 接缝（精灵像传�
 var rng: RandomNumberGenerator = null   # 星髓像随机附魔用；注入优先，兜底走 RunState 分盐流
 
 ## 装配类别与每局状态；未知 kind 标记无效（can_interact 恒 false，fail-closed）。
+## m4p-u2：装配即挂四属性像贴图（shrine_<kind>.png；泛用 shrine.png 作缺图回落）。
 func setup(kind_: String, used_kinds_: Dictionary = {}) -> Shrine:
 	kind = kind_
 	used_kinds = used_kinds_
@@ -36,6 +37,8 @@ func setup(kind_: String, used_kinds_: Dictionary = {}) -> Shrine:
 		kind = ""
 	else:
 		action_label = KIND_LABELS[kind]
+		if mount_facility_sprite("shrine_%s" % kind) == null:
+			mount_facility_sprite("shrine")
 	return self
 
 func is_used() -> bool:

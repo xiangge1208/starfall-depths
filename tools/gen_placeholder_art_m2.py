@@ -275,7 +275,12 @@ def gen_enemies_m2():
         outline(img)
         save(img, f"enemies/{slug}.png", f"敌人「{name}」({act}/{arch})",
              f"附录 B（{act}）暂无 data 行; M1 为 ARCHETYPE_COLORS 纯色块", note + "; slug 暂定待 data 落地对齐")
-    # Boss 5（48x48）
+    gen_bosses_m2()
+
+
+# Boss 5（48x48）——m4p-u2 拆独立入口：画笔全固定坐标（零 RNG），scoped 重生成与
+# 全量管线逐字节同图（支持只补 Boss 图的窄通道，免整库重跑/触发 prune 风险）。
+def gen_bosses_m2():
     def bee_queen():
         img = canvas(48, 48)
         disk(img, 24, 26, 12, C("#d8a828"))
@@ -353,16 +358,20 @@ def gen_enemies_m2():
         px(img, 8, 6, C("#8ad8ff"))
         px(img, 40, 40, C("#8ad8ff"))
         return img
+    # m4p-u2（附录 E 暂定 slug 收编）：crystal_golem/frost_spider_mother 的 data 行
+    # 已落地为 prism_golem/frost_widow（data/enemies.json Boss 行）——slug 对齐行 id
+    # 重出图（旧文件随管线 prune 清出），画笔函数不变 → 像素逐字节同图只改名。
     for slug, name, fn, theme in (
         ("gem_queen", "宝石蜂后（A1-②）", bee_queen, "召唤蜂群+冲锋; P2 蜂巢柱可破坏掩体"),
-        ("crystal_golem", "晶棱魔像（A2-①）", crystal_golem, "激光借晶柱折射; P3 瞬移弹幕"),
-        ("frost_spider_mother", "寒渊蛛母（A2-②）", frost_spider, "铺冰面+蛛网禁锢; P3 冰晶牢笼"),
+        ("prism_golem", "晶棱魔像（A2-①）", crystal_golem, "激光借晶柱折射; P3 瞬移弹幕"),
+        ("frost_widow", "寒渊蛛母（A2-②）", frost_spider, "铺冰面+蛛网禁锢; P3 冰晶牢笼"),
         ("magma_tyrant", "熔核暴君（A3-①）", magma_tyrant, "岩浆喷区+火雨; P3 地裂火浪"),
         ("starfall_prophet", "星陨先知（A3-②隐藏）", starfall_prophet, "全元素轮回+共鸣攻击"),
     ):
         img = fn()
         outline(img)
-        save(img, f"enemies/{slug}.png", f"Boss「{name}」48x48", f"附录 E 招式规格; 现无 data 行/脚本", theme)
+        save(img, f"enemies/{slug}.png", f"Boss「{name}」48x48",
+             f"data/enemies.json {slug} 行 + boss_script {slug}.gd", theme)
 
 
 # ---------------------------------------------------------------- 敌人 2 帧动画表 (m2-t21)

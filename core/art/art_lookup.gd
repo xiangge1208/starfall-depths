@@ -72,8 +72,8 @@ const ENEMY_TEXTURES := {
 	"volt_spider": "enemies/volt_spider.png",
 	"marsh_toad": "enemies/marsh_toad.png",
 	"gem_queen": "enemies/gem_queen.png",
-	"crystal_golem": "enemies/crystal_golem.png",
-	"frost_spider_mother": "enemies/frost_spider_mother.png",
+	"prism_golem": "enemies/prism_golem.png",
+	"frost_widow": "enemies/frost_widow.png",
 	"magma_tyrant": "enemies/magma_tyrant.png",
 	"starfall_prophet": "enemies/starfall_prophet.png",
 }
@@ -127,6 +127,48 @@ const PICKUP_TEXTURES := {
 	"energy": "pickups/energy.png",
 	"heart": "pickups/heart.png",
 	"weapon_crate": "pickups/weapon_crate.png",
+}
+
+## m4p-u2 设施世界贴图（tiles/ 设施实体图收编，此前「图在盘、代码零引用」簇）。
+## 键 = 设施语义名；消费方：shop.gd（shopkeeper/black 按 black 旗）、forge.gd、
+## drink_machine.gd、shrine.gd（shrine_<kind>，泛用 shrine 作未知 kind 回落）、
+## floor_scene._build_event（event_<id>/device）、_build_spikes/_build_geyser
+## （hazard_*）、_on_prop_destroyed（prop_debris 残骸贴花）、inter_floor（喷泉
+## fountain_full/used 两态 + 层间出口门 exit_crystal）。
+const FACILITY_TEXTURES := {
+	"shopkeeper": "tiles/shopkeeper.png",
+	"shopkeeper_black": "tiles/shopkeeper_black.png",
+	"fusion_forge": "tiles/fusion_forge.png",
+	"drink_machine": "tiles/drink_machine.png",
+	"shrine": "tiles/shrine.png",
+	"shrine_zhanshen": "tiles/shrine_zhanshen.png",
+	"shrine_jingling": "tiles/shrine_jingling.png",
+	"shrine_fengshen": "tiles/shrine_fengshen.png",
+	"shrine_xingsui": "tiles/shrine_xingsui.png",
+	"fountain_full": "tiles/fountain_full.png",
+	"fountain_used": "tiles/fountain_used.png",
+	"event_device": "tiles/event_device.png",
+	"event_merchant": "tiles/event_merchant.png",
+	"event_beggar": "tiles/event_beggar.png",
+	"event_spring": "tiles/event_spring.png",
+	"event_graffiti": "tiles/event_graffiti.png",
+	"exit_crystal": "tiles/exit_crystal.png",
+	"hazard_spikes": "tiles/hazard_spikes.png",
+	"hazard_vent": "tiles/hazard_vent.png",
+	"prop_debris": "tiles/prop_debris.png",
+}
+
+## m4p-u2 HUD/Boss 血条 UI 贴图（ui/，Control 消费；不入图集——tiles/ui 大图
+## 白名单外，tex() 走逐文件 load 回落，语义同 tiles）。
+const UI_TEXTURES := {
+	"boss_bar_frame": "ui/boss_bar_frame.png",
+	"boss_bar_fill": "ui/boss_bar_fill.png",
+	"icon_heart_full": "ui/icon_heart_full.png",
+	"icon_heart_empty": "ui/icon_heart_empty.png",
+	"icon_shield": "ui/icon_shield.png",
+	"icon_energy": "ui/icon_energy.png",
+	"icon_coin": "ui/icon_coin.png",
+	"vignette_lowhp": "ui/vignette_lowhp.png",
 }
 
 ## 地块/门/陈设（16x16 无缝可平铺；按房间生物群系选 floor_*/wall_*）。
@@ -209,6 +251,18 @@ static func projectile_texture_path(is_player: bool, element: int, crit: bool = 
 static func pickup_texture_path(kind: String) -> String:
 	if PICKUP_TEXTURES.has(kind):
 		return BASE + String(PICKUP_TEXTURES[kind])
+	return ""
+
+## 设施世界贴图路径（m4p-u2）：未知键返回 ""（调用方保留原色块/无装饰回落）。
+static func facility_texture_path(name: String) -> String:
+	if FACILITY_TEXTURES.has(name):
+		return BASE + String(FACILITY_TEXTURES[name])
+	return ""
+
+## HUD/Boss 血条 UI 贴图路径（m4p-u2）：未知键返回 ""（调用方保留 ColorRect 回落）。
+static func ui_texture_path(name: String) -> String:
+	if UI_TEXTURES.has(name):
+		return BASE + String(UI_TEXTURES[name])
 	return ""
 
 ## fx 粒子条带路径（M3 J-C）：未知 id 返回 ""（池端 fail-closed 跳过，同其他表契约）。

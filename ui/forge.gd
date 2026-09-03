@@ -46,6 +46,7 @@ var _fuse_btn: Button = null
 func _ready() -> void:
 	super()
 	action_label = TITLE
+	mount_facility_sprite("fusion_forge")     # m4p-u2：熔铸台世界贴图（缺图无装饰）
 	_build_ui()
 
 

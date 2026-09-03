@@ -21,10 +21,13 @@ const BREATH_ALPHA_MAX := 0.35
 const BREATH_HALF_SEC := 0.4        # 半程 0.4s → 全周期 0.8s（规格字面）
 const WEAPON_SLOTS := 2             # 同 RunState.WEAPON_SLOTS / WeaponRig 双槽契约
 
-const HEART_SIZE := Vector2(6, 6)
+## m4p-u2：红心格接 icon_heart_full/empty.png（8x8 原生尺寸，最近邻零缩放——
+## 原 6x6 色块格随贴图归一）；缺图回落原 ColorRect 格（tex() null 检测，同表契约）。
+const HEART_SIZE := Vector2(8, 8)
 const HEART_FULL := Color(0.85, 0.16, 0.16)
 const HEART_EMPTY := Color(0.24, 0.1, 0.1)
 const BAR_W := 52.0
+const ICON_SIZE := Vector2(8, 8)    # ui/icon_*.png 原生 8x8（盾/蓝/币条目图标）
 const SHIELD_COLOR := Color(0.5, 0.8, 1.0)
 const ENERGY_COLOR := Color(0.3, 0.45, 1.0)
 const COIN_COLOR := Color(1.0, 0.85, 0.3)
@@ -147,9 +150,15 @@ static func buff_abbrev(buff_id: String) -> String:
 
 var player: Player = null
 var run: Node = null
+## m4p-u2 Boss 血条目标（FloorScene 注入）：Boss 房真 Boss（BossBase 子类）注册即
+## 亮条，死亡/释放/换层（HUD 随楼层重建）恒隐藏。查询缝读 EnemyBase.hp/hp_max。
+var boss_target: EnemyBase = null
 
-var _vignette: ColorRect
+var _vignette: CanvasItem
 var _hearts: HBoxContainer
+var _hearts_textured := false                # 红心贴图可用（false = 色块回落路径）
+var _heart_full_tex: Texture2D
+var _heart_empty_tex: Texture2D
 var _shield_fill: ColorRect
 var _energy_fill: ColorRect
 var _floor_label: Label
@@ -160,6 +169,7 @@ var _slot_panels: Array[PanelContainer] = []
 var _slot_labels: Array[Label] = []
 var _skill_ring: CdRing
 var _roll_dot: ColorRect
+var _boss_bar: TextureProgressBar            # m4p-u2：Boss 血条（frame+fill）
 var _trial_badges: TrialPanelUI.FactorBadges = null   # M3-R-B 试炼因子角标（层数旁）
 var _abandon_btn: Button = null              # M3-R-C 放弃试炼按钮（仅试炼局显示）
 var _abandon_fired := false                  # M3-R-C 防重入：淡入窗内双击只结一次
@@ -184,6 +194,7 @@ func _ready() -> void:
 	_build_top_left()
 	_build_buff_row()
 	_build_top_right()
+	_build_boss_bar()
 	_build_bottom_center()
 	_build_pause_menu()
 	_start_breath_tween()
@@ -194,24 +205,41 @@ func _process(_delta: float) -> void:
 	_apply_buffs(snap)
 	_apply_top_right(snap)
 	_apply_bottom(snap)
+	_apply_boss_bar()
 	_vignette.visible = bool(snap["low_hp"])
 
 # ---- 构建 ----
 
+## 低血红晕（m4p-u2）：vignette_lowhp.png 全屏拉伸（呼吸走 modulate:a）；缺图回落
+## 原红色 ColorRect（呼吸走 color:a）。显示开关两态同用 visible。
 func _build_vignette() -> void:
-	_vignette = ColorRect.new()
-	_vignette.color = Color(0.75, 0.05, 0.05, BREATH_ALPHA_MIN)
-	_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_vignette)
-	_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var tex := ArtLookup.tex(ArtLookup.ui_texture_path("vignette_lowhp"))
+	if tex != null:
+		var vr := TextureRect.new()
+		vr.texture = tex
+		vr.stretch_mode = TextureRect.STRETCH_SCALE
+		vr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		vr.modulate = Color(1, 1, 1, BREATH_ALPHA_MIN)
+		vr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(vr)
+		vr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_vignette = vr
+	else:
+		var cr := ColorRect.new()
+		cr.color = Color(0.75, 0.05, 0.05, BREATH_ALPHA_MIN)
+		cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(cr)
+		cr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_vignette = cr
 
 ## 红晕呼吸：alpha 0.15 ↔ 0.35 正弦往返（0.8s 周期，规格 §2 J6 字面；常驻循环 tween，
-## 显隐由 visible 控制）。
+## 显隐由 visible 控制）。贴图态呼吸 modulate:a、色块回落态呼吸 color:a。
 func _start_breath_tween() -> void:
+	var prop := "color:a" if _vignette is ColorRect else "modulate:a"
 	var tw := create_tween().set_loops()
-	tw.tween_property(_vignette, "color:a", BREATH_ALPHA_MAX, BREATH_HALF_SEC) \
+	tw.tween_property(_vignette, prop, BREATH_ALPHA_MAX, BREATH_HALF_SEC) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(_vignette, "color:a", BREATH_ALPHA_MIN, BREATH_HALF_SEC) \
+	tw.tween_property(_vignette, prop, BREATH_ALPHA_MIN, BREATH_HALF_SEC) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func _build_top_left() -> void:
@@ -224,16 +252,43 @@ func _build_top_left() -> void:
 	_hearts.add_theme_constant_override("separation", 1)
 	_hearts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_hearts)
-	_shield_fill = _bar(col, SHIELD_COLOR, 4)
-	_energy_fill = _bar(col, ENERGY_COLOR, 3)
+	_heart_full_tex = ArtLookup.tex(ArtLookup.ui_texture_path("icon_heart_full"))
+	_heart_empty_tex = ArtLookup.tex(ArtLookup.ui_texture_path("icon_heart_empty"))
+	_hearts_textured = _heart_full_tex != null and _heart_empty_tex != null
+	_shield_fill = _bar(col, SHIELD_COLOR, 4, "icon_shield")
+	_energy_fill = _bar(col, ENERGY_COLOR, 3, "icon_energy")
 
-## 条：底槽 ColorRect + 内嵌填充（每帧按比例改宽）。
-func _bar(parent: Control, color: Color, h: float) -> ColorRect:
+## 8x8 UI 图标（m4p-u2）：最近邻零缩放；缺图返回 null 由调用方回落（不占位）。
+func _make_icon(name: String) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = ArtLookup.tex(ArtLookup.ui_texture_path(name))
+	if icon.texture == null:
+		icon.free()
+		return null
+	icon.custom_minimum_size = ICON_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
+
+## 条（m4p-u2 加行首图标）：[icon] 底槽 ColorRect + 内嵌填充（每帧按比例改宽）。
+## 图标 8px 高于条体——行内各自 SHRINK_CENTER，条体几何（BAR_W×h）保持不变。
+func _bar(parent: Control, color: Color, h: float, icon_name := "") -> ColorRect:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(row)
+	if not icon_name.is_empty():
+		var icon := _make_icon(icon_name)
+		if icon != null:
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(icon)
 	var bg := ColorRect.new()
 	bg.custom_minimum_size = Vector2(BAR_W, h)
+	bg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bg.color = Color(0.1, 0.11, 0.13, 0.85)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(bg)
+	row.add_child(bg)
 	var fill := ColorRect.new()
 	fill.position = Vector2(1, 1)
 	fill.color = color
@@ -260,7 +315,17 @@ func _build_top_right() -> void:
 	col.add_child(_trial_badges)
 	_seed_label = _hud_label(col, "种子 0")
 	_seed_label.modulate = Color(1, 1, 1, 0.6)
-	_coin_label = _hud_label(col, "金币 0")
+	# m4p-u2：金币计数行首接 icon_coin.png（右对齐行，icon 缺席时布局不变）。
+	var coin_row := HBoxContainer.new()
+	coin_row.alignment = BoxContainer.ALIGNMENT_END
+	coin_row.add_theme_constant_override("separation", 2)
+	coin_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(coin_row)
+	var coin_icon := _make_icon("icon_coin")
+	if coin_icon != null:
+		coin_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		coin_row.add_child(coin_icon)
+	_coin_label = _hud_label(coin_row, "金币 0")
 	_coin_label.modulate = COIN_COLOR
 	_abandon_btn = Button.new()               # M3-R-C：规格 §4「放弃试炼」（暂停菜单已落地
 	_abandon_btn.name = "AbandonTrial"        # ——ui/pause_menu.gd；本 HUD 直呼入口保留
@@ -277,6 +342,39 @@ func _build_top_right() -> void:
 	pause_btn.add_theme_font_size_override("font_size", 8)
 	pause_btn.pressed.connect(_on_pause_btn_pressed)
 	col.add_child(pause_btn)
+
+## Boss 血条（m4p-u2）：HUD 顶中 frame+fill 双贴图（TextureProgressBar 左起裁切，
+## fill 宽度 = hp/hp_max）。顶中落位避开左上心/盾/蓝与右上层数区（96x12，y 2..14，
+## 水平 192..288）；贴图缺失时 still 构建控件（无纹理进度条不绘制，行为=隐藏）。
+## 显隐由 _apply_boss_bar 按 boss_target 存活态驱动（非 Boss 战斗恒隐藏）。
+func _build_boss_bar() -> void:
+	_boss_bar = TextureProgressBar.new()
+	_boss_bar.texture_under = ArtLookup.tex(ArtLookup.ui_texture_path("boss_bar_frame"))
+	_boss_bar.texture_progress = ArtLookup.tex(ArtLookup.ui_texture_path("boss_bar_fill"))
+	_boss_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+	_boss_bar.min_value = 0
+	_boss_bar.max_value = 1
+	_boss_bar.value = 1
+	_boss_bar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_boss_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_bar.visible = false
+	add_child(_boss_bar)
+	_boss_bar.anchor_left = 0.5
+	_boss_bar.anchor_right = 0.5
+	_boss_bar.offset_left = -48.0
+	_boss_bar.offset_right = 48.0
+	_boss_bar.offset_top = 2.0
+	_boss_bar.offset_bottom = 14.0
+
+## Boss 血条每帧同步（m4p-u2）：boss_target 缺席/已释放/DEAD 即隐藏；存活态
+## max=hp_max、value=hp（EnemyBase 公开字段直读，行数据已含 Boss hp 缩放）。
+func _apply_boss_bar() -> void:
+	var alive := boss_target != null and is_instance_valid(boss_target) \
+		and boss_target.state != EnemyBase.State.DEAD
+	_boss_bar.visible = alive
+	if alive:
+		_boss_bar.max_value = maxi(boss_target.hp_max, 1)
+		_boss_bar.value = maxi(boss_target.hp, 0)
 
 func _build_bottom_center() -> void:
 	_style_normal = StyleBoxFlat.new()
@@ -335,13 +433,25 @@ func _apply_top_left(snap: Dictionary) -> void:
 		for c in _hearts.get_children():
 			c.free()                           # 立即释放：同帧重建无闪烁
 		for i in hp_max:
-			var cell := ColorRect.new()
-			cell.custom_minimum_size = HEART_SIZE
-			cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_hearts.add_child(cell)
+			if _hearts_textured:
+				var cell := TextureRect.new()  # m4p-u2：icon_heart_*.png 8x8 格
+				cell.custom_minimum_size = HEART_SIZE
+				cell.stretch_mode = TextureRect.STRETCH_KEEP
+				cell.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+				cell.texture = _heart_full_tex
+				cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				_hearts.add_child(cell)
+			else:
+				var block := ColorRect.new()   # 缺图回落：原色块路径
+				block.custom_minimum_size = HEART_SIZE
+				block.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				_hearts.add_child(block)
 	var cells := _hearts.get_children()
 	for i in cells.size():
-		(cells[i] as ColorRect).color = HEART_FULL if i < hp else HEART_EMPTY
+		if _hearts_textured:
+			(cells[i] as TextureRect).texture = _heart_full_tex if i < hp else _heart_empty_tex
+		else:
+			(cells[i] as ColorRect).color = HEART_FULL if i < hp else HEART_EMPTY
 	_set_bar(_shield_fill, int(snap["shield"]), int(snap["shield_max"]), 4.0)
 	_set_bar(_energy_fill, int(snap["energy"]), int(snap["energy_max"]), 3.0)
 

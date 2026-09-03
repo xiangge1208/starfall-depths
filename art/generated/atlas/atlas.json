@@ -67,12 +67,6 @@
    16,
    16
   ],
-  "enemies/crystal_golem.png": [
-   2,
-   2,
-   48,
-   48
-  ],
   "enemies/crystal_rat.png": [
    310,
    74,
@@ -115,14 +109,14 @@
    16,
    16
   ],
-  "enemies/frost_spider_mother.png": [
-   54,
+  "enemies/frost_widow.png": [
+   2,
    2,
    48,
    48
   ],
   "enemies/gem_queen.png": [
-   106,
+   54,
    2,
    48,
    48
@@ -182,7 +176,7 @@
    16
   ],
   "enemies/magma_tyrant.png": [
-   158,
+   106,
    2,
    48,
    48
@@ -234,6 +228,12 @@
    94,
    16,
    16
+  ],
+  "enemies/prism_golem.png": [
+   158,
+   2,
+   48,
+   48
   ],
   "enemies/prism_ranger.png": [
    282,
