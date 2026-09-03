@@ -1,8 +1,10 @@
 class_name BuffPick
 extends Control
-## 三选一增益浮层（m1-t9 展示桩）：open(choices) 弹出三卡（名称/稀有度描边色/中文描述），
-## 键盘 1/2/3 或点击卡片选择，选中即发出 buff_chosen(id) 并关闭。
+## 三选一增益浮层（m1-t9 展示桩）：open(choices) 弹出三卡（顶部 ui/buffs 图标 + 名称/
+## 稀有度描边色/中文描述），键盘 1/2/3 或点击卡片选择，选中即发出 buff_chosen(id) 并关闭。
 ## 纯展示 + 信号：不持有局内状态，数值落地由调用方接 BuffManager。
+## m4p-w2b：卡顶接 ArtLookup.BUFF_TEXTURES 图标（12x12 最近邻居中）；空帧/缺图/表外 id
+## 缺行不占位回落原纯文字卡（同 HUD buff 芯片回落语义）。
 
 signal buff_chosen(id: String)
 
@@ -59,6 +61,17 @@ func _fill_cards() -> void:
 		var box := VBoxContainer.new()
 		box.add_theme_constant_override("separation", 2)
 		card.add_child(box)
+		var icon: Texture2D = ArtLookup.tex(ArtLookup.buff_texture_path(str(_choices[i]))) \
+			if i < _choices.size() else null
+		if icon != null:
+			var ic := TextureRect.new()
+			ic.texture = icon
+			ic.custom_minimum_size = Vector2(12, 12)   # ui/buffs/*.png 原生 12x12
+			ic.stretch_mode = TextureRect.STRETCH_KEEP
+			ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			box.add_child(ic)
 		box.add_child(_label("[%d] %s" % [i + 1, info.get("name", "?")], 12))
 		box.add_child(_label(str(RARITY_TAGS.get(info.get("rarity", ""), "?")), 12, col))
 		var desc := _label(str(info.get("desc", "")), 12)

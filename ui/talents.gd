@@ -4,6 +4,8 @@ extends Control
 ## 蓝晶余额。节点名称/价格/描述/前置全部读 GameDB.talents（data/talents.json，T2 表），
 ## 场景零硬编码玩法数值；蓝晶余额与购买走 TalentSystem（SaveSystem 后端持久化）。
 ## 状态色：已购=系色亮框 ✓ / 可购=白框 ◆价格 / 锁定=灰（前置未满足）。
+## m4p-w2b：节点按钮行首接 ui/talents/node_filled.png（已购）/ node_empty.png（未购，
+## 含可购与锁定）——Button.icon 12x12 最近邻；缺图回落原纯文字节点（icon 置 null）。
 ## 手动验证：godot --path . res://ui/talents.tscn（读真实 user://save.json）；
 ## 主菜单入口与 SceneRouter 路由键接线归后续收口卡（本卡不动 main_menu/scene_router）。
 
@@ -25,10 +27,15 @@ var system: TalentSystem = null
 
 var _nodes: Dictionary = {}    # talent id -> Button
 var _columns: Dictionary = {}  # branch -> VBoxContainer
+## m4p-w2b：节点两态图标（_ready 一次性取图缓存；缺图 null = 纯文字回落）。
+var _node_tex_filled: Texture2D = null
+var _node_tex_empty: Texture2D = null
 
 func _ready() -> void:
 	if system == null:
 		system = TalentSystem.new()   # _default_save 解析 /root/SaveSystem
+	_node_tex_filled = ArtLookup.tex(ArtLookup.ui_texture_path("talent_node_filled"))
+	_node_tex_empty = ArtLookup.tex(ArtLookup.ui_texture_path("talent_node_empty"))
 	$BackBtn.pressed.connect(_on_back_pressed)
 	_build_columns()
 	_refresh()
@@ -61,6 +68,7 @@ func _build_columns() -> void:
 			var btn := Button.new()
 			btn.custom_minimum_size = NODE_MIN
 			btn.add_theme_font_size_override("font_size", 12)
+			btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # 12x12 节点图标最近邻
 			btn.pressed.connect(_on_node_pressed.bind(String(id)))
 			box.add_child(btn)
 			_nodes[String(id)] = btn
@@ -77,6 +85,8 @@ func _refresh() -> void:
 		var btn: Button = _nodes[id]
 		var row_data: Dictionary = GameDB.get_talent(id)
 		var branch := String(row_data["branch"])
+		# m4p-w2b：节点图按购买态两切（已购=filled/未购=empty；缺图 null 回落纯文字）。
+		btn.icon = _node_tex_filled if system.is_purchased(id) else _node_tex_empty
 		if system.is_purchased(id):
 			btn.text = "✓ T%d %s" % [int(row_data["tier"]), String(row_data["name"])]
 			btn.disabled = false                       # 已购仍可点开详情

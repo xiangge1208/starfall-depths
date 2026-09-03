@@ -1,8 +1,8 @@
 class_name HUD
 extends CanvasLayer
 ## 完整版战斗 HUD（m1-t24，GDD §19）：左上 红心×盾条×蓝条；右上 层数/种子/金币；
-## 底中 武器×2 + 技能 CD 环 + 翻滚 CD 点；Buff 图标行（色块=稀有度色，中文缩写，tooltip 全名）；
-## 低血量（hp ≤ 2）红晕呼吸提示。
+## 底中 武器×2 + 技能 CD 环 + 翻滚 CD 点；Buff 图标行（行首 ui/buffs 小图标 + 稀有度色
+## 色块 + 中文缩写，tooltip 全名；空帧/缺图回落纯文字 chip）；低血量（hp ≤ 2）红晕呼吸提示。
 ## 数据纪律：所有数值每帧经静态 hud_snapshot(...) 从 RunState/Player/Skill 现读，不缓存
 ## 旧值（仅节点结构——心形容器/Buff 行——随 hp_max / buff 列表变化按需重建）。
 ## 装配：代码构建（同 debug_hud 惯例，无 tscn）。宿主场景用法：
@@ -40,6 +40,10 @@ const RARITY_COLORS := {
 	"uncommon": Color(0.4, 0.85, 0.45, 0.9),
 	"rare": Color(0.45, 0.65, 1.0, 0.9),
 }
+
+## m4p-w2b：buff 芯片行首小图标（ui/buffs/<id>.png 原生 12x12，最近邻零缩放）；
+## 接线表见 ArtLookup.BUFF_TEXTURES（已知空帧 5 张缺行）→ 缺行回落既有纯文字 chip。
+const BUFF_ICON_SIZE := Vector2(12, 12)
 
 # ---- 纯逻辑（无头可测）：字段映射 / CD 比例 / 低血量阈值 / 名字与缩写 ----
 
@@ -469,8 +473,13 @@ func _apply_buffs(snap: Dictionary) -> void:
 	for k in keys:
 		_buff_row.add_child(_make_chip(k))
 
+## Buff 芯片（m4p-w2b 接图标）：稀有度色块底 + 行首 ui/buffs 小图标 + 中文缩写
+## （tooltip 全名）；表外 id / 已知空帧（ArtLookup.BUFF_TEXTURES 缺行）回落既有
+## 纯文字 chip——缺图不占位、不 push_warning（空帧缺席是登记过的稳态）。
+## meta "buff_id" 供测试/走查按 id 寻址芯片。
 func _make_chip(id: String) -> ColorRect:
 	var chip := ColorRect.new()
+	chip.set_meta("buff_id", id)
 	# 12px 基准：2 字中文缩写 24px 宽 + 2px 内距（原 18×12 为 8px 字号配套，随字号归一放大）
 	chip.custom_minimum_size = Vector2(26, 14)
 	var row: Dictionary = GameDB.get_buff(id)
@@ -479,11 +488,30 @@ func _make_chip(id: String) -> ColorRect:
 	var l := Label.new()
 	l.text = buff_abbrev(id)
 	l.add_theme_font_size_override("font_size", 12)
-	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(l)
+	var icon := ArtLookup.tex(ArtLookup.buff_texture_path(id))
+	if icon != null:
+		chip.custom_minimum_size = Vector2(40, 14)   # 26 + 12px 图标 + 2px 间距
+		var box := HBoxContainer.new()
+		box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		box.add_theme_constant_override("separation", 2)
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.add_child(box)
+		var ic := TextureRect.new()
+		ic.texture = icon
+		ic.custom_minimum_size = BUFF_ICON_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP
+		ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(ic)
+		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		box.add_child(l)
+	else:
+		l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		chip.add_child(l)
 	return chip
 
 func _apply_top_right(snap: Dictionary) -> void:
