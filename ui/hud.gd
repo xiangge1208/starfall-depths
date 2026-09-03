@@ -527,7 +527,8 @@ func _on_pause_btn_pressed() -> void:
 ## 「回试炼面板」的偏离随 G-1 走查统一勘误；暂停菜单「回主菜单」复用本路径）：按当前
 ## 进度结算（已过层 + 击杀池现值 ×1.5 floored，无死亡减半——GDD §14 仅死亡减半）→
 ## settlement_record（records 追加 + trial_completed + trials_total 并档落盘）→
-## 回主菜单（试炼面板在主菜单覆盖层，与死亡/胜利结算回菜单口径一致）。
+## 回主菜单。m4p-w2c（W2-c4b）规格字面收口：试炼局置位 MainMenu 静态回流请求，
+## 主菜单就绪即自动展开试炼面板（普通局退出/普通死亡·胜利回菜单不置位不开）。
 func _on_abandon_pressed() -> void:
 	if _abandon_fired:
 		return                                 # 防重入：二次点击零副作用（无幽灵 records 行）
@@ -536,6 +537,8 @@ func _on_abandon_pressed() -> void:
 	if awarded > 0:
 		SaveSystem.add_gems(awarded)
 	TrialPanelUI.settlement_record(awarded, false)
+	if RunState.is_trial_run:
+		MainMenu.open_trial_panel_on_ready = true   # 放弃回流：菜单就绪后自动开试炼面板
 	if abandon_route_override.is_valid():
 		abandon_route_override.call()
 		return

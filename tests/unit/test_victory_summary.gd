@@ -131,7 +131,8 @@ func test_summary_labels_filled_from_run_state_and_telemetry() -> void:
 	assert_bool(joined.contains("老伙计")).is_true()             # RunState.weapons → 中文名
 	assert_bool(joined.contains("铁剑")).is_true()
 	assert_bool(joined.contains("蓝晶结算：+180（通关全额入账）")).is_true()
-	assert_bool(joined.contains("更多内容与试炼模式即将开放")).is_true()   # 预告（编排者裁定文案）
+	assert_bool(joined.contains("试炼模式已开放——主菜单试炼入口")).is_true()   # m4p-w2c W2-c4c 文案勘误（试炼模式已上线）
+	assert_bool(joined.contains("更多内容与试炼模式即将开放")).is_false()  # 过时预告退役
 	assert_bool(joined.contains("按任意键")).is_true()            # 任意键回主菜单提示
 
 

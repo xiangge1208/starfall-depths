@@ -52,7 +52,8 @@ func _fill() -> void:
 	# M3-R-C：试炼局倍率明细行（基础 X × 1.5 = Y）；普通局文案不变
 	$Panel/Box/Gems.text = TrialPanelUI.settlement_gems_line(RunState.gems, false) \
 		if RunState.is_trial_run else "蓝晶结算：+%d（通关全额入账）" % RunState.gems
-	$Panel/Box/Preview.text = "更多内容与试炼模式即将开放"
+	# m4p-w2c W2-c4c 文案勘误：试炼模式已上线（主菜单试炼入口），过时预告退役
+	$Panel/Box/Preview.text = "试炼模式已开放——主菜单试炼入口"
 	$Panel/Box/Hint.text = "—— 按任意键返回 ——"
 
 func _format_time(seconds: float) -> String:

@@ -30,7 +30,10 @@ const VICTORY_SCENE := "res://ui/victory_summary.tscn"   # m2-t18：胜利结算
 
 const A2_ENTRY_FLOOR := 2
 const OVERLAY_TEXT := "已进入第 2 层 · 晶核洞穴入口"
-const OVERLAY_HINT := "M1 垂直切片完成（A2 战斗内容将在 M2 接入）"
+## m4p-w2c W2-c4c 文案勘误：M2 起 A2 战斗内容已接入（层间门真建第 2 层），
+## 里程碑浮层提示不再是「M1 垂直切片完成（A2 战斗内容将在 M2 接入）」过时语。
+## 该浮层现仅为表外楼层的兜底里程碑（_floor_data_available 不放行时）。
+const OVERLAY_HINT := "A2 晶核洞穴生态已接入"
 ## m2-t22：层数 → 生态 BGM 键（GDD §17 生态三曲；越界 clamp 到 A3）。
 const FLOOR_MUSIC := ["garden", "crystal", "magma"]
 
@@ -85,7 +88,15 @@ func _begin() -> void:
 	DeathRecorder.reset()                  # T22 建议的开局复位（清致死窗/遥测会话）
 	AchievementSystem.reset_session()      # m2-t33 补线：成就单局口径同点清零（K.1/K.4）
 	if player == null:
+		# m4p-w2c W2-c4a：武器镜像快照须先于 _spawn_hero_player——HeroApplier 的初始
+		# 武器 equip 会经 WeaponRig→RunState 同步覆写 weapons 镜像（镜像与 rig 实态
+		# 双向耦合，record_weapon 聚合）；增益账面无此耦合，直接在恢复缝内读。
+		var weapon_mirror: Array[String] = []
+		for wid: String in RunState.weapons:
+			weapon_mirror.append(wid)
+		var weapon_slot := RunState.selected_slot
 		_spawn_hero_player()
+		_restore_run_build(weapon_mirror, weapon_slot)   # 重开（同 run 重载）→ 记账构筑重放进新玩家实态
 	_start_floor(RunState.floor_idx)   # m4-c2：层入口被动在 _start_floor 尾部（玩家落位后）触发
 
 
@@ -127,6 +138,58 @@ func _spawn_hero_player() -> void:
 		player.weapon_rig = rig
 		rig.bind_run_state(RunState)
 	HeroApplier.apply(hero, player)
+
+
+## m4p-w2c（W2-c4a）重开构筑恢复：暂停菜单「重开」= SceneRouter "game" 键重载
+## run_root（RunState 层号/种子不变，金币/蓝晶/增益/武器/试炼因子层账保留，见
+## ui/pause_menu.gd 路由口径）——玩家换新实例后 `_reset_runtime_for_new_run` 已把
+## buffs 归零、HeroApplier 只装初始武器，账面 RunState 与玩家实态脱节。本缝在英雄
+## 装配后、首层构建前把账面构筑重放进实态：
+## - 增益：RunState.buffs 逐 id buffs_manager.pick（唯一项防重由 pick 内拒绝）+
+##   apply_to_player/apply_to_rig（沿 floor_scene._apply_altar_buff 落地序）。不调
+##   repair_talent_absolute_keys：重开路径 _talents_applied=false，_start_floor 的
+##   talents.apply_to_player 首拍 own-delta 全量落地在本重放之后（可加键对外部写入
+##   可逆），此处 repair 会与该首拍叠加成双份天赋六键。
+## - 武器：weapon_mirror 为 _begin 在英雄装配前定格的 RunState.weapons 快照——它是
+##   WeaponRig 双槽的槽位镜像（record_weapon 聚合，weapons[i] = rig.slots[i]，
+##   [0]/[1] 为槽位而非「初始/拾取」语义）。恢复按「逐槽对账」落地：快照槽 id 与
+##   当前 rig 槽不同才写（非空 → GameDB 行落槽，表外 id fail-soft 同清槽；空 → 清槽，
+##   局内被丢弃的武器保持丢弃态），快照与实态一致的槽零改动。全新开局快照全空 →
+##   恒等 no-op（HeroApplier 初始武器装配不被重放破坏）；重开 → 双槽/当前槽精确
+##   还原。WeaponRig「设施禁直写 slots」的约定针对获取路径（防聚合滞后）——本恢复
+##   路径直写后立即 bind_run_state 重同步，不变量当场重建。
+func _restore_run_build(weapon_mirror: Array[String], weapon_slot: int) -> void:
+	if player == null:
+		return
+	for id: String in RunState.buffs:
+		buffs.pick(id)
+	if not buffs.picked.is_empty():
+		buffs.apply_to_player(player)
+		if player.weapon_rig != null:
+			buffs.apply_to_rig(player.weapon_rig)
+	var rig := player.get_node_or_null("WeaponRig") as WeaponRig
+	if rig != null:
+		if rig.slots.size() < 2:
+			rig.slots.resize(2)
+		# 快照全空 = 全新开局（局内槽 0 恒非空：无卸下主手的路径，拾取只替换不清空）
+		# → 恒等 no-op，HeroApplier 初始武器装配不被重放破坏。
+		var has_build := false
+		for wid: String in weapon_mirror:
+			if not wid.is_empty():
+				has_build = true
+				break
+		if has_build:
+			for i in 2:
+				var want := weapon_mirror[i] if i < weapon_mirror.size() else ""
+				if want.is_empty():
+					if not rig.slots[i].is_empty():
+						rig.slots[i] = {}
+				elif String(rig.slots[i].get("id", "")) != want:
+					rig.slots[i] = GameDB.get_weapon(want)
+			if weapon_slot >= 0 and weapon_slot < rig.slots.size() \
+					and not rig.slots[weapon_slot].is_empty():
+				rig.slot = weapon_slot         # 状态恢复直写（非游戏切换路径，无锁定窗语义）
+			rig.bind_run_state(RunState)       # selected_slot/武器镜像幂等回写（不变量重建）
 
 
 ## 构建一层：旧层释放 → DungeonBuilder（RunState.run_seed, floor_idx）→ FloorScene 接线。

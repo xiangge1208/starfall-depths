@@ -28,6 +28,12 @@ var _settings_panel: SettingsPanelUI = null   # m3-sa：新设置面板（初始
 var _trial_panel: TrialPanelUI = null         # m3-rb：试炼面板（初始隐藏，返回键只隐藏）
 var _rebind_panel: RebindPanelUI = null       # m3-sb：按键重映射面板（初始隐藏，返回键只隐藏）
 
+## m4p-w2c（W2-c4b）放弃回流请求（静态单点，同 HeroSelect.last_chosen 跨场景暂存
+## 习语）：HUD「放弃试炼」/暂停菜单「回主菜单」的结算退出路径路由 menu 前置位
+## （仅试炼局），本菜单 _ready 消费即自动展开试炼面板——规格 §4「回试炼面板」；
+## 普通死亡/胜利/普通局退出不置位不开。
+static var open_trial_panel_on_ready := false
+
 func _ready() -> void:
 	if save_system == null:
 		save_system = get_node_or_null("/root/SaveSystem")
@@ -72,6 +78,11 @@ func _ready() -> void:
 	_trial_panel = TRIAL_PANEL_SCENE.instantiate() as TrialPanelUI
 	if _trial_panel != null:
 		add_child(_trial_panel)
+	# m4p-w2c（W2-c4b）：试炼放弃回流——消费静态请求自动展开面板（打开即刷新），
+	# 消费即清防残留（普通进入/普通死亡·胜利回菜单不置位，面板保持初始隐藏）。
+	if open_trial_panel_on_ready:
+		open_trial_panel_on_ready = false
+		open_trial_panel()
 	# m3-sb：按键设置入口（S-B 1 挂钩）。按钮运行时构建同「试 炼」钮手法
 	# （main_menu.tscn 禁改），插「设 置」之下；面板 save_host 透传注入缝
 	# （同 settings_host，可为测试替身）。
@@ -129,10 +140,15 @@ func _on_achievements_pressed() -> void:
 	if _router != null:
 		_router.goto("achievements")
 
-func _on_trial_pressed() -> void:
-	# m3-rb：试炼面板打开即刷新（日期/因子/今日最佳/历史）；「开 始」在面板内 arm+路由
+## 公开试炼面板入口（m4p-w2c W2-c4b）：「试 炼」钮与放弃回流共用——打开即刷新
+## （日期/因子/今日最佳/历史），焦点落「开 始」。
+func open_trial_panel() -> void:
 	if _trial_panel != null:
 		_trial_panel.open()
+
+func _on_trial_pressed() -> void:
+	# m3-rb：试炼面板打开即刷新（日期/因子/今日最佳/历史）；「开 始」在面板内 arm+路由
+	open_trial_panel()
 
 func _on_settings_pressed() -> void:
 	# m3-sa：设置键改开独立面板（开合语义同旧内联面板）；旧面板退役强制隐藏
