@@ -46,7 +46,7 @@ offset_bottom = 56.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.6, 0.62, 0.68, 1)
 theme_override_font_sizes/font_size = 12
-text = "M1 垂直切片 · 星陨地牢"
+text = "星陨地牢 Starfall Depths"
 horizontal_alignment = 1
 
 [node name="Menu" type="VBoxContainer" parent="."]
