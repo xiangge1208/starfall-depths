@@ -204,6 +204,7 @@ func check_unlocks() -> Array[String]:
 		mark_weapon_seen(weapon)   # m4-c3：任务解锁侧同入见集（写入集=获取路径 ∪ 任务解锁）
 		_grant_if_poolable(weapon)
 		newly.append(weapon)
+		AudioMgr.play("unlock")   # m4p-w2a：图鉴武器解锁达成拍（与 weapon_unlocked 播报同拍）
 		weapon_unlocked.emit(weapon)
 	if not newly.is_empty():
 		persist_counters()

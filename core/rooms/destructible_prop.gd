@@ -92,6 +92,7 @@ func destroy() -> void:
 		return
 	_done = true
 	hp = 0
+	AudioMgr.play_once("destroy")   # m4p-w2a：陈设破碎拍（幂等门内恰一次；同帧多体限一声）
 	if combat != null:
 		combat.unregister_body(self)
 		combat = null

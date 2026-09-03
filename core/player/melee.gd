@@ -49,6 +49,7 @@ func _physics_process(_delta: float) -> void:
 			# 披露（m4-c2）：反弹伤害镜像武器行原值（GDD §7.4 反弹窗口防御机制），
 			# 不走挥击伤害出口聚合点（祝福/天赋乘区不放大反弹面）。
 			combat.reflect(p, int(w["damage"]))
+			AudioMgr.play_once("reflect")   # m4p-w2a：反弹生效拍（play_once 同帧多弹一声）
 	else:
 		for p in combat.projectiles_in_arc(player.global_position, player.facing.angle(), range_px, arc, Projectile.Faction.ENEMY):
 			combat.block(p)

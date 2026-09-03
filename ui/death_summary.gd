@@ -62,6 +62,9 @@ var _replay_death_tick := 0           # 暂停点 = death_frame（层内帧）
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP   # 全屏面板：挡住底层交互
+	# m4p-w2a 结算切曲：进死亡结算页即切 menu 曲（play_music 同曲幂等——回主菜单
+	# 再 play_music("menu") 不重启，连续不跳变；披露：不做 1s 静默沉重停顿）。
+	AudioMgr.play_music("menu")
 	($Panel/Box/Replay as Button).pressed.connect(start_replay)
 	if not DeathRecorder.current_report.is_empty():
 		open(DeathRecorder.current_report)     # 场景直入时从记录器取报告

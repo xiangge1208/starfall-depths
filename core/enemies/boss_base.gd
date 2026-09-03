@@ -95,6 +95,7 @@ func _advance_phase_if_crossed(frame: int) -> void:
 		Fx.shake("shake_boss_phase")   # J2 v2：来源表注入（+0.5），仍须先于 hitstop
 		_phase_flash()
 		Fx.request_boss_phase()   # J-A：120ms 冻结 + 0.3× 慢速 240ms（参数在 balance.json juice）
+		AudioMgr.play("boss_phase")   # m4p-w2a：阶段切换拍（100%/60%/30% 血线，只进不退）
 	EventBus.boss_phase.emit(self, _phase)
 	_on_phase_enter(_phase)
 

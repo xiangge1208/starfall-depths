@@ -84,6 +84,7 @@ func _choose(idx: int) -> void:
 	if idx < 0 or idx >= _choices.size():
 		return
 	var id := _choices[idx]
+	AudioMgr.play("buff_pick")   # m4p-w2a：三选一选卡成功拍（祭坛/层间两路共用本浮层）
 	hide()
 	buff_chosen.emit(id)
 

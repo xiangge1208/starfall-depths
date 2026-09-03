@@ -86,3 +86,4 @@ func _deploy(frame: int, row: Dictionary = {}) -> void:
 	turret.begin(frame)
 	if player.combat != null:
 		player.combat.register_body(turret, turret.combat_faction())
+	AudioMgr.play("turret_place")   # m4p-w2a：炮台部署拍（主动技与备件被动同一通路）

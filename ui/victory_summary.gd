@@ -24,6 +24,8 @@ var _confirmed := false               # 双击/双键守卫：蓝晶只入账一
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP   # 全屏面板：挡住底层交互
+	# m4p-w2a 结算切曲：进胜利结算页即切 menu 曲（同曲幂等，回主菜单连续不跳变）。
+	AudioMgr.play_music("menu")
 	_fill()
 
 func label_texts() -> Array[String]:

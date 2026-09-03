@@ -41,6 +41,7 @@ func circle_active(frame: int) -> bool:
 func _activate(frame: int) -> void:
 	if player == null:
 		return
+	AudioMgr.play("heal_tide")   # m4p-w2a：潮汐施放拍（cast 过门后到此才响）
 	player.heal(INSTANT_HEAL)
 	_center = player.global_position
 	_until = frame + DURATION_TICKS

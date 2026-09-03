@@ -39,17 +39,36 @@ const MUSIC_FADE_SEC := 0.5               # 切曲淡入时长（规格：0.5s c
 
 ## 已知音效 key（spec 固定表；player_hurt/door_open/ui_click 本卡已有 WAV）。
 ## "death" 为 spec 字面键，实际音源为 enemy_die.wav（经 KEY_FILE 映射，评审 Major①）。
+## m4p-w2a 全面接线：35 个 WAV 落键（武器按 category 分音/战斗反馈/Boss/设施/UI）。
 const KEYS := [
 	"shoot_player", "shoot_enemy", "melee_swing", "hit_enemy", "crit_hit",
 	"pickup_coin", "pickup_energy", "pickup_heart", "player_hurt", "door_open", "ui_click",
 	"death",
 	# m2-t24：蓝晶拾取（Pickup "gem"）；音源经 KEY_FILE 映射 pickup_energy.wav。
 	"pickup_gem",
+	# m4p-w2a：武器 category 分音（weapon_rig.CATEGORY_SHOOT_KEY 映射消费）。
+	"shoot_bow", "shoot_laser", "shoot_rifle", "shoot_shotgun", "shoot_smg",
+	"shoot_sniper", "shoot_staff", "shoot_throw",
+	# m4p-w2a：战斗反馈。
+	"roll", "shield_break", "explosion", "fuse_beep", "freeze", "nova", "heal_tide",
+	"missile", "turret_place", "turret_shot", "reflect", "lava_burn", "spikes",
+	"lowhp_heartbeat", "destroy",
+	# m4p-w2a：Boss。
+	"boss_phase", "boss_roar", "crystal_get",
+	# m4p-w2a：设施/交互/UI。
+	"door_lock", "room_clear", "drink", "forge", "empty", "ui_buy", "ui_error",
+	"unlock", "buff_pick",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。
 ## （music_battle.wav 为 T5 时期额外占位文件，不在本表——生态曲按层取 garden。）
 const MUSIC_KEYS := ["menu", "garden", "crystal", "magma", "boss"]
+
+## m4p-w2a 完备性豁免表（tests/unit/test_audio_wiring.gd 消费）：
+## sfx 目录下不落键的 WAV（当前无——47 个文件全部映射 KEYS/KEY_FILE）。
+const SFX_WAV_EXEMPT: Array[String] = []
+## music 目录下不进 MUSIC_KEYS 的 WAV（music_battle = T5 占位，见上）。
+const MUSIC_WAV_EXEMPT: Array[String] = ["music_battle"]
 
 ## key → 文件基名差异表（未列出 = 与 key 同名 .wav）。仅在缓存 miss 路径查表，热路径零开销。
 const KEY_FILE := {
@@ -70,6 +89,7 @@ var _pool: Array[AudioStreamPlayer] = []
 var _streams: Dictionary = {}             # key -> AudioStream（含 null=缺失，缓存负结果）
 var _warned: Dictionary = {}              # key -> true（每 key 至多警告一次）
 var _next := 0                            # round-robin 游标
+var _last_once_frame: Dictionary = {}     # m4p-w2a：key -> 上次 play_once 物理帧（同拍限流）
 
 var _music: AudioStreamPlayer = null      # music 通道（常驻单实例，节点名 "Music"）
 var _music_key := ""                      # 当前曲 key（"" = 静默）
@@ -88,6 +108,15 @@ func _ready() -> void:
 	_load_volume()
 	_apply_volume()
 	_apply_music_volume()
+	# m4p-w2a：ui_click 全钮挂钩——node_added 捕获全库 BaseButton（主菜单/成就/图鉴/
+	# 天赋/设置/改键/试炼/暂停/结算等一切面板，含运行时构建按钮），按下即一声。
+	# 表现层无判定影响；测试环境按钮按下多播 play 亦无副作用（headless 音频哑设备）。
+	get_tree().node_added.connect(_on_node_added)
+
+## 全库按钮按下 → ui_click（一钮一声；禁用态按钮不 emit pressed 天然静默）。
+func _on_node_added(node: Node) -> void:
+	if node is BaseButton:
+		(node as BaseButton).pressed.connect(play.bind("ui_click", 1.0))
 
 func play(key: String, pitch_scale := 1.0) -> void:
 	var stream := _stream_for(key)
@@ -98,6 +127,15 @@ func play(key: String, pitch_scale := 1.0) -> void:
 	player.stream = stream
 	player.pitch_scale = pitch_scale
 	player.play()
+
+## m4p-w2a：同拍限流播放——同 key 同物理帧至多一声（双持齐射/多源同帧/反弹多弹等
+## 防炸耳；卡约束「同拍重复音限流，一拍一音源一次」）。未知 key 走 play 同一警告缝。
+func play_once(key: String, pitch_scale := 1.0) -> void:
+	var frame := Engine.get_physics_frames()
+	if int(_last_once_frame.get(key, -1)) == frame:
+		return
+	_last_once_frame[key] = frame
+	play(key, pitch_scale)
 
 func set_sfx_volume(v: float) -> void:
 	sfx_volume = clampf(v, 0.0, 1.0)

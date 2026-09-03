@@ -41,8 +41,10 @@ func freeze_ticks(is_elite: bool) -> int:
 func _activate(frame: int) -> void:
 	if player == null or not player.is_inside_tree():
 		return
+	AudioMgr.play("nova")                 # m4p-w2a：新星施放拍（cast 过门后到此才响）
 	var center := player.global_position
 	var radius := nova_radius()
+	var froze_any := false                # m4p-w2a：本拍至少冻结一体才播冻结音（防空放）
 	for node in player.get_tree().get_nodes_in_group("enemies"):
 		var e := node as EnemyBase
 		if e == null or e.state == EnemyBase.State.DEAD:
@@ -62,6 +64,9 @@ func _activate(frame: int) -> void:
 		var st := e.status
 		if st != null and st.has_method("apply_freeze"):
 			st.apply_freeze(freeze_ticks(_is_elite(e)), frame)
+			froze_any = true
+	if froze_any:
+		AudioMgr.play_once("freeze")      # m4p-w2a：冻结生效拍（一次施放至多一声）
 
 ## 精英判定：行内 elite_affixes 非空（同 EnemyBase._test_init / EliteAffix 口径）。
 func _is_elite(e: EnemyBase) -> bool:
