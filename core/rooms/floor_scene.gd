@@ -35,6 +35,8 @@ const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店�
 const FORGE_SCENE := preload("res://ui/forge.tscn")            # m2-t25 熔铸台设施
 const BULLET_VISUAL_CAP := 500
 const BLACK_SHOP_CHANCE := 0.25
+## W2-c1（GDD §13.1）：战斗房增益祭坛每层至多 2 次（掷签命中数达上限即停）。
+const ALTARS_PER_FLOOR_CAP := 2
 ## m2-t24 隐藏门（GDD §10/裁定）：A3 层号下界；星陨先知入场落点对门位偏移。
 const A3_FLOOR_IDX := 3
 const STARFALL_GATE_OFFSET_PX := Vector2(0, -40)
@@ -1097,7 +1099,6 @@ func enter_room(id: int) -> bool:
 	room.entry_frame = Engine.get_physics_frames()
 	Telemetry.log_row(["floor_enter", room.entry_frame, room.template_id])
 	if room.combat != null and not flow.is_cleared(id):
-		_open_facility("combat", room)     # m4-c4：战斗房增益祭坛（掷签命中时首进搭建）
 		if room.is_challenge and room.calamity_id.is_empty():
 			_open_calamity_panel(room)     # m2-t26：进门先灾厄 4 选 1（选定才开战）
 		else:
@@ -1585,6 +1586,12 @@ func _emit_room_clear(room: FloorRoom) -> void:
 	var rewards := room.room_flow.rewards
 	if not rewards.is_empty():
 		_spawn_rewards(room, rewards)
+	# W2-c1（GDD §13.1「战斗房清完后 15% 概率刷增益祭坛」）：掷签命中（altar_pending）
+	# 的战斗房在清房拍搭建祭坛——can_interact 门控天然满足（清房前祭坛不存在）；
+	# 幂等门 cleared_emitted 保证恰建一次。试炼 elite_surge 分支同为清房后交互。
+	if room.altar_pending and not room.facility_built:
+		room.facility_built = true
+		_build_altar(room)
 
 
 func _spawn_rewards(room: FloorRoom, rewards: Dictionary) -> void:
@@ -1651,8 +1658,8 @@ func _on_flow_room_event(room_type: String, room_id: int) -> void:
 ## m1-t27 设施接线（room_event 首进恰一次）：shop=真商店（RunState 钱包 + 当层货单 +
 ## 副手回收回调）；event=EventRoom 进房即开事件面板（全屏弹层，Esc=拒绝）。
 ## treasure 走 _place_guests 既有宝箱；elite/miniboss/boss 为嘉宾战斗房无设施。
-## m4-c4："combat" 分支 = 战斗房增益祭坛（setup 掷签 altar_pending 命中时首进搭建；
-## 战斗房不发 room_event，由 enter_room 战斗分支直接调本分发缝）。
+## W2-c1：战斗房增益祭坛不再经本分发缝（改 _emit_room_clear 清房拍搭建；
+## 战斗房本就不发 room_event）。
 func _open_facility(room_type: String, room: FloorRoom) -> void:
 	if room == null or room.facility_built:
 		return
@@ -1663,32 +1670,53 @@ func _open_facility(room_type: String, room: FloorRoom) -> void:
 		"event":
 			room.facility_built = true
 			_build_event(room)
-		"combat":
-			if not room.altar_pending:
-				return
-			room.facility_built = true
-			_build_altar(room)
 
 
 ## m4-c4：战斗房增益祭坛掷签（m3-fix1 §残留收口）。独立 "altar" 盐流（不扰动
 ## facility/loot 流）；房间 id 升序遍历保证同 seed 恒同判定。生成条件 = 房型 combat
 ## （elite/miniboss/boss 嘉宾战斗房沿用「无设施」语义）+ 模板 altar_chance 掷签
 ## （schema optional，缺省 0.0 = 不生成）+ altar_excludes 与房内既有设施无交集
-## （Altar.roll_pending 纯函数收口）。命中仅记 altar_pending，实体在首进由
-## _open_facility "combat" 分支搭建。
+## （Altar.roll_pending 纯函数收口；战斗房 build 时刻恒无设施 → excludes 恒空）。
+## W2-c1 每层上限：命中数达 ALTARS_PER_FLOOR_CAP 即停（GDD §13.1「本层至多 2 次」）。
+## 命中仅记 altar_pending，实体在清房拍由 _emit_room_clear 搭建（W2-c1 时序）。
 func _roll_combat_altars(build: Dictionary) -> void:
 	if _altar_rng == null:
 		_altar_rng = RngSvc.stream(floor_idx, "altar")
 	var ids: Array = build["rooms"].keys()
 	ids.sort()
+	var chances: Array[float] = []
+	var combat_ids: Array[int] = []
 	for id: Variant in ids:
 		var room: FloorRoom = _rooms.get(int(id))
 		if room == null or room.type != "combat":
 			continue
 		var row := RoomTemplate.get_room(room.template_id)
-		if Altar.roll_pending(_altar_rng.randf(), float(row.get("altar_chance", 0.0)),
-				row.get("altar_excludes", []), _room_facility_kinds(room)):
-			room.altar_pending = true
+		chances.append(float(row.get("altar_chance", 0.0)))
+		combat_ids.append(int(id))
+	var pending := roll_altar_pending_series(chances, _altar_rng)
+	for i in pending.size():
+		if pending[i]:
+			(_rooms.get(combat_ids[i]) as FloorRoom).altar_pending = true
+
+
+## W2-c1 每层祭坛掷签纯函数（可测主体）：chances = 房间 id 升序 combat 房的逐房
+## altar_chance；rng 每未截停房恰一掷（roll < chance 即命中，同 Altar.roll_pending
+## 单一比较语义）；命中数达 ALTARS_PER_FLOOR_CAP 即停——后续房不消费签、恒不生成
+## （GDD §13.1「战斗房清完后 15% 概率刷增益祭坛（本层至多 2 次）」）。
+## 返回逐房 pending 布尔（与 chances 同长）；同输入必同输出。
+static func roll_altar_pending_series(chances: Array[float],
+		rng: RandomNumberGenerator) -> Array[bool]:
+	var out: Array[bool] = []
+	var hits := 0
+	for chance in chances:
+		if hits >= ALTARS_PER_FLOOR_CAP:
+			out.append(false)
+			continue
+		var hit := rng.randf() < chance
+		if hit:
+			hits += 1
+		out.append(hit)
+	return out
 
 
 ## 房内既有设施 kind 清单（互斥判定的 present 侧；class → kind 映射与
@@ -2505,7 +2533,7 @@ class FloorRoom extends Node2D:
 	var spawned_wave := -1
 	var guests_placed := false
 	var facility_built := false               # m1-t27：设施已接（shop/event 真设施占位）
-	var altar_pending := false                # m4-c4：祭坛掷签命中（首进由 _open_facility 搭建）
+	var altar_pending := false                # m4-c4：祭坛掷签命中（清房拍由 _emit_room_clear 搭建）
 	var cleared_emitted := false
 	var coins := 0
 	var is_challenge := false                 # m2-t26：挑战房（combat 房行级标记承载）

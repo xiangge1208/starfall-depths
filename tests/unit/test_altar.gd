@@ -1,15 +1,20 @@
 class_name TestAltar
 extends GdUnitTestSuite
-## m4-c4 增益祭坛设施 + elite_surge 试炼分支（m3-fix1 §残留半边收口）：
+## m4-c4 增益祭坛设施 + elite_surge 试炼分支（m3-fix1 §残留半边收口）；
+## m4p-w2c（W2-c1）时序/上限按 GDD §13.1 勘误：
+## 「战斗房清完后 15% 概率刷增益祭坛（本层至多 2 次）」——
 ## 1) 生成判定纯函数：15% 掷签语义 + altar_excludes 互斥 fail-closed（chance<=0 恒不生成）
 ## 2) 楼层掷签：combat 房型 + 模板 altar_chance=0.15 数据驱动、同 seed 确定性、
-##    非战斗房型（elite/miniboss/boss/shop…）零生成、200 种子分布带（二项 ±3σ）
+##    非战斗房型（elite/miniboss/boss/shop…）零生成、200 种子分布带（二项 ±3σ）、
+##    每层掷签序列纯函数（达上限 2 即停掷）+ 200 种子截断分布带 + 场景级 6 房连中截停
 ## 3) 交互·增益分支（非试炼局）：三选一全部来自 GameDB.buffs 既有池（零新数值键）、
 ##    选卡经 apply 回调落地、一次性、choose 越界拒绝
 ## 4) 交互·elite_surge 分支（试炼局）：TrialMods.altar_elite_surge() 单点读
 ##    RunState.mods（elite_bonus_pct），交互改为追加 1 精英（楼层真实嘉宾行+词缀），
-##    战斗中 spawn 不计波次（同召唤体口径）；已清房 spawn 不回锁
+##    spawn 不计波次（同召唤体口径）；已清房 spawn 不回锁
 ## 5) 零漂移：无因子/无关因子不触发精英分支；普通局祭坛照常三选一
+## 6) 时序（W2-c1）：掷签命中只记 pending，实体改「清房拍」搭建——首进开战（战斗
+##    锁定期）祭坛不存在（can_interact 门控天然满足），清房后才可交互
 
 const SEED := 4242
 const SPAN_PX := 416.0
@@ -134,9 +139,9 @@ func test_roll_pending_exclusion_semantics() -> void:
 
 # ---------------------------------------------------------------- 2) 楼层掷签
 
-func test_scene_combat_room_altar_pending_deterministic() -> void:
-	# 模板 altar_chance=0.15 数据驱动：命中种子下首进战斗房必建祭坛（设施缝），
-	# 同 seed 两次 setup 恒同态（确定性）。
+func test_scene_altar_built_on_room_clear_not_on_entry() -> void:
+	# W2-c1 时序：掷签仍在建层（同 seed 确定性），实体改「清房拍」搭建——首进开战
+	# （战斗锁定期）祭坛不存在（can_interact 门控天然满足），清房后祭坛在房内可交互。
 	var seed_hit := _seed_with_altar(SEED)
 	assert_int(seed_hit).is_greater(0)
 	var build := _chain(["combat"])
@@ -144,13 +149,20 @@ func test_scene_combat_room_altar_pending_deterministic() -> void:
 	var fs := _make_scene(build)
 	var room: FloorScene.FloorRoom = fs.room_node(1)
 	assert_bool(room.altar_pending).is_true()
-	assert_object(_altar_in(fs, 1)).is_null()          # 掷签只记 pending，实体在首进建
+	assert_object(_altar_in(fs, 1)).is_null()          # 掷签只记 pending
 	assert_object(_altar_in(fs, 0)).is_null()          # start 房恒无祭坛
 	assert_bool(fs.enter_room(1)).is_true()
+	assert_object(_altar_in(fs, 1)).is_null()          # 首进开战不建祭坛（战后时序）
+	assert_bool(room.facility_built).is_false()
+	_kill_all(room)
+	await _await_until(func() -> bool: return _alive_enemies(room) == 3)
+	_kill_all(room)
+	await _await_until(func() -> bool: return not fs.flow.is_locked())
 	var altar := _altar_in(fs, 1)
-	assert_object(altar).is_not_null()
+	assert_object(altar).is_not_null()                 # 清房拍搭建
 	assert_bool(room.facility_built).is_true()
 	assert_str(altar.action_label).contains("祭坛")
+	assert_bool(altar.can_interact(fs.player_node())).is_true()
 
 
 func test_scene_altar_seed_miss_no_facility() -> void:
@@ -197,6 +209,83 @@ func test_altar_generation_fifteen_percent_band() -> void:
 		if rng.randf() < 0.15:
 			hits += 1
 	assert_int(hits).is_between(13, 47)
+
+
+# ---------------------------------------------------------------- 2b) 每层上限 2（W2-c1）
+
+func _rigged_rng(seed_value: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	return rng
+
+
+func _true_count(pending: Array[bool]) -> int:
+	var n := 0
+	for p in pending:
+		if p:
+			n += 1
+	return int(n)
+
+
+func test_altar_per_floor_cap_series_pure() -> void:
+	# 每层至多 2（GDD §13.1「本层至多 2 次」）：掷签序列纯函数——连中 3+ 也只取前 2，
+	# 达上限即停（后续房不消费签、恒不生成）；上限内逐房命中语义不变（roll < chance）。
+	var all_hit := FloorScene.roll_altar_pending_series(
+		[1.0, 1.0, 1.0, 1.0, 1.0, 1.0], _rigged_rng(11))
+	assert_int(all_hit.size()).is_equal(6)
+	assert_int(_true_count(all_hit)).is_equal(2)       # 全命中序列 → 恰 2 座
+	assert_bool(all_hit[0]).is_true()
+	assert_bool(all_hit[1]).is_true()
+	assert_bool(all_hit[2]).is_false()                 # 第 3 座起截停
+	assert_bool(all_hit[5]).is_false()
+	var two := FloorScene.roll_altar_pending_series([1.0, 0.0], _rigged_rng(3))
+	assert_bool(two[0]).is_true()                      # 上限内 = 原逐房判定
+	assert_bool(two[1]).is_false()
+	var none := FloorScene.roll_altar_pending_series(
+		[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], _rigged_rng(3))
+	assert_int(_true_count(none)).is_equal(0)          # 零命中路径不受上限影响
+
+
+func test_altar_per_floor_band_two_hundred_seeds_cap_two() -> void:
+	# 200 种子分布带（6 战斗房 × p=0.15，掷签流同生产口径 RngSvc.stream(1,"altar")）：
+	# 每种子命中数 ≤2（GDD「本层至多 2 次」断言），总量均值落截断二项 ±3σ 带。
+	# X~Bin(6,0.15)：P0=.3772 / P1=.3993 / P≥2=.2235；Y=min(X,2) 期望 0.8464/种子
+	# → 200 种子 μ≈169.3、σ≈10.7，带 [137, 202]。
+	var total_hits := 0
+	var chances: Array[float] = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
+	for s in range(6100, 6300):
+		RngSvc.setup_run(s)
+		var pending := FloorScene.roll_altar_pending_series(chances, RngSvc.stream(1, "altar"))
+		var hits := _true_count(pending)
+		assert_int(hits).is_less_equal(2)              # 每层至多 2（截断语义）
+		total_hits += hits
+	assert_int(total_hits).is_between(137, 202)
+
+
+func test_scene_altar_per_floor_cap_six_room_chain() -> void:
+	# 场景级接线：6 连战斗房、掷签原始连中 ≥3 的种子 → 实际恰 2 间命中（层上限截停）。
+	var seed_multi := -1
+	for s in range(6100, 6400):
+		RngSvc.setup_run(s)
+		var rng := RngSvc.stream(1, "altar")
+		var raw_hits := 0
+		for i in 6:
+			if rng.randf() < 0.15:
+				raw_hits += 1
+		if raw_hits >= 3:
+			seed_multi = s
+			break
+	assert_int(seed_multi).is_greater(0)
+	var types: Array = []
+	for i in 6:
+		types.append("combat")
+	RngSvc.setup_run(seed_multi)
+	var fs := _make_scene(_chain(types))
+	var pending_rooms: Array[int] = []
+	for id in range(1, 7):
+		if (fs.room_node(id) as FloorScene.FloorRoom).altar_pending:
+			pending_rooms.append(id)
+	assert_int(pending_rooms.size()).is_equal(2)       # 原始 ≥3 连中 → 恰 2（GDD 上限）
 
 
 # ---------------------------------------------------------------- 3) 增益分支（单元级）
@@ -302,13 +391,18 @@ func test_elite_branch_requires_positive_pct() -> void:
 # ---------------------------------------------------------------- 5) 场景集成
 
 func test_scene_altar_buff_branch_end_to_end() -> void:
-	# 普通局（零因子）：进房 → 交互 → 三选一 → 选卡落地（BuffManager.pick +
-	# RunState.add_buff 记账 + apply_to_player 玩家 meta）
+	# 普通局（零因子）：清房 → 交互 → 三选一 → 选卡落地（BuffManager.pick +
+	# RunState.add_buff 记账 + apply_to_player 玩家 meta）。W2-c1 时序：先清房祭坛才存在。
 	var seed_hit := _seed_with_altar(SEED)
 	RngSvc.setup_run(seed_hit)
 	var fs := _make_scene(_chain(["combat"]))
 	var buffs := fs.buffs_manager as BuffManager
+	var room: FloorScene.FloorRoom = fs.room_node(1)
 	assert_bool(fs.enter_room(1)).is_true()
+	_kill_all(room)
+	await _await_until(func() -> bool: return _alive_enemies(room) == 3)
+	_kill_all(room)
+	await _await_until(func() -> bool: return not fs.flow.is_locked())
 	var altar := _altar_in(fs, 1)
 	assert_object(altar).is_not_null()
 	altar.interact(fs.player_node())
@@ -319,8 +413,9 @@ func test_scene_altar_buff_branch_end_to_end() -> void:
 	assert_str(String(RunState.buffs[0])).is_equal(String(buffs.picked[0]))
 
 
-func test_scene_elite_surge_altar_spawns_uncounted_elite_mid_fight() -> void:
-	# 试炼局 elite_surge：战斗中交互 → 追加 1 精英嘉宾（真实行+楼层词缀），不计波次
+func test_scene_elite_surge_altar_post_clear_interact_only() -> void:
+	# W2-c1 时序 + elite_surge 语义不变：战斗中祭坛不存在（旧「战斗中交互追加精英」
+	# 随清房时序退役）；清房后交互追加 1 精英嘉宾（真实行+楼层词缀），不计波次
 	# （同召唤体口径：清房判定不被它拖住），但击杀照常入 RunState.kills
 	RunState.mods = {"elite_bonus_pct": 100}
 	var seed_hit := _seed_with_altar(SEED)
@@ -328,20 +423,25 @@ func test_scene_elite_surge_altar_spawns_uncounted_elite_mid_fight() -> void:
 	var fs := _make_scene(_chain(["combat"]))
 	var room: FloorScene.FloorRoom = fs.room_node(1)
 	assert_bool(fs.enter_room(1)).is_true()
-	var before := _alive_enemies(room)
-	var kills_before := RunState.kills
+	assert_object(_altar_in(fs, 1)).is_null()          # 战斗锁定期无祭坛（新时序钉）
+	_kill_all(room)
+	await _await_until(func() -> bool: return _alive_enemies(room) == 3)
+	_kill_all(room)
+	await _await_until(func() -> bool: return not fs.flow.is_locked())
 	var altar := _altar_in(fs, 1)
+	assert_object(altar).is_not_null()                 # 清房拍搭建
+	var before := _alive_enemies(room)
 	altar.interact(fs.player_node())
 	assert_int(_alive_enemies(room)).is_equal(before + 1)
 	var surge := room.enemies[room.enemies.size() - 1]
 	assert_bool(surge.counts_for_wave).is_false()      # 波次外嘉宾（不拖清房判定）
+	var kills_before_surge := RunState.kills
 	surge.take_hit({"amount": 9999, "is_crit": false, "element": 0,
 		"from": surge.global_position})
-	assert_int(RunState.kills).is_equal(kills_before + 1)
-	# 清房判定不被祭坛精英拖住：清掉原波 → 波 2 照常推进
-	_kill_all(room)
-	await _await_until(func() -> bool: return _alive_enemies(room) == 3)
-	assert_bool(fs.flow.is_locked()).is_true()         # 波 1 清 → 波 2（祭坛精英已不计）
+	assert_int(RunState.kills).is_equal(kills_before_surge + 1)   # 击杀照常入账
+	# 追加精英不回锁已清房
+	assert_bool(fs.flow.is_locked()).is_false()
+	assert_bool(fs.flow.cleared.has(1)).is_true()
 
 
 func test_scene_elite_surge_altar_cleared_room_spawn_no_relock() -> void:
