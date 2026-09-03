@@ -27,11 +27,14 @@ extends CanvasLayer
 ## - 恢复只翻 paused 位：不注入 trauma、不调 hitstop、不动 time_scale（恢复零演出误发）。
 ##
 ## 路由（重开口径，写明选择）：重开 = SceneRouter "game" 键重载 run_root——RunState
-## 层号/种子不变 → 同种子同层重建 = 「重开当前层」语义（局内金币/蓝晶/增益/试炼因子
-## 保留，玩家换新实例满状态；RunRoot._begin 自带 DeathRecorder.reset 开局复位）。
-## 回主菜单 = 委托宿主 HUD 的既有放弃退出路径（settle_victory_gems 全额/试炼 ×1.5 →
-## SaveSystem.add_gems → settlement_record → goto("menu")，与 HUD「放弃试炼」按钮同路
-## 同 _abandon_fired 防重入守卫，不重复触发；试炼规格 §4 行为不回退）。
+## 层号/种子不变 → 同种子同层重建 = 「重开当前层」语义（局内金币/蓝晶/增益/武器/
+## 试炼因子保留，玩家换新实例满状态；RunRoot._begin 自带 DeathRecorder.reset 开局
+## 复位。m4p-w2c W2-c4a 起 RunRoot._restore_run_build 把账面构筑重放进新玩家实态，
+## 头注承诺的「增益/武器保留」由披露变为事实）。回主菜单 = 委托宿主 HUD 的既有放弃
+## 退出路径（settle_victory_gems 全额/试炼 ×1.5 → SaveSystem.add_gems →
+## settlement_record → goto("menu")，与 HUD「放弃试炼」按钮同路同 _abandon_fired
+## 防重入守卫，不重复触发；试炼规格 §4 行为不回退。m4p-w2c W2-c4b 起试炼局放弃
+## 回落主菜单后自动展开试炼面板——MainMenu.open_trial_panel_on_ready 单点）。
 ##
 ## 触屏：四钮 140×18 / 12px 字体（m3_theme 基准，同 main_menu 按钮惯例）+ HUD 侧
 ## PauseBtn 呼出钮。像素风红线：纯代码构建（同 debug_hud 惯例），无缩放、无重采样、

@@ -35,6 +35,8 @@ const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店�
 const FORGE_SCENE := preload("res://ui/forge.tscn")            # m2-t25 熔铸台设施
 const BULLET_VISUAL_CAP := 500
 const BLACK_SHOP_CHANCE := 0.25
+## W2-c1（GDD §13.1）：战斗房增益祭坛每层至多 2 次（掷签命中数达上限即停）。
+const ALTARS_PER_FLOOR_CAP := 2
 ## m2-t24 隐藏门（GDD §10/裁定）：A3 层号下界；星陨先知入场落点对门位偏移。
 const A3_FLOOR_IDX := 3
 const STARFALL_GATE_OFFSET_PX := Vector2(0, -40)
@@ -118,7 +120,7 @@ const REAL_GUEST_ROWS := {
 const GUEST_SPECS := {
 	"elite_charger": {"mult": 3, "radius": 6.0, "kind": "elite", "name": "精英·藤蔓冲锋者"},
 	"miniboss_charger": {"mult": 3, "radius": 6.0, "kind": "miniboss", "name": "垒主·藤蔓冲锋者"},
-	"vine_colossus": {"mult": 8, "radius": 16.0, "kind": "boss", "name": "藤蔓巨像（占位）"},
+	"vine_colossus": {"mult": 8, "radius": 16.0, "kind": "boss", "name": "藤蔓巨像"},
 }
 const GUEST_COLORS := {
 	"elite": Color(1.0, 0.82, 0.25), "miniboss": Color(0.85, 0.25, 0.2),
@@ -1097,7 +1099,6 @@ func enter_room(id: int) -> bool:
 	room.entry_frame = Engine.get_physics_frames()
 	Telemetry.log_row(["floor_enter", room.entry_frame, room.template_id])
 	if room.combat != null and not flow.is_cleared(id):
-		_open_facility("combat", room)     # m4-c4：战斗房增益祭坛（掷签命中时首进搭建）
 		if room.is_challenge and room.calamity_id.is_empty():
 			_open_calamity_panel(room)     # m2-t26：进门先灾厄 4 选 1（选定才开战）
 		else:
@@ -1585,6 +1586,12 @@ func _emit_room_clear(room: FloorRoom) -> void:
 	var rewards := room.room_flow.rewards
 	if not rewards.is_empty():
 		_spawn_rewards(room, rewards)
+	# W2-c1（GDD §13.1「战斗房清完后 15% 概率刷增益祭坛」）：掷签命中（altar_pending）
+	# 的战斗房在清房拍搭建祭坛——can_interact 门控天然满足（清房前祭坛不存在）；
+	# 幂等门 cleared_emitted 保证恰建一次。试炼 elite_surge 分支同为清房后交互。
+	if room.altar_pending and not room.facility_built:
+		room.facility_built = true
+		_build_altar(room)
 
 
 func _spawn_rewards(room: FloorRoom, rewards: Dictionary) -> void:
@@ -1593,8 +1600,37 @@ func _spawn_rewards(room: FloorRoom, rewards: Dictionary) -> void:
 		_spawn_pickup(room, "coin", center + _scatter(i))
 	for i in int(rewards.get("energy_orbs", 0)):
 		_spawn_pickup(room, "energy", center + _scatter(37 + i))
-	for i in int(rewards.get("hearts", 0)):
+	var hearts := int(rewards.get("hearts", 0))
+	for i in hearts:
 		_spawn_pickup(room, "heart", center + _scatter(53 + i))
+	if hearts > 0:
+		_heart_sense_bonus(room, center)     # W2-c3：红心感应（基线红心存在才 roll）
+
+
+# ---- m4p-w2c（W2-c3）红心感应（heart_sense，正式楼层掉落侧奖励区） ----
+## room_combat.gd 训练房先例（_heart_sense_bonus）的同口径正式楼层复刻——此前漏接：
+## 红心奖励存在（rewards.hearts > 0）时以 pct 概率追加 1 心（buff_heart_sense_pct
+## meta，desc「红心掉率 +50%」即期望 +50%）；hearts=0 的房不 roll（基线 0 心无加成
+## 语义）。pct ≤ 0 不掷签不建流（无增益零漂移）；追加落点沿 _scatter 黄金角习语。
+## 掷签走独立 "heart_sense" 盐流（kill_energy 先例）且惰性缓存（fresh-per-call 会
+## 退化成恒同掷签）；仅玩家身体带该 meta（BuffManager PLAYER_META_KEYS 落点）；
+## 遥测 heart_sense_roll 同训练房口径。room_combat 侧实现与训练房语义保留不动。
+const SALT_HEART_SENSE := "heart_sense"
+var _heart_rng: RandomNumberGenerator = null   # 惰性缓存盐流（楼层实例粒度，同房级先例）
+
+func _heart_sense_bonus(room: FloorRoom, center: Vector2) -> void:
+	var pct := 0.0
+	if player != null and is_instance_valid(player) \
+			and player.has_meta("buff_heart_sense_pct"):
+		pct = float(player.get_meta("buff_heart_sense_pct"))
+	if pct <= 0.0:
+		return
+	if _heart_rng == null:
+		_heart_rng = RunState.stream(SALT_HEART_SENSE)
+	var won := _heart_rng.randf() < clampf(pct, 0.0, 1.0)
+	Telemetry.log_row(["heart_sense_roll", Engine.get_physics_frames(), 1 if won else 0])
+	if won:
+		_spawn_pickup(room, "heart", center + _scatter(53))
 
 
 ## 确定性散布（黄金角），不引入随机（M0 习语）。
@@ -1651,8 +1687,8 @@ func _on_flow_room_event(room_type: String, room_id: int) -> void:
 ## m1-t27 设施接线（room_event 首进恰一次）：shop=真商店（RunState 钱包 + 当层货单 +
 ## 副手回收回调）；event=EventRoom 进房即开事件面板（全屏弹层，Esc=拒绝）。
 ## treasure 走 _place_guests 既有宝箱；elite/miniboss/boss 为嘉宾战斗房无设施。
-## m4-c4："combat" 分支 = 战斗房增益祭坛（setup 掷签 altar_pending 命中时首进搭建；
-## 战斗房不发 room_event，由 enter_room 战斗分支直接调本分发缝）。
+## W2-c1：战斗房增益祭坛不再经本分发缝（改 _emit_room_clear 清房拍搭建；
+## 战斗房本就不发 room_event）。
 func _open_facility(room_type: String, room: FloorRoom) -> void:
 	if room == null or room.facility_built:
 		return
@@ -1663,32 +1699,53 @@ func _open_facility(room_type: String, room: FloorRoom) -> void:
 		"event":
 			room.facility_built = true
 			_build_event(room)
-		"combat":
-			if not room.altar_pending:
-				return
-			room.facility_built = true
-			_build_altar(room)
 
 
 ## m4-c4：战斗房增益祭坛掷签（m3-fix1 §残留收口）。独立 "altar" 盐流（不扰动
 ## facility/loot 流）；房间 id 升序遍历保证同 seed 恒同判定。生成条件 = 房型 combat
 ## （elite/miniboss/boss 嘉宾战斗房沿用「无设施」语义）+ 模板 altar_chance 掷签
 ## （schema optional，缺省 0.0 = 不生成）+ altar_excludes 与房内既有设施无交集
-## （Altar.roll_pending 纯函数收口）。命中仅记 altar_pending，实体在首进由
-## _open_facility "combat" 分支搭建。
+## （Altar.roll_pending 纯函数收口；战斗房 build 时刻恒无设施 → excludes 恒空）。
+## W2-c1 每层上限：命中数达 ALTARS_PER_FLOOR_CAP 即停（GDD §13.1「本层至多 2 次」）。
+## 命中仅记 altar_pending，实体在清房拍由 _emit_room_clear 搭建（W2-c1 时序）。
 func _roll_combat_altars(build: Dictionary) -> void:
 	if _altar_rng == null:
 		_altar_rng = RngSvc.stream(floor_idx, "altar")
 	var ids: Array = build["rooms"].keys()
 	ids.sort()
+	var chances: Array[float] = []
+	var combat_ids: Array[int] = []
 	for id: Variant in ids:
 		var room: FloorRoom = _rooms.get(int(id))
 		if room == null or room.type != "combat":
 			continue
 		var row := RoomTemplate.get_room(room.template_id)
-		if Altar.roll_pending(_altar_rng.randf(), float(row.get("altar_chance", 0.0)),
-				row.get("altar_excludes", []), _room_facility_kinds(room)):
-			room.altar_pending = true
+		chances.append(float(row.get("altar_chance", 0.0)))
+		combat_ids.append(int(id))
+	var pending := roll_altar_pending_series(chances, _altar_rng)
+	for i in pending.size():
+		if pending[i]:
+			(_rooms.get(combat_ids[i]) as FloorRoom).altar_pending = true
+
+
+## W2-c1 每层祭坛掷签纯函数（可测主体）：chances = 房间 id 升序 combat 房的逐房
+## altar_chance；rng 每未截停房恰一掷（roll < chance 即命中，同 Altar.roll_pending
+## 单一比较语义）；命中数达 ALTARS_PER_FLOOR_CAP 即停——后续房不消费签、恒不生成
+## （GDD §13.1「战斗房清完后 15% 概率刷增益祭坛（本层至多 2 次）」）。
+## 返回逐房 pending 布尔（与 chances 同长）；同输入必同输出。
+static func roll_altar_pending_series(chances: Array[float],
+		rng: RandomNumberGenerator) -> Array[bool]:
+	var out: Array[bool] = []
+	var hits := 0
+	for chance in chances:
+		if hits >= ALTARS_PER_FLOOR_CAP:
+			out.append(false)
+			continue
+		var hit := rng.randf() < chance
+		if hit:
+			hits += 1
+		out.append(hit)
+	return out
 
 
 ## 房内既有设施 kind 清单（互斥判定的 present 侧；class → kind 映射与
@@ -2380,11 +2437,18 @@ func _attach_camera() -> void:
 
 ## 表现层弹幕镜像（M0 习语）：当前房 combat 池 → 共享 Sprite2D 逐帧同步。
 ## m1-t28：弹丸贴图按阵营/元素换装（bullet_player/bullet_enemy/elem_*）。
+## m4p-w2c（W2-c2）：必暴窗内玩家弹换暴击专用帧（金描边/强化发光）——收口正式楼层
+## 此前漏接的两参旧调用（room_combat.gd:569 同款镜像）：forced_crit_until 为
+## CombatSystem 命中结算的既有暴击判定状态，本处只读镜像（零 RNG 消费零判定影响，
+## 暴击 roll 仍是命中时唯一随机乘区，窗口预告帧即完整规格）；元素弹保持元素身份
+## （ArtLookup 内 element 优先）。非战斗房（combat 缺席）恒窗外。
 func _sync_bullet_visuals() -> void:
 	var active: Array = []
 	var room: FloorRoom = _rooms.get(flow.current_room)
 	if room != null and room.combat != null:
 		active = room.combat.pool.active
+	var crit_window := room != null and room.combat != null \
+		and Engine.get_physics_frames() < room.combat.forced_crit_until   # W2-c2 只读镜像
 	if _bullet_layer == null:
 		return
 	while _bullet_sprites.size() < active.size() and _bullet_sprites.size() < BULLET_VISUAL_CAP:
@@ -2399,7 +2463,8 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
-			vis.texture = ArtLookup.bullet_texture(p.faction, p.element)   # M2-T1 备忘缓存
+			vis.texture = ArtLookup.bullet_texture(p.faction, p.element,
+				crit_window and p.faction == Projectile.Faction.PLAYER)   # W2-c2 加 crit 位
 			vis.modulate = p.modulate
 			# m2-t37 fix1（评审 Important-1）：光圈内弹幕自增亮补偿（A2 暗视野可读性）。
 			# 实测探针口径：弹幕进光照参与集 +47 draw（150 预算下不可接受）——改走
@@ -2505,7 +2570,7 @@ class FloorRoom extends Node2D:
 	var spawned_wave := -1
 	var guests_placed := false
 	var facility_built := false               # m1-t27：设施已接（shop/event 真设施占位）
-	var altar_pending := false                # m4-c4：祭坛掷签命中（首进由 _open_facility 搭建）
+	var altar_pending := false                # m4-c4：祭坛掷签命中（清房拍由 _emit_room_clear 搭建）
 	var cleared_emitted := false
 	var coins := 0
 	var is_challenge := false                 # m2-t26：挑战房（combat 房行级标记承载）

@@ -46,6 +46,7 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	MainMenu.open_trial_panel_on_ready = false    # W2-c4b 静态旗标卫生（跨套件不泄漏）
 	if _trial_cb.is_valid():
 		EventBus.trial_completed.disconnect(_trial_cb)
 	TrialPanelUI.settlement_records = null
@@ -181,6 +182,52 @@ func test_trials_total_persists_across_save_reload() -> void:
 	_iso_save.load_save()                                      # 模拟重开进程读档
 	assert_int(int(_iso_save.data["unlock_tasks"]["trials_total"])).is_equal(1)
 	assert_int(AchievementSystem._state_value("counter:trials_total")).is_equal(1)
+
+
+# ================================================================ 4b) 放弃回流：回试炼面板（m4p-w2c W2-c4b）
+
+func test_hud_abandon_requests_trial_panel_reopen_for_trial_runs() -> void:
+	# 放弃试炼（规格 §4「回试炼面板」）：结算退出路由 menu 前，试炼局置位菜单侧
+	# 自动展开请求（override 仅替真跳场景，请求语义照常；after_test 清旗标防泄漏）。
+	RunState.start_trial_run("vanguard", DATE)
+	var hud: CanvasLayer = auto_free(HUD.new())
+	hud.run = RunState
+	add_child(hud)
+	var btn: Button = hud.find_child("AbandonTrial", true, false)
+	assert_that(btn).is_not_null()
+	hud.abandon_route_override = func() -> void: pass   # 不真跳
+	btn.pressed.emit()
+	assert_bool(MainMenu.open_trial_panel_on_ready).is_true()
+	MainMenu.open_trial_panel_on_ready = false          # 本测内即清（不依赖 after_test）
+
+
+func test_hud_normal_run_exit_does_not_request_trial_panel() -> void:
+	# 普通局退出（暂停菜单「回主菜单」委托的同一结算路径）不请求开面板——
+	# 「试炼放弃回面板」只属试炼局；普通死亡/胜利/退出回菜单不开。
+	RunState.start_run("vanguard")
+	var hud: CanvasLayer = auto_free(HUD.new())
+	hud.run = RunState
+	add_child(hud)
+	hud.abandon_route_override = func() -> void: pass
+	hud._on_abandon_pressed()                           # 弃钮普通局隐藏，直调同路径
+	assert_bool(MainMenu.open_trial_panel_on_ready).is_false()
+
+
+func test_main_menu_reopen_request_opens_trial_panel_and_consumes() -> void:
+	# 主菜单就绪消费请求：自动展开试炼面板（打开即刷新语义）且消费即清；
+	# 未置位的普通回菜单不开面板（初始隐藏口径不变）。
+	MainMenu.open_trial_panel_on_ready = true
+	var menu: Control = auto_free((load("res://ui/main_menu.tscn") as PackedScene).instantiate())
+	add_child(menu)
+	var panel := menu.find_child("TrialPanelUI", true, false) as Control
+	assert_that(panel).is_not_null()
+	assert_bool(panel.visible).is_true()
+	assert_bool(MainMenu.open_trial_panel_on_ready).is_false()   # 消费即清
+	var menu2: Control = auto_free((load("res://ui/main_menu.tscn") as PackedScene).instantiate())
+	add_child(menu2)
+	var panel2 := menu2.find_child("TrialPanelUI", true, false) as Control
+	assert_that(panel2).is_not_null()
+	assert_bool(panel2.visible).is_false()
 
 
 # ================================================================ 5) HUD 放弃按钮（三路之一）

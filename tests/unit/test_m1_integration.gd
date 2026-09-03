@@ -620,3 +620,76 @@ func _coin_in(room: FloorScene.FloorRoom) -> Pickup:
 		if c is Pickup and (c as Pickup).kind == "coin":
 			return c
 	return null
+
+
+# ================================================================ m4p-w2c（W2-c4a/W2-c4c）
+
+func test_run_root_restart_restores_run_build() -> void:
+	# W2-c4a：暂停「重开」= SceneRouter "game" 键重载 run_root（RunState 层号/种子不变，
+	# 金币/蓝晶/增益/武器/试炼因子保留）——玩家换新实例后，账面构筑必须重放进实态：
+	# BuffManager 逐 id 重 pick + apply_to_player/apply_to_rig；WeaponRig 双槽重装 +
+	# 当前槽恢复（RunState.selected_slot 权威）。旧实态（buffs=新 BuffManager 空、
+	# 玩家仅初始武器）即本测 RED 面。
+	_root = _make_root()
+	add_child(_root)
+	_root._begin()
+	var old_player: Player = _root.player
+	# 局中构筑：增益入账（BuffManager + RunState 双侧，同祭坛/层间落地序）+
+	# 武器槽重排（vanguard 初始即双武器 [laohuoji, tiejian]：第三把顶替当前槽 0）+
+	# 切到副手 + 金币层账
+	_root.buffs.pick("vigor")
+	RunState.add_buff("vigor")
+	_root.buffs.apply_to_player(old_player)
+	_root.buffs.apply_to_rig(old_player.weapon_rig)
+	old_player.weapon_rig.equip("maodingqiang")                  # 双槽满：替换当前槽 0
+	old_player.weapon_rig.switch_slot(Engine.get_physics_frames())   # 当前槽 → 1
+	RunState.coins = 33
+	# 模拟重开：同一 RunState（不 start_run）新建 RunRoot 实例并 _begin
+	var restored: Node2D = _make_root()
+	add_child(restored)
+	var old_root: Node2D = _root
+	_root = restored          # after_test 释放新根（旧根同拍 free）
+	old_root.free()
+	restored._begin()
+	var fresh: Player = restored.player
+	assert_bool(fresh != old_player).is_true()                   # 玩家换新实例
+	# 增益：账面保留 + 新 BuffManager 重放 + 玩家实态落地（vigor = hp_max +2）
+	assert_array(RunState.buffs).contains_exactly(["vigor"])
+	assert_array(restored.buffs.picked).contains_exactly(["vigor"])
+	assert_int(fresh.hp_max).is_equal(HERO_HP_VANGUARD + 2)
+	# 武器：双槽镜像恢复（[0]=槽0 替换后主手、[1]=槽1 初始副手）+ 当前槽恢复
+	# （RunState.weapons 是 WeaponRig 双槽的槽位镜像，record_weapon 聚合，非「初始/拾取」语义）
+	var ids: Array = []
+	for w: Dictionary in fresh.weapon_rig.slots:
+		ids.append(String(w.get("id", "")))
+	assert_array(ids).is_equal(["maodingqiang", "tiejian"])
+	assert_int(fresh.weapon_rig.slot).is_equal(1)
+	assert_str(String(fresh.weapon_rig.current().get("id", ""))).is_equal("tiejian")
+	assert_int(RunState.selected_slot).is_equal(1)
+	assert_int(RunState.coins).is_equal(33)                      # 层账原样（重开不清金币）
+
+
+func test_run_root_fresh_begin_replay_is_noop_identity() -> void:
+	# 零漂移：全新开局（start_run 后 weapons/buffs 全空）_restore_run_build 恒等——
+	# 初始武器装配（HeroApplier）结果不被重放改变。
+	_root = _make_root()
+	add_child(_root)
+	_root._begin()
+	var fresh: Player = _root.player
+	var ids: Array = []
+	for w: Dictionary in fresh.weapon_rig.slots:
+		ids.append(String(w.get("id", "")))
+	assert_array(ids).is_equal(["laohuoji", "tiejian"])   # vanguard 双初始武器原样
+	assert_array(_root.buffs.picked).is_empty()
+	assert_int(RunState.selected_slot).is_equal(0)
+
+
+func test_floor_entry_overlay_hint_neutralized_after_m2() -> void:
+	# W2-c4c 文案勘误：M2 起 A2 战斗内容已接入，里程碑浮层提示不再是
+	# 「M1 垂直切片完成（A2 战斗内容将在 M2 接入）」过时语。
+	_root = _make_root()
+	add_child(_root)
+	_root._begin()
+	_root._show_m1_end_overlay()
+	assert_bool(_root.m1_overlay_visible()).is_true()
+	assert_str(String(_root.OVERLAY_HINT)).is_equal("A2 晶核洞穴生态已接入")

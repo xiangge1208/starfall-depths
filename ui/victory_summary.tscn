@@ -69,7 +69,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.85, 1, 1)
 theme_override_font_sizes/font_size = 12
-text = "更多内容与试炼模式即将开放"
+text = "试炼模式已开放——主菜单试炼入口"
 horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="Panel/Box"]

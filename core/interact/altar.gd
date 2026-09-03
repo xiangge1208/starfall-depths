@@ -1,15 +1,17 @@
 class_name Altar
 extends Interactable
-## 增益祭坛（m4-c4，m3-fix1 §残留收口）：战斗房内概率生成的战斗期设施，每座限交互
-## 1 次，交互分支由试炼因子单点决定——
+## 增益祭坛（m4-c4，m3-fix1 §残留收口；W2-c1 时序勘误）：战斗房清完后概率生成的
+## 战后设施，每座限交互 1 次，交互分支由试炼因子单点决定——
 ## - 非试炼局 / 试炼局无 elite_surge：纯增益设施。BuffManager.roll_three 三选一
 ##   （ui/buff_pick.tscn 浮层，1/2/3 或点击），选中经 apply_buff_cb 落地——数值全部
 ##   取自 data/buffs.json 既有池（本设施零新数值键，同 inter_floor 三选一口径）。
 ## - 试炼局 elite_surge 因子激活（TrialMods.altar_elite_surge()，RunState.mods 单点，
 ##   mods 键 elite_bonus_pct 同 elite_extra_copies 口径）：交互改为「追加 1 精英」，
 ##   经 spawn_elite_cb 走 FloorScene 既有嘉宾生成缝（真实行 + 楼层词缀）。
-## 生成（概率/互斥）数据驱动：房间模板 altar_chance / altar_excludes（schema
-## fail-closed 校验），掷签判定收口在 roll_pending 纯函数。
+## 生成（概率/互斥/每层上限）数据驱动：房间模板 altar_chance / altar_excludes（schema
+## fail-closed 校验），掷签判定收口在 roll_pending 纯函数；每层至多 2 座的截停收口在
+## FloorScene.roll_altar_pending_series（W2-c1，GDD §13.1）。实体由宿主在清房拍搭建
+## （GDD「战斗房清完后…刷增益祭坛」），交互天然发生在战后。
 ## 遥测：altar_spawn（设施建成）/ altar_offer（三选一掷出）/ altar_pick（选中 id）/
 ## trial_elite_bonus（复用既有事件，第 4 列 "altar" 区分精英房波次来源）。
 
