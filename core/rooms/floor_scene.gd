@@ -120,7 +120,7 @@ const REAL_GUEST_ROWS := {
 const GUEST_SPECS := {
 	"elite_charger": {"mult": 3, "radius": 6.0, "kind": "elite", "name": "精英·藤蔓冲锋者"},
 	"miniboss_charger": {"mult": 3, "radius": 6.0, "kind": "miniboss", "name": "垒主·藤蔓冲锋者"},
-	"vine_colossus": {"mult": 8, "radius": 16.0, "kind": "boss", "name": "藤蔓巨像（占位）"},
+	"vine_colossus": {"mult": 8, "radius": 16.0, "kind": "boss", "name": "藤蔓巨像"},
 }
 const GUEST_COLORS := {
 	"elite": Color(1.0, 0.82, 0.25), "miniboss": Color(0.85, 0.25, 0.2),
@@ -1600,8 +1600,37 @@ func _spawn_rewards(room: FloorRoom, rewards: Dictionary) -> void:
 		_spawn_pickup(room, "coin", center + _scatter(i))
 	for i in int(rewards.get("energy_orbs", 0)):
 		_spawn_pickup(room, "energy", center + _scatter(37 + i))
-	for i in int(rewards.get("hearts", 0)):
+	var hearts := int(rewards.get("hearts", 0))
+	for i in hearts:
 		_spawn_pickup(room, "heart", center + _scatter(53 + i))
+	if hearts > 0:
+		_heart_sense_bonus(room, center)     # W2-c3：红心感应（基线红心存在才 roll）
+
+
+# ---- m4p-w2c（W2-c3）红心感应（heart_sense，正式楼层掉落侧奖励区） ----
+## room_combat.gd 训练房先例（_heart_sense_bonus）的同口径正式楼层复刻——此前漏接：
+## 红心奖励存在（rewards.hearts > 0）时以 pct 概率追加 1 心（buff_heart_sense_pct
+## meta，desc「红心掉率 +50%」即期望 +50%）；hearts=0 的房不 roll（基线 0 心无加成
+## 语义）。pct ≤ 0 不掷签不建流（无增益零漂移）；追加落点沿 _scatter 黄金角习语。
+## 掷签走独立 "heart_sense" 盐流（kill_energy 先例）且惰性缓存（fresh-per-call 会
+## 退化成恒同掷签）；仅玩家身体带该 meta（BuffManager PLAYER_META_KEYS 落点）；
+## 遥测 heart_sense_roll 同训练房口径。room_combat 侧实现与训练房语义保留不动。
+const SALT_HEART_SENSE := "heart_sense"
+var _heart_rng: RandomNumberGenerator = null   # 惰性缓存盐流（楼层实例粒度，同房级先例）
+
+func _heart_sense_bonus(room: FloorRoom, center: Vector2) -> void:
+	var pct := 0.0
+	if player != null and is_instance_valid(player) \
+			and player.has_meta("buff_heart_sense_pct"):
+		pct = float(player.get_meta("buff_heart_sense_pct"))
+	if pct <= 0.0:
+		return
+	if _heart_rng == null:
+		_heart_rng = RunState.stream(SALT_HEART_SENSE)
+	var won := _heart_rng.randf() < clampf(pct, 0.0, 1.0)
+	Telemetry.log_row(["heart_sense_roll", Engine.get_physics_frames(), 1 if won else 0])
+	if won:
+		_spawn_pickup(room, "heart", center + _scatter(53))
 
 
 ## 确定性散布（黄金角），不引入随机（M0 习语）。
@@ -2408,11 +2437,18 @@ func _attach_camera() -> void:
 
 ## 表现层弹幕镜像（M0 习语）：当前房 combat 池 → 共享 Sprite2D 逐帧同步。
 ## m1-t28：弹丸贴图按阵营/元素换装（bullet_player/bullet_enemy/elem_*）。
+## m4p-w2c（W2-c2）：必暴窗内玩家弹换暴击专用帧（金描边/强化发光）——收口正式楼层
+## 此前漏接的两参旧调用（room_combat.gd:569 同款镜像）：forced_crit_until 为
+## CombatSystem 命中结算的既有暴击判定状态，本处只读镜像（零 RNG 消费零判定影响，
+## 暴击 roll 仍是命中时唯一随机乘区，窗口预告帧即完整规格）；元素弹保持元素身份
+## （ArtLookup 内 element 优先）。非战斗房（combat 缺席）恒窗外。
 func _sync_bullet_visuals() -> void:
 	var active: Array = []
 	var room: FloorRoom = _rooms.get(flow.current_room)
 	if room != null and room.combat != null:
 		active = room.combat.pool.active
+	var crit_window := room != null and room.combat != null \
+		and Engine.get_physics_frames() < room.combat.forced_crit_until   # W2-c2 只读镜像
 	if _bullet_layer == null:
 		return
 	while _bullet_sprites.size() < active.size() and _bullet_sprites.size() < BULLET_VISUAL_CAP:
@@ -2427,7 +2463,8 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
-			vis.texture = ArtLookup.bullet_texture(p.faction, p.element)   # M2-T1 备忘缓存
+			vis.texture = ArtLookup.bullet_texture(p.faction, p.element,
+				crit_window and p.faction == Projectile.Faction.PLAYER)   # W2-c2 加 crit 位
 			vis.modulate = p.modulate
 			# m2-t37 fix1（评审 Important-1）：光圈内弹幕自增亮补偿（A2 暗视野可读性）。
 			# 实测探针口径：弹幕进光照参与集 +47 draw（150 预算下不可接受）——改走

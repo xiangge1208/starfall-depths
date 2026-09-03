@@ -985,3 +985,106 @@ func test_scene_pickup_spawn_free_point_unchanged() -> void:
 				Vector2(0.001, 0.001))
 			return
 	fail("no pickup spawned")
+
+
+# ================================================================ m4p-w2c（W2-c2/W2-c3/W2-c4c）
+
+func _rigged_rng(seed_value: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	return rng
+
+
+func _room_hearts(of_node: Node) -> int:
+	var n := 0
+	for c in of_node.get_children():
+		var pk := c as Pickup
+		if pk != null and pk.kind == "heart":
+			n += 1
+	return int(n)
+
+
+func test_scene_crit_bullet_frame_mirrors_forced_crit_window() -> void:
+	# W2-c2：正式楼层暴击弹帧漏接收口——必暴窗（CombatSystem.forced_crit_until）内
+	# 玩家弹换暴击专用帧（room_combat.gd 同款只读镜像：零 RNG 消费零判定影响，
+	# 暴击 roll 仍是命中时唯一随机乘区）；窗外玩家弹与敌方弹不受影响。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	fs.enter_room(1)
+	var room := fs.room_node(1)
+	var cs: CombatSystem = room.combat
+	cs.spawn_projectile({
+		"pos": room.position, "vel": Vector2(60, 0), "damage": 1,
+		"faction": Projectile.Faction.PLAYER, "element": Elements.Id.NONE,
+		"pierce": 0, "bounce": 0, "life_seconds": 5.0, "radius": 3.0,
+	})
+	fs._sync_bullet_visuals()
+	assert_int(fs._bullet_sprites.size()).is_equal(1)
+	assert_object(fs._bullet_sprites[0].texture) \
+		.is_equal(ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE, false))
+	cs.forced_crit_until = Engine.get_physics_frames() + 100   # 影袭必暴窗（m4-a1 镜像）
+	cs.spawn_projectile({
+		"pos": room.position, "vel": Vector2(-60, 0), "damage": 1,
+		"faction": Projectile.Faction.ENEMY, "element": Elements.Id.NONE,
+		"pierce": 0, "bounce": 0, "life_seconds": 5.0, "radius": 3.0,
+	})
+	fs._sync_bullet_visuals()
+	assert_int(fs._bullet_sprites.size()).is_equal(2)
+	assert_object(fs._bullet_sprites[0].texture) \
+		.is_equal(ArtLookup.bullet_texture(Projectile.Faction.PLAYER, Elements.Id.NONE, true))
+	assert_object(fs._bullet_sprites[1].texture) \
+		.is_equal(ArtLookup.bullet_texture(Projectile.Faction.ENEMY, Elements.Id.NONE, false))
+
+
+func test_floor_heart_sense_win_spawns_bonus_heart() -> void:
+	# W2-c3：正式楼层清房奖励红心感应（room_combat 训练房先例同口径复刻）：
+	# 红心奖励存在 + pct>0 → 以 pct 概率追加 1 心；受控盐流钉中奖分支恰多 1 心。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var room := fs.room_node(1)
+	fs.player.set_meta("buff_heart_sense_pct", 0.5)
+	var first: float = _rigged_rng(7).randf()          # 期望流（与 roll 流同种子同首掷）
+	fs._heart_rng = _rigged_rng(7)
+	fs._spawn_rewards(room, {"coins": 0, "energy_orbs": 0, "hearts": 2})
+	assert_int(_room_hearts(room)).is_equal(2 + (1 if first < 0.5 else 0))
+
+
+func test_floor_heart_sense_zero_drift_without_buff() -> void:
+	# 无增益 / pct<=0：不掷签、不建流、不掉心（基线奖励原样零漂移）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var room := fs.room_node(1)
+	fs._spawn_rewards(room, {"coins": 0, "energy_orbs": 0, "hearts": 2})
+	assert_int(_room_hearts(room)).is_equal(2)
+	assert_object(fs._heart_rng).is_null()
+	# pct=0（聚合默认/无拾取）同样不掷签：bonus 不追加第 3 心、流仍不建
+	fs.player.set_meta("buff_heart_sense_pct", 0.0)
+	fs._heart_sense_bonus(room, room.outer.get_center())
+	assert_int(_room_hearts(room)).is_equal(2)
+	assert_object(fs._heart_rng).is_null()
+
+
+func test_floor_heart_sense_no_heart_rewards_no_roll() -> void:
+	# W2-c3 口径：hearts=0 的房（combat/miniboss/boss）不 roll 不建流——
+	# 增益 desc「红心掉率 +50%」的期望语义基于基线红心存在（基线 0 心无加成）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	var room := fs.room_node(1)
+	fs.player.set_meta("buff_heart_sense_pct", 1.5)    # 必中档也不掉：无 roll
+	fs._spawn_rewards(room, {"coins": 3, "energy_orbs": 0, "hearts": 0})
+	assert_int(_room_hearts(room)).is_equal(0)
+	assert_object(fs._heart_rng).is_null()
+
+
+func test_floor_heart_sense_independent_salt_stream_cached() -> void:
+	# 独立 "heart_sense" 盐流惰性建且缓存（fresh-per-call 会退化成恒同掷签的契约钉，
+	# 同 room_combat 先例 / kill_energy 盐流习语）。
+	var fs := _make_scene(_typed_chain(["combat"]))
+	fs.player.set_meta("buff_heart_sense_pct", 0.5)
+	assert_object(fs._heart_rng).is_null()
+	fs._spawn_rewards(fs.room_node(1), {"coins": 0, "energy_orbs": 0, "hearts": 1})
+	assert_object(fs._heart_rng).is_not_null()
+	var cached := fs._heart_rng
+	fs._spawn_rewards(fs.room_node(1), {"coins": 0, "energy_orbs": 0, "hearts": 1})
+	assert_object(fs._heart_rng).is_same(cached)
+
+
+func test_scene_guest_boss_name_drops_placeholder_suffix() -> void:
+	# W2-c4c 文案勘误：Boss 占位嘉宾名不再带「（占位）」后缀（M2 起真实 Boss 行已接入）。
+	assert_str(String(FloorScene.guest_row("vine_colossus")["name"])).is_equal("藤蔓巨像")
