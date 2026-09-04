@@ -100,17 +100,36 @@ func _resolve_aim() -> Vector2:
 	var explicit := _explicit_aim()
 	if explicit != Vector2.ZERO:
 		return explicit
+	var auto_on := bool(SaveSystem.get_setting("auto_aim", true))
 	if _touch_mode():
-		if bool(SaveSystem.get_setting("auto_aim", true)):
-			var targets: Array[Vector2] = []
-			for node in get_tree().get_nodes_in_group("enemies"):
-				if node is Node2D and not bool(node.get("state") == EnemyBase.State.DEAD):
-					targets.append((node as Node2D).global_position)
-			var idx := AutoAim.pick_target(_player.global_position, current_aim.angle(), targets)
-			if idx >= 0:
-				_auto_target_locked = true
-				return (targets[idx] - _player.global_position).normalized()
+		if auto_on:
+			var auto_dir := _auto_aim_dir()
+			if auto_dir != Vector2.ZERO:
+				_auto_target_locked = true   # 触屏语义不变：锁定即自动开火
+				return auto_dir
 			return current_aim
 		return current_aim
+	# 桌面（m4p 全向索敌）：auto_aim 开启时朝向自动锁最近敌人（元气骑士式），
+	# 鼠标退为「场上无敌人」的回退瞄准；开火仍由 fire 键控制（不设 _auto_target_locked，
+	# 桌面不自动开火——与触屏「锁定即射」的差异是刻意的：鼠标端保留扣扳机的操作感）。
+	if auto_on:
+		var auto_dir := _auto_aim_dir()
+		if auto_dir != Vector2.ZERO:
+			return auto_dir
 	var mouse := _player.get_global_mouse_position() - _player.global_position
 	return mouse.normalized() if mouse != Vector2.ZERO else current_aim
+
+
+## 全向就近索敌（m4p：GDD §5.1 由「朝向 60° 锥」改全向 360°，桌面/触屏同口径）：
+## 收集存活敌人 → AutoAim.pick_target 以 360° 全锥取最近者。无目标返回零向量。
+## cone_deg 显式传 360——AutoAim 默认 60° 不动（bot lead 路径与 B-3 零漂移钉测同参）。
+func _auto_aim_dir() -> Vector2:
+	var targets: Array[Vector2] = []
+	for node in get_tree().get_nodes_in_group("enemies"):
+		if node is Node2D and not bool(node.get("state") == EnemyBase.State.DEAD):
+			targets.append((node as Node2D).global_position)
+	var idx := AutoAim.pick_target(_player.global_position, current_aim.angle(), targets, 360.0)
+	if idx < 0:
+		return Vector2.ZERO
+	var dir := targets[idx] - _player.global_position
+	return dir.normalized() if dir != Vector2.ZERO else Vector2.ZERO

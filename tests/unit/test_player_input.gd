@@ -81,7 +81,7 @@ func test_fire_without_combat_system_is_safe_noop() -> void:
 	p.get_node("Driver")._physics_process(0.0)
 	assert_int(p.energy).is_equal(100)
 
-func test_touch_auto_aim_chooses_nearest_in_60_degree_cone() -> void:
+func test_touch_auto_aim_chooses_nearest_omnidirectional() -> void:
 	var p := _player()
 	p.position = Vector2.ZERO
 	p.facing = Vector2.RIGHT
@@ -107,6 +107,81 @@ func test_touch_auto_aim_chooses_nearest_in_60_degree_cone() -> void:
 	driver._physics_process(0.0)
 	assert_vector(p.facing).is_equal_approx(Vector2(60, 30).normalized(), Vector2(0.001, 0.001))
 	assert_int(combat.active_count()).is_equal(1)   # 无右杆/无 fire 输入也向锁定目标自动开火
+
+func test_touch_auto_aim_acquires_target_behind_player() -> void:
+	# m4p 全向索敌：身后敌人（旧 60° 锥语义下不可达）也被锁定——朝向自动回身。
+	var p := _player()
+	p.position = Vector2.ZERO
+	p.facing = Vector2.RIGHT
+	var driver: Node = p.get_node("Driver")
+	var rig: WeaponRig = p.get_node("WeaponRig")
+	rig.equip("laohuoji")
+	var combat_root: Node2D = auto_free(Node2D.new())
+	add_child(combat_root)
+	var combat := CombatSystem.new(combat_root, RngSvc.stream(79, "auto_aim_behind"))
+	combat_root.add_child(combat)
+	rig.combat = combat
+	driver.current_aim = Vector2.RIGHT
+	driver.touch_mode_override = true
+	var behind: TargetDummy = auto_free(TargetDummy.new())
+	behind.position = Vector2(-80, 0)
+	behind.add_to_group("enemies")
+	add_child(behind)
+	SaveSystem.data["settings"]["auto_aim"] = true
+	driver._physics_process(0.0)
+	assert_vector(p.facing).is_equal_approx(Vector2.LEFT, Vector2(0.001, 0.001))
+	assert_int(combat.active_count()).is_equal(1)
+
+func test_desktop_auto_aim_locks_nearest_fires_only_on_key() -> void:
+	# m4p 桌面全向索敌：auto_aim 开 → 朝向锁最近敌（鼠标不再决定朝向）；
+	# 但不自动开火——扣 fire 才射（与触屏「锁定即射」的刻意差异）。
+	var p := _player()
+	p.position = Vector2.ZERO
+	p.facing = Vector2.RIGHT
+	var driver: Node = p.get_node("Driver")
+	var rig: WeaponRig = p.get_node("WeaponRig")
+	rig.equip("laohuoji")
+	var combat_root: Node2D = auto_free(Node2D.new())
+	add_child(combat_root)
+	var combat := CombatSystem.new(combat_root, RngSvc.stream(80, "auto_aim_desktop"))
+	combat_root.add_child(combat)
+	rig.combat = combat
+	driver.current_aim = Vector2.RIGHT
+	driver.touch_mode_override = false     # 桌面路径
+	var near: TargetDummy = auto_free(TargetDummy.new())
+	near.position = Vector2(0, -50)
+	near.add_to_group("enemies")
+	add_child(near)
+	var far: TargetDummy = auto_free(TargetDummy.new())
+	far.position = Vector2(300, 0)
+	far.add_to_group("enemies")
+	add_child(far)
+	SaveSystem.data["settings"]["auto_aim"] = true
+	driver._physics_process(0.0)
+	assert_vector(p.facing).is_equal_approx(Vector2.UP, Vector2(0.001, 0.001))
+	assert_int(combat.active_count()).is_equal(0)  # 未扣 fire：不自动开火
+	Input.action_press("fire")
+	driver._physics_process(0.0)
+	Input.action_release("fire")
+	assert_int(combat.active_count()).is_equal(1)  # 扣 fire：向锁定目标射出
+
+func test_desktop_auto_aim_off_keeps_mouse_aim_path() -> void:
+	# auto_aim 关：桌面回到既有鼠标瞄准路径（本测只钉「不锁敌」——facing 不被
+	# 场上敌人改写为指向它；鼠标合成事件在 headless 下不可靠，方向值不断言）。
+	var p := _player()
+	p.position = Vector2.ZERO
+	var driver: Node = p.get_node("Driver")
+	driver.current_aim = Vector2.UP
+	driver.touch_mode_override = false
+	var target: TargetDummy = auto_free(TargetDummy.new())
+	target.position = Vector2(50, 0)
+	target.add_to_group("enemies")
+	add_child(target)
+	var old: bool = bool(SaveSystem.get_setting("auto_aim", true))
+	SaveSystem.data["settings"]["auto_aim"] = false
+	driver._physics_process(0.0)
+	SaveSystem.data["settings"]["auto_aim"] = old
+	assert_vector(p.facing).is_not_equal(Vector2.RIGHT)
 
 func test_touch_auto_aim_off_keeps_current_aim() -> void:
 	var p := _player()
