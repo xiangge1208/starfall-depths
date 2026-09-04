@@ -519,16 +519,85 @@ func test_hero_select_unlock_badges_follow_unlocked_list() -> void:
 		assert_bool(ui._badges[i].visible).is_equal(locked)
 		assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_equal(not locked)
 		assert_float(ui._portraits[i].modulate.a).is_equal_approx(0.45 if locked else 1.0, 0.001)
-	var texts: Array[String] = []
+	# m4p-ui1 分工：铭牌角标只放「锁」一览信号（72px 铭牌容不下两行文案——曾因塞
+	# 折叠 Label 触发 font_render_smoke「Label 收在卡内」告警）；「待解锁 · 开放体验」
+	# 的解释文案移入共享详情面板，且仅当选中英雄未解锁时可见。
+	var badge_texts: Array[String] = []
 	for l: Node in (ui._badges[1] as Control).find_children("*", "Label", true, false):
-		texts.append((l as Label).text)
-	assert_array(texts).contains("待解锁")
-	assert_array(texts).contains("开放体验")
+		badge_texts.append((l as Label).text)
+	assert_array(badge_texts).contains("锁")
+	ui._selected = 1                                  # 选中未解锁的 ranger
+	ui._refresh()
+	assert_bool(ui._detail_badge.visible).is_true()
+	assert_str(ui._detail_badge.text).contains("待解锁")
+	assert_str(ui._detail_badge.text).contains("开放体验")
+	ui._selected = 0                                  # 选中已解锁的 vanguard → 提示隐藏
+	ui._refresh()
+	assert_bool(ui._detail_badge.visible).is_false()
 	var chosen: Array = []
 	ui.hero_chosen.connect(func(id: String) -> void: chosen.append(id))
 	ui._choose(1)                                     # 未解锁（ranger）仍可选中
 	assert_array(chosen).contains_exactly(["ranger"])
 	_reset_last_chosen()
+
+func test_hero_select_detail_panel_shows_only_selected_hero() -> void:
+	# m4p-ui1 视觉重做的核心契约：长文案（被动/技能）从「6 张卡各抄一份」改为
+	# 「共享详情面板只渲染选中那份」。逐英雄预建 6 份行容器（图标注册表长度恒 6
+	# 的既有契约不变），任一时刻恰好 1 份可见；名字/数值/初始武器随选中同步。
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	assert_object(ui._detail_name).is_not_null()
+	for sel in [0, 3, 5, 1]:
+		ui._selected = sel
+		ui._refresh()
+		var id := String(ui._ids[sel])
+		var hero: Dictionary = GameDB.get_hero(id)
+		assert_str(ui._detail_name.text).is_equal(String(hero["name"]))
+		var visible_passives := 0
+		var visible_skills := 0
+		for i in 6:
+			if ui._passive_rows[i].visible:
+				visible_passives += 1
+				assert_int(i).is_equal(sel)      # 可见的那份必须是选中英雄
+			if ui._skill_rows[i].visible:
+				visible_skills += 1
+				assert_int(i).is_equal(sel)
+		assert_int(visible_passives).is_equal(1)
+		assert_int(visible_skills).is_equal(1)
+		assert_str(ui._skill_labels[sel].text).contains(String(hero["skill_name"]))
+		assert_str(ui._detail_weapon.text).contains("初始")
+	# 数值芯片：5 项（HP/盾/蓝/速/暴击）逐项独立底块，值随选中英雄刷新
+	assert_int(ui._detail_stats.get_child_count()).is_equal(5)
+	ui._selected = 0
+	ui._refresh()
+	var vanguard: Dictionary = GameDB.get_hero(String(ui._ids[0]))
+	var hp_chip := ui._detail_stats.get_child(0) as PanelContainer
+	assert_str((hp_chip.get_child(0).get_child(1) as Label).text) \
+		.is_equal(str(int(vanguard["hp"])))
+
+func test_hero_select_plaques_all_fit_without_scrolling() -> void:
+	# ui1 布局意图钉死：6 枚铭牌一屏全见（旧 206px 卡在 480px 视窗只见 2 张）。
+	# 铭牌总宽 = 6×72 + 5×6 间距 = 462 ≤ CardScroll 视窗 468；同时保留横滚容器
+	# （触屏惯例 + follow_focus + 窄屏兜底），故只断言「不需要滚动」而非「禁用滚动」。
+	var ui: Control = HERO_SELECT_SCENE.instantiate()
+	auto_free(ui)
+	add_child(ui)
+	assert_vector(HeroSelect.CARD_MIN).is_equal(Vector2(72, 96))
+	var row := ui.get_node("CardScroll/Cards") as HBoxContainer
+	var sep := int(row.get_theme_constant("separation"))
+	var total := 6 * int(HeroSelect.CARD_MIN.x) + 5 * sep
+	var viewport_w := int((ui.get_node("CardScroll") as ScrollContainer).size.x)
+	assert_int(total).is_less_equal(viewport_w)
+	# 选中态四重视觉信号（48px 级铭牌单靠 1px 描边区分度不足）：顶部高亮条不透明、
+	# 立绘微放大、名字金字、底色转暖——逐项断言选中/未选中确有差异
+	ui._selected = 2
+	ui._refresh()
+	assert_float(ui._accents[2].color.a).is_equal_approx(1.0, 0.001)
+	assert_float(ui._accents[0].color.a).is_equal_approx(0.0, 0.001)
+	assert_bool(ui._portraits[2].scale.x > ui._portraits[0].scale.x).is_true()
+	assert_object(ui._name_labels[2].get_theme_color("font_color")) \
+		.is_not_equal(ui._name_labels[0].get_theme_color("font_color"))
 
 func test_hero_select_save_absent_renders_all_unlocked_zero_drift() -> void:
 	# SaveSystem 缺席（ignore_save 模拟缺席路径）按全解锁渲染：无角标、立绘不
