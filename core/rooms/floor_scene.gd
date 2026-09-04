@@ -67,12 +67,20 @@ const FIRE_RAIN_BOOM_COLOR := Color(1.0, 0.5, 0.15, 0.8)     # 火雨落点爆�
 ## （task-33 §6.1 复核表同源），但 F1 池被 M1 门禁校准/B-3 残差基线对照冻结
 ## 不动 → 按最近语义落位相邻层 F2；行内 A1 基准值原样进池（无运行时再缩放，
 ## 池结构无权重——确定性轮转对追加行均匀覆盖，既有 12 行轮转相位不回碰）。
+## m4p-e1：全表可达性补漏——余下 7 行（B.1 通用种 mud_slime + B.2 A1 特有种 6）
+## 此前不在任何池、非任何行的 summon_row/impact_spawn_row、非任何 Boss 召唤常量
+## ＝产品内永不出现（M4 门禁 Check 2 的 enemies 一行按「通用池全表迭代」记 PASS，
+## 但本池为硬编码名录，属口径漏判）。落位同 m4-wire 先例：F1 冻结不动 → 并入 F2
+## 尾部，行内 A1 基准值原样进池。是否把 A1 特有种整体搬回 F1 属独立平衡决策，
+## 不在本次补漏范围。至此 enemies.json 52 行全部可达（40 杂兵 + 6 小 Boss + 6 Boss）。
 const FLOOR_TRASH: Dictionary = {
 	1: ["kuli_bug", "cave_bat", "crossbowman", "vine_charger"],
 	2: ["crystal_bat", "ice_mage", "magnet_golem", "ghost_jelly", "frost_crab",
 		"crystal_rat", "rock_crystal_turret", "crystal_summoner", "prism_ranger",
 		"ice_spider", "echo_lurker", "crystal_dragon",
-		"hardshell_turtle", "thorn_turret", "moss_slime", "seed_pitcher"],
+		"hardshell_turtle", "thorn_turret", "moss_slime", "seed_pitcher",
+		"mud_slime", "wing_lizard", "spore_flower", "stone_boar",
+		"ruin_archer", "glowbug_swarm", "old_tree_guard"],
 	3: ["lava_hound", "ash_shooter", "firerain_priest", "magma_slime",
 		"obsidian_guard", "sulfur_moth", "lava_turret", "ember_summoner",
 		"scorch_stomper", "flame_lich", "magma_wyvern", "starmarrow_blob"],
