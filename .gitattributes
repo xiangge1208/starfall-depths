@@ -1,2 +1,3 @@
 *.png.import -text
 *.wav.import -text
+*.ttf.import -text

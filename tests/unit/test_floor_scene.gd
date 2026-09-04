@@ -824,14 +824,19 @@ const A3_TRASH_IDS := ["lava_hound", "ash_shooter", "firerain_priest", "magma_sl
 # 语义相邻层；与 A2_TRASH_IDS 合成 F2 波次合法名录，见 floor_scene.gd FLOOR_TRASH 注）。
 const A1_GUEST_TRASH_IDS := ["hardshell_turtle", "thorn_turret", "moss_slime",
 	"seed_pitcher"]
+# m4p-e1：余下 7 行同款落位 F2（可达性补漏；mud_slime 属 B.1 通用种，其余 6 行为
+# B.2 A1 特有种）。与上表分开命名以保留「哪一卡接的线」的追溯性。
+const A1_RESIDUAL_TRASH_IDS := ["mud_slime", "wing_lizard", "spore_flower",
+	"stone_boar", "ruin_archer", "glowbug_swarm", "old_tree_guard"]
 
 
 func test_scene_waves_floor_rosters() -> void:
 	# m2-audit：A2/A3 波次名录分层（附录 B.2 特有种 12 行；此前恒 A1）。
 	# 规模契约不变（2 波各 3 只）；缺省 floor=1 = M1 契约（A1 小池）。
-	# m4-wire：F2 名录并入 4 特技敌嘉宾行。
+	# m4-wire：F2 名录并入 4 特技敌嘉宾行。m4p-e1：再并入 7 行可达性补漏。
+	var f2_roster: Array = A2_TRASH_IDS + A1_GUEST_TRASH_IDS + A1_RESIDUAL_TRASH_IDS
 	for fl in [2, 3]:
-		var roster: Array = (A2_TRASH_IDS + A1_GUEST_TRASH_IDS) if fl == 2 else A3_TRASH_IDS
+		var roster: Array = f2_roster if fl == 2 else A3_TRASH_IDS
 		for rid in [1, 5, 9]:
 			var cfg: Dictionary = FloorScene.waves_for(rid, "combat", fl)
 			assert_int(cfg["waves"].size()).is_equal(2)
@@ -845,13 +850,13 @@ func test_scene_waves_floor_rosters() -> void:
 		for id in elite_w2:
 			if id != "elite_charger":
 				assert_array(roster).contains(id)
-	for id: String in A2_TRASH_IDS + A1_GUEST_TRASH_IDS + A3_TRASH_IDS:
+	for id: String in f2_roster + A3_TRASH_IDS:
 		assert_dict(GameDB.get_enemy(id)).is_not_empty()   # id 转录无漂移
 	# 挑战房随层（复用本层战斗配置）
 	var ch: Dictionary = FloorScene.challenge_waves_for(3, 2)
 	for w in ch["waves"]:
 		for id in w:
-			assert_array(A2_TRASH_IDS + A1_GUEST_TRASH_IDS).contains(id)
+			assert_array(f2_roster).contains(id)
 
 
 func test_scene_floor_pool_enemies_constructible() -> void:
@@ -867,10 +872,14 @@ func test_scene_floor_pool_signature_guests_wired() -> void:
 	# m4-wire：C-1 移交 4 特技敌（附录 B.2 设计楼层=A1 翠绿遗迹）落位 F2 池——
 	# F1 池为 M1 门禁校准/B-3 残差基线对照冻结不动、F3 不动；池无重复、无空引用；
 	# 行数值零改动（A1 基准 hp 原样进池，钉死防「顺手缩放」）。
-	for id: String in A1_GUEST_TRASH_IDS:
+	# m4p-e1：7 行可达性补漏按同款落位口径，一并钉死（F1/F3 仍不动）。
+	for id: String in A1_GUEST_TRASH_IDS + A1_RESIDUAL_TRASH_IDS:
 		assert_array(FloorScene.FLOOR_TRASH[2]).contains(id)
 		assert_array(FloorScene.FLOOR_TRASH[1]).not_contains(id)
 		assert_array(FloorScene.FLOOR_TRASH[3]).not_contains(id)
+	# F1 池冻结契约（M1 门禁校准 / B-3·B-4 残差基线对照口径）：恒 4 行不增不减
+	assert_array(FloorScene.FLOOR_TRASH[1]).is_equal(
+		["kuli_bug", "cave_bat", "crossbowman", "vine_charger"])
 	for fl in [1, 2, 3]:
 		var pool: Array = FloorScene.FLOOR_TRASH[fl]
 		assert_array(pool).is_not_empty()
@@ -883,6 +892,61 @@ func test_scene_floor_pool_signature_guests_wired() -> void:
 	assert_int(GameDB.get_enemy("thorn_turret")["hp"]).is_equal(30)
 	assert_int(GameDB.get_enemy("moss_slime")["hp"]).is_equal(22)
 	assert_int(GameDB.get_enemy("seed_pitcher")["hp"]).is_equal(20)
+	# m4p-e1 行数值零改动（A1 基准原样进池，同上钉死口径）
+	assert_int(GameDB.get_enemy("mud_slime")["hp"]).is_equal(20)
+	assert_int(GameDB.get_enemy("wing_lizard")["hp"]).is_equal(14)
+	assert_int(GameDB.get_enemy("spore_flower")["hp"]).is_equal(26)
+	assert_int(GameDB.get_enemy("stone_boar")["hp"]).is_equal(28)
+	assert_int(GameDB.get_enemy("ruin_archer")["hp"]).is_equal(18)
+	assert_int(GameDB.get_enemy("glowbug_swarm")["hp"]).is_equal(8)
+	assert_int(GameDB.get_enemy("old_tree_guard")["hp"]).is_equal(40)
+
+
+func test_scene_every_enemy_row_is_reachable() -> void:
+	# m4p-e1 完备性绊线（本测试的存在理由）：enemies.json **每一行**都必须能在产品内
+	# 出现，否则该行是死数据。M4 门禁 Check 2 按「行 id 走通用池」给 enemies 记 PASS，
+	# 但楼层杂兵池是硬编码名录而非全表迭代 → 7 行（mud_slime/wing_lizard/spore_flower/
+	# stone_boar/ruin_archer/glowbug_swarm/old_tree_guard）静默不可达。本测试改按
+	# 「可达性闭包」判定，任何新增行只要没接线就在此变红，口径漏判不再复现。
+	#
+	# 可达 = 楼层杂兵池 ∪ 小 Boss 池 ∪ Boss 池/楼层映射 ∪ 隐藏 Boss
+	#        ∪ 上述任意行经 summon_row / impact_spawn_row 的传递闭包
+	#        ∪ Boss 脚本召唤常量（数据表外的代码级引用）
+	var reachable := {}
+	for fl in [1, 2, 3]:
+		for id: String in FloorScene.FLOOR_TRASH[fl]:
+			reachable[id] = true
+	for id: String in FloorScene.MINIBOSS_POOL:
+		reachable[id] = true
+	for id: String in FloorScene.BOSS_POOL:
+		reachable[id] = true
+	for fl: int in FloorScene.BOSS_FLOOR_ROWS:
+		reachable[String(FloorScene.BOSS_FLOOR_ROWS[fl])] = true
+	reachable["starfall_prophet"] = true            # 隐藏门 _maybe_open_starfall_gate
+	# Boss 脚本召唤常量（行内无 summon_row，引用点在代码——权威源即这三个 const）
+	reachable[VineColossus.SUMMON_ARCHETYPE] = true
+	reachable[FrostWidow.SUMMON_ARCHETYPE] = true
+	reachable[StarfallProphet.GALAXY_SUMMON_ARCHETYPE] = true
+	# 召唤/落地生怪的传递闭包（spore_flower→kuli_bug、seed_pitcher→kuli_bug 等）
+	var growing := true
+	while growing:
+		growing = false
+		for id: String in reachable.keys():
+			var row: Dictionary = GameDB.get_enemy(id)
+			for key: String in ["summon_row", "impact_spawn_row"]:
+				var target := String(row.get(key, ""))
+				if target != "" and not reachable.has(target):
+					reachable[target] = true
+					growing = true
+	var unreachable: Array[String] = []
+	for id: String in GameDB.enemies.keys():
+		if not reachable.has(id):
+			unreachable.append(id)
+	assert_array(unreachable).override_failure_message(
+		"enemies.json 存在不可达行（未接入任何池/召唤链）——该行在产品内永不出现：%s"
+		% str(unreachable)).is_empty()
+	# 账目锚点：52 行 = 40 杂兵 + 6 小 Boss + 6 Boss（README/门禁报告同源口径）
+	assert_int(GameDB.enemies.size()).is_equal(52)
 
 
 func test_scene_elite_affixes_progression() -> void:
