@@ -14,3 +14,6 @@ user_export/
 .worktrees/
 __pycache__/
 *.pyc
+# 本地会话/工具临时目录（不入库，本地保留）
+.tmp_session_extract/
+.workbuddy/
