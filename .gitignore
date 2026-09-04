@@ -17,3 +17,5 @@ __pycache__/
 # 本地会话/工具临时目录（不入库，本地保留）
 .tmp_session_extract/
 .workbuddy/
+# AI 代理会话散落的临时日志/审计快照（门禁证据以 docs/superpowers/reports/ 为准）
+.codex-*
