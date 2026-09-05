@@ -15,6 +15,10 @@ const ACTIONS := {
 	"interact": [KEY_E],
 	"skill": [KEY_F],
 	"pause": [KEY_ESCAPE],
+	# m4p-ui4 全屏切换（F11 惯例 + Alt+Enter 由 SceneRouter 另行识别）：
+	# 整数缩放（stretch/scale_mode=integer）下「最大化」只能取到 3×（标题栏/任务栏
+	# 吃掉纵向像素 → 1920x1000 只容 810 高），真全屏 1920x1080 才恰好 4× 铺满。
+	"fullscreen": [KEY_F11],
 }
 
 # m1-t21 手柄绑定（GDD §5.1）：左摇杆移动 / A 翻滚 / RB 技能 / LB 切枪 / X 交互。

@@ -35,6 +35,10 @@ const DEFAULT_SETTINGS := {
 	# 往返即坏。读取侧一律 int() 归一（int(round(float(v))) 口径在面板内）。
 	"hitstop_enabled": true,
 	"vibration": true,
+	# m4p-ui4 全屏偏好（纯 additive，不 bump SAVE_VERSION——旧档缺失走 _merge_saved
+	# 回落 false = 窗口化，与此前行为一致）。消费方 SceneRouter：启动应用 + F11/
+	# Alt+Enter 切换即落盘。整数缩放下最大化只能取 3×、真全屏才 4×，故需可记忆入口。
+	"fullscreen": false,
 	"volume_master": 80.0,
 	"volume_music": 80.0,
 	"volume_sfx": 80.0,

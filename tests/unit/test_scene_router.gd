@@ -218,6 +218,39 @@ func test_menu_settings_roundtrip_via_save_system() -> void:
 	_wipe(path)
 
 
+# ---------------------------------------------------------------- 全屏切换（m4p-ui4）
+
+func test_fullscreen_action_registered_and_setting_defaults_false() -> void:
+	# 整数缩放（scale_mode=integer）下「最大化」只能取 3×（1920x1000 客户区容不下
+	# 4× 的 1080 高），真全屏 1920x1080 才恰好 4× 铺满——故必须有真全屏入口。
+	# 本测钉死：InputMap 动作已注册（F11，随 project.godot 入库、新进程可用）+
+	# 设置键默认窗口化（旧档缺失回落 false，行为与此前一致）。
+	assert_bool(InputMap.has_action("fullscreen")).override_failure_message(
+		"fullscreen 动作必须在 project.godot 落盘（运行期 add_action 不写设置项）"
+	).is_true()
+	var f11_found := false
+	for ev: InputEvent in InputMap.action_get_events("fullscreen"):
+		if ev is InputEventKey and (ev as InputEventKey).physical_keycode == KEY_F11:
+			f11_found = true
+	assert_bool(f11_found).is_true()
+	assert_bool(SaveSystem.DEFAULT_SETTINGS["fullscreen"]).is_false()
+
+func test_fullscreen_toggle_persists_setting() -> void:
+	# toggle_fullscreen 落盘到设置键（跨局记忆）。headless 无真实窗口模式切换，
+	# 故只断言「设置键往返」这一可测半边；窗口模式调用本身由 DisplayServer 承接
+	# （无头下为 no-op，不崩即符合 fail-soft 口径）。
+	var path := "user://test_fs_%d.json" % randi()
+	var ss: Variant = auto_free(load("res://autoload/save_system.gd").new())
+	ss.save_path = path
+	ss.load_save()
+	ss.set_setting("fullscreen", true)
+	var reloaded: Variant = auto_free(load("res://autoload/save_system.gd").new())
+	reloaded.save_path = path
+	reloaded.load_save()
+	assert_bool(reloaded.get_setting("fullscreen", false)).is_true()
+	_wipe(path)
+
+
 # ---------------------------------------------------------------- 选角路由守卫
 
 func test_hero_select_choose_router_absent_no_crash() -> void:
