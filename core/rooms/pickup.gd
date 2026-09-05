@@ -40,7 +40,12 @@ func _physics_process(delta: float) -> void:
 	if p == null:
 		return
 	if p.global_position.distance_to(global_position) <= magnet_range_px(p):
-		position = position.move_toward(p.global_position, MAGNET_SPEED * delta)
+		# m4p-ui3：必须全程走 global_position。曾写成 `position = position.move_toward(
+		# p.global_position, ...)`——局部坐标朝全局目标推进，在带偏移的父节点下
+		# （FloorScene 的房间 position = 房号世界落点）金币会被拉向偏移了整个
+		# room.position 的错误点（表现：清房后币群诡异地贴向房间边缘）。
+		# RoomCombat 路径房间偏移恰为零，所以症状只在正式楼层出现。
+		global_position = global_position.move_toward(p.global_position, MAGNET_SPEED * delta)
 
 func _on_body_entered(body: Node2D) -> void:
 	if not (body is Player):

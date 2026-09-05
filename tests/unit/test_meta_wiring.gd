@@ -377,6 +377,37 @@ func test_pickup_magnet_and_talent_radius_stack() -> void:
 	assert_float(Pickup.magnet_range_px(_player())).is_equal_approx(56.0, 0.001)
 
 
+func test_coin_magnet_moves_toward_player_in_offset_parent() -> void:
+	# m4p-ui3 回归：金币磁吸曾把「局部 position」朝「玩家 global_position」推进
+	# （move_toward 混用两个坐标系）。FloorScene 的拾取物是房间子节点、房间 position
+	# = 房号世界落点（非零），于是金币被拉向偏移了整个 room.position 的错误点——
+	# 表现为清房后金币诡异地飞向房间边缘/墙角（用户截图：币群贴在下墙）。
+	# RoomCombat 路径房间偏移为零，故此前无可见症状、测试也没抓到。
+	# 本测把拾取物放进带偏移的父节点，断言磁吸后**世界坐标**朝玩家靠近。
+	var room: Node2D = auto_free(Node2D.new())
+	room.position = Vector2(488, 0)            # 仿 FloorScene 房间世界落点
+	add_child(room)
+	var p := _player()
+	add_child(p)                               # 必须在树内且入组：_find_player 走 group 查询
+	p.add_to_group("player")
+	p.global_position = Vector2(520, 40)
+	var coin: Pickup = auto_free(Pickup.new())
+	coin.kind = "coin"
+	room.add_child(coin)
+	coin.global_position = Vector2(540, 60)    # 距玩家 ~28px，在 56px 磁吸半径内
+	assert_object(coin._find_player()).override_failure_message(
+		"前置条件：拾取物必须能找到玩家，否则 _physics_process 提前返回、本测失去意义"
+	).is_not_null()
+	var before := coin.global_position.distance_to(p.global_position)
+	coin._physics_process(0.1)
+	var after := coin.global_position.distance_to(p.global_position)
+	assert_float(after).override_failure_message(
+		"磁吸后世界距离应变小（before=%.2f after=%.2f）——坐标系混用会让金币被推向错误点"
+		% [before, after]).is_less(before)
+	# 方向正确性：位移向量应与「指向玩家」同向（点积 > 0），而非被 room.position 带偏
+	assert_float(after).is_less_equal(before - 13.0)   # 140px/s × 0.1s = 14px（留 1px 容差）
+
+
 # ================================================================ ① drink / shop 侧（glutton / haggle）
 
 func test_glutton_scales_drink_effect_values() -> void:
