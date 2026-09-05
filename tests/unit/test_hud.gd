@@ -110,6 +110,45 @@ func test_snapshot_falls_back_to_run_weapons_without_rig() -> void:
 	assert_array(snap["weapon_names"]).is_equal(["短弓", ""])
 	assert_int(snap["current_slot"]).is_equal(1)
 
+func test_snapshot_carries_weapon_ids_for_icon_lookup() -> void:
+	# m4p-ui5：槽位图标寻址需要 id（names 只有中文名，无法拼图标路径）。rig 路径与
+	# run 回落路径都必须带出 id，且与 names 索引对位。
+	var p := _player()
+	var rig := _rig(p)
+	rig.equip("laohuoji")
+	rig.equip("tiejian")
+	var snap := HUD.hud_snapshot(p, _run_like(), 100)
+	assert_array(snap["weapon_ids"]).is_equal(["laohuoji", "tiejian"])
+	assert_array(snap["weapon_names"]).is_equal(["老伙计", "铁剑"])
+	var bare := _player()                  # 无 rig：走 run.weapons 回落路径
+	var r := _run_like()
+	r.get("weapons").append("duangong")
+	r.get("weapons").append("")
+	var snap2 := HUD.hud_snapshot(bare, r, 100)
+	assert_array(snap2["weapon_ids"]).is_equal(["duangong", ""])
+
+func test_hud_weapon_slot_shows_icon_and_hides_text() -> void:
+	# m4p-ui5 用户反馈「武器那里还是方框写着短弓」：115 把图标早已在盘（图鉴页接线），
+	# HUD 却只画中文名。断言图标命中时显示图标且文字清空；空槽两者都不显示。
+	var hud: HUD = auto_free(HUD.new())
+	add_child(hud)
+	var p := _player()
+	var rig := _rig(p)
+	rig.equip("duangong")                  # 短弓：art/generated/ui/weapons/duangong.png 在盘
+	hud._apply_bottom(HUD.hud_snapshot(p, _run_like(), 100))
+	assert_bool(hud._slot_icons[0].visible).override_failure_message(
+		"槽 0 应显示武器图标（duangong.png 在盘）").is_true()
+	assert_object(hud._slot_icons[0].texture).is_not_null()
+	assert_str(hud._slot_labels[0].text).override_failure_message(
+		"图标命中时不应再画中文名（否则就是用户看到的『方框写着短弓』）").is_equal("")
+	assert_bool(hud._slot_icons[1].visible).is_false()   # 空槽：无图标
+	assert_str(hud._slot_labels[1].text).is_equal("")
+	# 缺图回落：表外 id 无图标文件 → 隐藏图标、回落显示文字（同 codex 缺图口径）
+	hud._apply_bottom({"weapon_names": ["no_such_gun", ""], "weapon_ids": ["no_such_gun", ""],
+		"current_slot": 0, "skill_cd_ratio": 0.0, "skill_ready": true, "roll_ready": true})
+	assert_bool(hud._slot_icons[0].visible).is_false()
+	assert_str(hud._slot_labels[0].text).is_equal("no_such_gun")
+
 func test_weapon_display_name_fallbacks() -> void:
 	assert_str(HUD.weapon_display_name("laohuoji")).is_equal("老伙计")
 	assert_str(HUD.weapon_display_name("no_such_gun")).is_equal("no_such_gun")  # 未知 id 原样回显

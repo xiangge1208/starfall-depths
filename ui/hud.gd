@@ -80,6 +80,8 @@ static func hud_snapshot(player: Player, run: Node, frame: int = -1) -> Dictiona
 	var energy := 0
 	var energy_max := 0
 	var names: Array[String] = ["", ""]
+	# m4p-ui5：槽位 id 随快照带出（图标寻址需要 id；names 保留供缺图回落与既有断言）
+	var ids: Array[String] = ["", ""]
 	var slot := run_slot
 	var skill_ratio := 0.0
 	var skill_ready := true
@@ -97,9 +99,11 @@ static func hud_snapshot(player: Player, run: Node, frame: int = -1) -> Dictiona
 			for i in mini(rig.slots.size(), 2):
 				var w: Dictionary = rig.slots[i]
 				names[i] = "" if w.is_empty() else String(w.get("name", ""))
+				ids[i] = "" if w.is_empty() else String(w.get("id", ""))
 		else:
 			for i in 2:
 				names[i] = weapon_display_name(run_weapons[i])
+				ids[i] = run_weapons[i]
 		var sk := player.get_node_or_null("Skill") as SkillBase
 		if sk != null:
 			var remaining := sk.cooldown_remaining(f)
@@ -116,6 +120,7 @@ static func hud_snapshot(player: Player, run: Node, frame: int = -1) -> Dictiona
 	snap["energy"] = energy
 	snap["energy_max"] = energy_max
 	snap["weapon_names"] = names
+	snap["weapon_ids"] = ids          # m4p-ui5：图标寻址（ArtLookup.weapon_icon_path）
 	snap["current_slot"] = slot
 	snap["skill_cd_ratio"] = skill_ratio
 	snap["skill_ready"] = skill_ready
@@ -174,6 +179,8 @@ var _coin_label: Label
 var _buff_row: HBoxContainer
 var _slot_panels: Array[PanelContainer] = []
 var _slot_labels: Array[Label] = []
+var _slot_icons: Array[TextureRect] = []   # m4p-ui5：槽位武器图标（缺图隐藏 → 回落文字）
+var _slot_icon_ids: Array[String] = ["", ""]   # 已装载图标的 id（防每帧重复 load）
 var _skill_ring: CdRing
 var _roll_dot: ColorRect
 var _boss_bar: TextureProgressBar            # m4p-u2：Boss 血条（frame+fill）
@@ -411,16 +418,31 @@ func _build_bottom_center() -> void:
 	row.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	row.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	row.offset_bottom = -4.0
+	# m4p-ui5 槽位改「图标优先、缺图回落文字」：art/generated/ui/weapons/ 已备齐全部
+	# 115 把图标（图鉴页早已接线），但 HUD 一直只画中文名——用户看到的就是「方框里
+	# 写着短弓」。图标 16x16 原生 ×1（HUD 是 480x270 设计分辨率，×2 会把底栏顶高）。
 	for i in WEAPON_SLOTS:
 		var panel := PanelContainer.new()
 		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		panel.add_theme_stylebox_override("panel", _style_normal)
+		var stack := HBoxContainer.new()
+		stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.add_theme_constant_override("separation", 0)
+		panel.add_child(stack)
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(16, 16)
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.visible = false                  # 无武器/缺图时不占位
+		stack.add_child(icon)
 		var name_label := Label.new()
 		name_label.add_theme_font_size_override("font_size", 12)
-		panel.add_child(name_label)
+		stack.add_child(name_label)
 		row.add_child(panel)
 		_slot_panels.append(panel)
 		_slot_labels.append(name_label)
+		_slot_icons.append(icon)
 	_skill_ring = CdRing.new()
 	_skill_ring.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_skill_ring)
@@ -535,10 +557,31 @@ func _apply_top_right(snap: Dictionary) -> void:
 		_abandon_btn.visible = run != null and bool(run.get("is_trial_run"))
 
 func _apply_bottom(snap: Dictionary) -> void:
-	var names: Array[String] = snap["weapon_names"]
+	# 逐元素取值而非整体赋值：快照来自 hud_snapshot 时是 Array[String]，但外部
+	# 直喂字典（测试/未来消费方）传无类型 Array 会在 `Array[String] = Array` 赋值处
+	# 硬崩——此处只读索引，对两种数组一视同仁。
+	var names: Variant = snap.get("weapon_names", [])
+	var name_count := (names as Array).size() if names is Array else 0
+	var ids: Variant = snap.get("weapon_ids", [])
+	var id_count := (ids as Array).size() if ids is Array else 0
 	var slot := int(snap["current_slot"])
 	for i in _slot_labels.size():
-		_slot_labels[i].text = names[i] if i < names.size() else ""
+		var nm := String((names as Array)[i]) if i < name_count else ""
+		var id := String((ids as Array)[i]) if i < id_count else ""
+		# m4p-ui5 图标优先：命中则显示图标并清空文字；缺图/空槽回落中文名（同 codex
+		# 「缺图回落」口径）。仅在 id 变化时 load，稳态零分配（HUD 逐帧 sync）。
+		if i < _slot_icons.size():
+			if id != _slot_icon_ids[i]:
+				_slot_icon_ids[i] = id
+				var tex: Texture2D = null
+				if not id.is_empty():
+					var path := ArtLookup.weapon_icon_path(id)
+					if ResourceLoader.exists(path):
+						tex = load(path) as Texture2D
+				_slot_icons[i].texture = tex
+				_slot_icons[i].visible = tex != null
+			nm = "" if _slot_icons[i].visible else nm
+		_slot_labels[i].text = nm
 		_slot_panels[i].add_theme_stylebox_override(
 			"panel", _style_active if i == slot else _style_normal)
 	_skill_ring.ratio = float(snap["skill_cd_ratio"])
