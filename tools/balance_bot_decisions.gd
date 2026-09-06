@@ -54,6 +54,10 @@ const BOMBER_ROLL_MARGIN_PX := 20.0  # 翻滚触发：炸圈边缘再外扩 20px
 const BOMBER_PRIORITY_PX := 240.0    # 优先瞄准距离（m4p-bal-b：武装虫 ≤240px 锁定瞄准——
                                      # 玩家移速 80 低于自爆虫 95 跑不掉只能早杀，
                                      # 见 BOMBER_KEEPAWAY_MARGIN_PX 注释）
+const MINION_PRIORITY_PX := 160.0    # m4p-bal-d 二级优先瞄准距离：Boss 在场时会开火小怪
+                                     # （蘑菇孢子手等）≤160px 锁定——Boss 战马拉松里减速
+                                     # 孢子扇的持续 DPS/减速叠加比 Boss 本体伤更致命，
+                                     # 先清炮手再打 Boss（超距回落默认最近）。
 const BOMBER_KEEPAWAY_MARGIN_PX := 84.0  # 未点燃保距域外扩（半径40+16+84=140px 外即开火
                                          # 优先——玩家移速 80 低于自爆虫 95，跑不掉只能早杀）
 const BOMBER_KEEPAWAY_WEIGHT := 1.6  # 未点燃保距斥力（压过距离带趋近 1.0——忌贴脸引信）
@@ -376,14 +380,20 @@ static func sticky_heart_id(prev_id: int, prev_frame: int, candidates: Array,
 
 
 ## 优先瞄准下标（m4p-bal-b 先杀后走；_nudge_aim_if_unlocked 瞄准层接线）。
-## 存在「武装（引信已点燃，armed 标志）且距离 ≤ BOMBER_PRIORITY_PX」的自爆虫时
-## 返回最近一只的下标——玩家移速 80 低于自爆虫 95 跑不掉只能早杀；否则 -1
-## （调用方走默认最近目标）。多只满足取最近（严格 <，同距取先出现者，确定性）。
-## 平行数组契约：bomber_flags/bomber_ds 与 enemy_poses 按下标一一对应
-##（bot 侧在同一构建循环里追加，不会错位）；bomber_ds 缺项时回落
-## pos×enemy_poses 几何距离（纯函数容错，不炸）。
+## 一级：存在「武装（引信已点燃，armed 标志）且距离 ≤ BOMBER_PRIORITY_PX」的
+## 自爆虫时返回最近一只的下标——玩家移速 80 低于自爆虫 95 跑不掉只能早杀。
+## 二级（m4p-bal-d）：无武装虫但「Boss 型敌人在场（boss_flags 有 true）且存在
+## 距离 ≤ MINION_PRIORITY_PX 的会开火小怪（minion_flags，如 Boss 房蘑菇孢子手）」
+## 时返回最近小怪的下标——bot 旧口径瞄准「最近」（Boss 房内往往是 Boss 本体），
+## 减速孢子扇小怪在旁白嫖。两者皆不满足 → -1（调用方走默认最近目标）。
+## 多只满足取最近（严格 <，同距取先出现者，确定性）。
+## 平行数组契约：bomber_flags/bomber_ds（及可选 boss_flags/minion_flags）与
+## enemy_poses 按下标一一对应（bot 侧在同一构建循环里追加，不会错位）；
+## bomber_ds 缺项时回落 pos×enemy_poses 几何距离（纯函数容错，不炸）——
+## 该数组实为「到每敌距离」平行数组，二级优先复用同一距离源。
+## 缺省 boss_flags/minion_flags = 空（既有 4 参调用行为逐字节不变：二级永不触发）。
 static func aim_priority_index(pos: Vector2, enemy_poses: Array, bomber_flags: Array,
-		bomber_ds: Array) -> int:
+		bomber_ds: Array, boss_flags: Array = [], minion_flags: Array = []) -> int:
 	var best := -1
 	var best_d := INF
 	for i in mini(enemy_poses.size(), bomber_flags.size()):
@@ -395,6 +405,28 @@ static func aim_priority_index(pos: Vector2, enemy_poses: Array, bomber_flags: A
 			continue
 		if d < best_d:
 			best_d = d
+			best = i
+	if best >= 0:
+		return best
+	var n := mini(mini(enemy_poses.size(), boss_flags.size()), minion_flags.size())
+	var has_boss := false
+	for i in n:
+		if bool(boss_flags[i]):
+			has_boss = true
+			break
+	if not has_boss:
+		return -1
+	best = -1
+	best_d = INF
+	for i in n:
+		if not bool(minion_flags[i]):
+			continue
+		var d2 := float(bomber_ds[i]) if i < bomber_ds.size() \
+				else (enemy_poses[i] as Vector2).distance_to(pos)
+		if d2 > MINION_PRIORITY_PX:
+			continue
+		if d2 < best_d:
+			best_d = d2
 			best = i
 	return best
 
@@ -516,6 +548,87 @@ static func buy_heart(hp: int, hp_max: int, coins: int, price: int, sold: bool) 
 	if hp > hp_max - SHOP_HEAL_GAP:
 		return false
 	return coins >= price
+
+
+# ---------------- m4p-bal-d 武器升级拾取（房清安全态巡视掉落台） ----------------
+# 探针归因（两轮门禁 70/70 Boss 房团灭）：bot 只捡红心从不拾武器掉落，全程初始
+# 手枪 DPS 12 打 800 HP 藤蔓巨像，而 GDD §15 Boss 数值按「到 Boss 时 DPS ~22」校准
+# ——2 倍 DPS 缺口下 90~150s 机制马拉松必死。修法：房清后巡视 LootStation，
+# 地面武器严格优于当前较弱槽才拾（空槽必拾），走生产交互缝换装。
+
+const WEAPON_TIE_EPS := 0.001        # DPS 平手判定容差（浮点卫生；「平手不换」契约）
+
+
+## 地面武器 DPS 口径（m4p-bal-d）：damage × rate，近战同口径（melee.gd try_attack
+## 语义：挥击频率由 rate 驱动、单次伤害 = damage，与远程同标尺；range/arc 覆盖差
+## 不折算——确定性优先，多弹丸散布/命中率差异同样不折算，披露见提交 body）。
+## 行缺键 / damage=0 特殊武器（护盾发生器等）→ 0（永不触发严格优于，保守不换）。
+static func ground_weapon_dps(row: Dictionary) -> float:
+	var dmg_v: Variant = row.get("damage")
+	var rate_v: Variant = row.get("rate")
+	var dmg := float(dmg_v) if dmg_v != null else 0.0
+	var rate := float(rate_v) if rate_v != null else 0.0
+	return dmg * rate
+
+
+## 当前武器最弱槽下标（m4p-bal-d 预切槽入参）：空槽（{}）视为 -INF DPS（必被选为
+## 最弱——生产 equip 填第一个空槽时它就是落点）；平手取先出现者（低下标，确定性）。
+## 空数组 → -1。
+static func weakest_slot_index(current_weapons: Array) -> int:
+	var best := -1
+	var best_dps := INF
+	for i in current_weapons.size():
+		var w: Variant = current_weapons[i]
+		var dps := -INF if not (w is Dictionary) or (w as Dictionary).is_empty() \
+				else ground_weapon_dps(w)
+		if dps < best_dps:
+			best_dps = dps
+			best = i
+	return best
+
+
+## 武器拾取升级决策（m4p-bal-d；纯函数，同输入必同输出）。
+## current_weapons: WeaponRig.slots 形态（GameDB 武器行字典数组；{} = 空槽）。
+## 地面武器 DPS（ground_weapon_dps 口径）严格优于当前槽中最弱者 → true（拾取）；
+## 平手不换（确定性）；存在空槽或无武器 → true（必拾——生产 equip 填第一个空槽，
+## 不顶替任何现有武器）；地面行空（未知 id）→ false（保守不换）。
+static func weapon_upgrade_pickup(current_weapons: Array, ground_weapon: Dictionary) -> bool:
+	if ground_weapon.is_empty():
+		return false
+	if current_weapons.is_empty():
+		return true
+	for w_v: Variant in current_weapons:
+		if not (w_v is Dictionary) or (w_v as Dictionary).is_empty():
+			return true            # 空槽必拾
+	var ground := ground_weapon_dps(ground_weapon)
+	var weakest := INF
+	for w_v: Variant in current_weapons:
+		if w_v is Dictionary and not (w_v as Dictionary).is_empty():
+			weakest = minf(weakest, ground_weapon_dps(w_v))
+	return ground > weakest + WEAPON_TIE_EPS
+
+
+## 武器掉落台挑选（m4p-bal-d）：candidates [{id: int, pos: Vector2, row: Dictionary}]，
+## 依次过 weapon_upgrade_pickup 过滤，取「地面 DPS 最高」者；DPS 平手（容差内）取
+## 最近、再平手取先出现者（确定性）。无合格候选 → -1。
+static func weapon_loot_index(candidates: Array, current_weapons: Array,
+		pos: Vector2) -> int:
+	var best := -1
+	var best_dps := -INF
+	var best_d := INF
+	for i in candidates.size():
+		var c: Dictionary = candidates[i]
+		var row: Dictionary = c.get("row", {})
+		if not weapon_upgrade_pickup(current_weapons, row):
+			continue
+		var dps := ground_weapon_dps(row)
+		var d: float = (c.get("pos", pos) as Vector2).distance_to(pos)
+		if dps > best_dps + WEAPON_TIE_EPS \
+				or (dps > best_dps - WEAPON_TIE_EPS and d < best_d):
+			best_dps = dps
+			best_d = d
+			best = i
+	return best
 
 
 ## 三选一贪心：生存（缺血时 hp_max/复活）> 稀有度 > 输出键。

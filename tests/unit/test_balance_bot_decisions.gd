@@ -926,3 +926,201 @@ func test_sticky_heart_initial_and_gone_and_empty() -> void:
 	# 无候选：-1。
 	assert_int(BalanceBotDecisions.sticky_heart_id(1, 100, [],
 		Vector2.ZERO, 150, 90)).is_equal(-1)
+
+
+# ================================================================ m4p-bal-d② Boss 房小怪优先瞄准
+# aim_priority_index 二级扩展：Boss（boss_flags）在场且存在 ≤160px 会开火小怪
+# （minion_flags，Boss 房蘑菇孢子手减速孢子扇）→ 优先最近小怪；否则回落原逻辑
+# （武装自爆虫一级语义不变）。
+
+func test_aim_priority_minion_preferred_over_nearer_boss() -> void:
+	# Boss+小怪：Boss 60px 更近、孢子手 120px（≤160）→ 优先小怪（下标 1）——
+	# 旧口径取最近必锁 Boss 本体，小怪在旁白嫖（两轮门禁 Boss 房死因）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO,
+		[Vector2(60, 0), Vector2(120, 0)],
+		[false, false],
+		[60.0, 120.0],
+		[true, false],
+		[false, true])
+	assert_int(idx).is_equal(1)
+
+
+func test_aim_priority_boss_only_falls_back() -> void:
+	# 仅 Boss（无会开火小怪）：-1 走默认最近（= Boss 本体）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(60, 0)], [false], [60.0], [true], [false])
+	assert_int(idx).is_equal(-1)
+
+
+func test_aim_priority_minion_beyond_priority_px_falls_back() -> void:
+	# 小怪超距（>160px）：-1（不打横穿半房去够炮手，先走位打 Boss）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO,
+		[Vector2(80, 0), Vector2(200, 0)],
+		[false, false],
+		[80.0, 200.0],
+		[true, false],
+		[false, true])
+	assert_int(idx).is_equal(-1)
+
+
+func test_aim_priority_minion_boundary_at_priority_px() -> void:
+	# 边界：恰好 160px（≤ 含入）→ 优先。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(160, 0)], [false], [160.0], [true], [true])
+	assert_int(idx).is_equal(0)
+
+
+func test_aim_priority_armed_bomber_still_first_over_minion() -> void:
+	# 一级语义不变：武装虫在场（150px ≤240）压过 Boss 房小怪二级（100px ≤160）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO,
+		[Vector2(100, 0), Vector2(150, 0), Vector2(300, 0)],
+		[false, true, false],
+		[100.0, 150.0, 300.0],
+		[false, false, true],
+		[true, false, false])
+	assert_int(idx).is_equal(1)
+
+
+func test_aim_priority_firing_minion_without_boss_ignored() -> void:
+	# 会开火小怪在 ≤160px 但无 Boss（普通/精英/垒主房）：二级不触发 → -1
+	# （弩兵风筝等既有走位带语义不变）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(100, 0)], [false], [100.0], [false], [true])
+	assert_int(idx).is_equal(-1)
+
+
+func test_aim_priority_minion_tie_picks_first_and_ds_fallback() -> void:
+	# 多只小怪满足：同距取先出现者（确定性）；bomber_ds 缺项回落几何距离。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO,
+		[Vector2(120, 0), Vector2(0, 120)],
+		[false, false],
+		[120.0, 120.0],
+		[true, false],
+		[true, true])
+	assert_int(idx).is_equal(0)
+	var idx2 := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(120, 0)], [false], [], [true], [true])
+	assert_int(idx2).is_equal(0)
+
+
+func test_aim_priority_legacy_four_arg_zero_drift() -> void:
+	# 既有 4 参调用（卡 B 契约）行为逐字节不变：新可选参缺省 = 二级永不触发。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO,
+		[Vector2(300, 0), Vector2(120, 0), Vector2(60, 0)],
+		[false, true, false],
+		[300.0, 120.0, 60.0])
+	assert_int(idx).is_equal(1)
+	var no_bomber := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(90, 0)], [false], [90.0])
+	assert_int(no_bomber).is_equal(-1)
+
+
+# ================================================================ m4p-bal-d① 武器升级拾取
+# DPS 口径 = damage×rate（近战同口径，range/arc 不折算）；严格优于当前较弱槽才换
+# （平手不换）；空槽必拾。生产缝：LootStation.interact → WeaponRig.equip
+# 「填第一个空槽；双槽满替换当前槽」（weapon_rig.gd）——bot 预切较弱槽后换装。
+
+func _vanguard_slots() -> Array:
+	# 初始双槽数值形态：laohuoji 3×4.0=12.0 / tiejian 6×2.2=13.2（较弱 = 槽 0）。
+	return [{"id": "laohuoji", "damage": 3, "rate": 4.0},
+		{"id": "tiejian", "damage": 6, "rate": 2.2, "is_melee": true}]
+
+
+func test_upgrade_picks_when_strictly_better_than_weakest() -> void:
+	# 地面 14 DPS > 较弱槽 12.0 → 拾取（哪怕低于较强槽 13.2——规则对较弱槽）。
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{"id": "testgun", "damage": 7, "rate": 2.0})).is_true()
+
+
+func test_upgrade_skips_tie_or_weaker_vs_weakest() -> void:
+	# 平手不换（12.0 == 较弱槽 12.0，容差内）；更差（11.9）不换。
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{"id": "dupe", "damage": 3, "rate": 4.0})).is_false()
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{"id": "weak", "damage": 7, "rate": 1.7})).is_false()
+
+
+func test_upgrade_empty_slot_always_picks() -> void:
+	# 空槽（{}）必拾：即便地面武器更弱（单武器英雄第二把等）。
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(
+		[{"id": "duangong", "damage": 6, "rate": 1.8}, {}],
+		{"id": "weak", "damage": 2, "rate": 1.6})).is_true()
+	# 无武器（退化 rig）必拾；地面行空（未知 id）保守不换。
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup([],
+		{"id": "any", "damage": 1, "rate": 1.0})).is_true()
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{})).is_false()
+
+
+func test_upgrade_melee_same_caliber_no_range_folding() -> void:
+	# 近战同口径：damage×rate 直比（range/arc 覆盖差不折算）——14 DPS 近战拾取、
+	# 11 DPS 近战不换。
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{"id": "melee_up", "damage": 7, "rate": 2.0, "is_melee": true,
+			"range": 40, "arc_deg": 90.0})).is_true()
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{"id": "melee_down", "damage": 5, "rate": 2.2, "is_melee": true,
+			"range": 40, "arc_deg": 90.0})).is_false()
+
+
+func test_upgrade_missing_keys_treated_as_zero() -> void:
+	# 行缺 damage/rate 键（特殊武器防御形态）→ DPS 0：不触发换装（除非空槽）。
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{"id": "special", "rarity": "rare"})).is_false()
+
+
+func test_weakest_slot_index_contract() -> void:
+	# 双槽满：较弱槽下标（严格 <，同 DPS 取先出现者）；空槽即最弱；空数组 -1。
+	assert_int(BalanceBotDecisions.weakest_slot_index(_vanguard_slots())).is_equal(0)
+	assert_int(BalanceBotDecisions.weakest_slot_index([
+		{"id": "tiejian", "damage": 6, "rate": 2.2},
+		{"id": "laohuoji", "damage": 3, "rate": 4.0}])).is_equal(1)
+	assert_int(BalanceBotDecisions.weakest_slot_index([{}, _vanguard_slots()[0]])).is_equal(0)
+	assert_int(BalanceBotDecisions.weakest_slot_index([
+		{"damage": 3, "rate": 4.0}, {"damage": 6, "rate": 2.0}])).is_equal(0)
+	assert_int(BalanceBotDecisions.weakest_slot_index([])).is_equal(-1)
+
+
+func test_weapon_loot_index_picks_highest_dps_passing() -> void:
+	# 三台中仅中间台合格（10 更差、12 平手均被过滤）：取合格者（下标 1）。
+	var cands := [
+		{"id": 11, "pos": Vector2(50, 0), "row": {"damage": 5, "rate": 2.0}},   # 10 更差
+		{"id": 22, "pos": Vector2(90, 0), "row": {"damage": 5, "rate": 4.0}},   # 20 合格
+		{"id": 33, "pos": Vector2(10, 0), "row": {"damage": 3, "rate": 4.0}},   # 12 平手
+	]
+	assert_int(BalanceBotDecisions.weapon_loot_index(cands, _vanguard_slots(),
+		Vector2.ZERO)).is_equal(1)
+
+
+func test_weapon_loot_index_tie_prefers_nearest_then_first() -> void:
+	# DPS 平手：取最近（下标 2 近于下标 1）；完全等价取先出现者（下标 0）。
+	var cands := [
+		{"id": 11, "pos": Vector2(90, 0), "row": {"damage": 5, "rate": 4.0}},
+		{"id": 22, "pos": Vector2(40, 0), "row": {"damage": 10, "rate": 2.0}},
+		{"id": 33, "pos": Vector2(20, 0), "row": {"damage": 5, "rate": 4.0}},
+	]
+	assert_int(BalanceBotDecisions.weapon_loot_index(cands, _vanguard_slots(),
+		Vector2.ZERO)).is_equal(2)
+	var tie := [
+		{"id": 11, "pos": Vector2(30, 0), "row": {"damage": 5, "rate": 4.0}},
+		{"id": 22, "pos": Vector2(30, 0), "row": {"damage": 5, "rate": 4.0}},
+	]
+	assert_int(BalanceBotDecisions.weapon_loot_index(tie, _vanguard_slots(),
+		Vector2.ZERO)).is_equal(0)
+
+
+func test_weapon_loot_index_none_passing_or_empty() -> void:
+	# 全体不合格（平手/更差/空行）或无候选：-1（bot 不寻的、直接走图）。
+	var cands := [
+		{"id": 11, "pos": Vector2(50, 0), "row": {"damage": 3, "rate": 4.0}},   # 平手
+		{"id": 22, "pos": Vector2(60, 0), "row": {}},                            # 未知行
+	]
+	assert_int(BalanceBotDecisions.weapon_loot_index(cands, _vanguard_slots(),
+		Vector2.ZERO)).is_equal(-1)
+	assert_int(BalanceBotDecisions.weapon_loot_index([], _vanguard_slots(),
+		Vector2.ZERO)).is_equal(-1)

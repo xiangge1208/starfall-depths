@@ -84,6 +84,25 @@ extends Node
 ##   ③ 红心目标黏滞——_nearest_heart 逐拍重选改 _sticky_heart（decisions.
 ##     sticky_heart_id，锁定 HEART_STICKY_TICKS 拍再评估；probe 3472-a1 实拍
 ##     3271 式双红心柱面两侧极限环）。
+##
+## m4p-bal-d（仪器保真：人类等价行为补齐，生产代码零改动；探针归因：两轮门禁
+## F1 通过 0%、Boss 房 70/70 团灭的决定性根因 = bot 只捡红心从不拾武器掉落，
+## 全程初始手枪 DPS 12 打 800 HP 三阶段藤蔓巨像，而 GDD §15 Boss 数值按「到 Boss
+## 时 DPS ~22」校准）：
+##   ① 武器拾取与升级换装——房清安全态巡视武器掉落台（FloorScene.FixtureInteractable
+##     + weapon_id meta + enabled，即精英/垒主/宝箱掉落落地形态），决策 =
+##     decisions.weapon_upgrade_pickup（地面 DPS=damage×rate 同口径严格优于当前
+##     较弱槽才换，平手不换，空槽必拾）+ weapon_loot_index（多台挑 DPS 最高）；
+##     拾取走生产交互缝 LootStation.interact(player)（InteractionSystem E 键路径
+##     对同一交互物调用的同一方法），拾前双槽满时先经 WeaponRig.switch_slot
+##     （生产 switch_weapon 键同方法）预切较弱槽——equip「双槽满替换当前槽」
+##     语义下新武器落在较弱槽，双槽 DPS 单调不减；锁定制（拾取后自禁用才重选）
+##     防双台等 DPS 分居寻的抖动（3271 极限环同源预防）；give-up 看门狗（同台寻的
+##     ≥15s 未入交互半径 → 本局拉黑回走图，probe 3434-a2 贴柱极限环实证——红心有
+##     56px 磁吸兜底而掉落台须贴身 24px）；只在房清分支执行，不为捡武器进未清房。
+##   ② Boss 房小怪优先瞄准——aim_priority_index 二级：Boss 型（archetype=="boss"）
+##     在场且存在会开火小怪（bullet_dmg>0 数据驱动，蘑菇孢子手减速孢子扇等）
+##     距离 ≤160px 时优先最近小怪；武装自爆虫一级优先语义不变，其余回落默认最近。
 
 signal finished
 
@@ -106,6 +125,15 @@ const BOSS_SLAP_HALF_ANGLE_RAD := PI * 0.25     # 镜像 SLAP_ARC_DEG 90 / 2
 const BOSS_SWEEP_WINDUP_TICKS := 42             # 镜像 SWEEP_WINDUP_TICKS
 const BOSS_SWEEP_TRAVEL_TICKS := 36             # 镜像 SWEEP_TRAVEL_TICKS
 const BOSS_SWEEP_HALF_THICKNESS_PX := 12.0      # 镜像 SWEEP_THICKNESS_PX 24 / 2
+
+# m4p-bal-d① 武器掉落台交互半径（镜像 core/interact/interaction_system.gd
+# var radius = 24.0 默认值——E 键交互的门控半径；bot 侧镜像常量先例同上）。
+const WEAPON_INTERACT_PX := 24.0
+# m4p-bal-d① 武器寻的放弃看门狗：同一台子寻的 ≥900 拍（15s；房内跨距步行 <5s 的
+# 充分余量）仍未进入 24px 交互半径（probe 3434-a2 实证：精英死点贴柱几何下
+# seek_with_solids 极限环——红心拾取有 56px 磁吸兜底而掉落台须贴身 24px，暴露面
+# 更大）→ 本局确定性拉黑该台并回走图主循环：武器收益不让位于整局停滞风险。
+const LOOT_SEEK_GIVEUP_TICKS := 900
 
 # GDD §14.3 节奏校准目标带（只读对照，bot 不修改游戏数值）
 const GDD_MINION_TTK_S := 2.0           # 初始武器打 A1 杂兵 ≤2.0s
@@ -201,6 +229,11 @@ var _auto_aim_session_prev := true    # 会话级 auto_aim 原值（_exit_tree �
 # ---- m4p-bal-c 红心目标黏滞状态（sticky_heart_id 锁定窗跨拍记账） ----
 var _heart_lock_id := -1              # 当前锁定红心 instance_id（-1 = 未锁）
 var _heart_lock_frame := -1           # 锁定起始拍（sticky_heart_id 窗计时锚点）
+
+# ---- m4p-bal-d 武器掉落台锁定（拾取后台子自禁用才重选，防双台寻的抖动） ----
+var _loot_lock_id := -1               # 当前锁定掉落台 instance_id（-1 = 未锁）
+var _loot_seek_since := -1            # 当前锁定台寻的起始拍（give-up 看门狗计时锚点）
+var _loot_blacklist := {}             # instance_id -> true（give-up 后本局放弃的台子）
 
 # ---- m3-fix2 停滞探针（--probe-stall）：B-2 新发现 11% 停滞残差的定向取证 ----
 ## 口径：复用停滞签名（floor|rooms|kills|room|活敌血量和），稳定满 PROBE_TRIGGER_TICKS
@@ -807,6 +840,9 @@ func _reset_run_state(p_seed: int) -> void:
 	_solids_cache = {}                   # m4-b3③：房间矩形缓存跨局清空（新楼层新节点）
 	_heart_lock_id = -1                  # m4p-bal-c③：红心黏滞锁跨局清空
 	_heart_lock_frame = -1
+	_loot_lock_id = -1                   # m4p-bal-d①：掉落台锁跨局清空
+	_loot_seek_since = -1
+	_loot_blacklist = {}
 	_ttk_seen = {}
 	_ttk_hp_last = {}                    # m4p-bal-b：first-hit TTK 轮询态跨局清空
 	_ttk_first_hit = {}
@@ -888,7 +924,8 @@ func _drive_floor(fs: FloorScene, player: Player) -> void:
 	if not fs.flow.is_cleared(room_id) or not guests.is_empty():
 		_combat_drive(fs, room, player, guests)
 		return
-	# 已清房且无嘉宾：缺血先吃地上红心（elite hearts2 掉落等；磁吸拾取）→ 设施 → 走图
+	# 已清房且无嘉宾：缺血先吃地上红心（elite hearts2 掉落等；磁吸拾取）→ 武器
+	# 掉落台升级换装（m4p-bal-d①）→ 设施 → 走图
 	_release_move_input()
 	_set_fire_held(false)
 	if player.hp <= player.hp_max - 2:
@@ -905,6 +942,35 @@ func _drive_floor(fs: FloorScene, player: Player) -> void:
 				seek, player.global_position, _room_solids(room), _wander_sign))
 			_set_fire_held(false)
 			return
+	# m4p-bal-d① 武器升级拾取（决策=weapon_upgrade_pickup/weapon_loot_index；
+	# 拾取走生产交互缝 LootStation.interact(player)——InteractionSystem E 键路径
+	# 对同一交互物调用的同一方法；只在房清分支执行，不为捡武器进未清房）。
+	var station := _loot_station_target(room, player)
+	if station != null:
+		var to_ws: Vector2 = (station as Node2D).global_position - player.global_position
+		if to_ws.length() <= WEAPON_INTERACT_PX:
+			_loot_seek_since = -1
+			_equip_loot_station(station, player)
+		else:
+			# give-up 看门狗（probe 3434-a2 归因见 LOOT_SEEK_GIVEUP_TICKS 注）：
+			# 同一台寻的计时窗满 → 本局拉黑、回走图（下一拍重扫即无此台）。
+			var frame := Engine.get_physics_frames()
+			if _loot_seek_since < 0:
+				_loot_seek_since = frame
+			elif frame - _loot_seek_since >= LOOT_SEEK_GIVEUP_TICKS:
+				_loot_blacklist[_loot_lock_id] = true
+				print("BALANCE-BOT LOOT-GIVEUP seed=%d room=%d weapon=%s dist=%.0f at=%s me=%s" % [
+					_cur_seed, _track_room, String(station.get_meta("weapon_id")),
+					to_ws.length(), str((station as Node2D).global_position.round()),
+					str(player.global_position.round())])
+				_loot_lock_id = -1
+				_loot_seek_since = -1
+				return
+			# 寻的通道与红心同款（seek_with_solids 实体斥力场破楔死）。
+			_apply_move_input(BalanceBotDecisions.seek_with_solids(
+				to_ws, player.global_position, _room_solids(room), _wander_sign))
+		return
+	_loot_seek_since = -1
 	var fkey := _facility_key(room_id)
 	if rtype == "shop" and not _shop_done.has(fkey):
 		_shop_done[fkey] = true
@@ -1123,6 +1189,10 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 ## m4p-bal-b 先杀后走：存在「引信已点燃且 ≤BOMBER_PRIORITY_PX」的武装自爆虫时，
 ## 瞄准锁定最近一只（BalanceBotDecisions.aim_priority_index，单目标仍走同一
 ## AutoAim lead 数学）——旧口径对全体活敌取最近，从不优先自爆虫。
+## m4p-bal-d② 二级优先：Boss（archetype=="boss"）在场且存在 ≤MINION_PRIORITY_PX
+## 的会开火小怪（_row_fires：bullet_dmg>0 数据驱动，Boss 房蘑菇孢子手减速孢子扇
+## 等）时优先最近小怪——旧口径瞄准「最近」往往是 Boss 本体，小怪在旁白嫖；
+## 武装虫一级语义不变，其余回落默认最近。
 func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector2) -> void:
 	if alive.is_empty():
 		return
@@ -1133,6 +1203,8 @@ func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector
 	var vels: Array = []
 	var bomber_flags: Array = []          # 武装（引信已点燃）自爆虫标志（下标对齐 targets）
 	var bomber_ds: Array = []             # 玩家→该敌人距离（同上；aim_priority 入参）
+	var boss_flags: Array = []            # m4p-bal-d②：Boss 型标志（archetype=="boss"）
+	var minion_flags: Array = []          # m4p-bal-d②：会开火小怪标志（Boss 行排除）
 	for e in alive:
 		if not is_instance_valid(e):
 			continue
@@ -1140,10 +1212,14 @@ func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector
 		vels.append(_lead_velocity(e))
 		bomber_flags.append(_is_bomber_row(e.row) and _bomber_armed(e))
 		bomber_ds.append(pos.distance_to(e.brain_pos))
+		var is_boss := String(e.row.get("archetype", "")) == "boss"
+		boss_flags.append(is_boss)
+		minion_flags.append(not is_boss and _row_fires(e.row))
 	if targets.is_empty():
 		return
 	var aim: Vector2
-	var pri := BalanceBotDecisions.aim_priority_index(pos, targets, bomber_flags, bomber_ds)
+	var pri := BalanceBotDecisions.aim_priority_index(pos, targets, bomber_flags,
+		bomber_ds, boss_flags, minion_flags)
 	if pri >= 0:
 		var pri_targets: Array[Vector2] = [targets[pri]]
 		aim = AutoAim.aim_vector(pos, pri_targets, driver.get("current_aim"),
@@ -1153,6 +1229,14 @@ func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector
 			360.0, vels, _player_bullet_speed(player))
 	if aim != Vector2.ZERO:
 		driver.set("current_aim", aim)
+
+
+## m4p-bal-d②：会开火行判定（数据驱动 bullet_dmg>0——shooter/barrage/mushroom_spore/
+## turret 等弹幕系原型皆带该键，硬编码原型名单的替代口径：新增开火原型自动覆盖）。
+## 键缺失或为 null（vine_charger 等近战原型行）→ false。
+func _row_fires(row: Dictionary) -> bool:
+	var v: Variant = row.get("bullet_dmg")
+	return v != null and int(v) > 0
 
 
 ## 当前武器弹速（lead 飞行时间入参；近战/空手/读不到 → 0 = lead 关闭直瞄）。
@@ -1217,6 +1301,71 @@ func _sticky_heart(room: FloorScene.FloorRoom, pos: Vector2) -> Node2D:
 		_heart_lock_id = pick
 		_heart_lock_frame = frame
 	return by_id.get(pick) as Node2D
+
+
+## m4p-bal-d① 房内待拾武器掉落台（精英/垒主 drops=weapon 与宝箱开箱的落地形态：
+## FloorScene.FixtureInteractable + weapon_id meta + enabled，_obs_loot_ids 观测同款
+## 识别式）。升级判定（weapon_upgrade_pickup：空槽必拾 / 地面 DPS 严格优于较弱槽）
+## 过滤后挑 DPS 最高（weapon_loot_index）；锁定制：_loot_lock_id 仍指向在场合格台子
+## 时维持（双台等 DPS 分居时寻的不抖，3271 极限环同源预防），台子消失（拾取后
+## enabled=false / 失效）自愈重选。give-up 拉黑台（_loot_blacklist，3434-a2 贴柱
+## 极限环实证）不再入候选。无合格台子 → null（并清锁）。
+func _loot_station_target(room: FloorScene.FloorRoom,
+		player: Player) -> FloorScene.FixtureInteractable:
+	var rig := player.get_node_or_null("WeaponRig") as WeaponRig
+	if rig == null:
+		_loot_lock_id = -1
+		return null
+	var stations: Array = []
+	var cands: Array = []
+	for c in room.get_children():
+		if c is FloorScene.FixtureInteractable \
+				and (c as FloorScene.FixtureInteractable).enabled \
+				and (c as Node).has_meta("weapon_id") \
+				and not _loot_blacklist.has((c as Node).get_instance_id()):
+			var row := GameDB.get_weapon(String((c as Node).get_meta("weapon_id")))
+			if not BalanceBotDecisions.weapon_upgrade_pickup(rig.slots, row):
+				continue
+			stations.append(c)
+			cands.append({"id": (c as Node).get_instance_id(),
+				"pos": (c as Node2D).global_position, "row": row})
+	if stations.is_empty():
+		_loot_lock_id = -1
+		return null
+	if _loot_lock_id >= 0:
+		for i in stations.size():
+			if (stations[i] as Node).get_instance_id() == _loot_lock_id:
+				return stations[i]       # 锁定台仍在合格集合：维持寻的
+	var pick := BalanceBotDecisions.weapon_loot_index(cands, rig.slots,
+		player.global_position)
+	if pick < 0:
+		_loot_lock_id = -1
+		return null
+	_loot_lock_id = int((cands[pick] as Dictionary)["id"])
+	_loot_seek_since = -1                # 新锁定目标：give-up 计时窗重新起算
+	return stations[pick]
+
+
+## m4p-bal-d① 生产交互缝拾取（同真人 E 键路径）：InteractionSystem._physics_process
+## 命中交互目标时调 target.interact(player)，对掉落台即 FixtureInteractable.interact
+## → on_interact_cb → WeaponRig.equip（floor_scene._build_loot_station 生产回调）。
+## 拾前若双槽满且较弱槽非当前槽，先经 WeaponRig.switch_slot（生产 switch_weapon 键
+## 的同方法，player_driver.gd:48 同款调用）预切较弱槽——equip 语义（weapon_rig.gd
+## 「填第一个空槽；双槽满替换当前槽」）下新武器落在较弱槽，双槽 DPS 单调不减；
+## 无空槽切换必要（单槽/空槽）时直接交互，equip 自动填第一个空槽。
+func _equip_loot_station(station: FloorScene.FixtureInteractable, player: Player) -> void:
+	var rig := player.get_node_or_null("WeaponRig") as WeaponRig
+	if rig != null and rig.slots.size() >= 2 \
+			and not (rig.slots[0] as Dictionary).is_empty() \
+			and not (rig.slots[1] as Dictionary).is_empty():
+		var weaker := BalanceBotDecisions.weakest_slot_index(rig.slots)
+		if weaker >= 0 and weaker != rig.slot:
+			rig.switch_slot(Engine.get_physics_frames())
+	var slot_before := rig.slot if rig != null else -1
+	station.interact(player)
+	print("BALANCE-BOT LOOT seed=%d floor=%d room=%d weapon=%s -> slot=%d" % [
+		_cur_seed, RunState.floor_idx, _track_room,
+		String(station.get_meta("weapon_id")), slot_before])
 
 
 ## 自爆型敌人判定（suicide 原型 + 自爆网虫特型——两型行内都有 aoe 引爆契约）。
