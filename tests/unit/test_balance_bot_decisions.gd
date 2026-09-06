@@ -177,7 +177,8 @@ func test_roll_dodges_bomber_blast() -> void:
 
 
 func test_roll_skipped_when_outside_bomber_margin() -> void:
-	# bomber_d = 20 > 8 余量：不在炸圈边缘，不因自爆虫翻滚。
+	# bomber_d = 20 ≥ 20 余量（m4p-bal-b 8→20，边界含入为 <）：不在炸圈边缘触发窗
+	# 内，不因自爆虫翻滚。
 	var out := BalanceBotDecisions.roll_decision({
 		"roll_ready": true,
 		"bullet_d": INF_F, "bullet_away": Vector2.ZERO,
@@ -187,6 +188,22 @@ func test_roll_skipped_when_outside_bomber_margin() -> void:
 		"roll_sample": 0.0, "panic_sample": 0.0, "side_sample": 0.5,
 	})
 	assert_bool(out["do"]).is_false()
+
+
+func test_roll_triggers_within_widened_bomber_margin() -> void:
+	# m4p-bal-b 余量 8→20（引信 0.5s 内虫闭近 ~47px，旧 8px 触发几乎必吃爆炸；
+	# 20px 给翻滚 56px 位移+无敌帧留余量）：bomber_d = 15（旧余量外/新余量内）
+	# → 沿远离方向翻滚（语义变更钉测）。
+	var out := BalanceBotDecisions.roll_decision({
+		"roll_ready": true,
+		"bullet_d": INF_F, "bullet_away": Vector2.ZERO,
+		"charge_perp": Vector2.ZERO,
+		"melee_d": INF_F, "melee_away": Vector2.ZERO,
+		"bomber_d": 15.0, "bomber_away": Vector2.LEFT,
+		"roll_sample": 0.5, "panic_sample": 0.0, "side_sample": 0.5,
+	})
+	assert_bool(out["do"]).is_true()
+	assert_vector(out["dir"]).is_equal(Vector2.LEFT)
 
 
 func test_bullet_roll_takes_precedence_over_bomber() -> void:
@@ -588,3 +605,120 @@ func test_velocity_from_track_rejects_noise_and_stale_windows() -> void:
 		Vector2.ZERO, 1000, Vector2(5, 0), 1001)).is_equal(Vector2.ZERO)
 	assert_vector(BalanceBotDecisions.velocity_from_track(
 		Vector2.ZERO, 1000, Vector2(50, 0), 1035)).is_equal(Vector2.ZERO)
+
+
+# ================================================================ m4p-bal-b 自爆虫逃离去对消（bomber_flee_vector）
+
+func test_flee_two_bugs_pincer_nonzero_not_toward_either() -> void:
+	# 两虫等距对夹（90° 夹角，均入爆炸域 48 < 40+16）：新口径 = 最近一只径向
+	# （权重 2.4）+ 左垂直切向机动（权重 1.0，wander_sign=1）——向量非零，且对
+	# 两虫方向的投影均为负（不指向任一虫；旧求和口径在此形态已开始互拍）。
+	var v := BalanceBotDecisions.bomber_flee_vector(
+		Vector2.ZERO,
+		[{"pos": Vector2(48, 0), "radius": 40.0, "armed": true},
+			{"pos": Vector2(0, 48), "radius": 40.0, "armed": true}],
+		1.0)
+	assert_float(v.length()).override_failure_message(
+		"v=%s 对夹逃离不得为零（旧求和口径对消病灶）" % v).is_greater(0.3)
+	assert_float(v.dot(Vector2(1, 0))).override_failure_message(
+		"v=%s 不得指向虫 1" % v).is_less(0.0)
+	assert_float(v.dot(Vector2(0, 1))).override_failure_message(
+		"v=%s 不得指向虫 2" % v).is_less(0.0)
+
+
+func test_flee_diametric_bugs_no_cancellation() -> void:
+	# 180° 对夹（旧口径 away 求和恰好 ≈0 定身挨炸——本卡去对消核心回归钉）：
+	# 逃离向量非零，且保留「远离最近虫（先出现者）」的径向主分量。
+	var v := BalanceBotDecisions.bomber_flee_vector(
+		Vector2.ZERO,
+		[{"pos": Vector2(48, 0), "radius": 40.0, "armed": true},
+			{"pos": Vector2(-48, 0), "radius": 40.0, "armed": true}],
+		1.0)
+	assert_float(v.length()).override_failure_message(
+		"v=%s 对夹逃离不得为零（求和对消复发）" % v).is_greater(0.3)
+	assert_float(v.dot(Vector2(1, 0))).is_less(0.0)
+
+
+func test_flee_tangent_sign_follows_wander_sign() -> void:
+	# 确定性：切向机动符号随 wander_sign 翻转（同输入必同输出的两种拍）；
+	# 径向主分量不受游走符号影响。
+	var plus := BalanceBotDecisions.bomber_flee_vector(
+		Vector2.ZERO, [{"pos": Vector2(48, 0), "radius": 40.0, "armed": true}], 1.0)
+	var minus := BalanceBotDecisions.bomber_flee_vector(
+		Vector2.ZERO, [{"pos": Vector2(48, 0), "radius": 40.0, "armed": true}], -1.0)
+	assert_float(plus.x).is_equal(minus.x)
+	assert_float(plus.y).is_less(0.0)
+	assert_float(minus.y).is_greater(0.0)
+
+
+func test_flee_zero_outside_blast_or_unarmed() -> void:
+	# 爆炸域外（80 > 40+16）的武装虫 / 未点燃虫（保距走 combat_move_dir 原段）：
+	# 均不产生逃离分量（触发域口径同旧）。
+	assert_vector(BalanceBotDecisions.bomber_flee_vector(
+		Vector2.ZERO, [{"pos": Vector2(80, 0), "radius": 40.0, "armed": true}], 1.0)
+	).is_equal(Vector2.ZERO)
+	assert_vector(BalanceBotDecisions.bomber_flee_vector(
+		Vector2.ZERO, [{"pos": Vector2(30, 0), "radius": 40.0, "armed": false}], 1.0)
+	).is_equal(Vector2.ZERO)
+
+
+func test_move_not_frozen_between_diametric_armed_bombers() -> void:
+	# 走位层集成钉：两虫 180° 对夹均入爆炸域，combat_move_dir 输出含逃离+切向
+	# 机动（|v|>0.3）——旧求和口径恰好对消为 0，bot 定身挨炸（100 局死因主形态）。
+	var dir := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [], [], 1.0,
+		[{"pos": Vector2(48, 0), "radius": 40.0}, {"pos": Vector2(-48, 0), "radius": 40.0}])
+	assert_float(dir.length()).override_failure_message(
+		"dir=%s 对夹走位不得为零（对消复发）" % dir).is_greater(0.3)
+
+
+# ================================================================ m4p-bal-b 自爆虫优先瞄准（aim_priority_index）
+
+func test_aim_priority_locks_armed_bomber_within_priority_px() -> void:
+	# 武装虫 ≤240px：锁定该虫下标——即使普通敌人（60px）更近也优先（先杀后走：
+	# 玩家移速 80 < 自爆虫 95 跑不掉只能早杀）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO,
+		[Vector2(300, 0), Vector2(120, 0), Vector2(60, 0)],
+		[false, true, false],
+		[300.0, 120.0, 60.0])
+	assert_int(idx).is_equal(1)
+
+
+func test_aim_priority_picks_nearest_among_armed_bombers() -> void:
+	# 多只武装虫满足：取最近一只（严格 <，同距取先出现者——确定性）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO,
+		[Vector2(200, 0), Vector2(90, 0)],
+		[true, true],
+		[200.0, 90.0])
+	assert_int(idx).is_equal(1)
+
+
+func test_aim_priority_ignores_armed_bomber_beyond_priority_px() -> void:
+	# 仅远处武装虫（>240px）：无优先 → -1（走默认最近目标）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(300, 0)], [true], [300.0])
+	assert_int(idx).is_equal(-1)
+
+
+func test_aim_priority_ignores_unarmed_bomber_within_priority_px() -> void:
+	# 未点燃虫：即便 ≤240px 也不优先（走位层保距已覆盖，瞄准不让位）→ -1。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(100, 0)], [false], [100.0])
+	assert_int(idx).is_equal(-1)
+
+
+func test_aim_priority_boundary_at_priority_px() -> void:
+	# 边界：恰好 240px（≤240px 含入）→ 优先。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(240, 0)], [true], [240.0])
+	assert_int(idx).is_equal(0)
+
+
+func test_aim_priority_distance_fallback_from_poses() -> void:
+	# bomber_ds 缺项：回落 pos×enemy_poses 几何距离（纯函数容错，不炸）。
+	var idx := BalanceBotDecisions.aim_priority_index(
+		Vector2.ZERO, [Vector2(120, 0)], [true], [])
+	assert_int(idx).is_equal(0)

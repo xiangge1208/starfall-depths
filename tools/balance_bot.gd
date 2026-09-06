@@ -62,6 +62,13 @@ extends Node
 ##   ② shooter 接近带——弩兵等风筝原型纳入决策层接近带（威胁下超带趋近分量）；
 ##   ③ 走位绕障初版——房内实体（柱/箱/墙）斥力场（离面线性衰减 + 切向滑移），
 ##      战斗走位与已清房拾取寻的共用（3271-a3 Seek 楔死柱面实证修法）。
+##
+## m4p-bal-b（平衡 bot 仪器卡 B，生产代码零改动）：① TTK 测量口径修正——ttk =
+## 首次受击→死亡（_track_enemy_ttk 内 bot 侧 hp 轮询记 first_hit，§14.3「持续输出
+## 击杀」语义；旧「入场→死亡」保留为 lifetime_s 对照口径，聚合两个都输出）；
+## ② 武装自爆虫优先瞄准（_nudge_aim_if_unlocked 经 decisions.aim_priority_index
+## 锁定 ≤240px 武装虫，先杀后走）；③ 爆炸域逃离去对消（decisions.bomber_flee_vector
+## 径向只取最近一只 + 切向机动）+ 翻滚触发余量 8→20（BOMBER_ROLL_MARGIN_PX）。
 
 signal finished
 
@@ -130,8 +137,12 @@ var _wander_sign := 1.0
 var _wander_next_switch := 0
 var _last_move_dir := Vector2.ZERO      # m3-fix2 探针：最近一次注入的移动意图向量
 # 统计采样（跨局累积，行内自带 floor/room_type 维度）
-var _ttk_rows: Array[Dictionary] = []       # {floor, room_type, enemy_id, ttk_s}
+var _ttk_rows: Array[Dictionary] = []       # {floor, room_type, enemy_id, lifetime_s[, ttk_s]}
 var _ttk_seen := {}                         # enemy instance_id -> first_seen frame
+var _ttk_hp_last := {}                      # enemy instance_id -> 上次轮询 hp（首见拍记基线）
+var _ttk_first_hit := {}                    # enemy instance_id -> 首次受击 frame（hp 首次下降拍；
+                                            #   m4p-bal-b first-hit TTK 口径，EnemyBase 只有
+                                            #   died 信号，bot 侧 hp 轮询生产零改动）
 var _track_room := -1
 var _track_room_type := ""
 var _track_room_cleared := false
@@ -766,6 +777,8 @@ func _reset_run_state(p_seed: int) -> void:
 	_lead_track = {}                     # m4-b3①：目标速度轨跨局清空（实例 id 跨局复用会串）
 	_solids_cache = {}                   # m4-b3③：房间矩形缓存跨局清空（新楼层新节点）
 	_ttk_seen = {}
+	_ttk_hp_last = {}                    # m4p-bal-b：first-hit TTK 轮询态跨局清空
+	_ttk_first_hit = {}
 	_track_room = -1
 	_track_room_type = ""
 	_track_room_cleared = false
@@ -1027,6 +1040,9 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 ## 目标速度来自 3 拍环形轨的 dt=2 拍差分（velocity_from_track 契约：噪声/陈旧
 ## 窗按静止处理 → lead 退化直瞄）。仍在 Driver 锁定态时不动手（保留生产选择权，
 ## auto_aim 被外部打开时行为自动回退为「仅锥外重定向」的旧语义）。
+## m4p-bal-b 先杀后走：存在「引信已点燃且 ≤BOMBER_PRIORITY_PX」的武装自爆虫时，
+## 瞄准锁定最近一只（BalanceBotDecisions.aim_priority_index，单目标仍走同一
+## AutoAim lead 数学）——旧口径对全体活敌取最近，从不优先自爆虫。
 func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector2) -> void:
 	if alive.is_empty():
 		return
@@ -1035,15 +1051,26 @@ func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector
 		return
 	var targets: Array[Vector2] = []
 	var vels: Array = []
+	var bomber_flags: Array = []          # 武装（引信已点燃）自爆虫标志（下标对齐 targets）
+	var bomber_ds: Array = []             # 玩家→该敌人距离（同上；aim_priority 入参）
 	for e in alive:
 		if not is_instance_valid(e):
 			continue
 		targets.append(e.brain_pos)
 		vels.append(_lead_velocity(e))
+		bomber_flags.append(_is_bomber_row(e.row) and _bomber_armed(e))
+		bomber_ds.append(pos.distance_to(e.brain_pos))
 	if targets.is_empty():
 		return
-	var aim: Vector2 = AutoAim.aim_vector(pos, targets, driver.get("current_aim"),
-		360.0, vels, _player_bullet_speed(player))
+	var aim: Vector2
+	var pri := BalanceBotDecisions.aim_priority_index(pos, targets, bomber_flags, bomber_ds)
+	if pri >= 0:
+		var pri_targets: Array[Vector2] = [targets[pri]]
+		aim = AutoAim.aim_vector(pos, pri_targets, driver.get("current_aim"),
+			360.0, [vels[pri]], _player_bullet_speed(player))
+	else:
+		aim = AutoAim.aim_vector(pos, targets, driver.get("current_aim"),
+			360.0, vels, _player_bullet_speed(player))
 	if aim != Vector2.ZERO:
 		driver.set("current_aim", aim)
 
@@ -1128,18 +1155,23 @@ func _room_solids(room: FloorScene.FloorRoom) -> Array:
 	return out
 
 
+## 自爆虫点燃态（单一事实源，_bombers_observation / 瞄准优先接线共用）：点燃 =
+## suicide 原型 `_fuse_deadline >= 0`（玩家可观察的膨胀预警窗；无该字段的特型按
+## 已点燃强度处理——保守规避）。
+func _bomber_armed(e: EnemyBase) -> bool:
+	var fd: Variant = e.get("_fuse_deadline")
+	return fd == null or int(fd) >= 0
+
+
 ## 自爆虫观测：全部自爆型进 bombers（未点燃=armed false 走保距；点燃=armed true
-## 走强逃/翻滚）。点燃态 = suicide 原型 `_fuse_deadline >= 0`（玩家可观察的膨胀
-## 预警窗；无该字段的特型按已点燃强度处理——保守规避）。
+## 走强逃/翻滚/瞄准优先——点燃态口径见 _bomber_armed）。
 func _bombers_observation(alive: Array[EnemyBase]) -> Array:
 	var out: Array = []
 	for e in alive:
 		if not _is_bomber_row(e.row):
 			continue
-		var fd: Variant = e.get("_fuse_deadline")
-		var armed := fd == null or int(fd) >= 0
 		out.append({"pos": e.brain_pos, "radius": float(e.row.get("aoe_radius", 40)),
-			"armed": armed})
+			"armed": _bomber_armed(e)})
 	return out
 
 
@@ -1399,6 +1431,8 @@ func _track_room_entry(room_id: int, rtype: String) -> void:
 	_track_room_cleared = false
 	_room_entered_frame = Engine.get_physics_frames()
 	_ttk_seen.clear()
+	_ttk_hp_last.clear()                 # m4p-bal-b：TTK 轮询态随房清空（口径同 _ttk_seen）
+	_ttk_first_hit.clear()
 
 
 ## 清房时长入账：入房 → 房清（含战斗全部波次；死亡/超时未清房不入账）。
@@ -1420,9 +1454,14 @@ func _track_room_clear(fs: FloorScene) -> void:
 		})
 
 
-## TTK 采样：首见敌人时挂生产 `died` 信号（一次性）——死亡体当拍即从
-## room.enemies 摘除，轮询口观察不到死亡；TTK = 首见→死亡（入房起测，
-## 与 §14.3「打 A1 杂兵 ≤2.0s」的交入口径同源）。
+## TTK 采样（m4p-bal-b 口径修正）：首见敌人时挂生产 `died` 信号（一次性，死亡体
+## 当拍即从 room.enemies 摘除，轮询口观察不到死亡）并记录 hp 基线；此后每拍在本
+## 已遍历的敌人轮询里检测 hp 下降，首个下降拍记为 first_hit（EnemyBase 只有 died
+## 信号，bot 侧 hp 轮询口径，生产代码零改动）。两个口径并行：
+##   ttk_s      = 首次受击 → 死亡（§14.3「持续输出击杀 ≤2.0s」语义——剔除入场后
+##                多目标排队/走位接近的等待时间；DoT 击杀等无 first_hit 记录者
+##                不计入 ttk 分布）
+##   lifetime_s = 首见（入场）→ 死亡（旧口径，全量入账，供 before/after 对照）
 func _track_enemy_ttk(fs: FloorScene, room: FloorScene.FloorRoom) -> void:
 	var frame := Engine.get_physics_frames()
 	for e in room.enemies:
@@ -1430,24 +1469,37 @@ func _track_enemy_ttk(fs: FloorScene, room: FloorScene.FloorRoom) -> void:
 			continue
 		var key := e.get_instance_id()
 		if _ttk_seen.has(key):
+			var hp_now := int(e.hp)
+			var hp_prev := int(_ttk_hp_last.get(key, hp_now))
+			if hp_now < hp_prev and not _ttk_first_hit.has(key):
+				_ttk_first_hit[key] = frame   # 首次受击拍（只记第一次，后续连击不改写）
+			if hp_now != hp_prev:
+				_ttk_hp_last[key] = hp_now
 			continue
 		_ttk_seen[key] = frame
+		_ttk_hp_last[key] = int(e.hp)
 		var eid := String(e.row.get("id", ""))
 		var rtype := String(fs.flow.room_type(room.room_id))
 		var floor_idx := RunState.floor_idx
-		e.died.connect(_on_tracked_enemy_died.bind(eid, frame, floor_idx, rtype),
+		e.died.connect(_on_tracked_enemy_died.bind(eid, frame, floor_idx, rtype, key),
 			CONNECT_ONE_SHOT)
 	_track_room_clear(fs)
 
 
 func _on_tracked_enemy_died(_e: EnemyBase, eid: String, born_frame: int,
-		floor_idx: int, rtype: String) -> void:
-	_ttk_rows.append({
+		floor_idx: int, rtype: String, ekey: int) -> void:
+	var frame := Engine.get_physics_frames()
+	var row := {
 		"floor": floor_idx,
 		"room_type": rtype,
 		"enemy_id": eid,
-		"ttk_s": snappedf(float(Engine.get_physics_frames() - born_frame) / 60.0, 0.1),
-	})
+		"lifetime_s": snappedf(float(frame - born_frame) / 60.0, 0.1),
+	}
+	# 有 first_hit 记录 → ttk_s = 死亡 - 首次受击；无（如 DoT 击杀/换房后死亡）
+	# → 只入 lifetime 口径（_aggregate 据字段存在性分流）。
+	if _ttk_first_hit.has(ekey):
+		row["ttk_s"] = snappedf(float(frame - int(_ttk_first_hit[ekey])) / 60.0, 0.1)
+	_ttk_rows.append(row)
 	if eid == "starfall_prophet":
 		prophet_kills += 1        # ⑥动态半边覆盖度（本基线 A3 不可达 → 预期 0）
 
@@ -1538,30 +1590,44 @@ func _aggregate(crashes: int) -> Dictionary:
 		"death_hot_rooms": hot,
 		"prophet_kills": prophet_kills,
 		"ttk": {
-			"minion_a1": _ttk_summary_floor(combat_rows, 1),
-			"minion_a2": _ttk_summary_floor(combat_rows, 2),
-			"minion_a3": _ttk_summary_floor(combat_rows, 3),
-			"miniboss": _ttk_summary_any(by_class.get("miniboss", [])),
-			"boss": _ttk_summary_any(by_class.get("boss", [])),
-			"elite": _ttk_summary_any(by_class.get("elite", [])),
+			# m4p-bal-b 新口径：首次受击 → 死亡（§14.3「持续输出击杀」语义；
+			# 无 first_hit 记录的击杀不入分布）。
+			"minion_a1": _ttk_summary_floor(combat_rows, 1, "ttk_s"),
+			"minion_a2": _ttk_summary_floor(combat_rows, 2, "ttk_s"),
+			"minion_a3": _ttk_summary_floor(combat_rows, 3, "ttk_s"),
+			"miniboss": _ttk_summary_any(by_class.get("miniboss", []), "ttk_s"),
+			"boss": _ttk_summary_any(by_class.get("boss", []), "ttk_s"),
+			"elite": _ttk_summary_any(by_class.get("elite", []), "ttk_s"),
+		},
+		"lifetime": {
+			# 旧口径（入场 → 死亡）保留为对照字段，供 before/after 口径切换比对。
+			"minion_a1": _ttk_summary_floor(combat_rows, 1, "lifetime_s"),
+			"minion_a2": _ttk_summary_floor(combat_rows, 2, "lifetime_s"),
+			"minion_a3": _ttk_summary_floor(combat_rows, 3, "lifetime_s"),
+			"miniboss": _ttk_summary_any(by_class.get("miniboss", []), "lifetime_s"),
+			"boss": _ttk_summary_any(by_class.get("boss", []), "lifetime_s"),
+			"elite": _ttk_summary_any(by_class.get("elite", []), "lifetime_s"),
 		},
 		"room_dur": _room_dur_summary(),
 		"floor_dur": _floor_durations.duplicate(true),
 	}
 
 
-func _ttk_summary_floor(rows: Array, floor_idx: int) -> Dictionary:
+## m4p-bal-b：field 感知（"ttk_s" = 新口径仅有 first_hit 记录的行；"lifetime_s" =
+## 旧口径全量行）——行缺该字段（如 DoT 击杀无 ttk_s）即跳过，不污染分布。
+func _ttk_summary_floor(rows: Array, floor_idx: int, field: String) -> Dictionary:
 	var vals: Array[float] = []
 	for row: Dictionary in rows:
-		if int(row["floor"]) == floor_idx:
-			vals.append(float(row["ttk_s"]))
+		if int(row["floor"]) == floor_idx and row.has(field):
+			vals.append(float(row[field]))
 	return _ttk_vals(vals)
 
 
-func _ttk_summary_any(rows: Array) -> Dictionary:
+func _ttk_summary_any(rows: Array, field: String) -> Dictionary:
 	var vals: Array[float] = []
 	for row: Dictionary in rows:
-		vals.append(float(row["ttk_s"]))
+		if row.has(field):
+			vals.append(float(row[field]))
 	return _ttk_vals(vals)
 
 
@@ -1762,14 +1828,20 @@ func _write_md(path: String) -> void:
 	f.store_line("")
 	f.store_line("## TTK / 节奏（对照 §14.3；本批全部为第 1 层口径）")
 	f.store_line("")
+	f.store_line("- 口径（m4p-bal-b）：ttk = 首次受击→死亡（§14.3「持续输出击杀 ≤2.0s」语义，bot 侧 hp 轮询，剔除入场后排队的等待时间；DoT 击杀等无 first_hit 记录者不计入）；lifetime = 入场→死亡（旧口径，全量入账，供 before/after 对照）。")
+	f.store_line("")
 	f.store_line("| 指标 | 实测(中位/p90) | §14.3 目标 | 判定 |")
 	f.store_line("|---|---|---|---|")
 	var ttk: Dictionary = a.get("ttk", {})
 	var m_a1: Dictionary = ttk.get("minion_a1", {})
 	if not m_a1.is_empty():
-		f.store_line("| A1 杂兵 TTK | %.1f / %.1f s (n=%d) | ≤2.0 s | %s |" % [
+		f.store_line("| A1 杂兵 TTK（首次受击→死亡） | %.1f / %.1f s (n=%d) | ≤2.0 s | %s |" % [
 			float(m_a1["median_s"]), float(m_a1["p90_s"]), int(m_a1["n"]),
 			"达标" if float(m_a1["median_s"]) <= GDD_MINION_TTK_S else "偏离"])
+	var lt_a1: Dictionary = (a.get("lifetime", {}) as Dictionary).get("minion_a1", {})
+	if not lt_a1.is_empty():
+		f.store_line("| A1 杂兵 lifetime（入场→死亡，旧口径对照） | %.1f / %.1f s (n=%d) | - | 对照口径 |" % [
+			float(lt_a1["median_s"]), float(lt_a1["p90_s"]), int(lt_a1["n"])])
 	for fl in [2, 3]:
 		var m_ax: Dictionary = ttk.get("minion_a%d" % fl, {})
 		if not m_ax.is_empty():

@@ -9,6 +9,10 @@ extends RefCounted
 ##
 ## 本文件常量是「bot 手感」（只影响 bot 行为，不影响游戏规则/数值）；游戏数值
 ## 一律留在生产侧（tools/balance_bot.gd 只经生产接口操作，见其头注释披露）。
+##
+## m4p-bal-b：武装自爆虫优先瞄准（aim_priority_index——先杀后走）+ 爆炸域逃离
+## 去对消（bomber_flee_vector——径向只取最近一只 + 切向机动，多虫夹击不再定身）
+## + 翻滚触发余量 8→20。
 
 # ---------------- 走位（避弹 / 避 hazard / 近敌拉开 / 距离带） ----------------
 const DODGE_RADIUS_PX := 132.0       # 敌弹感知半径（ proactive：弹速 ~200px/s 下留 ≥0.6s 反应窗）
@@ -28,7 +32,15 @@ const HAZARD_WEIGHT := 1.2           # hazard 斥力权重（固定值——不�
 # ---------------- 自爆虫引信（armed bomber；观测侧只传自爆型敌人） ----------------
 const BOMBER_FLEE_MARGIN_PX := 16.0  # 爆炸域外扩余量（走位逃离触发域 = radius + margin）
 const BOMBER_FLEE_WEIGHT := 2.4      # 爆炸域斥力（固定强权重——到点必炸，不随距离打折）
-const BOMBER_ROLL_MARGIN_PX := 8.0   # 翻滚触发：炸圈边缘再外扩 8px（bomber_d = 距离-半径）
+const BOMBER_FLEE_TANGENT_W := 1.0   # 逃离切向机动分量（m4p-bal-b 去对消：径向只取最近
+                                     # 一只后叠加其左垂直切向——符号随 wander_sign，径向
+                                     # 被墙/第二虫顶死时仍保持横移机动）
+const BOMBER_ROLL_MARGIN_PX := 20.0  # 翻滚触发：炸圈边缘再外扩 20px（bomber_d = 距离-半径；
+                                     # m4p-bal-b 8→20——引信 0.5s 内虫闭近 ~47px，8px 触发
+                                     # 几乎必吃爆炸；20px 给翻滚 56px 位移+无敌帧留余量）
+const BOMBER_PRIORITY_PX := 240.0    # 优先瞄准距离（m4p-bal-b：武装虫 ≤240px 锁定瞄准——
+                                     # 玩家移速 80 低于自爆虫 95 跑不掉只能早杀，
+                                     # 见 BOMBER_KEEPAWAY_MARGIN_PX 注释）
 const BOMBER_KEEPAWAY_MARGIN_PX := 84.0  # 未点燃保距域外扩（半径40+16+84=140px 外即开火
                                          # 优先——玩家移速 80 低于自爆虫 95，跑不掉只能早杀）
 const BOMBER_KEEPAWAY_WEIGHT := 1.6  # 未点燃保距斥力（压过距离带趋近 1.0——忌贴脸引信）
@@ -106,19 +118,19 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 	if has_threat and juke_perp != Vector2.ZERO:
 		dir += juke_perp * (JUKE_WEIGHT * wander_sign)
 
-	# 2) 自爆虫：引信已点燃 → 爆炸域+余量固定强权重的逃离；
-	#    未点燃 → 保距域温和斥力（不主动贴近引信范围即可）。
+	# 2) 自爆虫：引信已点燃 → 爆炸域逃离（m4p-bal-b 去对消：径向只取最近一只
+	#    + 切向机动——旧口径对全部武装虫 away 求和，两虫对夹时 ≈0 定身挨炸）；
+	#    未点燃 → 保距域温和斥力（求和维持——温和斥力无对消危害）。
+	dir += bomber_flee_vector(pos, bombers, wander_sign)
 	for b in bombers:
+		if bool(b.get("armed", true)):
+			continue
 		var away_b: Vector2 = pos - (b["pos"] as Vector2)
 		var radius := float(b.get("radius", 40.0))
 		var db := away_b.length()
-		if bool(b.get("armed", true)):
-			if db < radius + BOMBER_FLEE_MARGIN_PX and db > 0.1:
-				dir += away_b.normalized() * BOMBER_FLEE_WEIGHT
-		else:
-			if db < radius + BOMBER_FLEE_MARGIN_PX + BOMBER_KEEPAWAY_MARGIN_PX \
-					and db > 0.1:
-				dir += away_b.normalized() * BOMBER_KEEPAWAY_WEIGHT
+		if db < radius + BOMBER_FLEE_MARGIN_PX + BOMBER_KEEPAWAY_MARGIN_PX \
+				and db > 0.1:
+			dir += away_b.normalized() * BOMBER_KEEPAWAY_WEIGHT
 
 	# 3) hazard 域斥力（地刺/岩浆/间歇泉/藤蔓）：域最近点方向的固定权重。
 	for zone: Rect2 in hazard_zones:
@@ -194,6 +206,58 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 	elif pos.y > bounds.end.y:
 		dir.y = minf(dir.y, -1.0)
 	return dir
+
+
+## 武装自爆虫爆炸域逃离向量（m4p-bal-b 去对消；combat_move_dir 第 2 段武装分支）。
+## 径向分量只取「已进入爆炸域（radius + BOMBER_FLEE_MARGIN_PX）的最近一只武装虫」
+## 的远离方向（固定权重 BOMBER_FLEE_WEIGHT 不变）——旧口径对全部武装虫的 away
+## 求和，两虫等距对夹时求和 ≈0 定身挨炸；叠加最近虫的左垂直切向分量
+## （BOMBER_FLEE_TANGENT_W，符号随 wander_sign）保持机动不被径向锁死。
+## 未点燃 keepaway 温和斥力维持求和（无对消危害），仍在 combat_move_dir 原段处理。
+## bombers 契约同 combat_move_dir（{pos: Vector2, radius: float, armed: bool}；
+## 缺省 armed=true）。无武装虫进爆炸域 → 零向量（不产生任何分量）。
+static func bomber_flee_vector(pos: Vector2, bombers: Array, wander_sign: float) -> Vector2:
+	var best_d := INF
+	var best_away := Vector2.ZERO
+	for b in bombers:
+		if not bool(b.get("armed", true)):
+			continue
+		var away: Vector2 = pos - (b["pos"] as Vector2)
+		var db := away.length()
+		if db >= float(b.get("radius", 40.0)) + BOMBER_FLEE_MARGIN_PX or db < 0.1:
+			continue
+		if db < best_d:
+			best_d = db
+			best_away = away
+	if best_d == INF:
+		return Vector2.ZERO
+	var radial := best_away / maxf(best_d, 0.1)
+	var tangent := Vector2(-radial.y, radial.x)   # 显式左垂直（与近敌拉开切向同约定）
+	return radial * BOMBER_FLEE_WEIGHT + tangent * (BOMBER_FLEE_TANGENT_W * wander_sign)
+
+
+## 优先瞄准下标（m4p-bal-b 先杀后走；_nudge_aim_if_unlocked 瞄准层接线）。
+## 存在「武装（引信已点燃，armed 标志）且距离 ≤ BOMBER_PRIORITY_PX」的自爆虫时
+## 返回最近一只的下标——玩家移速 80 低于自爆虫 95 跑不掉只能早杀；否则 -1
+## （调用方走默认最近目标）。多只满足取最近（严格 <，同距取先出现者，确定性）。
+## 平行数组契约：bomber_flags/bomber_ds 与 enemy_poses 按下标一一对应
+##（bot 侧在同一构建循环里追加，不会错位）；bomber_ds 缺项时回落
+## pos×enemy_poses 几何距离（纯函数容错，不炸）。
+static func aim_priority_index(pos: Vector2, enemy_poses: Array, bomber_flags: Array,
+		bomber_ds: Array) -> int:
+	var best := -1
+	var best_d := INF
+	for i in mini(enemy_poses.size(), bomber_flags.size()):
+		if not bool(bomber_flags[i]):
+			continue
+		var d := float(bomber_ds[i]) if i < bomber_ds.size() \
+				else (enemy_poses[i] as Vector2).distance_to(pos)
+		if d > BOMBER_PRIORITY_PX:
+			continue
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
 
 
 ## m4-b3③ 实体斥力场内部：rep = 全部带内实体的线性衰减离面分量之和；
