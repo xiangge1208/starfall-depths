@@ -13,20 +13,20 @@ func test_close_slides_home_and_visible() -> void:
 	var p := _panel()
 	p.position = Vector2(100, 4)              # 开位（home + 滑出位移）
 	DoorAnim.close(p)
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.5).timeout   # 0.18s Tween + 裕量：0.25s 在并行负载掉帧下被 tween 追时差击穿（m4p-bal-a 实测 3 次全量跑均差一帧内落地）
 	assert_vector(p.position).is_equal_approx(Vector2(100, 50), Vector2(0.5, 0.5))
 	assert_bool(p.visible).is_true()
 
 func test_open_parks_then_hides_when_requested() -> void:
 	var p := _panel()
 	DoorAnim.open(p, true)                    # floor_scene 闸门：开 = 滑出后隐藏
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.5).timeout   # 同上：裕量 0.25s→0.5s 防并行负载掉帧竞态
 	assert_vector(p.position).is_equal_approx(Vector2(100, 4), Vector2(0.5, 0.5))
 	assert_bool(p.visible).is_false()
 
 func test_open_keeps_retracted_panel_visible_by_default() -> void:
 	var p := _panel()
 	DoorAnim.open(p)                          # room_combat M0 习语：滑出收进墙体仍可见
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.5).timeout   # 同上：裕量 0.25s→0.5s 防并行负载掉帧竞态
 	assert_vector(p.position).is_equal_approx(Vector2(100, 4), Vector2(0.5, 0.5))
 	assert_bool(p.visible).is_true()

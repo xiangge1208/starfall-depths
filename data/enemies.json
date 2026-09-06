@@ -1,5 +1,5 @@
 {
-  "kuli_bug":     {"id":"kuli_bug","name":"苦力虫","archetype":"suicide","hp":12,"contact_dmg":0,"speed":95,"radius":5.0,"windup_ticks":0,"cd_ticks":0,"fuse_ticks":30,"aoe_radius":40,"aoe_dmg":8,"bullet_dmg":0,"bullet_speed":0,"walk_speed":95,"dash_speed":0,"dash_ticks":0,"dash_cooldown_ticks":0},
+  "kuli_bug":     {"id":"kuli_bug","name":"苦力虫","archetype":"suicide","hp":12,"contact_dmg":0,"speed":95,"radius":5.0,"windup_ticks":0,"cd_ticks":0,"fuse_ticks":30,"aoe_radius":40,"aoe_dmg":4,"bullet_dmg":0,"bullet_speed":0,"walk_speed":95,"dash_speed":0,"dash_ticks":0,"dash_cooldown_ticks":0},
   "cave_bat":     {"id":"cave_bat","name":"穴蝠","archetype":"orbiter","hp":10,"contact_dmg":3,"speed":70,"radius":5.0,"orbit_radius":120,"windup_ticks":0,"cd_ticks":0,"bullet_dmg":0,"bullet_speed":0},
   "crossbowman":  {"id":"crossbowman","name":"弩兵","archetype":"shooter","hp":16,"contact_dmg":3,"speed":60,"radius":6.0,"windup_ticks":30,"cd_ticks":108,"bullet_dmg":3,"bullet_speed":110,"bullet_life_seconds":2.5,"bullet_radius":3.0},
   "mud_slime":    {"id":"mud_slime","name":"泥浆史莱姆","archetype":"splitter","hp":20,"contact_dmg":4,"speed":40,"radius":6.0,"split_count":2,"split_child_hp":6,"split_generations":1},

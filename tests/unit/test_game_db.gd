@@ -8,7 +8,7 @@ func test_m0_weapons_loaded() -> void:
 func test_get_weapon_returns_row() -> void:
 	var w := GameDB.get_weapon("laohuoji")
 	assert_str(w.get("name", "")).is_equal("老伙计")
-	assert_int(w.get("damage", -1)).is_equal(2)
+	assert_int(w.get("damage", -1)).is_equal(3)   # m4p-bal-a：2→3，白板 DPS 8.0→12.0 入 GDD §8.1 10~14 带
 	assert_bool(w.get("is_melee", true)).is_false()
 
 func test_validate_rejects_bad_row() -> void:

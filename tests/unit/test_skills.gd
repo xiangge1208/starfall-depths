@@ -142,7 +142,7 @@ func test_dual_wield_spawns_both_slots_and_waives_energy() -> void:
 	var alt: Dictionary = r.spawned[1]
 	assert_float(main["pos"].x).is_equal_approx(8.0, 0.001)    # 主手右舷枪口（_muzzle=(8,0)）
 	assert_float(alt["pos"].x).is_equal_approx(-8.0, 0.001)    # 副手镜像枪口
-	assert_int(alt["damage"]).is_equal(2)                      # 副手按自身武器数值（铆钉枪 2 伤）
+	assert_int(alt["damage"]).is_equal(3)                      # 副手按自身武器数值（铆钉枪 3 伤；m4p-bal-a 2→3 入 GDD §8.1 DPS 带）
 
 func test_dual_wield_cost_waive_only_during_window() -> void:
 	_inject_cost_gun()
