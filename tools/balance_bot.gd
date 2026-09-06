@@ -69,6 +69,21 @@ extends Node
 ## ② 武装自爆虫优先瞄准（_nudge_aim_if_unlocked 经 decisions.aim_priority_index
 ## 锁定 ≤240px 武装虫，先杀后走）；③ 爆炸域逃离去对消（decisions.bomber_flee_vector
 ## 径向只取最近一只 + 切向机动）+ 翻滚触发余量 8→20（BOMBER_ROLL_MARGIN_PX）。
+##
+## m4p-bal-c（探针定向迭代卡 C，生产代码零改动；捕获例归因见提交 body）：
+##   ① 大体积距离带——enemies 观测加平行数组 enemy_radii（e.combat_radius() 只读），
+##     decisions 层近敌缺口/距离带沿随半径线性外扩（probe 3493 电磁蛛等速贴墙
+##     接触死归因：80px 缺口按小怪标定，大体积收尾失效）；
+##   ② Boss 预告观测——BossBase 节点 get() 只读 _move/_move_start/_sweep_anchor/
+##     _sweep_x1_px/_slap_facing（driver.get("current_aim") 同款只读先例）：拍击
+##     扇形 → decisions.boss_zone_repulsion 独立斥力通道；藤蔓横扫条带 456×238
+##     全覆盖 M0 战斗房内域 320×192（probe 几何归因：走位无出口侧，条带必中，
+##     不注入走位通道防新增贴墙钉死）→ decisions.boss_band_impact_ticks 当拍
+##     锚点+方向外推 → roll_decision 命中前 ≤9 拍逆行进向翻滚（i-frame 13t 覆盖
+##     穿越窗，同武装自爆虫确定性翻滚口径）；
+##   ③ 红心目标黏滞——_nearest_heart 逐拍重选改 _sticky_heart（decisions.
+##     sticky_heart_id，锁定 HEART_STICKY_TICKS 拍再评估；probe 3472-a1 实拍
+##     3271 式双红心柱面两侧极限环）。
 
 signal finished
 
@@ -81,6 +96,16 @@ const BOT_RUN_ROOT_LOST_GUARD := 8      # run_root 失效后仍存活的物理�
 const BOT_STALL_TICKS := 10800          # 无进展停滞判定窗（180s）：签名含活敌血量和，
                                         # 真实战斗（敌血下降/换房/清房）持续变化不误判；
                                         # 窗长 > GDD Boss 带上沿 150s（慢 Boss 战不误伤）
+
+# m4p-bal-c② Boss 预告观测的节奏/几何常量（镜像 core/enemies/bosses/vine_colossus.gd
+# 脚本常量——节点 get() 只能读成员变量读不到类常量；镜像风险披露：生产改节奏须同步，
+# 只读字段（_move/_move_start/_sweep_anchor/_sweep_x1_px/_slap_facing）为单一事实源）
+const BOSS_SLAP_WINDUP_TICKS := 30              # 镜像 SLAP_WINDUP_TICKS
+const BOSS_SLAP_RANGE_PX := 70.0                # 镜像 SLAP_RANGE_PX
+const BOSS_SLAP_HALF_ANGLE_RAD := PI * 0.25     # 镜像 SLAP_ARC_DEG 90 / 2
+const BOSS_SWEEP_WINDUP_TICKS := 42             # 镜像 SWEEP_WINDUP_TICKS
+const BOSS_SWEEP_TRAVEL_TICKS := 36             # 镜像 SWEEP_TRAVEL_TICKS
+const BOSS_SWEEP_HALF_THICKNESS_PX := 12.0      # 镜像 SWEEP_THICKNESS_PX 24 / 2
 
 # GDD §14.3 节奏校准目标带（只读对照，bot 不修改游戏数值）
 const GDD_MINION_TTK_S := 2.0           # 初始武器打 A1 杂兵 ≤2.0s
@@ -172,6 +197,10 @@ var _solids_cache := {}               # 房间节点 instance_id -> Array[Rect2]
                                       #   房内实体静态，按房缓存每拍零重扫；C-5 可破坏物
                                       #   落地后如需动态性再失效化——初版披露）
 var _auto_aim_session_prev := true    # 会话级 auto_aim 原值（_exit_tree 还原，真档零写入）
+
+# ---- m4p-bal-c 红心目标黏滞状态（sticky_heart_id 锁定窗跨拍记账） ----
+var _heart_lock_id := -1              # 当前锁定红心 instance_id（-1 = 未锁）
+var _heart_lock_frame := -1           # 锁定起始拍（sticky_heart_id 窗计时锚点）
 
 # ---- m3-fix2 停滞探针（--probe-stall）：B-2 新发现 11% 停滞残差的定向取证 ----
 ## 口径：复用停滞签名（floor|rooms|kills|room|活敌血量和），稳定满 PROBE_TRIGGER_TICKS
@@ -776,6 +805,8 @@ func _reset_run_state(p_seed: int) -> void:
 	_obs_loot_ids = {}
 	_lead_track = {}                     # m4-b3①：目标速度轨跨局清空（实例 id 跨局复用会串）
 	_solids_cache = {}                   # m4-b3③：房间矩形缓存跨局清空（新楼层新节点）
+	_heart_lock_id = -1                  # m4p-bal-c③：红心黏滞锁跨局清空
+	_heart_lock_frame = -1
 	_ttk_seen = {}
 	_ttk_hp_last = {}                    # m4p-bal-b：first-hit TTK 轮询态跨局清空
 	_ttk_first_hit = {}
@@ -861,7 +892,11 @@ func _drive_floor(fs: FloorScene, player: Player) -> void:
 	_release_move_input()
 	_set_fire_held(false)
 	if player.hp <= player.hp_max - 2:
-		var heart := _nearest_heart(room, player.global_position)
+		# m4p-bal-c③ 红心目标黏滞：_nearest_heart 逐拍重选在双心分居柱面两侧时
+		# 使 seek 滑移符号逐拍翻转（probe 3472-a1 实拍柱东面 5.5px 极限环，160s
+		# 零拾取）——锁定 HEART_STICKY_TICKS 拍再评估；锁定目标消失（拾取/失效）
+		# 由 prev_alive 检查自愈重锁。
+		var heart := _sticky_heart(room, player.global_position)
 		if heart != null:
 			# m4-b3③：寻的向量过实体斥力场（fix2 3271-a3 实证：原始 Seek 顶死
 			# 柱南面零位移——带内斥力+切向滑移破楔死）。
@@ -954,22 +989,57 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 			_obs_enemy_last[ekey] = {"pos": e.brain_pos, "frame": frame}
 	var bombers := _bombers_observation(alive)
 	var enemies: Array = []
+	var enemy_radii: Array = []              # m4p-bal-c①：enemies 平行数组（combat_radius，
+	                                         #   大体积距离带缩放入参；只读生产方法）
 	var shooters: Array = []                 # m4-b3②：风筝型射击原型单列（不进 bombers，
 	                                         #   照常进 enemies 距离带；另供威胁下超带趋近）
 	for e in alive:
 		if _is_bomber_row(e.row):
 			continue
 		enemies.append(e.brain_pos)
+		enemy_radii.append(e.combat_radius())
 		if _is_shooter_row(e.row):
 			shooters.append(e.brain_pos)
 	var hazards := _hazard_zones(fs)
 	var solids := _room_solids(room)         # m4-b3③：房内实体矩形（按房缓存）
 
-	# 决策：走位（避弹/避爆炸域/避 hazard/实体斥力/近敌拉开/距离带/shooter 趋近）
-	# → 8 向生产输入；逐敌 lead 速度轨（m4-b3①）同步更新。
+	# m4p-bal-c② Boss 预告观测（BossBase 节点 get() 只读生产字段，零生产改动）：
+	# 拍击扇形（windup 段可走位躲出）→ boss_zones 斥力通道；横扫条带（全房覆盖
+	# 几何，走位不可规避）→ 当拍锚点+方向外推命中时序 → 确定性翻滚通道。
+	var boss_zones: Array = []
+	var boss_band_ticks := INF
+	var boss_band_dir := Vector2.ZERO
+	var boss_dbg := ""
+	for e in alive:
+		if not (e is BossBase) or not is_instance_valid(e):
+			continue
+		# 预告几何按 vine_colossus 行契约镜像（其余 Boss 招式字段/几何不同，不注入
+		# 防误读）；字段只读：_move/_move_start/_sweep_anchor/_sweep_x1_px/_slap_facing。
+		if String(e.row.get("id", "")) != "vine_colossus":
+			continue
+		var mv_v: Variant = e.get("_move")
+		var mv := str(mv_v) if mv_v != null else ""
+		var mv_elapsed := float(frame - int(e.get("_move_start")))
+		boss_dbg = "mv=%s el=%.0f" % [mv, mv_elapsed]
+		if mv == "slap" and mv_elapsed >= 0.0 and mv_elapsed < float(BOSS_SLAP_WINDUP_TICKS):
+			boss_zones.append({"kind": "wedge", "apex": e.brain_pos,
+				"facing": float(e.get("_slap_facing")),
+				"range_px": BOSS_SLAP_RANGE_PX, "half_angle": BOSS_SLAP_HALF_ANGLE_RAD})
+		elif mv == "sweep" and e.get("_sweep_anchor") is Vector2:
+			var anchor := e.get("_sweep_anchor") as Vector2
+			var x1 := float(e.get("_sweep_x1_px"))
+			boss_band_ticks = BalanceBotDecisions.boss_band_impact_ticks(
+				mv_elapsed, pos.x, anchor.x, x1,
+				BOSS_SWEEP_WINDUP_TICKS, BOSS_SWEEP_TRAVEL_TICKS,
+				BOSS_SWEEP_HALF_THICKNESS_PX)
+			boss_band_dir = Vector2(signf(x1 - anchor.x), 0.0)
+			boss_dbg += " band_t=%.1f" % boss_band_ticks
+
+	# 决策：走位（避弹/避爆炸域/避 hazard/实体斥力/近敌拉开[半径缩放]/Boss 预告域/
+	# 距离带/shooter 趋近）→ 8 向生产输入；逐敌 lead 速度轨（m4-b3①）同步更新。
 	_lead_track_update(alive)
 	var dir := BalanceBotDecisions.combat_move_dir(pos, bounds, bullets, enemies,
-		hazards, _wander_sign, bombers, shooters, solids)
+		hazards, _wander_sign, bombers, shooters, solids, enemy_radii, boss_zones)
 	_apply_move_input(dir)
 
 	# 决策：翻滚（贴弹/冲锋临身/近战贴脸 panic；概率采样来自 bot 确定性 rng）
@@ -1000,22 +1070,32 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 	# 引信已点燃的自爆虫在场：翻滚优先留给爆炸（bullet_d 压成 INF 抑制贴弹翻滚——
 	# 普通弹靠走位甩，确定性大伤才值得花 CD）。
 	var roll_bullet_d := nearest_bullet_d
+	var roll_melee_d := nearest_d
 	for b in bombers:
 		if bool(b.get("armed", false)):
 			roll_bullet_d = INF
 			break
+	# m4p-bal-c② 条带临身守卫窗：抑制贴弹/近战 panic 翻滚（CD 42t 被 3 伤可躲弹
+	# 烧掉后，必中 5 伤条带无 CD 可用——verify-3483 杀局拍归因）。
+	if boss_band_ticks <= BalanceBotDecisions.BOSS_BAND_ROLL_GUARD_TICKS:
+		roll_bullet_d = INF
+		roll_melee_d = INF
 	var roll := BalanceBotDecisions.roll_decision({
 		"roll_ready": player.roll_ready_at(frame),
+		"boss_band_ticks": boss_band_ticks, "boss_band_dir": boss_band_dir,
 		"bullet_d": roll_bullet_d, "bullet_away": bullet_away,
 		"bomber_d": bomber_d, "bomber_away": bomber_away,
 		"charge_perp": charge_perp,
-		"melee_d": nearest_d, "melee_away": nearest_away,
+		"melee_d": roll_melee_d, "melee_away": nearest_away,
 		"roll_sample": _rng.randf(), "panic_sample": _rng.randf(),
 		"side_sample": _rng.randf(),
 	})
 	if bool(roll["do"]):
 		var rd: Vector2 = roll["dir"]
 		player.start_roll(rd if rd.length_squared() > 0.0 else player.facing, frame)
+		if _debug:
+			print("BOT-ROLL f=%d dir=%s band_t=%.1f bullet_d=%.0f melee_d=%.0f" % [
+				frame, str(rd.round()), boss_band_ticks, roll_bullet_d, roll_melee_d])
 
 	# 技能（CD/耗蓝守卫在生产 can_cast 内）+ 索敌开火（生产 auto_aim 路径）
 	var skill: SkillBase = player.get_node_or_null("Skill") as SkillBase
@@ -1024,11 +1104,11 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 	_set_fire_held(true)
 	_nudge_aim_if_unlocked(player, alive, pos)
 	if _debug and frame % 60 == 0:
-		print("BOT-DBG f=%d hp=%d/%d shield=%d pos=%s room=%d(%s) alive=%d bullets=%d bombers=%d dir=%s aim=%s" % [
+		print("BOT-DBG f=%d hp=%d/%d shield=%d pos=%s room=%d(%s) alive=%d bullets=%d bombers=%d dir=%s aim=%s boss=[%s]" % [
 			frame, player.hp, player.hp_max, player.shield,
 			str(player.global_position.round()), room.room_id, fs.flow.room_type(room.room_id),
 			alive.size(), bullets.size(), bombers.size(), str(dir.round()),
-			str((player.get_node_or_null("Driver") as Node).get("current_aim"))])
+			str((player.get_node_or_null("Driver") as Node).get("current_aim")), boss_dbg])
 
 
 ## 瞄准注入（接口披露见头注 2）：m4-b3① 起为「手动瞄准 + lead 预判」模式——
@@ -1112,17 +1192,31 @@ func _lead_velocity(e: EnemyBase) -> Vector2:
 		old["pos"], int(old["frame"]), e.brain_pos, Engine.get_physics_frames())
 
 
-## 房内最近红心掉落（缺血时顺路吃；combat 期不冒险绕路，只在本房已清时吃）。
-func _nearest_heart(room: FloorScene.FloorRoom, pos: Vector2) -> Node2D:
-	var best: Node2D = null
-	var best_d := INF
+## 房内红心黏滞目标（m4p-bal-c③；决策纯逻辑在 BalanceBotDecisions.sticky_heart_id）。
+## 候选 = 本房全部 heart 拾取物（{id, pos} 注入决策层）；锁定窗内维持旧目标，
+## 窗满/失效重锁最近。返回锁定红心节点（无候选/锁定失效且房内无红心 → null）。
+func _sticky_heart(room: FloorScene.FloorRoom, pos: Vector2) -> Node2D:
+	var frame := Engine.get_physics_frames()
+	var cands: Array = []
+	var by_id := {}
 	for c in room.get_children():
 		if c is Pickup and (c as Pickup).kind == "heart" and is_instance_valid(c):
-			var d: float = (c as Node2D).global_position.distance_to(pos)
-			if d < best_d:
-				best_d = d
-				best = c as Node2D
-	return best
+			var id := (c as Node).get_instance_id()
+			cands.append({"id": id, "pos": (c as Node2D).global_position})
+			by_id[id] = c
+	if cands.is_empty():
+		_heart_lock_id = -1
+		_heart_lock_frame = -1
+		return null
+	var pick := BalanceBotDecisions.sticky_heart_id(_heart_lock_id, _heart_lock_frame,
+		cands, pos, frame, BalanceBotDecisions.HEART_STICKY_TICKS)
+	# 重锚：目标切换，或窗满重评估（同目标也重锚——否则窗满后逐拍重评估，最近心
+	# 在距离曲线交点两侧抖动时黏滞退化回 3271 极限环，锁定承诺不续期）。
+	if pick != _heart_lock_id \
+			or frame - _heart_lock_frame >= BalanceBotDecisions.HEART_STICKY_TICKS:
+		_heart_lock_id = pick
+		_heart_lock_frame = frame
+	return by_id.get(pick) as Node2D
 
 
 ## 自爆型敌人判定（suicide 原型 + 自爆网虫特型——两型行内都有 aoe 引爆契约）。
@@ -1190,11 +1284,17 @@ func _nearest_of(alive: Array[EnemyBase], pos: Vector2) -> EnemyBase:
 
 
 ## 冲锋前摇读拍（玩家可观察的红闪 telegraph）：windup 且冲刺指向自己 → 垂直闪避向。
+## m4p-bal-c 修复（探针实证：baseline 3483 单局 1939 条 SCRIPT ERROR）：原
+## String(phase_v) 对 BossBase `var _phase := 0`（int）等非 String 值抛
+## 「Nonexistent 'String' constructor」→ 函数中止返回 null → roll_decision 的
+## charge_perp 类型化赋值连带中止 → 返回 null → bool(null)=false —— Boss/miniboss
+## 房内翻滚系统整体失效（贴弹/自爆/近战 panic 全部哑火）。str() 接受任意 Variant，
+## String 值比较语义逐字节不变。
 func _read_charge_telegraph(e: EnemyBase, pos: Vector2) -> Vector2:
 	if e == null or not is_instance_valid(e):
 		return Vector2.ZERO
 	var phase_v: Variant = e.get("_phase")
-	if phase_v == null or String(phase_v) != "windup":
+	if phase_v == null or str(phase_v) != "windup":
 		return Vector2.ZERO
 	var dash_v: Variant = e.get("_dash_dir")
 	if dash_v == null or dash_v is not Vector2:

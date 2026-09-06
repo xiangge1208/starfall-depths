@@ -722,3 +722,207 @@ func test_aim_priority_distance_fallback_from_poses() -> void:
 	var idx := BalanceBotDecisions.aim_priority_index(
 		Vector2.ZERO, [Vector2(120, 0)], [true], [])
 	assert_int(idx).is_equal(0)
+
+
+# ================================================================ m4p-bal-c① 大体积距离带
+# probe 3493 归因：电磁蛛（radius 7×1.25=8.75，speed 80 = 玩家移速）80px 拉开带
+# 外恒距逼近 → 贴墙收尾接触冲撞死；Boss 半径 16 更甚。缺口与带沿随 combat_radius
+# 线性外扩（k=2），半径观测缺项按 0 = 既有行为零漂移。
+
+func test_big_body_gap_scales_melee_retreat() -> void:
+	# Boss（radius 16）在 100px：旧缺口 80 外无退避（带内环绕 y 轴分量）；
+	# 新缺口 80+16×2=112 内 → 退避（+x）。
+	var base := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(-100, 0)], [], 1.0, [], [], [], [0.0])
+	assert_float(absf(base.x)).override_failure_message(
+		"base=%s 小怪口径 100px 不得退避" % base).is_less(0.01)
+	var big := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(-100, 0)], [], 1.0, [], [], [], [16.0])
+	assert_float(big.x).override_failure_message(
+		"big=%s 大体积缺口应触发退避" % big).is_greater(0.5)
+
+func test_big_body_band_scales_band_edges() -> void:
+	# Boss（radius 16）在 150px：旧带上沿 132 外 → 趋近；新上沿 132+32=164 内 →
+	# 环绕（x 轴零分量，不推入 70px 拍击扇形程）。
+	var base := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(150, 0)], [], 1.0, [], [], [], [0.0])
+	assert_float(base.x).override_failure_message(
+		"base=%s 旧口径 150px 应趋近" % base).is_greater(0.5)
+	var big := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(150, 0)], [], 1.0, [], [], [], [16.0])
+	assert_float(absf(big.x)).override_failure_message(
+		"big=%s 新带内不得趋近" % big).is_less(0.01)
+
+func test_big_body_radii_missing_is_zero_drift() -> void:
+	# enemy_radii 缺项（空数组/短数组）= 半径 0：既有行为逐字节不变（容错契约）。
+	var without := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192), [], [Vector2(150, 0)], [], 1.0)
+	var with_empty := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192), [], [Vector2(150, 0)], [], 1.0,
+		[], [], [], [])
+	var with_short := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192), [], [Vector2(150, 0)], [], 1.0,
+		[], [], [], [4.0])
+	assert_vector(with_empty).is_equal(without)
+	assert_vector(with_short).is_equal(without)
+
+
+# ================================================================ m4p-bal-c② Boss 预告观测
+
+func test_wedge_zone_repels_inside() -> void:
+	# 拍击扇形（apex 原点、facing +x、range 70、half 45°）：玩家 (40,10) 在域内
+	# → 从 apex 径向推出（+x 逃离主分量 + 微切向）。
+	var v := BalanceBotDecisions.boss_zone_repulsion(Vector2(40, 10), [{
+		"kind": "wedge", "apex": Vector2.ZERO, "facing": 0.0,
+		"range_px": 70.0, "half_angle": PI * 0.25,
+	}])
+	assert_float(v.x).override_failure_message("v=%s 应径向推出" % v).is_greater(1.0)
+	assert_float(v.y).override_failure_message("v=%s 应保留方位切向" % v).is_greater(0.05)
+
+func test_wedge_zone_ignores_outside_range_or_arc() -> void:
+	var zone := {"kind": "wedge", "apex": Vector2.ZERO, "facing": 0.0,
+		"range_px": 70.0, "half_angle": PI * 0.25}
+	# 距离 80 > 70：域外零分量。
+	assert_vector(BalanceBotDecisions.boss_zone_repulsion(Vector2(80, 0), [zone])
+		).is_equal(Vector2.ZERO)
+	# 弧外（180°）：零分量。
+	assert_vector(BalanceBotDecisions.boss_zone_repulsion(Vector2(-40, 0), [zone])
+		).is_equal(Vector2.ZERO)
+	# 未知 kind：零分量（契约外数据不炸）。
+	assert_vector(BalanceBotDecisions.boss_zone_repulsion(Vector2(40, 0),
+		[{"kind": "unknown"}])).is_equal(Vector2.ZERO)
+
+func test_wedge_zone_in_combat_move_dir() -> void:
+	# 走位集成钉：拍击 windup 内玩家站扇形域中 → 合力含逃离主分量。
+	var dir := BalanceBotDecisions.combat_move_dir(
+		Vector2(40, 0), Rect2(-160, -96, 320, 192),
+		[], [], [], 1.0, [], [], [], [],
+		[{"kind": "wedge", "apex": Vector2.ZERO, "facing": 0.0,
+			"range_px": 70.0, "half_angle": PI * 0.25}])
+	assert_float(dir.x).override_failure_message("dir=%s 扇形域应逃离" % dir).is_greater(1.0)
+
+func test_boss_band_impact_ticks_windup_static_at_anchor() -> void:
+	# windup 段条带静止于 x0=0：elapsed=10 → 命中拍 = 余 32t + (100-12)/12.67 ≈ 38.9。
+	var t := BalanceBotDecisions.boss_band_impact_ticks(10.0, 100.0, 0.0, 456.0, 42, 36, 12.0)
+	assert_float(t).is_equal_approx(32.0 + 88.0 * 36.0 / 456.0, 0.01)
+
+func test_boss_band_impact_ticks_travel_approaching_and_passed() -> void:
+	# travel 中段（elapsed=60 → 中心 228）：玩家 300 前方 72px → (72-12)/(456/36)≈4.74；
+	# 玩家 100 已越过（dist=-128 < -12）→ INF（单回合单次命中已结算语义）。
+	var t := BalanceBotDecisions.boss_band_impact_ticks(60.0, 300.0, 0.0, 456.0, 42, 36, 12.0)
+	assert_float(t).is_equal_approx(60.0 * 36.0 / 456.0, 0.01)
+	assert_float(BalanceBotDecisions.boss_band_impact_ticks(
+		60.0, 100.0, 0.0, 456.0, 42, 36, 12.0)).is_equal(INF)
+
+func test_boss_band_impact_ticks_behind_origin_and_travel_end() -> void:
+	# windup 段玩家在行进起点后方（dist < -半厚）→ 条带出发即远离 → INF；
+	# travel 结束（progress=1）未及玩家（dist > 半厚）→ INF；条带缘（dist=半厚）→ 0。
+	assert_float(BalanceBotDecisions.boss_band_impact_ticks(
+		10.0, -30.0, 0.0, 456.0, 42, 36, 12.0)).is_equal(INF)
+	assert_float(BalanceBotDecisions.boss_band_impact_ticks(
+		78.0, 470.0, 0.0, 456.0, 42, 36, 12.0)).is_equal(INF)
+	assert_float(BalanceBotDecisions.boss_band_impact_ticks(
+		78.0, 468.0, 0.0, 456.0, 42, 36, 12.0)).is_equal(0.0)
+	# 反向行进（x1 < x0）：前向镜像几何（中心 228、玩家在前方 72px）。
+	var t := BalanceBotDecisions.boss_band_impact_ticks(60.0, 156.0, 456.0, 0.0, 42, 36, 12.0)
+	assert_float(t).is_equal_approx(60.0 * 36.0 / 456.0, 0.01)
+
+func test_roll_band_triggers_against_travel_direction() -> void:
+	# 条带命中前 8 拍（≤9 阈值）+ 采样 0.5 < 0.9 → 翻滚，方向 = 逆行进向
+	#（条带 12.7px/t 快于翻滚 4.3px/t，顺向滚 i-frame 13t 内被追上——迎面穿越）。
+	var out := BalanceBotDecisions.roll_decision({
+		"roll_ready": true,
+		"boss_band_ticks": 8.0, "boss_band_dir": Vector2(1, 0),
+		"bullet_d": INF_F, "bullet_away": Vector2.ZERO,
+		"charge_perp": Vector2.ZERO,
+		"melee_d": INF_F, "melee_away": Vector2.ZERO,
+		"roll_sample": 0.5, "panic_sample": 0.0, "side_sample": 0.5,
+	})
+	assert_bool(out["do"]).is_true()
+	assert_vector(out["dir"]).is_equal(Vector2(-1, 0))
+
+func test_roll_band_skipped_when_far_or_sample_fails() -> void:
+	# 命中 30 拍后（> 9 阈值）：不因条带翻滚（i-frame 13t 覆盖不到，留到临身拍）。
+	var ctx := {
+		"roll_ready": true,
+		"boss_band_ticks": 30.0, "boss_band_dir": Vector2(1, 0),
+		"bullet_d": INF_F, "bullet_away": Vector2.ZERO,
+		"charge_perp": Vector2.ZERO,
+		"melee_d": INF_F, "melee_away": Vector2.ZERO,
+		"roll_sample": 0.5, "panic_sample": 0.0, "side_sample": 0.5,
+	}
+	assert_bool(BalanceBotDecisions.roll_decision(ctx)["do"]).is_false()
+	# 临身但采样 0.95 ≥ 0.9：本拍不翻（概率口径同自爆虫）。
+	ctx["boss_band_ticks"] = 8.0
+	ctx["roll_sample"] = 0.95
+	assert_bool(BalanceBotDecisions.roll_decision(ctx)["do"]).is_false()
+
+func test_roll_band_takes_precedence_over_bullet() -> void:
+	# 同时临条带 + 贴弹：条带优先（5 伤必中 > 3 伤可躲），方向取逆行进向。
+	var out := BalanceBotDecisions.roll_decision({
+		"roll_ready": true,
+		"boss_band_ticks": 6.0, "boss_band_dir": Vector2(1, 0),
+		"bullet_d": 20.0, "bullet_away": Vector2.DOWN,
+		"charge_perp": Vector2.ZERO,
+		"melee_d": INF_F, "melee_away": Vector2.ZERO,
+		"roll_sample": 0.3, "panic_sample": 0.0, "side_sample": 0.5,
+	})
+	assert_bool(out["do"]).is_true()
+	assert_vector(out["dir"]).is_equal(Vector2(-1, 0))
+
+func test_roll_band_absent_zero_drift() -> void:
+	# boss_band_* 缺省（INF/ZERO）：既有 roll_decision 契约逐字节不变。
+	var ctx := {
+		"roll_ready": true,
+		"bullet_d": 20.0, "bullet_away": Vector2.LEFT,
+		"charge_perp": Vector2.ZERO,
+		"melee_d": INF_F, "melee_away": Vector2.ZERO,
+		"roll_sample": 0.3, "panic_sample": 0.0, "side_sample": 0.5,
+	}
+	var with_key := ctx.duplicate()
+	with_key["boss_band_ticks"] = INF
+	with_key["boss_band_dir"] = Vector2.ZERO
+	assert_vector(BalanceBotDecisions.roll_decision(with_key)["dir"]
+		).is_equal(BalanceBotDecisions.roll_decision(ctx)["dir"])
+
+
+# ================================================================ m4p-bal-c③ 红心目标黏滞
+# probe 3472-a1 实拍（3271 式极限环）：已清 elite 房双心分居柱面两侧
+# (176.5,957)/(165.5,933.5)，逐拍重选使 seek 滑移符号随最近心翻转 → 柱东面
+# y∈[954,959.5] 9 唯一位极限环，160s 零拾取。锁定窗内维持目标，窗满重锁最近。
+
+func test_sticky_heart_locks_within_window() -> void:
+	# 锁定窗内（50 < 90 拍）：即使 2 号更近（3271 捕获形态：最近心随玩家滑动
+	# 逐拍翻转）也维持 1 号锁——绕柱方向承诺不被逐拍撤销。
+	var cands := [{"id": 1, "pos": Vector2(165.5, 933.5)},
+		{"id": 2, "pos": Vector2(176.5, 957.0)}]
+	var pick := BalanceBotDecisions.sticky_heart_id(1, 100, cands,
+		Vector2(201.5, 956.0), 150, 90)
+	assert_int(pick).is_equal(1)
+
+func test_sticky_heart_relocks_after_window() -> void:
+	# 窗满（100 ≥ 90）：恢复最近心评估。原位（2 号仍最近）重锁结果不变——
+	# 评估不引入抖动；玩家绕到柱北（y=920，1 号最近）→ 允许换目标（黏滞非永久锁）。
+	var cands := [{"id": 1, "pos": Vector2(165.5, 933.5)},
+		{"id": 2, "pos": Vector2(176.5, 957.0)}]
+	assert_int(BalanceBotDecisions.sticky_heart_id(2, 100, cands,
+		Vector2(201.5, 956.0), 200, 90)).is_equal(2)
+	assert_int(BalanceBotDecisions.sticky_heart_id(2, 100, cands,
+		Vector2(201.5, 920.0), 200, 90)).is_equal(1)
+
+func test_sticky_heart_initial_and_gone_and_empty() -> void:
+	var cands := [{"id": 1, "pos": Vector2(165.5, 933.5)},
+		{"id": 2, "pos": Vector2(176.5, 957.0)}]
+	# 无旧锁（-1）：直接最近。
+	assert_int(BalanceBotDecisions.sticky_heart_id(-1, -1, cands,
+		Vector2(201.5, 956.0), 100, 90)).is_equal(2)
+	# 旧锁已消失（拾取/失效）：自愈重锁最近。
+	assert_int(BalanceBotDecisions.sticky_heart_id(3, 100, cands,
+		Vector2(201.5, 956.0), 150, 90)).is_equal(2)
+	# 无候选：-1。
+	assert_int(BalanceBotDecisions.sticky_heart_id(1, 100, [],
+		Vector2.ZERO, 150, 90)).is_equal(-1)

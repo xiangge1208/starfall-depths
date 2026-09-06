@@ -13,6 +13,19 @@ extends RefCounted
 ## m4p-bal-b：武装自爆虫优先瞄准（aim_priority_index——先杀后走）+ 爆炸域逃离
 ## 去对消（bomber_flee_vector——径向只取最近一只 + 切向机动，多虫夹击不再定身）
 ## + 翻滚触发余量 8→20。
+##
+## m4p-bal-c（探针定向迭代卡 C，捕获例归因见提交 body）：
+##   ① 大体积距离带——enemies 观测通道加 combat_radius（enemy_radii 平行数组），
+##     近敌拉开缺口与距离带沿随半径线性外扩（probe 3493：电磁蛛 speed 80 = 玩家
+##     移速，80px 拉开带贴墙收尾 → 接触冲撞死；miniboss 半径 7×1.25、Boss 16）。
+##   ② Boss 预告观测——拍击扇形（windup 30t 内可走位躲出）走独立斥力通道
+##     boss_zone_repulsion；藤蔓横扫条带几何 456×238 全覆盖 M0 战斗房内域
+##     320×192（probe 几何归因：走位无出口侧，条带必中）→ 不进走位通道，改走
+##     确定性翻滚通道（boss_band_impact_ticks 当拍锚点+方向外推 → roll_decision
+##     命中前 ≤9 拍逆行进向翻滚，i-frame 13t 覆盖穿越窗——同武装自爆虫口径）。
+##   ③ 红心目标黏滞 sticky_heart_id（probe 3472-a1 实拍：已清 elite 房双红心分居
+##     柱面两侧，逐拍重选使 seek 滑移符号逐拍翻转 → 柱东面 5.5px 极限环）——
+##     锁定最近红心 HEART_STICKY_TICKS 拍再评估。
 
 # ---------------- 走位（避弹 / 避 hazard / 近敌拉开 / 距离带） ----------------
 const DODGE_RADIUS_PX := 132.0       # 敌弹感知半径（ proactive：弹速 ~200px/s 下留 ≥0.6s 反应窗）
@@ -54,6 +67,27 @@ const SHOOTER_APPROACH_W := 1.2      # 威胁下向超带 shooter 的趋近主�
                                      # 趋近轴仍被按下，净距离收敛；近距弹斥力 2.0 级
                                      # 仍优先——躲避优先级不变）
 
+# ---------------- m4p-bal-c① 大体积距离带（probe 3493 归因修法） ----------------
+const BIG_BODY_GAP_SCALE_PX := 2.0   # 缺口/带沿的半径缩放系数 k：effective = 基准 +
+                                     # combat_radius*k（miniboss 8.75 → 缺口 97.5、
+                                     # Boss 16 → 缺口 112；小怪 5~6 → 90~92 轻微外扩）。
+
+# ---------------- m4p-bal-c② Boss 预告域（拍击扇形斥力 + 横扫条带翻滚） ----------------
+const BOSS_ZONE_WEIGHT := 1.6        # 拍击扇形域斥力权重（确定性 5 伤大伤，压过距离带
+                                     # 趋近 1.0 / 环绕 0.9；hazard 同级量级）
+const BOSS_BAND_ROLL_AHEAD_TICKS := 9.0  # 条带命中前 ≤9 拍触发翻滚：i-frame 13t 覆盖
+                                         # 穿越窗（逆行进向滚，合拢 12.7+4.3=17px/t，
+                                         # 触发距 ~126px → 穿越落第 7 拍，余量充足）
+const BOSS_BAND_ROLL_GUARD_TICKS := 64.0 # 条带临身守卫窗（9 阈值 + 翻滚 CD 42 + i-frame
+                                         # 13）：窗内抑制贴弹/近战 panic 翻滚——翻滚 CD
+                                         # 被 3 伤可躲弹烧掉后，必中 5 伤条带无 CD 可用
+                                         #（verify-3483 死例归因：角点 47 弹连滚烧 CD）
+const BOSS_BAND_ROLL_PROB := 0.9     # 条带必中（几何全覆盖）→ 近满概率（同 BOMBER_ROLL_PROB）
+
+# ---------------- m4p-bal-c③ 红心目标黏滞（probe 3472-a1 双心抖动极限环修法） ----------------
+const HEART_STICKY_TICKS := 90       # 红心目标锁定窗（1.5s）：柱端绕行 ~0.6s 内意图
+                                     # 恒定，滑移方向不再被逐拍撤销；窗满再评估。
+
 # ---------------- m4-b3③ 实体斥力场（柱/箱/墙；3271-a3 Seek 楔死柱面实证修法） ----------------
 const SOLID_AVOID_PX := 14.0         # 实体面外斥力带宽（玩家 r=6 + 8px 缓冲）
 const SOLID_WEIGHT := 1.4            # 垂直离面分量（带宽内线性衰减）
@@ -88,13 +122,18 @@ const OFFENSE_EFFECT_KEYS := ["atk_speed_pct", "extra_projectiles", "crit_pct",
 ## 已点燃——未点燃走温和保距，点燃走强逃，缺省 armed=true）；
 ## shooters: [Vector2]（m4-b3② 风筝型射击敌人 brain_pos，弩兵等；威胁下超带趋近）；
 ## solids: [Rect2]（m4-b3③ 房内实体矩形，世界坐标——柱/箱/墙，同
-## FloorScene._room_solid_rects 契约）。
+## FloorScene._room_solid_rects 契约）；
+## enemy_radii: [float]（m4p-bal-c① 平行数组，enemies[i] 的 combat_radius；缺项/空
+## 数组按 0 处理 = 既有行为零漂移）；
+## boss_zones: [Dictionary]（m4p-bal-c② Boss 预告域，现契约 kind="wedge" 拍击扇形，
+## 见 boss_zone_repulsion）。
 ## 优先级：出界强拉回 > 弹幕斥力 > 爆炸域斥力 > hazard 斥力 > 实体斥力场
-## > 近敌拉开 > 距离带维持（威胁下超带 shooter 趋近）> 软避墙（贴墙带内向分量）。
+## > 近敌拉开（半径缩放缺口）> Boss 预告域斥力 > 距离带维持（威胁下超带 shooter 趋近）
+## > 软避墙（贴墙带内向分量）。
 static func combat_move_dir(pos: Vector2, bounds: Rect2,
 		bullets: Array, enemies: Array, hazard_zones: Array,
 		wander_sign: float, bombers: Array = [], shooters: Array = [],
-		solids: Array = []) -> Vector2:
+		solids: Array = [], enemy_radii: Array = [], boss_zones: Array = []) -> Vector2:
 	var dir := Vector2.ZERO
 
 	# 1) 弹幕斥力：只躲正在逼近的弹（距离越近权重越大，线性衰减）+ 切向 juke。
@@ -150,26 +189,40 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 	#    滑移以「本步之前的意图向量」定向（帮助绕行而非对顶）。
 	dir += _solid_repulsion(pos, solids, dir, wander_sign)
 
-	# 5) 敌人相对位：近敌拉开（退避+切向）；带内环绕走位；带外趋近/拉开。
+	# 5) 敌人相对位：近敌拉开（半径缩放缺口：退避+切向）；带内环绕走位；带外趋近/拉开。
+	#    m4p-bal-c① 缺口与带沿随最近敌 combat_radius 线性外扩（BIG_BODY_GAP_SCALE_PX）：
+	#    miniboss 半径 7×1.25=8.75、Boss 16（小怪 5~6）——接触冲撞收尾速度随体积上升，
+	#    按小怪标定的 80px 缺口 / 72~132 带对大体积失效（probe 3493：电磁蛛 speed 80
+	#    = 玩家移速，缺口外恒距逼近贴墙收尾接触死）。半径观测缺项按 0 = 既有行为。
 	if not enemies.is_empty():
 		var nearest_d := INF
 		var nearest := Vector2.ZERO
-		for e: Vector2 in enemies:
+		var nearest_radius := 0.0
+		for i in enemies.size():
+			var e: Vector2 = enemies[i]
 			var de: float = e.distance_to(pos)
 			if de < nearest_d:
 				nearest_d = de
 				nearest = e
+				nearest_radius = float(enemy_radii[i]) if i < enemy_radii.size() else 0.0
 		var away_e := (pos - nearest) / maxf(nearest_d, 1.0)
-		if nearest_d < MELEE_GAP_PX:
+		var gap := MELEE_GAP_PX + nearest_radius * BIG_BODY_GAP_SCALE_PX
+		var band_min := RANGED_BAND_MIN_PX + nearest_radius * BIG_BODY_GAP_SCALE_PX
+		var band_max := RANGED_BAND_MAX_PX + nearest_radius * BIG_BODY_GAP_SCALE_PX
+		if nearest_d < gap:
 			var tangent := Vector2(-away_e.y, away_e.x)   # 显式左垂直（不依赖 orthogonal 方向约定）
 			dir += away_e * MELEE_RETREAT_W + tangent * (MELEE_TANGENT_W * wander_sign)
 		elif not has_threat:
 			var orbit := Vector2(-away_e.y, away_e.x) * (ORBIT_WEIGHT * wander_sign)
-			if nearest_d < RANGED_BAND_MIN_PX:
+			if nearest_d < band_min:
 				dir += away_e
-			elif nearest_d > RANGED_BAND_MAX_PX:
+			elif nearest_d > band_max:
 				dir -= away_e
 			dir += orbit                     # 带内/带外调整都叠加环绕（永不停步）
+
+	# 5.4) m4p-bal-c② Boss 预告域斥力（拍击扇形：windup 30t 内可走位躲出 70px/90°
+	#      扇形；横扫条带为全房覆盖几何不进本通道——规避走翻滚通道，见决策层头注②）。
+	dir += boss_zone_repulsion(pos, boss_zones)
 
 	# 5.5) m4-b3② shooter 接近带：威胁下上面整段距离带逻辑被跳过（has_threat 分支），
 	#      弩兵等风筝原型把 bot 拖入 150~200px 恒距（fix2 §2.1.3 实证）。超带最近
@@ -234,6 +287,92 @@ static func bomber_flee_vector(pos: Vector2, bombers: Array, wander_sign: float)
 	var radial := best_away / maxf(best_d, 0.1)
 	var tangent := Vector2(-radial.y, radial.x)   # 显式左垂直（与近敌拉开切向同约定）
 	return radial * BOMBER_FLEE_WEIGHT + tangent * (BOMBER_FLEE_TANGENT_W * wander_sign)
+
+
+## Boss 预告域斥力（m4p-bal-c②；combat_move_dir 第 5.4 段）。zones 元素契约：
+## {kind: "wedge", apex: Vector2, facing: float(弧度), range_px: float,
+##  half_angle: float(弧度)}——藤蔓巨像 P0 巨掌拍击（SLAP_RANGE 70 / 90° 扇形 /
+## windup 30t，bot 侧经 BossBase 节点 get("_move")/get("_slap_facing") 只读观测）。
+## 玩家在扇形域内（距离 ≤ range_px 且与 facing 夹角 ≤ half_angle）→ 从 apex 径向
+## 推出（固定权重 BOSS_ZONE_WEIGHT）；域外/未知 kind → 零分量。前摇结束拍后 bot
+## 不再注入（扇形已结算，规避无意义）。藤蔓横扫条带不进本通道：条带 456×238
+## 全覆盖 M0 战斗房内域 320×192（probe 几何归因），走位无出口侧——规避走确定性
+## 翻滚通道（boss_band_impact_ticks → roll_decision）。
+static func boss_zone_repulsion(pos: Vector2, zones: Array) -> Vector2:
+	var out := Vector2.ZERO
+	for z in zones:
+		if String(z.get("kind", "")) != "wedge":
+			continue
+		var apex: Vector2 = z["apex"]
+		var facing := float(z.get("facing", 0.0))
+		var to := pos - apex
+		var d := to.length()
+		if d < 1.0:
+			to = Vector2.from_angle(facing + PI)    # 与 apex 重合：沿背向推出
+			d = 1.0
+		if d > float(z.get("range_px", 70.0)):
+			continue
+		if absf(angle_difference(facing, to.angle())) > float(z.get("half_angle", PI * 0.25)):
+			continue
+		out += to / d * BOSS_ZONE_WEIGHT
+	return out
+
+
+## 藤蔓横扫条带命中时序（m4p-bal-c②；节奏常量镜像 core/enemies/bosses/
+## vine_colossus.gd SWEEP_WINDUP_TICKS=42 / SWEEP_TRAVEL_TICKS=36 /
+## SWEEP_THICKNESS_PX=24——bot 侧经 BossBase 节点只读 _move/_move_start/
+## _sweep_anchor/_sweep_x1_px 生产字段，锚点+方向外推当拍与未来条带位）。
+## elapsed_ticks: _move 起始拍差；x0 = _sweep_anchor.x（行进起点）、x1 =
+## _sweep_x1_px（行进终点）；windup 段条带静止于 x0，travel 段线性推进。
+## 返回条带前缘到达 player_x（半厚 half_thickness 内）的剩余拍数；INF = 本回合
+## 不会命中（玩家在行进起点后方 / 条带已越过 / 行进结束未及）。
+static func boss_band_impact_ticks(elapsed_ticks: float, player_x: float, x0: float,
+		x1: float, windup_ticks: int, travel_ticks: int, half_thickness: float) -> float:
+	var span := x1 - x0
+	if absf(span) < 0.01 or travel_ticks <= 0:
+		return INF
+	var dir_sign := signf(span)
+	var speed := absf(span) / float(travel_ticks)     # 456px/36t = 12.7px/t（远超玩家滚速）
+	var elapsed := maxf(elapsed_ticks, 0.0)
+	if elapsed < float(windup_ticks):
+		var dist0 := (player_x - x0) * dir_sign
+		if dist0 < -half_thickness:
+			return INF                        # 玩家在行进起点后方：条带出发即远离
+		return float(windup_ticks) - elapsed \
+			+ maxf(dist0 - half_thickness, 0.0) / speed
+	var progress := minf((elapsed - float(windup_ticks)) / float(travel_ticks), 1.0)
+	var center := lerpf(x0, x1, progress)
+	var dist := (player_x - center) * dir_sign
+	if dist < -half_thickness:
+		return INF                            # 条带已越过玩家（单回合单次命中已结算）
+	if progress >= 1.0 and dist > half_thickness:
+		return INF                            # 行进结束仍未及玩家
+	return maxf(dist - half_thickness, 0.0) / speed
+
+
+## 红心目标黏滞（m4p-bal-c③；probe 3472-a1 双红心意图抖动极限环修法）。
+## 形态：已清房双心分居柱面两侧，最近心随玩家滑动在距离曲线交点两侧翻转 →
+## seek_with_solids 的滑移符号（signf(切向·intent)）逐拍翻转 → 绕柱方向承诺被
+## 逐拍撤销 → 柱面东沿极限环（捕获实拍：pp y∈[954,959.5] 9 唯一位，160s 零拾取）。
+## 修法：prev_id 在 HEART_STICKY_TICKS 窗内且候选仍存在 → 维持（意图/滑移方向
+## 恒定，绕柱端点 ~0.6s 内收敛）；窗满或失效 → 最近心重锁（严格 <，同距取先
+## 出现者，确定性）。candidates: [{id: int, pos: Vector2}]；返回 id（无候选 -1）。
+static func sticky_heart_id(prev_id: int, prev_frame: int, candidates: Array,
+		pos: Vector2, frame: int, lock_ticks: int) -> int:
+	var best_id := -1
+	var best_d := INF
+	var prev_alive := false
+	for c in candidates:
+		var id := int(c.get("id", -1))
+		var d: float = (c["pos"] as Vector2).distance_to(pos)
+		if id == prev_id:
+			prev_alive = true
+		if d < best_d:
+			best_d = d
+			best_id = id
+	if prev_alive and prev_frame >= 0 and frame - prev_frame < lock_ticks:
+		return prev_id
+	return best_id
 
 
 ## 优先瞄准下标（m4p-bal-b 先杀后走；_nudge_aim_if_unlocked 瞄准层接线）。
@@ -332,17 +471,27 @@ static func velocity_from_track(prev: Vector2, prev_frame: int, cur: Vector2,
 
 ## 翻滚决策。ctx 键（全部显式注入，无隐藏随机）：
 ##   roll_ready      生产 roll_ready_at(f) 守卫值
+##   boss_band_ticks / boss_band_dir  m4p-bal-c②：横扫条带命中剩余拍（INF=不命中）
+##                                    与行进方向单位向量（Vector2.ZERO=未观测）
 ##   bullet_d / bullet_away    最近敌弹距离与远离方向（无弹 d=INF）
 ##   bomber_d / bomber_away    最近已点燃自爆虫「距离-爆炸半径」（负=炸圈内）与远离方向
 ##   charge_perp     冲锋怪前摇侧闪方向（Vector2.ZERO = 无读到的冲锋）
 ##   melee_d / melee_away      最近近战敌距离与远离方向
 ##   roll_sample / panic_sample / side_sample   本拍随机采样（调用方 rng 掷出）
-## 优先级：贴弹 > 爆炸临身 > 冲锋临身 > 近战贴脸 panic。返回 {do: bool, dir: Vector2}。
+## 优先级：横扫条带（必中确定性大伤）> 贴弹 > 爆炸临身 > 冲锋临身 > 近战贴脸 panic。
+## 条带翻滚方向 = 逆行进向（条带 12.7px/t 快于翻滚 4.3px/t，顺向滚 i-frame 13t 内
+## 会被追上；迎面穿越让合拢 17px/t 在触发距 ~126px 下第 ~7 拍过身，i-frame 覆盖）。
+## 返回 {do: bool, dir: Vector2}。
 static func roll_decision(ctx: Dictionary) -> Dictionary:
 	if not bool(ctx.get("roll_ready", false)):
 		return {"do": false, "dir": Vector2.ZERO}
 	var roll_sample := float(ctx.get("roll_sample", 0.0))
 	var side_sign := 1.0 if float(ctx.get("side_sample", 0.5)) < 0.5 else -1.0
+	var band_ticks := float(ctx.get("boss_band_ticks", INF))
+	var band_dir: Vector2 = ctx.get("boss_band_dir", Vector2.ZERO)
+	if band_ticks <= BOSS_BAND_ROLL_AHEAD_TICKS and band_dir != Vector2.ZERO \
+			and roll_sample < BOSS_BAND_ROLL_PROB:
+		return {"do": true, "dir": -band_dir.normalized()}
 	var bullet_d := float(ctx.get("bullet_d", INF))
 	if bullet_d < ROLL_RADIUS_PX and roll_sample < ROLL_PROB:
 		return {"do": true, "dir": (ctx.get("bullet_away") as Vector2).normalized()}
