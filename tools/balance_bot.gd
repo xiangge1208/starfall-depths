@@ -1105,7 +1105,8 @@ func _combat_drive(fs: FloorScene, room: FloorScene.FloorRoom, player: Player,
 	# 距离带/shooter 趋近）→ 8 向生产输入；逐敌 lead 速度轨（m4-b3①）同步更新。
 	_lead_track_update(alive)
 	var dir := BalanceBotDecisions.combat_move_dir(pos, bounds, bullets, enemies,
-		hazards, _wander_sign, bombers, shooters, solids, enemy_radii, boss_zones)
+		hazards, _wander_sign, bombers, shooters, solids, enemy_radii, boss_zones,
+		_player_melee_range(player))
 	_apply_move_input(dir)
 
 	# 决策：翻滚（贴弹/冲锋临身/近战贴脸 panic；概率采样来自 bot 确定性 rng）
@@ -1237,6 +1238,19 @@ func _nudge_aim_if_unlocked(player: Player, alive: Array[EnemyBase], pos: Vector
 func _row_fires(row: Dictionary) -> bool:
 	var v: Variant = row.get("bullet_dmg")
 	return v != null and int(v) > 0
+
+
+## m4p-bal-e 当前武器近战射程（走位交战带入参）：手持近战 → range（缺省 40，同
+## 生产 melee.gd `w.get("range", 40)` 口径）；远程/空手/读不到 → 0 = 走原远程带。
+## 换槽后逐拍重读，与生产 rig.current() 同源（换上/换下近战即时改变走位语义）。
+func _player_melee_range(player: Player) -> float:
+	var rig: WeaponRig = player.get_node_or_null("WeaponRig") as WeaponRig
+	if rig == null:
+		return 0.0
+	var w := rig.current()
+	if w.is_empty() or not bool(w.get("is_melee", false)):
+		return 0.0
+	return float(w.get("range", 40.0))
 
 
 ## 当前武器弹速（lead 飞行时间入参；近战/空手/读不到 → 0 = lead 关闭直瞄）。

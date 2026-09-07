@@ -1058,13 +1058,22 @@ func test_upgrade_empty_slot_always_picks() -> void:
 
 
 func test_upgrade_melee_same_caliber_no_range_folding() -> void:
-	# 近战同口径：damage×rate 直比（range/arc 覆盖差不折算）——14 DPS 近战拾取、
-	# 11 DPS 近战不换。
+	# 近战同口径：damage×rate 直比（arc 覆盖差不折算）——同为**可用射程**（≥72px）
+	# 时 14 DPS 近战拾取、11 DPS 近战不换。
+	#
+	# m4p-bal-e 修订：原用例以 range=40 钉「射程完全不参与判定」。该契约被 gate3
+	# 探针证伪——range<72 的近战 bot 结构上挥不到（走位带下沿），拾取即自断输出
+	# （批 3 残差 31% 主家族）。射程现在是**可用性硬门**（ground_weapon_usable），
+	# 门内仍按 DPS 直比、不做射程加权折算——原意图（不搞覆盖面折算）保留。
 	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
 		{"id": "melee_up", "damage": 7, "rate": 2.0, "is_melee": true,
-			"range": 40, "arc_deg": 90.0})).is_true()
+			"range": 80, "arc_deg": 90.0})).is_true()
 	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
 		{"id": "melee_down", "damage": 5, "rate": 2.2, "is_melee": true,
+			"range": 80, "arc_deg": 90.0})).is_false()
+	# 射程门：同为 14 DPS，射程 40（<72）不拾、射程 80 拾——差异只来自可用性
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(_vanguard_slots(),
+		{"id": "melee_short", "damage": 7, "rate": 2.0, "is_melee": true,
 			"range": 40, "arc_deg": 90.0})).is_false()
 
 
@@ -1124,3 +1133,79 @@ func test_weapon_loot_index_none_passing_or_empty() -> void:
 		Vector2.ZERO)).is_equal(-1)
 	assert_int(BalanceBotDecisions.weapon_loot_index([], _vanguard_slots(),
 		Vector2.ZERO)).is_equal(-1)
+
+
+# ================================================================ m4p-bal-e 近战武器可用性
+# 探针归因（gate3 批 3 残差 12%→31% 回归）：卡 D 的拾取只按纸面 DPS = damage×rate
+# 排序，完全不看 is_melee/range。11/12 把近战武器的 range < bot 自己的距离带下沿
+# 72px，且全部纸面 DPS 高于初始手枪 12.0 —— bot 必然换上近战，然后在 72~132px 带
+# 里绕圈挥空气，有效 DPS 归零 → 房间清不掉 → sig_frozen（900 拍无进展）。
+# 实证：probe-3404（duyaduanren range=32，40 拍采样最近敌 58~160px，0 拍进程）、
+# probe-3409（lianchui range=56，仅 6/40 拍偶然进程，无法持续接触）。
+
+func _melee_row(range_px: float) -> Dictionary:
+	return {"damage": 6, "rate": 2.6, "is_melee": true, "range": range_px}
+
+
+func test_melee_range_collapses_distance_band_to_engage() -> void:
+	# 手持 32px 近战、敌在 100px（旧带内 72~132 = 判定「位置合适」不再趋近）：
+	# 必须净趋近敌人，否则永远打不到（3404 死锁形态）。
+	var enemy := Vector2(100, 0)
+	var dir := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [enemy], [], 1.0, [], [], [], [], [], 32.0)
+	assert_float(dir.x).override_failure_message(
+		"近战在带内必须继续趋近（旧逻辑带内只环绕 → 挥空气死锁）").is_greater(0.3)
+
+
+func test_melee_band_still_keeps_contact_gap_not_overlap() -> void:
+	# 已在近战射程内（20px < 32px range）：不再硬贴（贴脸=吃接触伤），
+	# 但也不得退出射程外——净位移不把自己推到 range 之外。
+	var dir := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(20, 0)], [], 1.0, [], [], [], [], [], 32.0)
+	assert_float(dir.length()).is_greater(0.0)      # 永不站桩（切向机动保持）
+
+
+func test_ranged_band_unchanged_when_no_melee_range() -> void:
+	# 零漂移铁律：melee_range_px 缺省（0 = 远程/空手）时行为与旧版逐字节一致。
+	# 带内 100px 敌人：只环绕、不趋近（既有契约）。
+	var old_style := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192), [], [Vector2(100, 0)], [], 1.0)
+	var explicit_zero := BalanceBotDecisions.combat_move_dir(
+		Vector2.ZERO, Rect2(-160, -96, 320, 192),
+		[], [Vector2(100, 0)], [], 1.0, [], [], [], [], [], 0.0)
+	assert_vector(explicit_zero).is_equal(old_style)
+	assert_float(old_style.x).is_equal_approx(0.0, 0.001)   # 带内不趋近（旧行为）
+
+
+func test_melee_pickup_rejected_when_range_below_band() -> void:
+	# 拾取侧硬门：射程短于 bot 可用带下沿的近战一律不拾（纸面 DPS 再高也没用——
+	# 有效 DPS = 0）。duyaduanren 口径：dps 15.6 > 手枪 12.0 但 range 32 < 72。
+	var slots := _vanguard_slots()
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(slots,
+		_melee_row(32.0))).override_failure_message(
+		"射程 32px 的近战不得被拾（bot 距离带 72px+，挥不到 → 有效 DPS 0）").is_false()
+	# 长杆近战（长枪 range=220 > 带下沿）：可用，仍按 DPS 判断
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(slots,
+		{"damage": 9, "rate": 1.8, "is_melee": true, "range": 220.0})).is_true()
+
+
+func test_melee_pickup_rejected_in_loot_index_selection() -> void:
+	# 选台侧同门：短射程近战候选被跳过，退而选可用的远程升级（而非「最高纸面 DPS」）。
+	var cands := [
+		{"id": 11, "pos": Vector2(30, 0), "row": _melee_row(32.0)},              # 15.6 但挥不到
+		{"id": 22, "pos": Vector2(50, 0), "row": {"damage": 4, "rate": 4.0}},    # 16.0 远程
+	]
+	assert_int(BalanceBotDecisions.weapon_loot_index(cands, _vanguard_slots(),
+		Vector2.ZERO)).is_equal(1)
+	# 只有短射程近战候选：一个都不选（-1 = 不寻的，保住手上远程武器）
+	assert_int(BalanceBotDecisions.weapon_loot_index([cands[0]], _vanguard_slots(),
+		Vector2.ZERO)).is_equal(-1)
+
+
+func test_melee_pickup_still_fills_empty_slot() -> void:
+	# 空槽例外保持：空槽不顶替任何武器，捡了净增火力（即便挥不到也不亏）——
+	# 但仅限「有空槽」这一分支，不得放宽到顶替远程武器。
+	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(
+		[{"damage": 3, "rate": 4.0}, {}], _melee_row(32.0))).is_true()

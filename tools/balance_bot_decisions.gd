@@ -76,6 +76,22 @@ const BIG_BODY_GAP_SCALE_PX := 2.0   # 缺口/带沿的半径缩放系数 k：ef
                                      # combat_radius*k（miniboss 8.75 → 缺口 97.5、
                                      # Boss 16 → 缺口 112；小怪 5~6 → 90~92 轻微外扩）。
 
+# ---------------- m4p-bal-e 近战交战带（gate3 停滞回归修法） ----------------
+const MELEE_BAND_KEEP := 0.75        # 近战交战带上沿 = 射程 × 本系数（32px 刃 → 24px
+                                     # 停靠）：留出挥击窗与走位抖动余量，不贴到接触伤
+                                     # 判定里。生产 melee.gd 按 range_px 弧形判定，
+                                     # 站在 0.75×range 处挥击必覆盖。
+const MELEE_CLOSE_W := 1.4           # 近战趋近主分量（威胁下仍生效——近战不进场就是
+                                     # 0 DPS，与远程「有威胁就退带」的取舍相反；
+                                     # 权重压过反向 juke 0.7，但低于近距弹斥力 2.0 级，
+                                     # 躲弹优先级不变）。
+const MELEE_MIN_USABLE_PX := 72.0    # 拾取硬门：射程低于本值的近战一律不拾。取值 =
+                                     # RANGED_BAND_MIN_PX（bot 走位能稳定维持的最近带
+                                     # 沿）——低于它意味着 bot 结构上挥不到（11/12 把
+                                     # 近战落此区间），纸面 DPS 再高有效值也是 0。
+                                     # 空槽分支例外（净增火力不顶替远程，见
+                                     # weapon_upgrade_pickup）。
+
 # ---------------- m4p-bal-c② Boss 预告域（拍击扇形斥力 + 横扫条带翻滚） ----------------
 const BOSS_ZONE_WEIGHT := 1.6        # 拍击扇形域斥力权重（确定性 5 伤大伤，压过距离带
                                      # 趋近 1.0 / 环绕 0.9；hazard 同级量级）
@@ -137,7 +153,8 @@ const OFFENSE_EFFECT_KEYS := ["atk_speed_pct", "extra_projectiles", "crit_pct",
 static func combat_move_dir(pos: Vector2, bounds: Rect2,
 		bullets: Array, enemies: Array, hazard_zones: Array,
 		wander_sign: float, bombers: Array = [], shooters: Array = [],
-		solids: Array = [], enemy_radii: Array = [], boss_zones: Array = []) -> Vector2:
+		solids: Array = [], enemy_radii: Array = [], boss_zones: Array = [],
+		melee_range_px: float = 0.0) -> Vector2:
 	var dir := Vector2.ZERO
 
 	# 1) 弹幕斥力：只躲正在逼近的弹（距离越近权重越大，线性衰减）+ 切向 juke。
@@ -213,6 +230,17 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 		var gap := MELEE_GAP_PX + nearest_radius * BIG_BODY_GAP_SCALE_PX
 		var band_min := RANGED_BAND_MIN_PX + nearest_radius * BIG_BODY_GAP_SCALE_PX
 		var band_max := RANGED_BAND_MAX_PX + nearest_radius * BIG_BODY_GAP_SCALE_PX
+		# m4p-bal-e 近战交战带：手持近战时整条带塌缩到「射程内侧」——旧带 72~132px
+		# 是按远程标定的，而 11/12 把近战 range < 72，于是 bot 在带里绕圈挥空气，
+		# 有效 DPS 归零（probe-3404 duyaduanren range=32：40 拍采样最近敌 58~160px，
+		# 一拍都没进过射程）。带上沿 = 射程×MELEE_BAND_KEEP（留出挥击窗，不贴到
+		# 接触伤判定里）、下沿 = 缺口与上沿取小（大体积敌的缺口可能已超射程——
+		# 此时优先不被撞，宁可打不到也不送）。melee_range_px<=0（远程/空手）
+		# 走原路径，逐字节零漂移。
+		if melee_range_px > 0.0:
+			band_max = minf(band_max, melee_range_px * MELEE_BAND_KEEP)
+			band_min = minf(band_min, band_max)
+			gap = minf(gap, band_min)
 		if nearest_d < gap:
 			var tangent := Vector2(-away_e.y, away_e.x)   # 显式左垂直（不依赖 orthogonal 方向约定）
 			dir += away_e * MELEE_RETREAT_W + tangent * (MELEE_TANGENT_W * wander_sign)
@@ -223,6 +251,12 @@ static func combat_move_dir(pos: Vector2, bounds: Rect2,
 			elif nearest_d > band_max:
 				dir -= away_e
 			dir += orbit                     # 带内/带外调整都叠加环绕（永不停步）
+		# m4p-bal-e：手持近战且在射程外时，即便有弹幕威胁也要压上去——远程可以
+		# 「退带躲弹再输出」，近战退带 = 永久 0 DPS（房间清不掉 → 900 拍 sig_frozen）。
+		# 主分量 1.4 压过反向 juke(0.7)，但低于近距弹斥力（2.0 级）与爆炸域(2.4)，
+		# 故「躲致命弹优先、其余时候贴上去」的取舍不变。
+		if melee_range_px > 0.0 and has_threat and nearest_d > band_max:
+			dir -= away_e * MELEE_CLOSE_W
 
 	# 5.4) m4p-bal-c② Boss 预告域斥力（拍击扇形：windup 30t 内可走位躲出 70px/90°
 	#      扇形；横扫条带为全房覆盖几何不进本通道——规避走翻滚通道，见决策层头注②）。
@@ -587,6 +621,17 @@ static func weakest_slot_index(current_weapons: Array) -> int:
 	return best
 
 
+## 地面武器可用性（m4p-bal-e 拾取硬门）：近战射程低于 MELEE_MIN_USABLE_PX 时
+## bot 结构上挥不到（走位带下沿 72px+，11/12 把近战 range<72）——纸面 DPS 再高，
+## 有效 DPS 也是 0。gate3 批 3 残差 31% 的主家族即此：换上近战后绕圈挥空气，
+## 房间清不掉 → 900 拍无进展 sig_frozen（probe-3404 duyaduanren range=32 实证）。
+## 远程（is_melee 缺省/false）恒可用；长杆近战（长枪 range=220）不受影响。
+static func ground_weapon_usable(row: Dictionary) -> bool:
+	if not bool(row.get("is_melee", false)):
+		return true
+	return float(row.get("range", 0.0)) >= MELEE_MIN_USABLE_PX
+
+
 ## 武器拾取升级决策（m4p-bal-d；纯函数，同输入必同输出）。
 ## current_weapons: WeaponRig.slots 形态（GameDB 武器行字典数组；{} = 空槽）。
 ## 地面武器 DPS（ground_weapon_dps 口径）严格优于当前槽中最弱者 → true（拾取）；
@@ -599,7 +644,11 @@ static func weapon_upgrade_pickup(current_weapons: Array, ground_weapon: Diction
 		return true
 	for w_v: Variant in current_weapons:
 		if not (w_v is Dictionary) or (w_v as Dictionary).is_empty():
-			return true            # 空槽必拾
+			return true            # 空槽必拾（净增火力，不顶替任何现有武器——
+			                       # m4p-bal-e 的射程门不管这一支：捡了不亏）
+	# m4p-bal-e：顶替分支才过射程门（挥不到的近战顶掉能用的远程 = 自断输出）
+	if not ground_weapon_usable(ground_weapon):
+		return false
 	var ground := ground_weapon_dps(ground_weapon)
 	var weakest := INF
 	for w_v: Variant in current_weapons:
