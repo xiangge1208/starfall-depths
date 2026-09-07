@@ -1,0 +1,7730 @@
+{
+	"attempt": 1,
+	"bot_plan": {
+		"flow_current": 10,
+		"idx": 14,
+		"plan": [
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			6,
+			5,
+			4,
+			3,
+			2,
+			1,
+			0,
+			10,
+			11,
+			10,
+			12,
+			10,
+			0,
+			1,
+			2,
+			3,
+			4,
+			5,
+			6,
+			7,
+			8,
+			8,
+			9
+		]
+	},
+	"dense_samples": [
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						631.5,
+						44.0
+					],
+					"d": 58.4,
+					"gp": [
+						631.5,
+						44.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 144.4,
+					"arch": "shooter",
+					"bp": [
+						450.5,
+						104.0
+					],
+					"d": 140.3,
+					"gp": [
+						450.5,
+						104.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-3.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				573.5,
+				37.0
+			],
+			"t": 144.2,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						636.5,
+						27.5
+					],
+					"d": 83.2,
+					"gp": [
+						636.5,
+						27.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 152.5,
+					"arch": "shooter",
+					"bp": [
+						439.0,
+						112.5
+					],
+					"d": 137.9,
+					"gp": [
+						439.0,
+						112.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				554.0,
+				36.0
+			],
+			"t": 144.4,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						641.5,
+						21.0
+					],
+					"d": 96.7,
+					"gp": [
+						641.5,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 159.8,
+					"arch": "shooter",
+					"bp": [
+						430.5,
+						121.5
+					],
+					"d": 140.2,
+					"gp": [
+						430.5,
+						121.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				547.5,
+				44.0
+			],
+			"t": 144.7,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				-0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						651.5,
+						21.0
+					],
+					"d": 118.9,
+					"gp": [
+						651.5,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 169.0,
+					"arch": "shooter",
+					"bp": [
+						419.0,
+						122.0
+					],
+					"d": 135.2,
+					"gp": [
+						419.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				538.0,
+				57.0
+			],
+			"t": 144.9,
+			"vel": [
+				-47.0,
+				33.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						656.0,
+						36.0
+					],
+					"d": 118.6,
+					"gp": [
+						656.0,
+						36.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 164.3,
+					"arch": "shooter",
+					"bp": [
+						411.5,
+						121.0
+					],
+					"d": 142.3,
+					"gp": [
+						411.5,
+						121.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				539.5,
+				58.0
+			],
+			"t": 145.2,
+			"vel": [
+				70.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						668.0,
+						48.5
+					],
+					"d": 115.1,
+					"gp": [
+						668.0,
+						48.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 173.6,
+					"arch": "shooter",
+					"bp": [
+						406.0,
+						107.0
+					],
+					"d": 153.4,
+					"gp": [
+						406.0,
+						107.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				554.0,
+				66.5
+			],
+			"t": 145.4,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						671.0,
+						65.5
+					],
+					"d": 118.8,
+					"gp": [
+						671.0,
+						65.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 175.9,
+					"arch": "shooter",
+					"bp": [
+						403.5,
+						102.0
+					],
+					"d": 151.4,
+					"gp": [
+						403.5,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				554.0,
+				86.5
+			],
+			"t": 145.7,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						670.5,
+						83.0
+					],
+					"d": 126.1,
+					"gp": [
+						670.5,
+						83.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 170.7,
+					"arch": "shooter",
+					"bp": [
+						403.0,
+						102.0
+					],
+					"d": 143.1,
+					"gp": [
+						403.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				546.0,
+				103.0
+			],
+			"t": 145.9,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						667.0,
+						99.0
+					],
+					"d": 126.0,
+					"gp": [
+						667.0,
+						99.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 172.1,
+					"arch": "shooter",
+					"bp": [
+						401.5,
+						103.0
+					],
+					"d": 140.2,
+					"gp": [
+						401.5,
+						103.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				541.5,
+				110.0
+			],
+			"t": 146.2,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						649.5,
+						99.0
+					],
+					"d": 109.4,
+					"gp": [
+						649.5,
+						99.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 164.2,
+					"arch": "shooter",
+					"bp": [
+						402.5,
+						118.0
+					],
+					"d": 140.6,
+					"gp": [
+						402.5,
+						118.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				540.0,
+				90.5
+			],
+			"t": 146.4,
+			"vel": [
+				-43.0,
+				-62.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						632.0,
+						97.5
+					],
+					"d": 110.1,
+					"gp": [
+						632.0,
+						97.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 156.8,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 129.9,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				522.5,
+				85.0
+			],
+			"t": 146.7,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						614.5,
+						94.5
+					],
+					"d": 102.2,
+					"gp": [
+						614.5,
+						94.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 140.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 130.0,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				516.0,
+				67.5
+			],
+			"t": 146.9,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						614.0,
+						90.5
+					],
+					"d": 111.7,
+					"gp": [
+						614.0,
+						90.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 126.3,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 132.4,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				509.5,
+				50.5
+			],
+			"t": 147.2,
+			"vel": [
+				-13.5,
+				-74.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						612.5,
+						98.5
+					],
+					"d": 130.7,
+					"gp": [
+						612.5,
+						98.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 110.4,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 131.8,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				497.5,
+				36.0
+			],
+			"t": 147.4,
+			"vel": [
+				-38.5,
+				-48.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 102.8,
+					"arch": "orbiter",
+					"bp": [
+						604.5,
+						102.0
+					],
+					"d": 136.1,
+					"gp": [
+						604.5,
+						102.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 129.1,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				488.5,
+				30.0
+			],
+			"t": 147.7,
+			"vel": [
+				56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						589.0,
+						110.0
+					],
+					"d": 123.6,
+					"gp": [
+						589.0,
+						110.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 101.2,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 124.1,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				489.0,
+				37.5
+			],
+			"t": 147.9,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 91.9,
+					"arch": "orbiter",
+					"bp": [
+						574.5,
+						119.5
+					],
+					"d": 132.1,
+					"gp": [
+						574.5,
+						119.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 112.7,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				471.5,
+				36.5
+			],
+			"t": 148.2,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 82.3,
+					"arch": "orbiter",
+					"bp": [
+						558.5,
+						126.0
+					],
+					"d": 138.8,
+					"gp": [
+						558.5,
+						126.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 101.0,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				452.0,
+				36.5
+			],
+			"t": 148.4,
+			"vel": [
+				-50.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 78.4,
+					"arch": "orbiter",
+					"bp": [
+						542.0,
+						133.0
+					],
+					"d": 121.4,
+					"gp": [
+						542.0,
+						133.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 106.6,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				465.0,
+				39.0
+			],
+			"t": 148.7,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						527.0,
+						139.0
+					],
+					"d": 108.4,
+					"gp": [
+						527.0,
+						139.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 69.1,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 120.3,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				485.0,
+				39.0
+			],
+			"t": 148.9,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						514.0,
+						149.0
+					],
+					"d": 110.8,
+					"gp": [
+						514.0,
+						149.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 57.3,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 133.8,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				502.5,
+				38.5
+			],
+			"t": 149.2,
+			"vel": [
+				22.5,
+				16.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						512.0,
+						131.5
+					],
+					"d": 93.3,
+					"gp": [
+						512.0,
+						131.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 57.2,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 134.1,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				503.0,
+				38.5
+			],
+			"t": 149.4,
+			"vel": [
+				23.5,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						512.0,
+						114.0
+					],
+					"d": 83.2,
+					"gp": [
+						512.0,
+						114.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 50.4,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						114.5
+					],
+					"d": 147.2,
+					"gp": [
+						398.0,
+						114.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				519.0,
+				31.0
+			],
+			"t": 149.7,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						515.0,
+						97.0
+					],
+					"d": 63.7,
+					"gp": [
+						515.0,
+						97.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 50.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						102.0
+					],
+					"d": 147.6,
+					"gp": [
+						398.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				529.5,
+				34.5
+			],
+			"t": 149.9,
+			"vel": [
+				-51.0,
+				30.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						517.5,
+						82.0
+					],
+					"d": 58.9,
+					"gp": [
+						517.5,
+						82.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 53.2,
+					"arch": "shooter",
+					"bp": [
+						398.5,
+						103.0
+					],
+					"d": 146.4,
+					"gp": [
+						398.5,
+						103.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				521.5,
+				23.0
+			],
+			"t": 150.2,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						515.5,
+						99.0
+					],
+					"d": 75.4,
+					"gp": [
+						515.5,
+						99.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 47.4,
+					"arch": "shooter",
+					"bp": [
+						407.5,
+						115.0
+					],
+					"d": 145.3,
+					"gp": [
+						407.5,
+						115.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				520.5,
+				24.0
+			],
+			"t": 150.4,
+			"vel": [
+				-33.0,
+				33.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						506.5,
+						114.0
+					],
+					"d": 86.8,
+					"gp": [
+						506.5,
+						114.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 44.8,
+					"arch": "shooter",
+					"bp": [
+						406.0,
+						122.0
+					],
+					"d": 142.1,
+					"gp": [
+						406.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				512.0,
+				27.5
+			],
+			"t": 150.7,
+			"vel": [
+				50.0,
+				-55.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						492.5,
+						124.5
+					],
+					"d": 91.3,
+					"gp": [
+						492.5,
+						124.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 37.2,
+					"arch": "shooter",
+					"bp": [
+						408.5,
+						122.0
+					],
+					"d": 135.7,
+					"gp": [
+						408.5,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				513.0,
+				35.5
+			],
+			"t": 150.9,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						476.5,
+						131.5
+					],
+					"d": 101.5,
+					"gp": [
+						476.5,
+						131.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 31.9,
+					"arch": "shooter",
+					"bp": [
+						401.0,
+						121.0
+					],
+					"d": 140.1,
+					"gp": [
+						401.0,
+						121.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				513.0,
+				36.5
+			],
+			"t": 151.2,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						471.0,
+						124.0
+					],
+					"d": 145.4,
+					"gp": [
+						471.0,
+						124.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 18.4,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						108.5
+					],
+					"d": 196.7,
+					"gp": [
+						398.0,
+						108.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				574.5,
+				22.0
+			],
+			"t": 151.4,
+			"vel": [
+				300.0,
+				-119.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						487.0,
+						117.0
+					],
+					"d": 159.6,
+					"gp": [
+						487.0,
+						117.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 14.7,
+					"arch": "shooter",
+					"bp": [
+						411.0,
+						102.0
+					],
+					"d": 220.4,
+					"gp": [
+						411.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				617.5,
+				25.0
+			],
+			"t": 151.7,
+			"vel": [
+				28.0,
+				61.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						503.0,
+						110.5
+					],
+					"d": 136.9,
+					"gp": [
+						503.0,
+						110.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 13.4,
+					"arch": "shooter",
+					"bp": [
+						425.0,
+						102.0
+					],
+					"d": 204.9,
+					"gp": [
+						425.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				620.5,
+				39.5
+			],
+			"t": 151.9,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						509.0,
+						97.0
+					],
+					"d": 117.1,
+					"gp": [
+						509.0,
+						97.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 8.7,
+					"arch": "shooter",
+					"bp": [
+						428.5,
+						103.0
+					],
+					"d": 194.4,
+					"gp": [
+						428.5,
+						103.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				614.5,
+				46.0
+			],
+			"t": 152.2,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						525.0,
+						89.0
+					],
+					"d": 87.9,
+					"gp": [
+						525.0,
+						89.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 6.8,
+					"arch": "shooter",
+					"bp": [
+						433.5,
+						117.0
+					],
+					"d": 182.2,
+					"gp": [
+						433.5,
+						117.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				601.0,
+				45.0
+			],
+			"t": 152.4,
+			"vel": [
+				-33.0,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						539.5,
+						85.0
+					],
+					"d": 84.2,
+					"gp": [
+						539.5,
+						85.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 5.1,
+					"arch": "shooter",
+					"bp": [
+						440.5,
+						130.5
+					],
+					"d": 192.9,
+					"gp": [
+						440.5,
+						130.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				610.0,
+				38.5
+			],
+			"t": 152.7,
+			"vel": [
+				3.0,
+				73.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						554.0,
+						79.0
+					],
+					"d": 74.0,
+					"gp": [
+						554.0,
+						79.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 2.1,
+					"arch": "shooter",
+					"bp": [
+						448.0,
+						143.5
+					],
+					"d": 198.1,
+					"gp": [
+						448.0,
+						143.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				615.0,
+				37.0
+			],
+			"t": 152.9,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						567.0,
+						71.0
+					],
+					"d": 74.4,
+					"gp": [
+						567.0,
+						71.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 4.3,
+					"arch": "shooter",
+					"bp": [
+						460.0,
+						138.5
+					],
+					"d": 200.4,
+					"gp": [
+						460.0,
+						138.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				634.0,
+				39.0
+			],
+			"t": 153.2,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						549.5,
+						73.5
+					],
+					"d": 97.4,
+					"gp": [
+						549.5,
+						73.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 8.4,
+					"arch": "shooter",
+					"bp": [
+						465.0,
+						128.5
+					],
+					"d": 196.4,
+					"gp": [
+						465.0,
+						128.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				643.0,
+				45.0
+			],
+			"t": 153.4,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						549.0,
+						74.0
+					],
+					"d": 104.8,
+					"gp": [
+						549.0,
+						74.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 8.1,
+					"arch": "shooter",
+					"bp": [
+						460.0,
+						114.5
+					],
+					"d": 200.6,
+					"gp": [
+						460.0,
+						114.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				653.0,
+				60.0
+			],
+			"t": 153.7,
+			"vel": [
+				74.5,
+				13.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						549.0,
+						68.0
+					],
+					"d": 114.8,
+					"gp": [
+						549.0,
+						68.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 12.4,
+					"arch": "shooter",
+					"bp": [
+						468.5,
+						107.0
+					],
+					"d": 198.3,
+					"gp": [
+						468.5,
+						107.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				663.5,
+				72.5
+			],
+			"t": 153.9,
+			"vel": [
+				0.0,
+				80.0
+			]
+		}
+	],
+	"enemies": [
+		{
+			"approach_min": -1.0,
+			"arch": "orbiter",
+			"bounds": [
+				432.0,
+				16.0,
+				320.0,
+				192.0
+			],
+			"bp": [
+				549.0,
+				68.0
+			],
+			"counts_for_wave": true,
+			"cross_hits": 0,
+			"gp": [
+				549.0,
+				68.0
+			],
+			"hp": 8,
+			"hpmax": 10,
+			"id": "cave_bat",
+			"iid": 407736687321,
+			"ph": "<null>",
+			"st": 2
+		},
+		{
+			"approach_min": -1.0,
+			"arch": "shooter",
+			"bounds": [
+				432.0,
+				16.0,
+				320.0,
+				192.0
+			],
+			"bp": [
+				468.5,
+				106.0
+			],
+			"counts_for_wave": true,
+			"cross_hits": 0,
+			"gp": [
+				468.5,
+				106.0
+			],
+			"hp": 16,
+			"hpmax": 16,
+			"id": "crossbowman",
+			"iid": 407820573398,
+			"ph": "cool",
+			"st": 2
+		}
+	],
+	"false_triggers": 0,
+	"floor": {
+		"current": 10,
+		"rooms": [
+			{
+				"adj": [
+					0,
+					11,
+					12
+				],
+				"cleared": false,
+				"enemies_alive": 2,
+				"enemies_dead_flag": 0,
+				"flow_current": true,
+				"id": 10,
+				"locked": true,
+				"spawned_wave": 0,
+				"type": "combat",
+				"wave_cleared": false,
+				"wave_index": 0
+			},
+			{
+				"adj": [
+					1,
+					10
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 0,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "start",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					0,
+					2
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 1,
+				"locked": false,
+				"spawned_wave": 2,
+				"type": "combat",
+				"wave_cleared": true,
+				"wave_index": 3
+			},
+			{
+				"adj": [
+					1,
+					3
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 2,
+				"locked": false,
+				"spawned_wave": 1,
+				"type": "combat",
+				"wave_cleared": true,
+				"wave_index": 2
+			},
+			{
+				"adj": [
+					2,
+					4
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 3,
+				"locked": false,
+				"spawned_wave": 1,
+				"type": "combat",
+				"wave_cleared": true,
+				"wave_index": 2
+			},
+			{
+				"adj": [
+					3,
+					5
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 4,
+				"locked": false,
+				"spawned_wave": 1,
+				"type": "combat",
+				"wave_cleared": true,
+				"wave_index": 2
+			},
+			{
+				"adj": [
+					4,
+					6
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 5,
+				"locked": false,
+				"spawned_wave": 1,
+				"type": "combat",
+				"wave_cleared": true,
+				"wave_index": 2
+			},
+			{
+				"adj": [
+					5,
+					7
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 6,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "shop",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					6,
+					8
+				],
+				"cleared": true,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 7,
+				"locked": false,
+				"spawned_wave": 1,
+				"type": "elite",
+				"wave_cleared": true,
+				"wave_index": 2
+			},
+			{
+				"adj": [
+					7,
+					9
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 8,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "miniboss",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					8
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 9,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "boss",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					10
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 11,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "treasure",
+				"wave_cleared": false,
+				"wave_index": -1
+			},
+			{
+				"adj": [
+					10
+				],
+				"cleared": false,
+				"enemies_alive": 0,
+				"enemies_dead_flag": 0,
+				"flow_current": false,
+				"id": 12,
+				"locked": false,
+				"spawned_wave": -1,
+				"type": "event",
+				"wave_cleared": false,
+				"wave_index": -1
+			}
+		]
+	},
+	"frame": 9287,
+	"hits_in_window": [],
+	"kind": "stall_probe",
+	"pickups": [],
+	"player": {
+		"aim": [
+			-1.0,
+			0.0
+		],
+		"auto_locked": false,
+		"dir": [
+			0.0,
+			2.5
+		],
+		"energy": 100,
+		"fire_held": true,
+		"hp": 4,
+		"hp_max": 8,
+		"physical_room": 10,
+		"pos": [
+			663.5,
+			74.0
+		],
+		"vel": [
+			0.0,
+			80.0
+		],
+		"weapon": "duyaduanren"
+	},
+	"ring_before_trigger": [
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						690.5,
+						188.0
+					],
+					"d": 92.3,
+					"gp": [
+						690.5,
+						188.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 80.1,
+					"arch": "shooter",
+					"bp": [
+						541.5,
+						87.0
+					],
+					"d": 171.5,
+					"gp": [
+						541.5,
+						87.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				712.5,
+				98.5
+			],
+			"t": 134.2,
+			"vel": [
+				49.5,
+				30.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						696.0,
+						171.5
+					],
+					"d": 89.2,
+					"gp": [
+						696.0,
+						171.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 64.8,
+					"arch": "shooter",
+					"bp": [
+						541.5,
+						102.0
+					],
+					"d": 187.2,
+					"gp": [
+						541.5,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.5,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				728.0,
+				88.5
+			],
+			"t": 134.4,
+			"vel": [
+				56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						703.0,
+						155.5
+					],
+					"d": 89.7,
+					"gp": [
+						703.0,
+						155.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 52.9,
+					"arch": "shooter",
+					"bp": [
+						545.0,
+						114.5
+					],
+					"d": 200.7,
+					"gp": [
+						545.0,
+						114.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				741.5,
+				74.5
+			],
+			"t": 134.7,
+			"vel": [
+				56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						709.5,
+						139.5
+					],
+					"d": 82.2,
+					"gp": [
+						709.5,
+						139.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 54.6,
+					"arch": "shooter",
+					"bp": [
+						551.0,
+						125.5
+					],
+					"d": 191.6,
+					"gp": [
+						551.0,
+						125.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				731.5,
+				60.0
+			],
+			"t": 134.9,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						711.5,
+						124.0
+					],
+					"d": 78.2,
+					"gp": [
+						711.5,
+						124.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 56.1,
+					"arch": "shooter",
+					"bp": [
+						556.5,
+						137.5
+					],
+					"d": 184.9,
+					"gp": [
+						556.5,
+						137.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				717.0,
+				46.0
+			],
+			"t": 135.2,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						695.0,
+						129.0
+					],
+					"d": 91.4,
+					"gp": [
+						695.0,
+						129.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 54.2,
+					"arch": "shooter",
+					"bp": [
+						549.0,
+						124.5
+					],
+					"d": 179.1,
+					"gp": [
+						549.0,
+						124.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				706.0,
+				38.5
+			],
+			"t": 135.4,
+			"vel": [
+				-5.0,
+				22.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						677.5,
+						129.5
+					],
+					"d": 94.6,
+					"gp": [
+						677.5,
+						129.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 51.1,
+					"arch": "shooter",
+					"bp": [
+						542.0,
+						111.0
+					],
+					"d": 174.4,
+					"gp": [
+						542.0,
+						111.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				700.5,
+				38.0
+			],
+			"t": 135.7,
+			"vel": [
+				-15.5,
+				27.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						660.0,
+						127.0
+					],
+					"d": 99.0,
+					"gp": [
+						660.0,
+						127.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 39.9,
+					"arch": "shooter",
+					"bp": [
+						536.5,
+						97.0
+					],
+					"d": 185.9,
+					"gp": [
+						536.5,
+						97.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				715.0,
+				45.0
+			],
+			"t": 135.9,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						643.0,
+						123.5
+					],
+					"d": 108.0,
+					"gp": [
+						643.0,
+						123.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 28.6,
+					"arch": "shooter",
+					"bp": [
+						534.0,
+						87.0
+					],
+					"d": 197.4,
+					"gp": [
+						534.0,
+						87.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				729.5,
+				59.0
+			],
+			"t": 136.2,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						625.5,
+						121.5
+					],
+					"d": 114.2,
+					"gp": [
+						625.5,
+						121.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 15.9,
+					"arch": "shooter",
+					"bp": [
+						536.0,
+						102.0
+					],
+					"d": 195.9,
+					"gp": [
+						536.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				730.0,
+				75.5
+			],
+			"t": 136.4,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						613.0,
+						111.0
+					],
+					"d": 116.0,
+					"gp": [
+						613.0,
+						111.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 6.4,
+					"arch": "shooter",
+					"bp": [
+						538.5,
+						116.5
+					],
+					"d": 188.6,
+					"gp": [
+						538.5,
+						116.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				721.0,
+				69.5
+			],
+			"t": 136.7,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						604.0,
+						101.0
+					],
+					"d": 115.3,
+					"gp": [
+						604.0,
+						101.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 2.3,
+					"arch": "shooter",
+					"bp": [
+						543.5,
+						131.0
+					],
+					"d": 182.8,
+					"gp": [
+						543.5,
+						131.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				712.5,
+				62.0
+			],
+			"t": 136.9,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						600.0,
+						101.0
+					],
+					"d": 121.4,
+					"gp": [
+						600.0,
+						101.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 6.9,
+					"arch": "shooter",
+					"bp": [
+						549.5,
+						141.5
+					],
+					"d": 183.6,
+					"gp": [
+						549.5,
+						141.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				715.0,
+				62.0
+			],
+			"t": 137.2,
+			"vel": [
+				70.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						616.5,
+						98.5
+					],
+					"d": 121.6,
+					"gp": [
+						616.5,
+						98.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 1.9,
+					"arch": "shooter",
+					"bp": [
+						544.0,
+						127.5
+					],
+					"d": 199.8,
+					"gp": [
+						544.0,
+						127.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				733.0,
+				63.0
+			],
+			"t": 137.4,
+			"vel": [
+				25.5,
+				39.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						633.5,
+						94.5
+					],
+					"d": 95.8,
+					"gp": [
+						633.5,
+						94.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 1.5,
+					"arch": "shooter",
+					"bp": [
+						540.0,
+						113.0
+					],
+					"d": 191.2,
+					"gp": [
+						540.0,
+						113.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				728.5,
+				80.5
+			],
+			"t": 137.7,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						651.0,
+						93.5
+					],
+					"d": 86.1,
+					"gp": [
+						651.0,
+						93.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.7,
+					"arch": "shooter",
+					"bp": [
+						538.5,
+						98.5
+					],
+					"d": 198.8,
+					"gp": [
+						538.5,
+						98.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				737.0,
+				87.5
+			],
+			"t": 137.9,
+			"vel": [
+				56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						666.0,
+						91.5
+					],
+					"d": 77.8,
+					"gp": [
+						666.0,
+						91.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 3.2,
+					"arch": "shooter",
+					"bp": [
+						544.0,
+						91.0
+					],
+					"d": 199.6,
+					"gp": [
+						544.0,
+						91.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				743.5,
+				85.0
+			],
+			"t": 138.2,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						651.0,
+						85.0
+					],
+					"d": 89.5,
+					"gp": [
+						651.0,
+						85.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 7.3,
+					"arch": "shooter",
+					"bp": [
+						545.0,
+						106.0
+					],
+					"d": 195.8,
+					"gp": [
+						545.0,
+						106.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				740.0,
+				88.5
+			],
+			"t": 138.4,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						637.5,
+						84.5
+					],
+					"d": 90.5,
+					"gp": [
+						637.5,
+						84.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 14.4,
+					"arch": "shooter",
+					"bp": [
+						546.5,
+						121.0
+					],
+					"d": 182.9,
+					"gp": [
+						546.5,
+						121.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				727.5,
+				93.5
+			],
+			"t": 138.7,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						630.5,
+						69.0
+					],
+					"d": 95.6,
+					"gp": [
+						630.5,
+						69.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 22.4,
+					"arch": "shooter",
+					"bp": [
+						550.0,
+						135.5
+					],
+					"d": 185.9,
+					"gp": [
+						550.0,
+						135.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				725.5,
+				74.5
+			],
+			"t": 138.9,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						628.5,
+						51.5
+					],
+					"d": 92.5,
+					"gp": [
+						628.5,
+						51.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 31.8,
+					"arch": "shooter",
+					"bp": [
+						555.0,
+						147.5
+					],
+					"d": 189.0,
+					"gp": [
+						555.0,
+						147.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				721.0,
+				56.5
+			],
+			"t": 139.2,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						628.0,
+						34.0
+					],
+					"d": 87.5,
+					"gp": [
+						628.0,
+						34.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 39.5,
+					"arch": "shooter",
+					"bp": [
+						548.0,
+						134.0
+					],
+					"d": 182.7,
+					"gp": [
+						548.0,
+						134.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				713.0,
+				55.0
+			],
+			"t": 139.4,
+			"vel": [
+				3.0,
+				41.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				-0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						630.0,
+						21.0
+					],
+					"d": 94.1,
+					"gp": [
+						630.0,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 48.3,
+					"arch": "shooter",
+					"bp": [
+						543.0,
+						120.0
+					],
+					"d": 174.4,
+					"gp": [
+						543.0,
+						120.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				710.0,
+				70.5
+			],
+			"t": 139.7,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				-0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						632.5,
+						21.0
+					],
+					"d": 87.3,
+					"gp": [
+						632.5,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 52.5,
+					"arch": "shooter",
+					"bp": [
+						539.5,
+						105.5
+					],
+					"d": 158.3,
+					"gp": [
+						539.5,
+						105.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				696.0,
+				81.5
+			],
+			"t": 139.9,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						635.5,
+						21.0
+					],
+					"d": 94.8,
+					"gp": [
+						635.5,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 51.9,
+					"arch": "shooter",
+					"bp": [
+						538.5,
+						92.5
+					],
+					"d": 153.4,
+					"gp": [
+						538.5,
+						92.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				691.5,
+				97.5
+			],
+			"t": 140.2,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						645.0,
+						36.0
+					],
+					"d": 90.0,
+					"gp": [
+						645.0,
+						36.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 59.3,
+					"arch": "shooter",
+					"bp": [
+						537.5,
+						107.5
+					],
+					"d": 149.4,
+					"gp": [
+						537.5,
+						107.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				687.0,
+				115.5
+			],
+			"t": 140.4,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						653.0,
+						51.5
+					],
+					"d": 88.8,
+					"gp": [
+						653.0,
+						51.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 60.0,
+					"arch": "shooter",
+					"bp": [
+						537.0,
+						122.5
+					],
+					"d": 156.7,
+					"gp": [
+						537.0,
+						122.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				2.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				693.5,
+				130.5
+			],
+			"t": 140.7,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						661.5,
+						64.5
+					],
+					"d": 88.1,
+					"gp": [
+						661.5,
+						64.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 66.4,
+					"arch": "shooter",
+					"bp": [
+						536.0,
+						137.5
+					],
+					"d": 156.1,
+					"gp": [
+						536.0,
+						137.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				2.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				692.0,
+				147.0
+			],
+			"t": 140.9,
+			"vel": [
+				-21.5,
+				59.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						666.0,
+						79.0
+					],
+					"d": 87.4,
+					"gp": [
+						666.0,
+						79.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 67.0,
+					"arch": "shooter",
+					"bp": [
+						534.5,
+						137.0
+					],
+					"d": 152.9,
+					"gp": [
+						534.5,
+						137.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				2.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				685.0,
+				164.0
+			],
+			"t": 141.2,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						661.0,
+						66.0
+					],
+					"d": 98.3,
+					"gp": [
+						661.0,
+						66.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 69.8,
+					"arch": "shooter",
+					"bp": [
+						534.5,
+						124.5
+					],
+					"d": 138.5,
+					"gp": [
+						534.5,
+						124.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				667.5,
+				164.0
+			],
+			"t": 141.4,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						657.5,
+						50.0
+					],
+					"d": 94.7,
+					"gp": [
+						657.5,
+						50.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 73.1,
+					"arch": "shooter",
+					"bp": [
+						528.5,
+						115.5
+					],
+					"d": 140.2,
+					"gp": [
+						528.5,
+						115.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				665.5,
+				144.5
+			],
+			"t": 141.7,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						661.5,
+						33.5
+					],
+					"d": 94.2,
+					"gp": [
+						661.5,
+						33.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 82.6,
+					"arch": "shooter",
+					"bp": [
+						522.0,
+						107.0
+					],
+					"d": 139.5,
+					"gp": [
+						522.0,
+						107.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				660.0,
+				127.5
+			],
+			"t": 141.9,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						667.0,
+						21.0
+					],
+					"d": 94.7,
+					"gp": [
+						667.0,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 99.8,
+					"arch": "shooter",
+					"bp": [
+						507.0,
+						105.5
+					],
+					"d": 139.0,
+					"gp": [
+						507.0,
+						105.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				-1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				646.0,
+				113.5
+			],
+			"t": 142.2,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				0.5,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						670.0,
+						21.0
+					],
+					"d": 95.3,
+					"gp": [
+						670.0,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 115.3,
+					"arch": "shooter",
+					"bp": [
+						492.0,
+						105.0
+					],
+					"d": 136.5,
+					"gp": [
+						492.0,
+						105.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				628.5,
+				106.5
+			],
+			"t": 142.4,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				0.5,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						672.0,
+						21.0
+					],
+					"d": 94.7,
+					"gp": [
+						672.0,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 127.5,
+					"arch": "shooter",
+					"bp": [
+						478.0,
+						106.5
+					],
+					"d": 140.7,
+					"gp": [
+						478.0,
+						106.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				618.5,
+				99.0
+			],
+			"t": 142.7,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.5,
+				-1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						680.0,
+						21.0
+					],
+					"d": 99.3,
+					"gp": [
+						680.0,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 137.3,
+					"arch": "shooter",
+					"bp": [
+						479.5,
+						121.5
+					],
+					"d": 140.8,
+					"gp": [
+						479.5,
+						121.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				618.5,
+				99.0
+			],
+			"t": 142.9,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.5,
+				-0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						692.5,
+						21.0
+					],
+					"d": 107.6,
+					"gp": [
+						692.5,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 149.0,
+					"arch": "shooter",
+					"bp": [
+						482.0,
+						134.5
+					],
+					"d": 140.2,
+					"gp": [
+						482.0,
+						134.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				618.0,
+				98.5
+			],
+			"t": 143.2,
+			"vel": [
+				-33.0,
+				-33.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				-0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						679.5,
+						32.5
+					],
+					"d": 81.0,
+					"gp": [
+						679.5,
+						32.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 160.7,
+					"arch": "shooter",
+					"bp": [
+						477.5,
+						121.0
+					],
+					"d": 142.6,
+					"gp": [
+						477.5,
+						121.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-2.0,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				614.0,
+				80.0
+			],
+			"t": 143.4,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				-0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						664.5,
+						41.0
+					],
+					"d": 67.0,
+					"gp": [
+						664.5,
+						41.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 178.5,
+					"arch": "shooter",
+					"bp": [
+						470.5,
+						112.0
+					],
+					"d": 139.5,
+					"gp": [
+						470.5,
+						112.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-3.0,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				602.0,
+				65.0
+			],
+			"t": 143.7,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						647.5,
+						45.5
+					],
+					"d": 60.1,
+					"gp": [
+						647.5,
+						45.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 161.3,
+					"arch": "shooter",
+					"bp": [
+						460.0,
+						108.5
+					],
+					"d": 139.7,
+					"gp": [
+						460.0,
+						108.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-3.0,
+				-1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				587.5,
+				51.0
+			],
+			"t": 143.9,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						631.5,
+						44.0
+					],
+					"d": 58.4,
+					"gp": [
+						631.5,
+						44.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 144.4,
+					"arch": "shooter",
+					"bp": [
+						450.5,
+						104.0
+					],
+					"d": 140.3,
+					"gp": [
+						450.5,
+						104.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-3.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				573.5,
+				37.0
+			],
+			"t": 144.2,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						636.5,
+						27.5
+					],
+					"d": 83.2,
+					"gp": [
+						636.5,
+						27.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 152.5,
+					"arch": "shooter",
+					"bp": [
+						439.0,
+						112.5
+					],
+					"d": 137.9,
+					"gp": [
+						439.0,
+						112.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				554.0,
+				36.0
+			],
+			"t": 144.4,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						641.5,
+						21.0
+					],
+					"d": 96.7,
+					"gp": [
+						641.5,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 159.8,
+					"arch": "shooter",
+					"bp": [
+						430.5,
+						121.5
+					],
+					"d": 140.2,
+					"gp": [
+						430.5,
+						121.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				547.5,
+				44.0
+			],
+			"t": 144.7,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				-0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						651.5,
+						21.0
+					],
+					"d": 118.9,
+					"gp": [
+						651.5,
+						21.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 169.0,
+					"arch": "shooter",
+					"bp": [
+						419.0,
+						122.0
+					],
+					"d": 135.2,
+					"gp": [
+						419.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				538.0,
+				57.0
+			],
+			"t": 144.9,
+			"vel": [
+				-47.0,
+				33.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						656.0,
+						36.0
+					],
+					"d": 118.6,
+					"gp": [
+						656.0,
+						36.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 164.3,
+					"arch": "shooter",
+					"bp": [
+						411.5,
+						121.0
+					],
+					"d": 142.3,
+					"gp": [
+						411.5,
+						121.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				539.5,
+				58.0
+			],
+			"t": 145.2,
+			"vel": [
+				70.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						668.0,
+						48.5
+					],
+					"d": 115.1,
+					"gp": [
+						668.0,
+						48.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 173.6,
+					"arch": "shooter",
+					"bp": [
+						406.0,
+						107.0
+					],
+					"d": 153.4,
+					"gp": [
+						406.0,
+						107.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				554.0,
+				66.5
+			],
+			"t": 145.4,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						671.0,
+						65.5
+					],
+					"d": 118.8,
+					"gp": [
+						671.0,
+						65.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 175.9,
+					"arch": "shooter",
+					"bp": [
+						403.5,
+						102.0
+					],
+					"d": 151.4,
+					"gp": [
+						403.5,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				554.0,
+				86.5
+			],
+			"t": 145.7,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						670.5,
+						83.0
+					],
+					"d": 126.1,
+					"gp": [
+						670.5,
+						83.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 170.7,
+					"arch": "shooter",
+					"bp": [
+						403.0,
+						102.0
+					],
+					"d": 143.1,
+					"gp": [
+						403.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				546.0,
+				103.0
+			],
+			"t": 145.9,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						667.0,
+						99.0
+					],
+					"d": 126.0,
+					"gp": [
+						667.0,
+						99.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 172.1,
+					"arch": "shooter",
+					"bp": [
+						401.5,
+						103.0
+					],
+					"d": 140.2,
+					"gp": [
+						401.5,
+						103.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				541.5,
+				110.0
+			],
+			"t": 146.2,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						649.5,
+						99.0
+					],
+					"d": 109.4,
+					"gp": [
+						649.5,
+						99.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 164.2,
+					"arch": "shooter",
+					"bp": [
+						402.5,
+						118.0
+					],
+					"d": 140.6,
+					"gp": [
+						402.5,
+						118.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				540.0,
+				90.5
+			],
+			"t": 146.4,
+			"vel": [
+				-43.0,
+				-62.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						632.0,
+						97.5
+					],
+					"d": 110.1,
+					"gp": [
+						632.0,
+						97.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 156.8,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 129.9,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				-1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				522.5,
+				85.0
+			],
+			"t": 146.7,
+			"vel": [
+				-56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						614.5,
+						94.5
+					],
+					"d": 102.2,
+					"gp": [
+						614.5,
+						94.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 140.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 130.0,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				516.0,
+				67.5
+			],
+			"t": 146.9,
+			"vel": [
+				0.0,
+				-80.0
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						614.0,
+						90.5
+					],
+					"d": 111.7,
+					"gp": [
+						614.0,
+						90.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 126.3,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 132.4,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				509.5,
+				50.5
+			],
+			"t": 147.2,
+			"vel": [
+				-13.5,
+				-74.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						612.5,
+						98.5
+					],
+					"d": 130.7,
+					"gp": [
+						612.5,
+						98.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 110.4,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 131.8,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				497.5,
+				36.0
+			],
+			"t": 147.4,
+			"vel": [
+				-38.5,
+				-48.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 102.8,
+					"arch": "orbiter",
+					"bp": [
+						604.5,
+						102.0
+					],
+					"d": 136.1,
+					"gp": [
+						604.5,
+						102.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 129.1,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				488.5,
+				30.0
+			],
+			"t": 147.7,
+			"vel": [
+				56.5,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						589.0,
+						110.0
+					],
+					"d": 123.6,
+					"gp": [
+						589.0,
+						110.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 101.2,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 124.1,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				489.0,
+				37.5
+			],
+			"t": 147.9,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 91.9,
+					"arch": "orbiter",
+					"bp": [
+						574.5,
+						119.5
+					],
+					"d": 132.1,
+					"gp": [
+						574.5,
+						119.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 112.7,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				471.5,
+				36.5
+			],
+			"t": 148.2,
+			"vel": [
+				-80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 82.3,
+					"arch": "orbiter",
+					"bp": [
+						558.5,
+						126.0
+					],
+					"d": 138.8,
+					"gp": [
+						558.5,
+						126.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 101.0,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				452.0,
+				36.5
+			],
+			"t": 148.4,
+			"vel": [
+				-50.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 78.4,
+					"arch": "orbiter",
+					"bp": [
+						542.0,
+						133.0
+					],
+					"d": 121.4,
+					"gp": [
+						542.0,
+						133.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 0.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 106.6,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				465.0,
+				39.0
+			],
+			"t": 148.7,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						527.0,
+						139.0
+					],
+					"d": 108.4,
+					"gp": [
+						527.0,
+						139.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 69.1,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 120.3,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				0.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				485.0,
+				39.0
+			],
+			"t": 148.9,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						514.0,
+						149.0
+					],
+					"d": 110.8,
+					"gp": [
+						514.0,
+						149.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 57.3,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 133.8,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				502.5,
+				38.5
+			],
+			"t": 149.2,
+			"vel": [
+				22.5,
+				16.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						512.0,
+						131.5
+					],
+					"d": 93.3,
+					"gp": [
+						512.0,
+						131.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 57.2,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						122.0
+					],
+					"d": 134.1,
+					"gp": [
+						398.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				503.0,
+				38.5
+			],
+			"t": 149.4,
+			"vel": [
+				23.5,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						512.0,
+						114.0
+					],
+					"d": 83.2,
+					"gp": [
+						512.0,
+						114.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 50.4,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						114.5
+					],
+					"d": 147.2,
+					"gp": [
+						398.0,
+						114.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.5,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				519.0,
+				31.0
+			],
+			"t": 149.7,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						515.0,
+						97.0
+					],
+					"d": 63.7,
+					"gp": [
+						515.0,
+						97.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 50.0,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						102.0
+					],
+					"d": 147.6,
+					"gp": [
+						398.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				-1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				529.5,
+				34.5
+			],
+			"t": 149.9,
+			"vel": [
+				-51.0,
+				30.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						517.5,
+						82.0
+					],
+					"d": 58.9,
+					"gp": [
+						517.5,
+						82.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 53.2,
+					"arch": "shooter",
+					"bp": [
+						398.5,
+						103.0
+					],
+					"d": 146.4,
+					"gp": [
+						398.5,
+						103.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				521.5,
+				23.0
+			],
+			"t": 150.2,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						515.5,
+						99.0
+					],
+					"d": 75.4,
+					"gp": [
+						515.5,
+						99.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 47.4,
+					"arch": "shooter",
+					"bp": [
+						407.5,
+						115.0
+					],
+					"d": 145.3,
+					"gp": [
+						407.5,
+						115.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				1.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				520.5,
+				24.0
+			],
+			"t": 150.4,
+			"vel": [
+				-33.0,
+				33.0
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						506.5,
+						114.0
+					],
+					"d": 86.8,
+					"gp": [
+						506.5,
+						114.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 44.8,
+					"arch": "shooter",
+					"bp": [
+						406.0,
+						122.0
+					],
+					"d": 142.1,
+					"gp": [
+						406.0,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				512.0,
+				27.5
+			],
+			"t": 150.7,
+			"vel": [
+				50.0,
+				-55.5
+			]
+		},
+		{
+			"aim": [
+				0.0,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						492.5,
+						124.5
+					],
+					"d": 91.3,
+					"gp": [
+						492.5,
+						124.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 37.2,
+					"arch": "shooter",
+					"bp": [
+						408.5,
+						122.0
+					],
+					"d": 135.7,
+					"gp": [
+						408.5,
+						122.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-0.5,
+				0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				513.0,
+				35.5
+			],
+			"t": 150.9,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				1.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						476.5,
+						131.5
+					],
+					"d": 101.5,
+					"gp": [
+						476.5,
+						131.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 31.9,
+					"arch": "shooter",
+					"bp": [
+						401.0,
+						121.0
+					],
+					"d": 140.1,
+					"gp": [
+						401.0,
+						121.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				513.0,
+				36.5
+			],
+			"t": 151.2,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-0.5,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						471.0,
+						124.0
+					],
+					"d": 145.4,
+					"gp": [
+						471.0,
+						124.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 18.4,
+					"arch": "shooter",
+					"bp": [
+						398.0,
+						108.5
+					],
+					"d": 196.7,
+					"gp": [
+						398.0,
+						108.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				1.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				574.5,
+				22.0
+			],
+			"t": 151.4,
+			"vel": [
+				300.0,
+				-119.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						487.0,
+						117.0
+					],
+					"d": 159.6,
+					"gp": [
+						487.0,
+						117.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 14.7,
+					"arch": "shooter",
+					"bp": [
+						411.0,
+						102.0
+					],
+					"d": 220.4,
+					"gp": [
+						411.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				617.5,
+				25.0
+			],
+			"t": 151.7,
+			"vel": [
+				28.0,
+				61.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						503.0,
+						110.5
+					],
+					"d": 136.9,
+					"gp": [
+						503.0,
+						110.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 13.4,
+					"arch": "shooter",
+					"bp": [
+						425.0,
+						102.0
+					],
+					"d": 204.9,
+					"gp": [
+						425.0,
+						102.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				0.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				620.5,
+				39.5
+			],
+			"t": 151.9,
+			"vel": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						509.0,
+						97.0
+					],
+					"d": 117.1,
+					"gp": [
+						509.0,
+						97.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 8.7,
+					"arch": "shooter",
+					"bp": [
+						428.5,
+						103.0
+					],
+					"d": 194.4,
+					"gp": [
+						428.5,
+						103.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				-1.0,
+				1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				614.5,
+				46.0
+			],
+			"t": 152.2,
+			"vel": [
+				-56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						525.0,
+						89.0
+					],
+					"d": 87.9,
+					"gp": [
+						525.0,
+						89.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 6.8,
+					"arch": "shooter",
+					"bp": [
+						433.5,
+						117.0
+					],
+					"d": 182.2,
+					"gp": [
+						433.5,
+						117.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-1.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				601.0,
+				45.0
+			],
+			"t": 152.4,
+			"vel": [
+				-33.0,
+				-56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						539.5,
+						85.0
+					],
+					"d": 84.2,
+					"gp": [
+						539.5,
+						85.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 5.1,
+					"arch": "shooter",
+					"bp": [
+						440.5,
+						130.5
+					],
+					"d": 192.9,
+					"gp": [
+						440.5,
+						130.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				-0.5
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				610.0,
+				38.5
+			],
+			"t": 152.7,
+			"vel": [
+				3.0,
+				73.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						554.0,
+						79.0
+					],
+					"d": 74.0,
+					"gp": [
+						554.0,
+						79.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 2.1,
+					"arch": "shooter",
+					"bp": [
+						448.0,
+						143.5
+					],
+					"d": 198.1,
+					"gp": [
+						448.0,
+						143.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				615.0,
+				37.0
+			],
+			"t": 152.9,
+			"vel": [
+				80.0,
+				0.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						567.0,
+						71.0
+					],
+					"d": 74.4,
+					"gp": [
+						567.0,
+						71.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 4.3,
+					"arch": "shooter",
+					"bp": [
+						460.0,
+						138.5
+					],
+					"d": 200.4,
+					"gp": [
+						460.0,
+						138.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				1.0,
+				-0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				634.0,
+				39.0
+			],
+			"t": 153.2,
+			"vel": [
+				56.5,
+				56.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.5
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						549.5,
+						73.5
+					],
+					"d": 97.4,
+					"gp": [
+						549.5,
+						73.5
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 8.4,
+					"arch": "shooter",
+					"bp": [
+						465.0,
+						128.5
+					],
+					"d": 196.4,
+					"gp": [
+						465.0,
+						128.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				1.0
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				643.0,
+				45.0
+			],
+			"t": 153.4,
+			"vel": [
+				0.0,
+				80.0
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						549.0,
+						74.0
+					],
+					"d": 104.8,
+					"gp": [
+						549.0,
+						74.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 8.1,
+					"arch": "shooter",
+					"bp": [
+						460.0,
+						114.5
+					],
+					"d": 200.6,
+					"gp": [
+						460.0,
+						114.5
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "windup",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.5,
+				0.5
+			],
+			"eb": 1,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				653.0,
+				60.0
+			],
+			"t": 153.7,
+			"vel": [
+				74.5,
+				13.5
+			]
+		},
+		{
+			"aim": [
+				-1.0,
+				0.0
+			],
+			"alive": [
+				{
+					"aimdeg": 0.0,
+					"arch": "orbiter",
+					"bp": [
+						549.0,
+						68.0
+					],
+					"d": 114.8,
+					"gp": [
+						549.0,
+						68.0
+					],
+					"hp": 8,
+					"id": "cave_bat",
+					"ph": "<null>",
+					"st": 2
+				},
+				{
+					"aimdeg": 12.4,
+					"arch": "shooter",
+					"bp": [
+						468.5,
+						107.0
+					],
+					"d": 198.3,
+					"gp": [
+						468.5,
+						107.0
+					],
+					"hp": 16,
+					"id": "crossbowman",
+					"ph": "cool",
+					"st": 2
+				}
+			],
+			"dir": [
+				0.0,
+				2.0
+			],
+			"eb": 2,
+			"en": 100,
+			"hp": 4,
+			"lock": false,
+			"pb": 0,
+			"pp": [
+				663.5,
+				72.5
+			],
+			"t": 153.9,
+			"vel": [
+				0.0,
+				80.0
+			]
+		}
+	],
+	"room": {
+		"calamity": "",
+		"challenge": false,
+		"cleared": false,
+		"id": 10,
+		"interior": [
+			432.0,
+			16.0,
+			320.0,
+			192.0
+		],
+		"locked": true,
+		"outer": [
+			416.0,
+			0.0,
+			352.0,
+			224.0
+		],
+		"solids": [
+			{
+				"c": [
+					592.0,
+					8.0
+				],
+				"s": [
+					352.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					496.0,
+					216.0
+				],
+				"s": [
+					160.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					688.0,
+					216.0
+				],
+				"s": [
+					160.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					424.0,
+					56.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					424.0,
+					168.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					760.0,
+					56.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					760.0,
+					168.0
+				],
+				"s": [
+					16.0,
+					80.0
+				]
+			},
+			{
+				"c": [
+					536.0,
+					72.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					536.0,
+					152.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					648.0,
+					152.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					600.0,
+					88.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			},
+			{
+				"c": [
+					600.0,
+					136.0
+				],
+				"s": [
+					16.0,
+					16.0
+				]
+			}
+		],
+		"spawn_points": [
+			[
+				504.0,
+				88.0
+			],
+			[
+				680.0,
+				88.0
+			],
+			[
+				504.0,
+				136.0
+			],
+			[
+				680.0,
+				136.0
+			]
+		],
+		"spawned_wave": 0,
+		"template": "combat_a1_05",
+		"type": "combat",
+		"wave_index": 0,
+		"waves": {
+			"coins": 20,
+			"energy_orbs": 4,
+			"hearts": 0,
+			"waves": [
+				[
+					"kuli_bug",
+					"cave_bat",
+					"crossbowman"
+				],
+				[
+					"vine_charger",
+					"kuli_bug",
+					"cave_bat"
+				]
+			]
+		}
+	},
+	"run": {
+		"coins": 70,
+		"floor": 1,
+		"gems": 5,
+		"kills": 41,
+		"rooms": 7
+	},
+	"seed": 3404,
+	"t_s": 154.0,
+	"trigger": "sig_frozen",
+	"trigger_stable_ticks": 900,
+	"window_ticks": 600
+}

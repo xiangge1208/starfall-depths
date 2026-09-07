@@ -19,3 +19,9 @@ __pycache__/
 .workbuddy/
 # AI 代理会话散落的临时日志/审计快照（门禁证据以 docs/superpowers/reports/ 为准）
 .codex-*
+# 平衡 bot 停滞探针的中间产物（--probe-dir 落点与散落单局 JSON）：逐拍快照体积大、
+# 只用于当轮归因，结论一律回写门禁报告（m4p-bal-gate-w*.md）后即可弃。
+# 需要留档的探针请显式放进 docs/superpowers/reports/<卡号>-probe/。
+# 只忽略仓库根的散落物（前导 / 锚定根）——归档进 docs/.../*-probe/ 的留档探针照常入库
+/probe-*/
+/probe-*.json
