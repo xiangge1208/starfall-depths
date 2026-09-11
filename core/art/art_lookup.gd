@@ -175,10 +175,8 @@ const UI_TEXTURES := {
 }
 
 ## m4p-w2b Buff 图标（ui/buffs/<id>.png，data/buffs.json 行 id 寻址，12x12 最近邻）。
-## 已知空帧 5 张（avenger/energy_siphon/glutton/resonance_amp/thorn_armor，全透明
-## 72 字节占位）**不接线**——空帧图标显示空白比文字缩写 chip 更糟：缺行 = 调用方
-## 回落既有文字 chip（同本表缺图回落契约）；美术补图后把行加回即可
-## （test_art_wiring_w2b 空帧 tripwire 钉住「未补图不接」与「补图即提醒接线」两头）。
+## 五张历史空帧（avenger/energy_siphon/glutton/resonance_amp/thorn_armor）现已补齐
+## 确定性像素图并正式接线；缺图仍按本表契约回落文字 chip。
 ## 盘上另有 5 张非行 id 资产（big_eater/energy_leech/resonance_amplify/thorns/
 ## vengeance，按效果键命名的历史占位），GameDB.buffs 无行可寻址，不入本表。
 const BUFF_TEXTURES := {
@@ -213,6 +211,11 @@ const BUFF_TEXTURES := {
 	"haggle": "ui/buffs/haggle.png",
 	"element_vision": "ui/buffs/element_vision.png",
 	"resonance_vision": "ui/buffs/resonance_vision.png",
+	"avenger": "ui/buffs/avenger.png",
+	"energy_siphon": "ui/buffs/energy_siphon.png",
+	"glutton": "ui/buffs/glutton.png",
+	"resonance_amp": "ui/buffs/resonance_amp.png",
+	"thorn_armor": "ui/buffs/thorn_armor.png",
 }
 
 ## 地块/门/陈设（16x16 无缝可平铺；按房间生物群系选 floor_*/wall_*）。

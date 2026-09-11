@@ -13,6 +13,12 @@ const DEFAULT_FLOORS := [1]
 
 
 func _init() -> void:
+	# SceneTree 脚本没有 _ready 生命周期；延迟到树初始化后再执行，
+	# 确保摘要和退出码都被宿主进程观察到。
+	call_deferred("_run")
+
+
+func _run() -> void:
 	var seed_count := DEFAULT_SEED_COUNT
 	var floors: Array[int] = []
 	for f in DEFAULT_FLOORS:
@@ -49,11 +55,15 @@ func _init() -> void:
 	print("%d/%d PASS (seeds=%d floors=%s)" % [pass_n, total, seed_count, str(floors)])
 	DungeonBuilder.cleanup_fallbacks()
 	if failed.is_empty():
-		quit(0)
+		call_deferred("_finish", 0)
 		return
 	print("failing builds (%d): %s" % [failed.size(), ", ".join(failed.slice(0, 20))])
 	print("failure categories: ", categories)
 	for k in samples:
 		print("sample %s: %s" % [k, str(samples[k])])
 	DungeonBuilder.cleanup_fallbacks()
-	quit(1)
+	call_deferred("_finish", 1)
+
+
+func _finish(code: int) -> void:
+	quit(code)

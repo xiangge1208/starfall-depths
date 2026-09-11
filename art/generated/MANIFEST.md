@@ -29,12 +29,12 @@
 | `projectiles/bullet_player.png` | 8x8 | 玩家子弹（radius≈3px） | floor_scene.gd:61 / room_combat.gd:37 PLAYER_BULLET_COLOR 纯色方块 Polygon2D | 元素弹可用 modulate 调色或换 elem_* 专用图 |
 | `projectiles/bullet_enemy.png` | 8x8 | 敌方子弹 | floor_scene.gd:62 / room_combat.gd:38 ENEMY_BULLET_COLOR 纯色方块 | 同上 |
 | `projectiles/elem_fire.png` | 8x8 | fire 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
-| `projectiles/elem_ice.png` | 8x8 | ice 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
-| `projectiles/elem_poison.png` | 8x8 | poison 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
-| `projectiles/elem_shock.png` | 8x8 | shock 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/elem_fire_enemy.png` | 8x8 | fire 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
+| `projectiles/elem_ice.png` | 8x8 | ice 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/elem_ice_enemy.png` | 8x8 | ice 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
+| `projectiles/elem_poison.png` | 8x8 | poison 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/elem_poison_enemy.png` | 8x8 | poison 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
+| `projectiles/elem_shock.png` | 8x8 | shock 元素弹 | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/elem_shock_enemy.png` | 8x8 | shock 元素弹（敌方变体·暗边框） | autoload/fx.gd:18-21 元素色表（火/冰/毒/电） | 元素异常命中粒子同色系 |
 | `projectiles/bullet_player_crit.png` | 8x8 | 玩家暴击弹（金描边·强化发光） | room_combat.gd _sync_bullet_visuals 必暴窗（CombatSystem.forced_crit_until 只读）切换 | m4-a1 表现层专用帧：暴击判定（DamageCalc 唯一随机乘区）零影响 |
 | `projectiles/bullet_enemy_crit.png` | 8x8 | 敌方暴击弹（金描边·赤芯） | room_combat.gd _sync_bullet_visuals 必暴窗（CombatSystem.forced_crit_until 只读）切换 | m4-a1 表现层专用帧：暴击判定（DamageCalc 唯一随机乘区）零影响 |
@@ -562,6 +562,8 @@
 | `ui/talents/node_filled.png` | 12x12 | 天赋节点（已点亮） | GDD §19 天赋树; 附录 G 天赋异禀 12 节点 | 连线由代码画 |
 | `ui/icon_death_source.png` | 12x12 | 死亡回顾：致死弹来源高亮标记 | GDD §19 死亡回顾（来源回放 3s）; M1 death_summary 纯文字 | — |
 | `ui/minimap/challenge.png` | 8x8 | 小地图图标：挑战房（灾厄三选一） | GDD §11 挑战房（M2 新房型） | — |
+| `atlas/atlas_page.png` | 512x512 | 全图集单页（m2-t37 §18.3 全图集前提） | 运行时经 core/art/art_atlas.gd 按 atlas.json 区域取样（AtlasTexture 共页） | 由 tools/gen_art_atlas.py 生成；tiles/* 与 *_sheet.png 排除（repeat/帧表不兼容） |
+| `atlas/atlas.json` | metadata | 全图集区域清单（m2-t37） | ArtLookup.tex 按相对路径查区域；缺表回落逐文件纹理（fail-closed） | 确定性 shelf 装箱 + 2px 边缘外扩；重跑幂等 |
 
 ## 缺口与待采购（无法程序生成，需外部获取/委托）
 
@@ -599,6 +601,6 @@
 
 - 脚本：`tools/gen_placeholder_art.py`（M1 批次+公共库，自动串联 `tools/gen_placeholder_art_m2.py`）
 - M2 批次（附录 A/B/C 驱动）：武器 115 双套图/敌人 40 单帧+2 帧动画表/Boss 6/英雄 6 全家桶/增益 36/三生态地块/事件设施/局外 UI。
-- **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；仅 M2 Boss 5 种 slug 为附录 E 暂定名（data 行未落地）。
+- **武器/敌人 id 均以 data/*.json 为唯一权威**（m2-t21 收编，数据驱动出图）；M2 Boss slug 已对齐 data/enemies.json 行 id（m4p-u2 收编：prism_golem/frost_widow 原附录 E 暂定名 crystal_golem/frost_spider_mother）。
 - Python 3.12 + Pillow 12.3；随机种子固定 42，输出可复现；全量再生=先生成后按本清单清理陈旧（失败不毁库）。
 - 联络表：`_preview.png`（4x 放大，人工检查用，勿在游戏内引用）。

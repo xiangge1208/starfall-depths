@@ -13,9 +13,7 @@ extends GdUnitTestSuite
 
 ## 已知空帧（全透明 72 字节占位）——对空帧不接线（显示空白比文字 chip 更糟）；
 ## 美术补图后：把行加回 ArtLookup.BUFF_TEXTURES 并把 id 移出本表。
-const EMPTY_FRAMES: Array[String] = [
-	"avenger", "energy_siphon", "glutton", "resonance_amp", "thorn_armor",
-]
+const EMPTY_FRAMES: Array[String] = []
 ## 盘上另有 5 张非行 id 资产（按效果键命名的历史占位），GameDB.buffs 无行可寻址，
 ## 永不入 id 寻址表（test_buff_icon_table_covers_wired_roster_exactly 钉住）。
 const NON_ROW_ASSETS: Array[String] = [
@@ -26,8 +24,8 @@ const NON_ROW_ASSETS: Array[String] = [
 # ---------------------------------------------------------------- 1) 表契约
 
 func test_buff_texture_table_all_exist_on_disk() -> void:
-	# 31 = data/buffs.json 36 行 − 已知空帧 5 张（表注释同口径）
-	assert_int(ArtLookup.BUFF_TEXTURES.size()).is_equal(31)
+	# 全量 36 行均已接入确定性图标。
+	assert_int(ArtLookup.BUFF_TEXTURES.size()).is_equal(36)
 	for id: String in ArtLookup.BUFF_TEXTURES:
 		var path := ArtLookup.buff_texture_path(id)
 		assert_str(path).is_not_empty()
@@ -106,11 +104,11 @@ func test_hud_buff_chips_wire_icons_with_text_fallback() -> void:
 	var hud: HUD = auto_free(HUD.new())
 	hud.player = auto_free(Player.new())
 	add_child(hud)
-	# vigor=已接线 / avenger=已知空帧（回落）/ no_such_buff=表外（回落）
+	# vigor/avenger=已接线 / no_such_buff=表外（回落）
 	hud._apply_buffs({"buffs": ["vigor", "avenger", "no_such_buff"] as Array[String]})
 	assert_int(hud._buff_row.get_child_count()).is_equal(3)
 	var icons := hud._buff_row.find_children("*", "TextureRect", true, false)
-	assert_array(icons).has_size(1)                       # 只有一枚接线成功
+	assert_array(icons).has_size(2)                       # 两枚接线成功
 	var wired := hud._buff_row.get_child(0) as Control
 	assert_str(String(wired.get_meta("buff_id"))).is_equal("vigor")
 	var icon := _chip_icon(wired)
@@ -118,11 +116,7 @@ func test_hud_buff_chips_wire_icons_with_text_fallback() -> void:
 	assert_str(icon.texture.resource_path).contains("ui/buffs/vigor.png")
 	assert_float(icon.custom_minimum_size.x).is_equal(12.0)   # 原生 12x12 零缩放
 	assert_str(_chip_label(wired).text).is_equal("强健")   # 缩写文字与图标共存
-	# 空帧/表外回落纯文字 chip（无 TextureRect 占位，缩写原样保留）
-	var fallback := hud._buff_row.get_child(1) as Control
-	assert_str(String(fallback.get_meta("buff_id"))).is_equal("avenger")
-	assert_object(_chip_icon(fallback)).is_null()
-	assert_str(_chip_label(fallback).text).is_equal("复仇")
+	# 表外 id 回落纯文字 chip（无 TextureRect 占位）
 	var unknown := hud._buff_row.get_child(2) as Control
 	assert_object(_chip_icon(unknown)).is_null()
 	assert_str(_chip_label(unknown).text).is_equal("no_such_buff")
@@ -141,9 +135,10 @@ func test_buff_pick_cards_top_icon_with_fallback() -> void:
 	assert_object(icon).is_not_null()
 	assert_str(icon.texture.resource_path).contains("ui/buffs/vigor.png")
 	assert_str(_chip_label(wired).text).is_equal("[1] 强健")
-	# 空帧回落纯文字卡（无图标占位，名称行原样）
+	# 补图后的第二张卡也走图标，名称行保持原样
 	var fallback := bp._cards[1] as PanelContainer
-	assert_object(_chip_icon(fallback)).is_null()
+	assert_object(_chip_icon(fallback)).is_not_null()
+	assert_str(_chip_icon(fallback).texture.resource_path).contains("ui/buffs/avenger.png")
 	assert_str(_chip_label(fallback).text).is_equal("[2] 复仇者")
 
 

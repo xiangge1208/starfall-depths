@@ -144,6 +144,7 @@ const DEFS: Array[Dictionary] = [
 const COND_OPS: Array[String] = ["==", "!=", ">=", "<=", ">", "<", "ratio_gt"]
 
 var save_system: Node = null   # 测试注入缝（临时路径档）；_ready 兜底探测 /root/SaveSystem
+var codex_system: Node = null  # 测试注入缝；避免脱离 SceneTree 时绝对路径报错
 var toast: Node = null         # toast 注入缝（SpyToast/真实层）；_ready 自建 ui/toast.gd 层
 var session: Dictionary = {}   # 会话计数（单局口径，reset_session 清零；K.3 判定数据）
 
@@ -152,8 +153,9 @@ var _defs_by_trigger: Dictionary = {}   # trigger 名 → id 数组
 
 
 ## _init(save) 直构注入（测试）；autoload 无参实例化 → save 为 null，_ready 探测。
-func _init(save: Object = null) -> void:
+func _init(save: Object = null, codex: Object = null) -> void:
 	save_system = save
+	codex_system = codex
 	for def: Dictionary in DEFS:
 		_defs_by_id[String(def["id"])] = def
 		_defs_by_trigger.get_or_add(String(def.get("trigger", "")), [] as Array).append(String(def["id"]))
@@ -162,7 +164,7 @@ func _init(save: Object = null) -> void:
 
 func _ready() -> void:
 	if save_system == null:
-		save_system = get_node_or_null("/root/SaveSystem")
+		save_system = _autoload_node("SaveSystem")
 	if toast == null:
 		var packed: Variant = load(TOAST_SCENE)
 		toast = packed.instantiate() if packed is PackedScene else load(TOAST_SCRIPT).new()
@@ -176,13 +178,26 @@ func _ready() -> void:
 		func(amount: int, fatal: bool, _ctx: Dictionary) -> void: notify_player_hit(amount, fatal))
 	EventBus.room_cleared.connect(func(_room_id: String) -> void: notify_room_cleared())
 	# 累计口径触发源（T20 解锁信号实例）：藏品家/大收藏家轮询点
-	var codex := get_node_or_null("/root/CodexSystem")
+	var codex := codex_system if codex_system != null else _autoload_node("CodexSystem")
+	if codex_system == null:
+		codex_system = codex
 	if codex != null and codex.has_signal("weapon_unlocked"):
 		codex.weapon_unlocked.connect(func(_weapon_id: String) -> void: recheck())
 		# m4-c3：codex_seen 写入方落地——首次见过武器（获取/任务解锁）同为轮询点，
 		# 权威口径切换后见集增长即触发重判（回落逻辑 _state_value 不删不惑）。
 		if codex.has_signal("weapon_seen"):
 			codex.weapon_seen.connect(func(_weapon_id: String) -> void: recheck())
+
+
+## SceneTree 外的单元测试不能解析 /root 绝对路径；先判断树是否存在，再做相对查找。
+## 正式运行时仍只解析一次 Autoload，测试可直接注入 fake，避免把环境错误伪装成业务错误。
+func _autoload_node(name: String) -> Node:
+	if not is_inside_tree():
+		return null
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return null
+	return tree.root.get_node_or_null(name)
 
 
 # ---- 查询 ----
@@ -436,7 +451,7 @@ func _state_value(source: String) -> int:
 		return 0
 	if source.begins_with("counter:"):
 		var key := source.substr(8)
-		var codex := get_node_or_null("/root/CodexSystem")
+		var codex := codex_system if codex_system != null else _autoload_node("CodexSystem")
 		if codex != null and codex.get("counters") is Dictionary \
 				and (codex.get("counters") as Dictionary).has(key):
 			return int((codex.get("counters") as Dictionary).get(key, 0))
@@ -516,7 +531,7 @@ func _persist_trials_total(total: int) -> void:
 	if save_system == null or not save_system.has_method("record_unlock_tasks"):
 		return
 	var snap: Dictionary = {}
-	var codex := get_node_or_null("/root/CodexSystem")
+	var codex := codex_system if codex_system != null else _autoload_node("CodexSystem")
 	if codex != null and codex.has_method("snapshot_counters"):
 		snap = codex.snapshot_counters()
 	snap["trials_total"] = total

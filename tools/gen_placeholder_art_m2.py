@@ -329,24 +329,24 @@ def gen_bosses_m2():
         return img
     def magma_tyrant():
         img = canvas(48, 48)
-        rect(img, 12, 14, 36, 38, C("#5c2a1c"))
-        rect(img, 12, 14, 36, 19, C("#7a3a24"))
+        rect(img, 10, 16, 38, 36, C("#a84a2c"))
+        rect(img, 12, 14, 36, 19, C("#d46a36"))
         for i in range(10):
             px(img, 14 + (i * 7) % 20, 20 + (i * 5) % 16, C("#ff8a2e"))
-        disk(img, 24, 10, 8, C("#5c2a1c"))
-        eyes(img, 24, 9, gap=3, white=C("#ffd94a"), pupil=C("#5c1a08"))
-        rect(img, 4, 16, 10, 36, C("#5c2a1c"))
-        rect(img, 38, 16, 44, 36, C("#5c2a1c"))
+        disk(img, 24, 10, 8, C("#b85030"))
+        eyes(img, 24, 9, gap=3, white=C("#fff0a0"), pupil=C("#702010"))
+        rect(img, 4, 16, 12, 36, C("#a84a2c"))
+        rect(img, 36, 16, 44, 36, C("#a84a2c"))
         disk(img, 7, 14, 3, C("#ff8a2e"))
         disk(img, 41, 14, 3, C("#ff8a2e"))
-        rect(img, 14, 39, 20, 46, C("#3a1a10"))
-        rect(img, 28, 39, 34, 46, C("#3a1a10"))
+        rect(img, 14, 37, 20, 46, C("#7a3020"))
+        rect(img, 28, 37, 34, 46, C("#7a3020"))
         return img
     def starfall_prophet():
         img = canvas(48, 48)
-        rect(img, 16, 12, 32, 40, C("#3a2a5c"))
-        rect(img, 12, 20, 36, 40, C("#2a1c44"))
-        disk(img, 24, 10, 9, C("#181226"))
+        rect(img, 16, 12, 32, 40, C("#8e66dc"))
+        rect(img, 12, 20, 36, 40, C("#6b4aae"))
+        disk(img, 24, 10, 9, C("#5b4690"))
         eyes(img, 24, 9, gap=3, white=C("#b06cff"), pupil=C("#e2c0ff"))
         for a in range(0, 360, 30):
             px(img, 24 + int(math.cos(math.radians(a)) * 12), 10 + int(math.sin(math.radians(a)) * 12), C("#8ad8ff"))
@@ -446,7 +446,7 @@ def gen_heroes_m2():
     heroes = [
         ("mage", "法师·烬", C("#8a6ab8"), C("#6a4a94"), "wizard",
          "skill_arcane_nova", "奥术新星(CD10s/蓝20): 120px 冰霜新星+冻结", "回响: 法杖/激光伤 +15%", "echo"),
-        ("assassin", "刺客·蝉", C("#4a4a5c"), C("#33333f"), "hood",
+        ("assassin", "刺客·蝉", C("#9a9ac0"), C("#74749c"), "hood",
          "skill_afterimage_slash", "残影斩(CD8s): 突进 220px 无敌, 2x30 伤", "掠影: 近战杀返 5 蓝+翻滚无 CD 1s", "swift_shadow"),
         ("engineer", "工程师·铆", C("#c88a3c"), C("#96682a"), "goggles",
          "skill_turret", "自动炮台(CD12s): 部署炮台(上限 2)", "备件: 开局/进层补便携炮台", "spare_parts"),
@@ -797,8 +797,8 @@ def gen_tiles_m2():
     img = canvas(16, 18)
     rect(img, 5, 12, 6, 14, C("#2a2438"))
     rect(img, 9, 12, 10, 14, C("#2a2438"))
-    rect(img, 4, 6, 11, 12, C("#4a3a5c"))
-    rect(img, 3, 0, 12, 5, C("#2a2438"))
+    rect(img, 4, 6, 11, 12, C("#8060a8"))
+    rect(img, 3, 0, 12, 5, C("#5e477c"))
     eyes(img, 8, 3, gap=2, white=C("#e83a4a"), pupil=C("#701c14"))
     rect(img, 6, 8, 9, 10, C("#e83a4a"))
     outline(img)

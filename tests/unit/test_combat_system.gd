@@ -133,6 +133,7 @@ func test_enemy_bullet_cap_400_recycles_oldest() -> void:
 	for _i in 400:                            # 累计 401 发敌方弹
 		cs.spawn_projectile(enemy_cfg)
 	assert_int(_enemy_alive(cs)).is_equal(400)
+	assert_int(cs.debug_enemy_projectile_count()).is_equal(400)
 	assert_int(cs.active_count()).is_equal(400)
 	assert_bool(cs.pool.active[0] == first).is_false()   # 最旧已让位（实例复用至队尾）
 	assert_int(cs.debug_meta_count()).is_equal(cs.active_count())   # 淘汰不泄漏元数据
@@ -143,6 +144,22 @@ func test_enemy_bullet_cap_400_recycles_oldest() -> void:
 	cs.spawn_projectile(enemy_cfg)            # 再发敌方弹：让位的是最旧敌方弹
 	assert_bool(cs.pool.active.has(player_p)).is_true()
 	assert_int(_enemy_alive(cs)).is_equal(400)
+	assert_int(cs.debug_enemy_projectile_count()).is_equal(400)
+
+## 敌弹反弹为玩家弹后必须释放 cap 配额；随后销毁玩家弹不应重复扣减。
+func test_enemy_projectile_counter_tracks_reflect_and_kill() -> void:
+	var cs := _make_cs()
+	var cfg := {"pos": Vector2.ZERO, "vel": Vector2.ZERO, "damage": 1,
+		"faction": Projectile.Faction.ENEMY, "element": 0, "pierce": 0,
+		"bounce": 0, "life_seconds": 9.0, "radius": 3.0}
+	cs.spawn_projectile(cfg)
+	var p: Projectile = cs.pool.active[0]
+	assert_int(cs.debug_enemy_projectile_count()).is_equal(1)
+	cs.reflect(p, 2)
+	assert_int(cs.debug_enemy_projectile_count()).is_equal(0)
+	cs.block(p)
+	assert_int(cs.debug_enemy_projectile_count()).is_equal(0)
+	assert_int(cs.active_count()).is_equal(0)
 
 ## m1-t18：EnemyBase.take_hit 启用 EventBus.enemy_damaged（原死信号）——扣血后、死亡判定前。
 func test_enemy_damaged_emitted_on_take_hit() -> void:

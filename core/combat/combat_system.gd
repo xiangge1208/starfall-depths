@@ -27,6 +27,8 @@ var _rng: RandomNumberGenerator
 var _next_id := 1
 var _proj_meta: Dictionary = {}       # projectile instance_id -> {hash_id, hit_cd, source/强制共鸣元数据}
 var _blaze_clouds: Array[Dictionary] = []
+var _enemy_projectile_count := 0       # O(1) cap accounting; maintained at spawn/kill/reflect
+var _tick_snapshot: Array[Projectile] = []  # reused physics snapshot，避免每拍 duplicate 分配
 
 func _init(root: Node, combat_rng: RandomNumberGenerator) -> void:
 	pool = ProjectilePool.new(root)
@@ -56,6 +58,8 @@ func spawn_projectile(cfg: Dictionary) -> void:
 			and _enemy_alive_count() >= ENEMY_BULLET_CAP:
 		_kill(_oldest_enemy())
 	var p := pool.spawn(cfg)
+	if p.faction == Projectile.Faction.ENEMY:
+		_enemy_projectile_count += 1
 	_proj_meta[p.get_instance_id()] = {
 		"hash_id": _next_id, "hit_cd": {},
 		"source_type": String(cfg.get("source_type", "projectile")),
@@ -68,11 +72,7 @@ func spawn_projectile(cfg: Dictionary) -> void:
 
 ## 敌方弹存活数（spawn 拍 O(n) 清点）。
 func _enemy_alive_count() -> int:
-	var n := 0
-	for p in pool.active:
-		if p.faction == Projectile.Faction.ENEMY:
-			n += 1
-	return n
+	return _enemy_projectile_count
 
 ## 最旧敌方弹（公平性 victim）；调用前提是清点 ≥400（恒有敌方弹，回退分支不可达）。
 func _oldest_enemy() -> Projectile:
@@ -88,6 +88,10 @@ func active_count() -> int:
 func debug_meta_count() -> int:
 	return _proj_meta.size()
 
+## 热路径计数观测：O(1) 维护值，测试用于与活动池扫描结果核对。
+func debug_enemy_projectile_count() -> int:
+	return _enemy_projectile_count
+
 func _physics_process(_delta: float) -> void:
 	var frame := Engine.get_physics_frames()
 	_tick_blaze_clouds(frame)
@@ -96,7 +100,9 @@ func _physics_process(_delta: float) -> void:
 		var b: Dictionary = _bodies[id]
 		_hash.move(b["hash_id"], b["node"].global_position)
 	# 2) 弹体推进 + 命中
-	for p in pool.active.duplicate():
+	_tick_snapshot.clear()
+	_tick_snapshot.append_array(pool.active)
+	for p in _tick_snapshot:
 		var meta: Dictionary = _proj_meta[p.get_instance_id()]
 		if not p.tick():
 			_kill(p)
@@ -229,6 +235,8 @@ func _projectile_hit_candidates(p: Projectile) -> Array[Dictionary]:
 func _kill(p: Projectile) -> void:
 	if not _proj_meta.has(p.get_instance_id()):
 		return
+	if p.faction == Projectile.Faction.ENEMY:
+		_enemy_projectile_count = maxi(_enemy_projectile_count - 1, 0)
 	_hash.remove(_proj_meta[p.get_instance_id()]["hash_id"])
 	_proj_meta.erase(p.get_instance_id())
 	pool.despawn(p)
@@ -325,6 +333,8 @@ func _tick_blaze_clouds(now: int) -> void:
 			_blaze_clouds.erase(cloud)
 
 func reflect(p: Projectile, new_damage: int) -> void:
+	if p.faction == Projectile.Faction.ENEMY:
+		_enemy_projectile_count = maxi(_enemy_projectile_count - 1, 0)
 	p.faction = Projectile.Faction.PLAYER
 	p.vel = -p.vel
 	p.damage = new_damage

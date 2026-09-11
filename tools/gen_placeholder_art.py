@@ -249,8 +249,8 @@ HERO_WALK_SPEC = {
                  "hair": "#96682a", "weapon": "gun", "shield": False},
     "mage":     {"name": "法师·烬", "body": "#8a6ab8", "cloak": "#6a4a94", "hat": "wizard",
                  "hair": "#5c4530", "weapon": "staff", "shield": False},
-    "assassin": {"name": "刺客·蝉", "body": "#4a4a5c", "cloak": "#33333f", "hat": "hood",
-                 "hood": "#33333f", "hair": "#33333f", "weapon": "dagger", "shield": False},
+    "assassin": {"name": "刺客·蝉", "body": "#9a9ac0", "cloak": "#74749c", "hat": "hood",
+                 "hood": "#74749c", "hair": "#74749c", "weapon": "dagger", "shield": False},
     "guardian": {"name": "守护者·萄", "body": "#7a9ab8", "cloak": "#54748f", "hat": "halo",
                  "hair": "#d8b040", "weapon": "mace", "shield": False},
 }
@@ -784,7 +784,7 @@ def gen_projectiles():
     save(img, "projectiles/bullet_player.png", "玩家子弹（radius≈3px）",
          "floor_scene.gd:61 / room_combat.gd:37 PLAYER_BULLET_COLOR 纯色方块 Polygon2D",
          "元素弹可用 modulate 调色或换 elem_* 专用图")
-    img = bullet(C("#ffd9d0"), C("#ff6a55"), C("#a8281c"))
+    img = bullet(C("#fff3d8"), C("#ff8068"), C("#d83b2f"))
     save(img, "projectiles/bullet_enemy.png", "敌方子弹",
          "floor_scene.gd:62 / room_combat.gd:38 ENEMY_BULLET_COLOR 纯色方块",
          "同上")
@@ -869,12 +869,12 @@ def gen_tiles():
          "floor_scene.gd:378-382/862 与 room_combat.gd:374-379 0.62,0.4,0.22 色块",
          "开门动画可滑动+淡出")
     img = canvas(16, 16)
-    rect(img, 0, 0, 15, 15, C("#5c4530"))
+    rect(img, 0, 0, 15, 15, C("#9e4038"))
     for x in (3, 7, 11):
-        vline(img, x, 0, 15, C("#453322"))
-    rect(img, 5, 6, 10, 11, C("#e2c04c"))
-    rect(img, 7, 9, 8, 11, C("#5c4530"))
-    disk(img, 8, 8, 1, C("#5c4530"))
+        vline(img, x, 0, 15, C("#6e2929"))
+    rect(img, 5, 6, 10, 11, C("#ffe06a"))
+    rect(img, 7, 9, 8, 11, C("#9e4038"))
+    disk(img, 8, 8, 1, C("#9e4038"))
     outline(img)
     save(img, "tiles/door_locked.png", "锁定门（通关条件未满足）",
          "floor_scene.gd:862 locked → 0.7,0.2,0.2 红色块", "锁牌换红色更醒目")
@@ -933,7 +933,7 @@ def gen_tiles():
     save(img, "tiles/exit_crystal.png", "层间出口水晶",
          "run_root.gd:150-157 marker 0.08,0.16,0.24 + crystal 0.35,0.75,1.0 色块", "可做上下浮动+发光")
     # 喷泉
-    for suffix, water in (("full", "#3a86c8"), ("used", "#2a4a5c")):
+    for suffix, water in (("full", "#3a86c8"), ("used", "#54748a")):
         img = canvas(16, 16)
         rect(img, 2, 6, 13, 12, C("#6e6678"))
         rect(img, 3, 7, 12, 11, C(water))
@@ -1076,12 +1076,12 @@ def gen_ui_icons():
     # HUD 心/盾/能/币
     img = canvas(8, 8)
     for y, (a, b) in enumerate(((1, 3), (0, 7), (0, 7), (1, 6), (2, 5), (3, 4))):
-        hline(img, a, b, y + 1, C("#d2202e"))
-    px(img, 1, 2, C("#ff8a94"))
+        hline(img, a, b, y + 1, C("#ef3c50"))
+    px(img, 1, 2, C("#ffb0b8"))
     save(img, "ui/icon_heart_full.png", "HUD 红心(满)", "hud.gd:17-18 HEART_FULL 0.85,0.16,0.16 色块", "empty 用同形暗色 modulate")
     img = canvas(8, 8)
     for y, (a, b) in enumerate(((1, 3), (0, 7), (0, 7), (1, 6), (2, 5), (3, 4))):
-        hline(img, a, b, y + 1, C("#3a2428"))
+        hline(img, a, b, y + 1, C("#a65a68"))
     save(img, "ui/icon_heart_empty.png", "HUD 红心(空)", "hud.gd:18 HEART_EMPTY 0.24,0.1,0.1", "")
     img = canvas(8, 8)
     for y, (a, b) in enumerate(((2, 5), (1, 6), (1, 6), (2, 5))):
@@ -1258,6 +1258,39 @@ def gen_buff_icons():
                    6 + int(math.sin(math.radians(a)) * r),
                    C("#ff8a2e") if r < 4 else C("#ffd94a"))
         px(img, 6, 6, C("#fff3b8"))
+
+    # 历史空帧补齐：这些键此前只有 data 行、没有 painter，生成器输出透明图，
+    # 导致 QA 只能按基线豁免。图形保持 12x12、像素风和现有配色，不改变玩法。
+    @g("avenger")
+    def _(img):
+        disk(img, 6, 6, 3, C("#e83a4a"))
+        hline(img, 3, 9, 6, C("#ffd94a"))
+        px(img, 6, 3, C("#ffd94a")); px(img, 6, 9, C("#ffd94a"))
+
+    @g("energy_siphon")
+    def _(img):
+        ring(img, 6, 6, 4, C("#5aa0ff"), 1)
+        px(img, 6, 2, C("#c8e0ff")); px(img, 6, 10, C("#c8e0ff"))
+        hline(img, 4, 8, 6, C("#5aa0ff"))
+
+    @g("glutton")
+    def _(img):
+        disk(img, 6, 7, 4, C("#e8dcc0"))
+        hline(img, 3, 9, 6, C("#c88a4a"))
+        px(img, 4, 4, C("#e83a4a")); px(img, 8, 4, C("#e83a4a"))
+
+    @g("resonance_amp")
+    def _(img):
+        ring(img, 6, 6, 4, C("#ff8a2e"), 1)
+        ring(img, 6, 6, 2, C("#8ae8ff"), 1)
+        px(img, 6, 6, C("#fff3b8"))
+
+    @g("thorn_armor")
+    def _(img):
+        disk(img, 6, 6, 3, C("#6a8a4a"))
+        for a in range(0, 360, 60):
+            px(img, 6 + int(math.cos(math.radians(a)) * 5),
+               6 + int(math.sin(math.radians(a)) * 5), C("#c8e88a"))
 
     buffs = json.load(open(ROOT / "data" / "buffs.json", encoding="utf-8"))
     for bid, row in buffs.items():
@@ -1481,11 +1514,11 @@ def gen_batch2():
     for dx, dy in ((2, 2), (-2, 2), (2, -2), (-2, -2)):
         px(img, 4 + dx, 4 + dy, C("#e2f4ff"))
     save(img, "ui/status_frozen.png", "敌人状态角标：冰冻", "status_component.gd is_frozen 无视觉", "")
-    img = badge("#3c2a5c")
-    px(img, 5, 1, C("#e0b0ff"))
-    hline(img, 3, 5, 3, C("#e0b0ff"))
-    hline(img, 2, 4, 5, C("#c888ff"))
-    px(img, 4, 6, C("#e0b0ff"))
+    img = badge("#7050a8")
+    px(img, 5, 1, C("#f0d0ff"))
+    hline(img, 3, 5, 3, C("#f0d0ff"))
+    hline(img, 2, 4, 5, C("#d8a0ff"))
+    px(img, 4, 6, C("#f0d0ff"))
     save(img, "ui/status_shock.png", "敌人状态角标：麻痹", "status_component.gd SHOCK/眩晕 无视觉", "")
     img = badge("#2a4a1c")
     disk(img, 4, 5, 2, C("#8ad84a"))
@@ -1788,7 +1821,12 @@ def write_manifest():
     ]
     for rel, purpose, current, note in SPEC:
         p = OUT / rel
-        size = f"{Image.open(p).width}x{Image.open(p).height}"
+        # atlas.json 等结构化产物也在 SPEC 中登记，但不是位图；清单写
+        # “metadata” 而非尝试交给 Pillow 解码，避免生成成功后在 manifest 阶段失败。
+        if p.suffix.lower() == ".png":
+            size = f"{Image.open(p).width}x{Image.open(p).height}"
+        else:
+            size = "metadata"
         note_col = note if note else "—"
         lines.append(f"| `{rel}` | {size} | {purpose} | {current} | {note_col} |")
     lines += [
@@ -1838,7 +1876,7 @@ def write_manifest():
 
 def write_preview():
     cell, scale, cols = 40, 4, 10
-    entries = [s for s in SPEC if not s[0].startswith("ui/logo")]
+    entries = [s for s in SPEC if not s[0].startswith("ui/logo") and Path(s[0]).suffix.lower() == ".png"]
     rows = (len(entries) + cols - 1) // cols
     sheet = Image.new("RGBA", (cols * cell, rows * (cell + 10)), (34, 32, 44, 255))
     d = ImageDraw.Draw(sheet)

@@ -1,6 +1,6 @@
 # 星陨地牢 Starfall Depths
 
-![Godot](https://img.shields.io/badge/Godot-4.7-478CBF) ![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Tests](https://img.shields.io/badge/tests-1898_passing-brightgreen) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-orange)
+![Godot](https://img.shields.io/badge/Godot-4.7-478CBF) ![Version](https://img.shields.io/badge/version-1.0.0-blue) ![Tests](https://img.shields.io/badge/tests-1961_passing-brightgreen) ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-orange)
 
 > 像素风俯视角 Roguelike 弹幕射击地牢游戏——双摇杆走位躲弹、海量武器构筑、种子化随机地牢、局外养成。
 > 可玩性以《元气骑士》为硬对标，并以 **元素共鸣 / 武器熔铸 / 可破坏掩体** 三大原创签名系统做差异化。
@@ -135,20 +135,20 @@
 
 | 脚本 | 用途 |
 |---|---|
-| `tools/run_tests.cmd` | gdUnit4 全量测试（1898 用例 / 103 套件全绿） |
+| `tools/run_tests.cmd` | gdUnit4 全量测试（当前基线 1961 用例 / 103 套件全绿） |
 | `tools/run_balance.cmd` | 平衡机器人回归（**注意**：默认输出会覆盖 `docs/superpowers/reports/m2-balance-2026-08-31.*` 在档证据，改口径前先备份或改参） |
 
 ## 测试与质量保障
 
 当前 main 基线（本地复跑口径）：
 
-- **1898 个测试用例全绿**（gdUnit4，103 套件），零孤儿对象
+- **1961 个测试用例全绿**（gdUnit4，103 套件），零失败/零跳过（由 `reports/report_*/results.xml` 实测；引擎退出时的资源释放告警另行关注）
 - **9000 随机种子地牢生成校验**（3000 种子 × 3 生态）：全节点可达、门位对齐、Boss 为最深点、商店经济可用
 - **存档 v2 往返测试 99/99**，版本化 + migration
 - **成就 24/24 接线核验**、经济判定入档
 - **性能预算硬指标**（`tests/scenes/perf_probe.tscn` 实测）：逻辑帧 ≤6ms（实测 0.02~0.03）、活动实体 ≤300（实测 62~65）、同屏弹幕 ≤500、draw call ≤150（窗口化实测 F2 峰 149）
 - **数据全表可达性绊线**：`enemies.json` 每一行都必须能在产品内出现（波次池 ∪ 召唤链闭包 ∪ Boss 召唤常量），新增死数据即红
-- 美术/音频均为程序化生成管线产物（`tools/spritegen_m3.py`、`gen_placeholder_*.py`），`tools/art_qa_check.py` 校验对比度/连通域/空帧三项（当前 565 检查项、47 条基线豁免）
+- 美术/音频均为程序化生成管线产物（`tools/spritegen_m3.py`、`gen_placeholder_*.py`），`tools/art_qa_check.py` 校验对比度/连通域/空帧三项（当前 565 检查项、30 条历史基线豁免；新增缺陷仍 fail-closed）
 
 > 无 CI：以上校验目前均为**本地手工执行**，门禁证据落 `docs/superpowers/reports/`。
 
@@ -192,7 +192,7 @@ ui/           HUD、菜单、图鉴、天赋、成就、结算等界面
 | `m2` | 全内容 | 3 层 6 Boss 6 角色、115 武器、熔铸、天赋树/图鉴/成就 | 节奏目标达标 + 1000 种子 × 3 生态 + 性能预算 |
 | `m3` | 打磨发布 | Juice v2、平衡周、试炼模式、设置/无障碍、双平台导出 | 1654 测试、9000 种子、双机 60fps |
 | `m4` | v1 补完与校准 | 13 张补完/校准卡全并 | 1839 测试、零孤儿、存档 99/99、成就 24/24 |
-| （m4 后） | UI/音画补完 + 可达性补漏 | 成就页、Boss 立绘/血条、图标接线、全音效接线、敌人全表可达 | 1898 测试 |
+| （m4 后） | UI/音画补完 + 可达性补漏 | 成就页、Boss 立绘/血条、图标接线、全音效接线、敌人全表可达 | 1961 测试 |
 
 ## 已知偏差与 v1 边界
 
