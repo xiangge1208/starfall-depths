@@ -6,6 +6,8 @@ extends Node2D
 const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
 const GAME_CAMERA := preload("res://fx/game_camera.gd")
 const DEBUG_HUD := preload("res://ui/debug_hud.gd")
+const POST_PROCESS_SCRIPT := preload("res://fx/post_process.gd")
+const DROP_SHADOW_SCRIPT := preload("res://fx/drop_shadow.gd")
 
 const TRAIN_INTERIOR := Rect2(16, 16, 456, 238)
 const WORLD_RECT := Rect2(0, 0, 960, 270)
@@ -33,6 +35,7 @@ func _ready() -> void:
 	_build_weapon_rack()
 	_wire_interaction()
 	_attach_camera_and_hud()
+	POST_PROCESS_SCRIPT.apply_to_scene(self)
 	EventBus.player_damaged.connect(_on_player_damaged)
 	EventBus.room_cleared.connect(_on_room_cleared)
 
@@ -81,6 +84,11 @@ func _dress_enemy(e: EnemyBase) -> void:
 			Vector2(-6, -7), Vector2(6, -7), Vector2(6, 7), Vector2(-6, 7),
 		])
 		vis.color = Color(0.65, 0.5, 0.35)
+		if e.get_node_or_null("DropShadow") == null:
+			var shadow: Node2D = DROP_SHADOW_SCRIPT.new()
+			shadow.name = "DropShadow"
+			shadow.call("set_shadow_size", 6.0, 3.0, 5.0)
+			e.add_child(shadow)
 		e.add_child(vis)
 
 # ---- 武器架（6 台：E 键交互 equip 入玩家双槽；m1-t6 E 化，接触拾取已移除） ----

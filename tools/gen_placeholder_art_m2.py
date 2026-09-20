@@ -135,7 +135,9 @@ def generate(caller=None):
 BIOME_PAL = {
     "A1": ("#57a03f", "#7ec463", "#2e6b21"),
     "A2": ("#4a8ab8", "#7ec4e8", "#1f4a66"),
-    "A3": ("#b8502e", "#e88a4a", "#6b2414"),
+    # A3 must read over the project's near-black arena ground; keep the volcanic
+    # palette but lift the mid-tone enough for the static readability contract.
+    "A3": ("#d86a40", "#ffb05a", "#8a301c"),
     "SLIME": ("#5aa05a", "#8ad88a", "#2e6b3f"),
     "MINIBOSS": ("#a8865a", "#d8b478", "#5c4526"),
 }
@@ -197,6 +199,7 @@ def _mob(arch, pal, feats):
         rect(img, 7, 3, 8, 9, dark)
         px(img, 7, 2, light)
         rect(img, 8, 4, 10, 5, light)
+        rect(img, 4, 12, 11, 13, light)
     elif arch == "splitter":
         disk(img, 8, 11, 5, body)
         disk(img, 8, 11, 3, light)
@@ -212,9 +215,11 @@ def _mob(arch, pal, feats):
             px(img, x, y, C("#8ae8ff"))
             px(img, x, y + 1, C("#c8f0ff"))
     if "lava" in feats:
-        for _ in range(6):
-            fx, fy = 4 + (len(str(feats)) * 3) % 8, 8 + (len(str(pal)) * 5) % 6
-            px(img, fx, fy, C("#ff8a2e"))
+        # Deterministic spread of hot pixels; avoid stacking all six marks at one coordinate.
+        for i in range(6):
+            fx = 4 + (i * 3 + len(str(feats))) % 8
+            fy = 8 + (i * 2 + len(str(pal))) % 6
+            px(img, fx, fy, C("#ffb03a"))
     if "fuse" in feats:
         px(img, 8, 2, C("#ffd94a"))
     if "one_eye" in feats:
@@ -310,6 +315,9 @@ def gen_bosses_m2():
         px(img, 24, 33, C("#ffffff"))
         rect(img, 6, 18, 12, 34, C("#4a6a8a"))
         rect(img, 36, 18, 42, 34, C("#4a6a8a"))
+        # Shoulder bridges keep the complete golem silhouette legible at 48px.
+        rect(img, 12, 23, 14, 29, C("#4a6a8a"))
+        rect(img, 34, 23, 36, 29, C("#4a6a8a"))
         rect(img, 16, 41, 22, 46, C("#33485e"))
         rect(img, 26, 41, 32, 46, C("#33485e"))
         return img
@@ -444,7 +452,7 @@ def gen_enemy_sheets_m2():
 def gen_heroes_m2():
     import gen_placeholder_art as _b
     heroes = [
-        ("mage", "法师·烬", C("#8a6ab8"), C("#6a4a94"), "wizard",
+        ("mage", "法师·烬", C("#b28ae8"), C("#875ec0"), "wizard",
          "skill_arcane_nova", "奥术新星(CD10s/蓝20): 120px 冰霜新星+冻结", "回响: 法杖/激光伤 +15%", "echo"),
         ("assassin", "刺客·蝉", C("#9a9ac0"), C("#74749c"), "hood",
          "skill_afterimage_slash", "残影斩(CD8s): 突进 220px 无敌, 2x30 伤", "掠影: 近战杀返 5 蓝+翻滚无 CD 1s", "swift_shadow"),
@@ -686,10 +694,10 @@ def gen_buffs_m2():
 
     @g("resonance_vision")
     def _(img):
-        disk(img, 6, 6, 4, C("#20242c"))
-        ring(img, 6, 6, 4, C("#5ab0ff"), 1)
-        px(img, 4, 6, C("#ff6a2e"))
-        px(img, 8, 6, C("#8ae8ff"))
+        disk(img, 6, 6, 4, C("#47516c"))
+        ring(img, 6, 6, 4, C("#9ad8ff"), 1)
+        px(img, 4, 6, C("#ff9a5a"))
+        px(img, 8, 6, C("#d2f4ff"))
 
     new_buffs = [
         ("hunter", "猎杀者", "blue", "对异常目标伤害 +20%"),
@@ -775,32 +783,34 @@ def gen_tiles_m2():
             rect(img, x0 - w, 14 - i, x0 + w, 14 - i, C("#5ab8d8" if i > h0 // 2 else "#8ae8ff"))
     save(img, "tiles/prop_crystal_pillar.png", "晶柱（可破坏掩体/激光折射, 8~20HP）", "GDD §9.2 签名系统#3", "碎裂 2 帧后留碎块")
     img = canvas(16, 16)
-    for x0, h0 in ((4, 5), (8, 7), (12, 4)):
+    for x0, h0 in ((4, 7), (8, 9), (12, 6)):
         for i in range(h0):
-            rect(img, x0 - 1, 14 - i, x0 + 1, 14 - i, C("#8ae8ff", 200 - i * 30))
+            rect(img, x0 - 1, 14 - i, x0 + 1, 14 - i, C("#7ad8ff", 255 - i * 14))
+            if i % 2 == 0:
+                px(img, x0 + 2, 14 - i, C("#d2f4ff"))
     save(img, "tiles/prop_crystal_pillar_broken.png", "晶柱碎块（无碰撞贴地）", "GDD §9.2 摧毁后留碎块", "")
     img = canvas(16, 16)
-    disk(img, 8, 12, 5, C("#6a5a4a"))
-    disk(img, 5, 10, 3, C("#8a7a66"))
-    disk(img, 11, 11, 3, C("#54483c"))
+    disk(img, 8, 12, 5, C("#8a7058"))
+    disk(img, 5, 10, 3, C("#c0a078"))
+    disk(img, 11, 11, 3, C("#6a5044"))
     save(img, "tiles/prop_debris.png", "残骸（可破坏掩体）", "GDD §9.2", "")
     # 熔铸台
     img = canvas(20, 18)
-    rect(img, 2, 12, 17, 16, C("#4a4a56"))
-    rect(img, 5, 6, 14, 12, C("#5c5c6a"))
-    rect(img, 7, 8, 12, 10, C("#ff8a2e"))
-    px(img, 9, 9, C("#ffd94a"))
-    px(img, 11, 8, C("#ffd94a"))
-    rect(img, 8, 2, 11, 6, C("#3a3a44"))
+    rect(img, 2, 12, 17, 16, C("#6a6a78"))
+    rect(img, 5, 6, 14, 12, C("#8a8a9c"))
+    rect(img, 7, 8, 12, 10, C("#ff9a32"))
+    px(img, 9, 9, C("#fff0a0"))
+    px(img, 11, 8, C("#fff0a0"))
+    rect(img, 8, 2, 11, 6, C("#4e4e62"))
     save(img, "tiles/fusion_forge.png", "熔铸台（每层 1, 2 武器→配方产物）", "GDD §8.3 签名系统#2; 附录 D 15 配方", "工作时有火光动画")
     # 事件房 4 事件
     img = canvas(16, 18)
     rect(img, 5, 12, 6, 14, C("#2a2438"))
     rect(img, 9, 12, 10, 14, C("#2a2438"))
-    rect(img, 4, 6, 11, 12, C("#8060a8"))
-    rect(img, 3, 0, 12, 5, C("#5e477c"))
-    eyes(img, 8, 3, gap=2, white=C("#e83a4a"), pupil=C("#701c14"))
-    rect(img, 6, 8, 9, 10, C("#e83a4a"))
+    rect(img, 4, 6, 11, 12, C("#a47cce"))
+    rect(img, 3, 0, 12, 5, C("#8060ac"))
+    eyes(img, 8, 3, gap=2, white=C("#fff0a0"), pupil=C("#8a3030"))
+    rect(img, 6, 8, 9, 10, C("#ff6a68"))
     outline(img)
     save(img, "tiles/event_merchant.png", "事件：神秘商人（2 HP 换 1 道具）", "GDD §11 事件房/附录 F.3; 现为纯文字面板", "")
     img = canvas(16, 18)
@@ -831,11 +841,12 @@ def gen_tiles_m2():
     save(img, "tiles/event_graffiti.png", "事件：涂鸦墙（随机构筑提示）", "附录 F.3", "")
     # 复活图腾 / 回收架 / 暴击宝箱
     img = canvas(16, 20)
-    rect(img, 6, 2, 9, 6, C("#8a6a3c"))
-    rect(img, 4, 6, 11, 14, C("#a8854e"))
-    rect(img, 6, 8, 9, 11, C("#e83a4a"))
+    rect(img, 6, 2, 9, 6, C("#b08a4a"))
+    rect(img, 4, 6, 11, 14, C("#d0a868"))
+    rect(img, 6, 8, 9, 11, C("#ff5a5a"))
     for y, (a, b) in enumerate(((1, 3), (0, 4))):
         hline(img, a + 5, b + 5, 16 + y, C("#e2c04c"))
+    rect(img, 7, 14, 8, 18, C("#d0a868"))
     rect(img, 3, 18, 12, 19, C("#5c4530"))
     outline(img)
     save(img, "tiles/totem_revive.png", "复活图腾（Boss 房前 150 金, 一次性）", "GDD §14.2 价格锚点", "图腾眼=红心")

@@ -63,6 +63,10 @@ func _run() -> void:
 	await _scene_case("res://ui/buff_pick.tscn", "open3", true)     # 三选一（真实 buff 文案）
 	await _overlay_cases()                                          # 灾厄/熔铸/toast（代码构建层）
 	await _hud_case()                                               # 战斗 HUD
+	# main_menu is instantiated above and starts the shared autoload BGM.  This
+	# smoke script owns that scene lifecycle, so leave the audio singleton silent
+	# before it ends as well.
+	AudioMgr.stop_music()
 
 	print("SMOKE DONE: %s (%d checks failed)" % ["OK" if failures.is_empty() else "FAILED",
 		failures.size()])

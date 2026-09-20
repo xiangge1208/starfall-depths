@@ -55,7 +55,7 @@ fail-closed: 任一失败退出码 1（结构错误 2）；gen_placeholder_art.p
     python tools/art_qa_check.py [--root PATH] [--json PATH] [--verbose]
                                  [--baseline PATH] [--strict] [--save-baseline]
 
-棘轮口径（M4-A2 存量基线）: 存量库有 40 项超阈（清单见 tools/art_qa_baseline.json，
+棘轮口径（M4-A2 存量基线）: 存量库有历史超阈项（当前数量以 tools/art_qa_baseline.json 为准，
 已交编排者裁定：修资产或调阈值）。默认按基线棘轮放行已知项（fail-closed 只对
 "新增/恶化"生效——当前失败项 ⊄ 基线即退出码 1）；`--strict` 忽略基线纯校验；
 `--save-baseline` 全量刷新基线（修资产后应重刷收缩清单，不许无声扩大）。

@@ -57,6 +57,7 @@ func before_test() -> void:
 
 func after_test() -> void:
 	AudioServer.set_bus_volume_db(0, _master_db_backup)   # master 总线还原（防跨套件泄漏）
+	AudioMgr.stop_music()                                 # MainMenu fixture owns no global BGM lifecycle
 	for path in _tmp_paths:
 		DirAccess.remove_absolute(path)
 		DirAccess.remove_absolute(path + ".tmp")

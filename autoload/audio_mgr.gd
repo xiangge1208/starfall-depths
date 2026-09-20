@@ -113,6 +113,31 @@ func _ready() -> void:
 	# 表现层无判定影响；测试环境按钮按下多播 play 亦无副作用（headless 音频哑设备）。
 	get_tree().node_added.connect(_on_node_added)
 
+## Explicitly stop playback before the manager leaves the tree.  AudioStreamPlayer
+## keeps an AudioStreamPlayback resource alive while playing; relying on node
+## destruction alone leaves the native playback (and, for imported WAV/QOA,
+## its stream resource) referenced until process teardown.  This matters both
+## for scene/test instances created and freed repeatedly and for the autoload
+## at application exit.
+func _exit_tree() -> void:
+	if is_inside_tree() and get_tree().node_added.is_connected(_on_node_added):
+		get_tree().node_added.disconnect(_on_node_added)
+	_kill_music_tween()
+	for p in _pool:
+		if is_instance_valid(p):
+			p.stop()
+			p.stream = null
+	_pool.clear()
+	if is_instance_valid(_music):
+		_music.stop()
+		_music.stream = null
+	_music = null
+	_music_key = ""
+	_boss_base_key = ""
+	_streams.clear()
+	_music_streams.clear()
+	_last_once_frame.clear()
+
 ## 全库按钮按下 → ui_click（一钮一声；禁用态按钮不 emit pressed 天然静默）。
 func _on_node_added(node: Node) -> void:
 	if node is BaseButton:

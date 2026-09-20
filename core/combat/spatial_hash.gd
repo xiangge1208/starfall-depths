@@ -23,14 +23,14 @@ func move(id: int, new_pos: Vector2) -> void:
 	var ok := _key(old)
 	var nk := _key(new_pos)
 	if ok != nk:
-		_buckets[ok].erase(id)
+		_erase_from_bucket(ok, id)
 		_bucket(nk)[id] = true
 	_pos[id] = new_pos
 
 func remove(id: int) -> void:
 	if not _pos.has(id):
 		return
-	_buckets[_key(_pos[id])].erase(id)
+	_erase_from_bucket(_key(_pos[id]), id)
 	_pos.erase(id)
 
 func query(pos: Vector2, radius: float) -> Array[int]:
@@ -55,3 +55,14 @@ func _bucket(k: Vector2i) -> Dictionary:
 	if not _buckets.has(k):
 		_buckets[k] = {}
 	return _buckets[k]
+
+## Moving projectiles may cross thousands of cells during a long run.  Remove
+## empty buckets immediately so the index scales with current occupancy rather
+## than with every cell ever visited.
+func _erase_from_bucket(k: Vector2i, id: int) -> void:
+	if not _buckets.has(k):
+		return
+	var bucket: Dictionary = _buckets[k]
+	bucket.erase(id)
+	if bucket.is_empty():
+		_buckets.erase(k)

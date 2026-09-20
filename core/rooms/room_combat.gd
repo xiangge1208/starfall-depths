@@ -14,6 +14,7 @@ const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
 const GAME_CAMERA := preload("res://fx/game_camera.gd")
 const DEBUG_HUD := preload("res://ui/debug_hud.gd")
 const PICKUP := preload("res://core/rooms/pickup.gd")
+const POST_PROCESS_SCRIPT := preload("res://fx/post_process.gd")
 
 const ROOM_RECT := Rect2(488, 0, 472, 270)          # 含墙外框
 const INTERIOR := Rect2(488, 16, 456, 238)          # 可玩内域
@@ -82,6 +83,7 @@ func _ready() -> void:
 	_build_doors()
 	_build_entry_zone()
 	_adopt_or_spawn_player()
+	POST_PROCESS_SCRIPT.apply_to_scene(self)
 
 ## brief 接口：外部覆盖房间配置（默认读 data/rooms/m0_combat.json）。
 func load_config(cfg: Dictionary) -> void:
@@ -579,8 +581,12 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
+			if p.vel != Vector2.ZERO:
+				vis.rotation = p.vel.angle()
 			vis.texture = ArtLookup.bullet_texture(p.faction, p.element,
 				crit_window and p.faction == Projectile.Faction.PLAYER)   # M2-T1 备忘缓存（m4-a1 加 crit 位）
-			vis.modulate = p.modulate          # 反弹弹带 (1,1,0.4) 染色（setup 已重置为 WHITE）
+			var is_crit := crit_window and p.faction == Projectile.Faction.PLAYER
+			var has_elem := p.element != Elements.Id.NONE
+			vis.modulate = POST_PROCESS_SCRIPT.get_bullet_hdr_modulate(p.modulate, is_crit, has_elem)
 		else:
 			vis.visible = false

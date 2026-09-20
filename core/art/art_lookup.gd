@@ -458,6 +458,8 @@ static func apply_player_sprite(player: Node2D) -> void:
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.scale = Vector2(0.75, 0.75)
 
+const DROP_SHADOW_SCRIPT := preload("res://fx/drop_shadow.gd")
+
 ## 敌人外观通用装配：按行取图，把纹理按行 radius 装进 ~2r 见方（Boss body_scale 由
 ## EnemyBase.setup 整节点 ×1.25，视觉随之放大，无需在此处理）。缺图返回 false，
 ## 调用方保留原色块表现。
@@ -471,5 +473,13 @@ static func dress_enemy_sprite(e: Node2D, row: Dictionary) -> bool:
 	var tsize := spr.texture.get_size()
 	var s := (radius * 2.0) / maxf(tsize.x, tsize.y)
 	spr.scale = Vector2(s, s)
+
+	# 椭圆接地阴影（类《元气骑士》Drop Shadow，解决顶视图漂浮感）
+	if e.get_node_or_null("DropShadow") == null:
+		var shadow: Node2D = DROP_SHADOW_SCRIPT.new()
+		shadow.name = "DropShadow"
+		shadow.call("set_shadow_size", maxf(radius * 0.9, 5.0), maxf(radius * 0.45, 2.5), maxf(radius * 0.65, 4.0))
+		e.add_child(shadow)
+
 	e.add_child(spr)
 	return true

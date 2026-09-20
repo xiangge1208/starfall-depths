@@ -22,6 +22,10 @@ const ACHIEVEMENTS_SCENE := "res://ui/achievements.tscn" # m4p-u1：成就页路
 func after_test() -> void:
 	if get_tree().current_scene != null:
 		get_tree().unload_current_scene()
+	# Route tests can leave the shared autoload on the menu BGM.  Unloading a
+	# scene does not own that player, so reset it explicitly before the next
+	# isolated test and before runner shutdown.
+	AudioMgr.stop_music()
 
 
 # ---------------------------------------------------------------- 路由表

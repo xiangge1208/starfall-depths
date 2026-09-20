@@ -101,6 +101,71 @@ func test_cap_eviction_cleans_hash_meta() -> void:
 	assert_int(body.hits.size()).is_equal(1)
 	assert_int(body.hits[0]["amount"]).is_equal(4)
 
+## Player projectiles must use the same cleanup path as enemy projectiles.  A
+## previous asymmetric implementation only removed enemy entries, leaving
+## expired/blocked player shots in SpatialHash and making the query cost grow
+## over a long run even though active_count() looked healthy.
+func test_player_projectile_expiry_cleans_hash_and_meta() -> void:
+	var cs := _make_cs()
+	var body: DummyBody = auto_free(DummyBody.new())
+	cs.get_parent().add_child(body)
+	body.position = Vector2(5000, 0)
+	cs.register_body(body, Projectile.Faction.ENEMY)
+	cs.spawn_projectile({"pos": Vector2.ZERO, "vel": Vector2.ZERO, "damage": 1,
+		"faction": Projectile.Faction.PLAYER, "element": 0, "pierce": 0,
+		"bounce": 0, "life_seconds": 0.1, "radius": 3.0})
+	assert_int(cs.debug_meta_count()).is_equal(1)
+	for _i in 12:
+		await get_tree().physics_frame
+	assert_int(cs.active_count()).is_equal(0)
+	assert_int(cs.debug_meta_count()).is_equal(0)
+	var hash_pos: Dictionary = cs._hash.get("_pos")
+	assert_int(hash_pos.size()).is_equal(1) # registered body only
+
+func test_player_projectile_block_cleans_hash_and_meta() -> void:
+	var cs := _make_cs()
+	cs.spawn_projectile({"pos": Vector2.ZERO, "vel": Vector2.ZERO, "damage": 1,
+		"faction": Projectile.Faction.PLAYER, "element": 0, "pierce": 0,
+		"bounce": 0, "life_seconds": 9.0, "radius": 3.0})
+	var p: Projectile = cs.pool.active[0]
+	cs.block(p)
+	assert_int(cs.active_count()).is_equal(0)
+	assert_int(cs.debug_meta_count()).is_equal(0)
+	assert_int((cs._hash.get("_pos") as Dictionary).size()).is_equal(0)
+
+## SpatialHash returns hash ids, so the combat hot path must have an O(1)
+## reverse lookup.  Registration and unregistration must keep that index in
+## lockstep with the canonical instance-id registry.
+func test_body_hash_reverse_index_tracks_register_and_unregister() -> void:
+	var cs := _make_cs()
+	var first: DummyBody = auto_free(DummyBody.new())
+	var second: DummyBody = auto_free(DummyBody.new())
+	cs.get_parent().add_child(first)
+	cs.get_parent().add_child(second)
+	cs.register_body(first, Projectile.Faction.ENEMY)
+	cs.register_body(second, Projectile.Faction.ENEMY)
+	var first_hash_id: int = cs._bodies[first.get_instance_id()]["hash_id"]
+	var second_hash_id: int = cs._bodies[second.get_instance_id()]["hash_id"]
+	assert_object(cs._bodies_by_hash(first_hash_id)["node"]).is_same(first)
+	assert_object(cs._bodies_by_hash(second_hash_id)["node"]).is_same(second)
+	cs.unregister_body(first)
+	assert_bool(cs._bodies_by_hash(first_hash_id).is_empty()).is_true()
+	assert_object(cs._bodies_by_hash(second_hash_id)["node"]).is_same(second)
+
+func test_duplicate_body_registration_updates_in_place() -> void:
+	var cs := _make_cs()
+	var body: DummyBody = auto_free(DummyBody.new())
+	cs.get_parent().add_child(body)
+	cs.register_body(body, Projectile.Faction.ENEMY)
+	var first_hash_id: int = cs._bodies[body.get_instance_id()]["hash_id"]
+	body.position = Vector2(96, 0)
+	cs.register_body(body, Projectile.Faction.PLAYER)
+	assert_int(cs._bodies.size()).is_equal(1)
+	assert_int(cs._bodies_by_hash_id.size()).is_equal(1)
+	assert_int(cs._bodies[body.get_instance_id()]["hash_id"]).is_equal(first_hash_id)
+	assert_int(cs._bodies[body.get_instance_id()]["faction"]).is_equal(Projectile.Faction.PLAYER)
+	assert_int((cs._hash.get("_pos") as Dictionary).size()).is_equal(1)
+
 ## fix2：大半径体（20px）在 p.radius+_max_body_radius 松弛内须被候选、精确判定命中
 ## （旧 slack 3+12=15 静默漏判：离弹道 18px > 15 但 ≤ 3+20）。
 func test_large_radius_body_hit_within_widened_slack() -> void:

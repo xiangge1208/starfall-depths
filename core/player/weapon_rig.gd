@@ -4,6 +4,9 @@ extends Node
 
 const SWITCH_LOCK_TICKS := 15      # 0.25s
 
+signal weapon_changed(current_weapon: Dictionary, secondary_weapon: Dictionary)
+signal weapon_fired(weapon: Dictionary, aim: Vector2, mirrored: bool)
+
 ## m4p-w2a：开火音按 weapons.json category 分音（表外 pistol/special 维持 shoot_player；
 ## 近战 is_melee 不经 try_fire，挥击音在 melee.gd 既有 melee_swing）。经 AudioMgr.play_once
 ## 消费——双持齐射同拍两枪仍只一声（卡约束「一拍一音源一次」）。
@@ -59,6 +62,8 @@ func equip(weapon_id: String) -> void:
 	# 图鉴任务解锁侧在 CodexSystem.check_unlocks 内直写。幂等（已见过不重写盘）。
 	CodexSystem.mark_weapon_seen(weapon_id)
 	_sync_run_state()
+	var alt := (slot + 1) % 2
+	weapon_changed.emit(current(), slots[alt] if alt < slots.size() else {})
 
 func current() -> Dictionary:
 	return slots[slot] if slot < slots.size() else {}
@@ -71,6 +76,8 @@ func switch_slot(frame: int) -> void:
 	_sync_run_state()
 	_switch_until = frame + SWITCH_LOCK_TICKS
 	_next_fire_frame = frame
+	var alt := (slot + 1) % 2
+	weapon_changed.emit(current(), slots[alt] if alt < slots.size() else {})
 
 ## 清空指定槽的权威入口。设施不得再直接写 slots，否则 RunState 聚合会滞后。
 func clear_slot(index: int) -> Dictionary:
@@ -79,6 +86,8 @@ func clear_slot(index: int) -> Dictionary:
 	var removed: Dictionary = slots[index]
 	slots[index] = {}
 	_sync_run_state()
+	var alt := (slot + 1) % 2
+	weapon_changed.emit(current(), slots[alt] if alt < slots.size() else {})
 	return removed
 
 func bind_run_state(state: Node) -> void:
@@ -111,6 +120,7 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 	player.energy -= cost
 	var effective_rate := effective_attack_rate(w, player, frame)
 	_next_fire_frame = frame + maxi(1, int(round(TimeConst.FPS / effective_rate)))
+	weapon_fired.emit(w, aim, false)
 	_fire_slot(w, aim, false, frame)
 	if dual:
 		# 副手齐射：镜像枪口（同 aim），副手空/近战则跳过；蓝耗已整体豁免
@@ -118,6 +128,7 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 		if alt < slots.size():
 			var aw: Dictionary = slots[alt]
 			if not aw.is_empty() and not aw["is_melee"]:
+				weapon_fired.emit(aw, aim, true)
 				_fire_slot(aw, aim, true, frame)
 	# m4p-w2a：开火音按武器 category 分音（表外回落 shoot_player；play_once 保证双持同拍一声）
 	AudioMgr.play_once(String(CATEGORY_SHOOT_KEY.get(String(w.get("category", "")), "shoot_player")))

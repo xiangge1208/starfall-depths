@@ -243,12 +243,12 @@ HERO_WALK_SPEC = {
     # 配色/头饰与站立像（gen_hero_* / gen_heroes_m2）逐英雄对齐
     "vanguard": {"name": "骑士·凛", "body": "#9aa8bd", "cloak": "#6d7c94", "hat": "helm",
                  "hair": "#b8c6d8", "weapon": "sword", "shield": True},
-    "ranger":   {"name": "游侠·苇", "body": "#7a8a5a", "cloak": "#4e5f3c", "hat": "hood",
-                 "hood": "#5a7a44", "hair": "#4e5f3c", "weapon": "bow", "shield": False},
+    "ranger":   {"name": "游侠·苇", "body": "#a6ba72", "cloak": "#718a50", "hat": "hood",
+                 "hood": "#789e5c", "hair": "#718a50", "weapon": "bow", "shield": False},
     "engineer": {"name": "工程师·铆", "body": "#c88a3c", "cloak": "#96682a", "hat": "goggles",
                  "hair": "#96682a", "weapon": "gun", "shield": False},
-    "mage":     {"name": "法师·烬", "body": "#8a6ab8", "cloak": "#6a4a94", "hat": "wizard",
-                 "hair": "#5c4530", "weapon": "staff", "shield": False},
+    "mage":     {"name": "法师·烬", "body": "#b28ae8", "cloak": "#875ec0", "hat": "wizard",
+                 "hair": "#705238", "weapon": "staff", "shield": False},
     "assassin": {"name": "刺客·蝉", "body": "#9a9ac0", "cloak": "#74749c", "hat": "hood",
                  "hood": "#74749c", "hair": "#74749c", "weapon": "dagger", "shield": False},
     "guardian": {"name": "守护者·萄", "body": "#7a9ab8", "cloak": "#54748f", "hat": "halo",
@@ -472,6 +472,11 @@ def _paint_hero_frame(spec, d, phase):
         px(img, 11 if d == 3 else 4, 5 + y, shade(skin, 0.85))  # 鼻尖
     _hero_hat(img, spec, d, y)
     _hero_weapon(img, spec, d, y)
+    # Side-view bow silhouettes otherwise form a detached second component.
+    if spec["weapon"] == "bow" and d == 3:
+        hline(img, 9, 13, 8 + y, C(spec["cloak"]))
+    elif spec["weapon"] == "bow" and d == 2:
+        hline(img, 2, 6, 8 + y, C(spec["cloak"]))
     return img
 
 
@@ -895,11 +900,11 @@ def gen_tiles():
     outline(img)
     save(img, "tiles/prop_crate.png", "木箱（实体阻挡）", "floor_scene.gd:286 0.55,0.4,0.24 色块", "")
     img = canvas(16, 16)
-    disk(img, 8, 10, 5, C("#2e5a2a"))
-    disk(img, 6, 8, 3, C("#3f7a38"))
-    disk(img, 11, 9, 3, C("#3f7a38"))
-    px(img, 6, 6, C("#5aa84e"))
-    px(img, 11, 7, C("#5aa84e"))
+    disk(img, 8, 10, 5, C("#4f8a42"))
+    disk(img, 6, 8, 3, C("#6fb85c"))
+    disk(img, 11, 9, 3, C("#6fb85c"))
+    px(img, 6, 6, C("#a6e880"))
+    px(img, 11, 7, C("#a6e880"))
     save(img, "tiles/prop_bush.png", "灌木（纯视觉）", "floor_scene.gd:288 0.25,0.42,0.24 色块", "")
     # 藤蔓减速带
     img = canvas(32, 32)
@@ -964,11 +969,11 @@ def gen_tiles():
     save(img, "tiles/drink_machine.png", "饮料机",
          "floor_scene.gd:914-916 0.3,0.6,0.75 色块; core/interact/drink_machine.gd UI 面板", "")
     img = canvas(16, 18)
-    rect(img, 4, 3, 11, 14, C("#565a72"))
-    rect(img, 4, 3, 11, 4, C("#767c96"))
-    disk(img, 7, 8, 2, C("#b06cff"))
-    px(img, 12, 7, C("#e83a4a"))
-    rect(img, 3, 15, 12, 16, C("#3a3444"))
+    rect(img, 4, 3, 11, 14, C("#858cac"))
+    rect(img, 4, 3, 11, 4, C("#b0b8d4"))
+    disk(img, 7, 8, 2, C("#d090ff"))
+    px(img, 12, 7, C("#ff6a68"))
+    rect(img, 3, 15, 12, 16, C("#555b78"))
     outline(img)
     save(img, "tiles/event_device.png", "事件装置",
          "floor_scene.gd:932-934 0.35,0.35,0.45 色块", "")
@@ -1328,7 +1333,7 @@ def gen_drink_icons():
 
 
 ELEM_COL = {"fire": "#ff6a2e", "ice": "#8ae8ff", "poison": "#8ad84a",
-            "shock": "#e0b0ff", "none": "#8a97ad"}
+            "shock": "#e0b0ff", "none": "#b8c8e0"}
 ICON_METAL, ICON_DARK, ICON_WOOD, ICON_ACC = C("#c8d0dc"), C("#7a8496"), C("#8a6a3c"), C("#e2c04c")
 
 
@@ -1485,7 +1490,7 @@ def gen_batch2():
     save(img, "enemies/vine_charger_elite.png", "客人「精英·藤蔓冲锋者」（金色变体）",
          "floor_scene.gd:52-56/622-624 GUEST_COLORS.elite 1.0,0.82,0.25 染色色块",
          "亦可直接用 base 图 + modulate 金色")
-    img = paint_charger(C("#a83232"), C("#c85050"), C("#5c1a1a"), C("#f4d8d8"))
+    img = paint_charger(C("#e05252"), C("#f07878"), C("#7a2424"), C("#fff0e0"))
     outline(img)
     save(img, "enemies/vine_charger_miniboss.png", "客人「垒主·藤蔓冲锋者」（红色变体）",
          "floor_scene.gd:52-56/622-624 GUEST_COLORS.miniboss 0.85,0.25,0.2 染色色块", "")
@@ -1528,8 +1533,8 @@ def gen_batch2():
     # 精英词缀角标 12x12（EliteAffix.AFFIXES 六种，无任何标识）
     def affix_base():
         img = canvas(12, 12)
-        disk(img, 6, 6, 5, C("#20242c", 210))
-        ring(img, 6, 6, 5, C("#e2c04c", 230), 1)
+        disk(img, 6, 6, 5, C("#3c465e", 230))
+        ring(img, 6, 6, 5, C("#fff0a0", 240), 1)
         return img
     img = affix_base()
     for dx in (-2, 1):
@@ -1553,18 +1558,18 @@ def gen_batch2():
     px(img, 8, 3, C("#f4f4f0"))
     vline(img, 4, 4, 5, C("#f4f4f0"))
     vline(img, 8, 4, 5, C("#f4f4f0"))
-    disk(img, 6, 8, 2, C("#c8283c"))
+    disk(img, 6, 8, 2, C("#ff5a68"))
     save(img, "ui/affix_leech.png", "词缀角标：虹吸(接触吸血)", "elite_affix.gd leech", "")
     img = affix_base()
     for x in (3, 6, 9):
         for i in range(5):
-            px(img, x, 9 - i, C("#ff8a2e") if i < 4 else C("#ffd94a"))
+            px(img, x, 9 - i, C("#ffb03a") if i < 4 else C("#fff0a0"))
     save(img, "ui/affix_barrage.png", "词缀角标：弹幕(+1 弹)", "elite_affix.gd barrage_extra", "")
     img = affix_base()
     for a in range(0, 360, 60):
         for r in range(2, 5):
-            px(img, 6 + int(math.cos(math.radians(a)) * r), 6 + int(math.sin(math.radians(a)) * r), C("#ff4a2e"))
-    px(img, 6, 6, C("#ffd94a"))
+            px(img, 6 + int(math.cos(math.radians(a)) * r), 6 + int(math.sin(math.radians(a)) * r), C("#ff6a3a"))
+    px(img, 6, 6, C("#fff0a0"))
     save(img, "ui/affix_berserk.png", "词缀角标：狂暴(<50% 血攻速×1.3)", "elite_affix.gd has_berserk / enemy_base.gd:231", "")
     # Boss 血条（当前游戏无 Boss 血条 UI）
     img = canvas(96, 12)
@@ -1671,7 +1676,7 @@ def gen_batch2():
             edge = x in (0, 15) or y in (0, 15)
             corner = (x in (0, 1) or x in (14, 15)) and (y in (0, 1) or y in (14, 15))
             if not corner:
-                bigrect(x, y, x, y, C("#1a2030") if edge else C("#232c44"))
+                bigrect(x, y, x, y, C("#364568") if edge else C("#4b5f88"))
     star = [(7, 1), (8, 1), (7, 2), (8, 2), (3, 5), (4, 5), (5, 5), (6, 5), (9, 5), (10, 5), (11, 5), (12, 5),
             (2, 6), (13, 6), (2, 7), (13, 7), (4, 8), (5, 8), (6, 8), (9, 8), (10, 8), (11, 8),
             (4, 12), (5, 12), (6, 12), (9, 12), (10, 12), (11, 12), (7, 9), (8, 9), (7, 10), (8, 10),
@@ -1729,11 +1734,11 @@ def gen_batch3():
          "运行时按 aoe_radius 缩放, 倒计时闪烁 modulate")
     # 黑市标识 + 商贩（黑市变体现在仅标题文字）
     img = canvas(16, 16)
-    disk(img, 8, 8, 5, C("#2a2438"))
-    ring(img, 8, 8, 5, C("#b06cff"), 1)
-    px(img, 6, 6, C("#e2c04c")), px(img, 10, 6, C("#e2c04c"))
-    rect(img, 6, 10, 10, 11, C("#e2c04c"))
-    px(img, 8, 8, C("#b06cff"))
+    disk(img, 8, 8, 5, C("#594878"))
+    ring(img, 8, 8, 5, C("#e0a0ff"), 1)
+    px(img, 6, 6, C("#fff0a0")), px(img, 10, 6, C("#fff0a0"))
+    rect(img, 6, 10, 10, 11, C("#fff0a0"))
+    px(img, 8, 8, C("#e0a0ff"))
     save(img, "ui/icon_blackmarket.png", "黑市标识（武器价 ×1.8, UI 标题旁）",
          "core/interact/shop.gd:14/30 BLACK_TITLE 黑市商人(纯文字), floor_scene.gd BLACK_SHOP_CHANCE", "")
     img = canvas(16, 18)
@@ -1751,10 +1756,10 @@ def gen_batch3():
     img = canvas(16, 18)
     rect(img, 5, 12, 6, 14, C("#2a2438"))
     rect(img, 9, 12, 10, 14, C("#2a2438"))
-    rect(img, 4, 6, 11, 12, C("#4a3a6a"))
-    rect(img, 4, 6, 11, 7, C("#5f4a88"))
-    rect(img, 4, 1, 11, 6, C("#3a3444"))
-    rect(img, 3, 0, 12, 2, C("#b06cff"))
+    rect(img, 4, 6, 11, 12, C("#8560b0"))
+    rect(img, 4, 6, 11, 7, C("#ad84d4"))
+    rect(img, 4, 1, 11, 6, C("#626080"))
+    rect(img, 3, 0, 12, 2, C("#e0a0ff"))
     eyes(img, 8, 4, gap=2, white=C("#ffd94a"), pupil=C("#5c4514"))
     outline(img)
     save(img, "tiles/shopkeeper_black.png", "黑市商人 NPC（兜帽遮面）",

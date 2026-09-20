@@ -22,6 +22,10 @@ var hero_passive_id := ""
 var player_body: Player = null
 var _hash := SpatialHash.new(32.0)
 var _bodies: Dictionary = {}          # instance_id -> {node, faction, radius}
+## SpatialHash returns its internal hash id.  Keep the reverse lookup alongside
+## the instance-id registry so projectile collision does not scan every body for
+## every spatial-hash candidate.
+var _bodies_by_hash_id: Dictionary = {} # hash_id -> same body record as _bodies
 var _max_body_radius := 12.0          # m0-final fix2：查询松弛按已注册体最大半径（单调不缩）
 var _rng: RandomNumberGenerator
 var _next_id := 1
@@ -36,10 +40,29 @@ func _init(root: Node, combat_rng: RandomNumberGenerator) -> void:
 	_rng = combat_rng
 
 func register_body(node: Node2D, faction: int) -> void:
+	var instance_id := node.get_instance_id()
+	# Room wiring can be revisited by scene transitions or test fixtures.  Treat
+	# re-registering the same node as an update instead of allocating a second
+	# hash id; otherwise the old hash entry remains live and candidates can carry
+	# a stale faction/radius record after the node changes role.
+	if _bodies.has(instance_id):
+		var existing: Dictionary = _bodies[instance_id]
+		var hash_id := int(existing["hash_id"])
+		var body := {"node": node, "faction": faction, "radius": node.combat_radius(),
+			"hash_id": hash_id}
+		_bodies[instance_id] = body
+		_bodies_by_hash_id[hash_id] = body
+		_hash.move(hash_id, node.global_position)
+		if faction == Projectile.Faction.PLAYER and node is Player:
+			player_body = node
+		_max_body_radius = maxf(_max_body_radius, float(body["radius"]))
+		return
 	if faction == Projectile.Faction.PLAYER and node is Player:
 		player_body = node             # m4-c3：rig 5 键读点玩家捕获（ summons/替身不命中此门）
 	_max_body_radius = maxf(_max_body_radius, node.combat_radius())   # fix2：候选门按最大体半径
-	_bodies[node.get_instance_id()] = {"node": node, "faction": faction, "radius": node.combat_radius(), "hash_id": _next_id}
+	var body := {"node": node, "faction": faction, "radius": node.combat_radius(), "hash_id": _next_id}
+	_bodies[node.get_instance_id()] = body
+	_bodies_by_hash_id[_next_id] = body
 	_hash.insert(_next_id, node.global_position)
 	_next_id += 1
 
@@ -48,7 +71,9 @@ func unregister_body(node: Node2D) -> void:
 	if node == player_body:
 		player_body = null             # 玩家退房注销（换房重注册刷新，跨房不滞留旧引用）
 	if _bodies.has(id):
-		_hash.remove(_bodies[id]["hash_id"])
+		var body: Dictionary = _bodies[id]
+		_hash.remove(body["hash_id"])
+		_bodies_by_hash_id.erase(body["hash_id"])
 		_bodies.erase(id)
 
 func spawn_projectile(cfg: Dictionary) -> void:
@@ -204,12 +229,7 @@ static func _is_echo_weapon_category(category: String) -> bool:
 	return category == "staff" or category == "laser"
 
 func _bodies_by_hash(hid: int) -> Dictionary:
-	# M0（≤300 实体）线性反查可接受；若 t13 门禁压测超标，
-	# 补 _hash_id -> body_id 反查字典（属性能修复，接口不变）。
-	for id: int in _bodies:
-		if _bodies[id]["hash_id"] == hid:
-			return _bodies[id]
-	return {}
+	return _bodies_by_hash_id.get(hid, {})
 
 ## 弹体同拍可能覆盖多个目标。显式排序后再消费暴击/proc RNG，避免 Dictionary
 ## 迭代次序让穿透结果在同 seed 下漂移：近者优先，同距按注册 hash id。
@@ -316,7 +336,12 @@ func tick_environment(now: int) -> void:
 	_tick_blaze_clouds(now)
 
 func _tick_blaze_clouds(now: int) -> void:
-	for cloud in _blaze_clouds.duplicate():
+	# Iterate backwards so expired clouds can be removed in-place.  The previous
+	# duplicate() snapshot allocated a new Array on every physics tick even when
+	# no cloud was active; reverse indexing preserves the same mutation-safe
+	# semantics without per-tick container churn.
+	for i in range(_blaze_clouds.size() - 1, -1, -1):
+		var cloud: Dictionary = _blaze_clouds[i]
 		while now >= int(cloud["next_tick"]) and int(cloud["next_tick"]) <= int(cloud["until"]):
 			for body in bodies_in_radius(cloud["center"], float(cloud["radius"]), Projectile.Faction.ENEMY):
 				if body.get("state") == EnemyBase.State.DEAD:
@@ -330,7 +355,7 @@ func _tick_blaze_clouds(now: int) -> void:
 				})
 			cloud["next_tick"] = int(cloud["next_tick"]) + TimeConst.ticks(1.0)
 		if now >= int(cloud["until"]):
-			_blaze_clouds.erase(cloud)
+			_blaze_clouds.remove_at(i)
 
 func reflect(p: Projectile, new_damage: int) -> void:
 	if p.faction == Projectile.Faction.ENEMY:

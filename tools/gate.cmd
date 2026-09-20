@@ -4,7 +4,11 @@ rem Full: tools\gate.cmd --full (3000 seeds x 3 floors + perf probe).
 setlocal
 set PS=powershell
 if "%~1"=="--full" (
-  "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0gate.ps1" -Seeds 3000 -Floors 1,2,3 -Full
+  if /I "%~2"=="-AllowDirty" (
+    "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0gate.ps1" -Seeds 3000 -Floors 1,2,3 -Full -AllowDirty
+  ) else (
+    "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0gate.ps1" -Seeds 3000 -Floors 1,2,3 -Full
+  )
 ) else (
   "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0gate.ps1" %*
 )

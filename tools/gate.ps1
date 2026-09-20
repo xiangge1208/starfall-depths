@@ -38,7 +38,33 @@ function Invoke-GateStep([string]$Name, [scriptblock]$Action, [string]$LogName) 
 }
 
 Invoke-GateStep "import" { & $godot --headless --path . --import } "import.log" | Out-Null
+$testStartedAt = Get-Date
 Invoke-GateStep "tests" { & cmd /c tools\run_tests.cmd } "tests.log" | Out-Null
+# 进程 exit 0 之外，再读取本次最新 XML 报告的业务统计，防止 runner 在
+# 报告不完整或仅部分套件执行时仍被误判为通过。
+$report = $null
+for ($attempt = 0; $attempt -lt 30 -and $null -eq $report; $attempt++) {
+    $report = Get-ChildItem -Path (Join-Path $repo "reports") -Filter "results.xml" -File -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.LastWriteTime -ge $testStartedAt.AddSeconds(-2) } |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($null -eq $report) { Start-Sleep -Milliseconds 250 }
+}
+if ($null -eq $report) { throw "gate tests report missing" }
+[xml]$reportXml = Get-Content -LiteralPath $report.FullName
+$suiteRoot = $reportXml.testsuites
+$reportFailures = [int]$suiteRoot.failures
+$reportErrors = [int]$suiteRoot.errors
+$reportSkipped = [int]$suiteRoot.skipped
+$reportFlaky = [int]$suiteRoot.flaky
+$reportOrphans = [int]$suiteRoot.orphans
+$reportTests = [int]$suiteRoot.tests
+if ($reportTests -le 0 -or $reportFailures -ne 0 -or $reportErrors -ne 0 -or
+    $reportSkipped -ne 0 -or $reportFlaky -ne 0 -or $reportOrphans -ne 0) {
+    throw ("gate tests contract failed: tests={0} failures={1} errors={2} skipped={3} flaky={4} orphans={5}" -f
+        $reportTests, $reportFailures, $reportErrors, $reportSkipped, $reportFlaky, $reportOrphans)
+}
+Write-Host ("GATE tests-contract PASS tests={0} failures=0 errors=0 skipped=0 flaky=0 orphans=0 report={1}" -f
+    $reportTests, $report.FullName)
 Invoke-GateStep "dungeon" { & $godot --headless --path . --script tools/validate_dungeon.gd -- --seeds=$Seeds --floors=$Floors } "dungeon.log" | Out-Null
 Invoke-GateStep "art" { & python tools/art_qa_check.py } "art.log" | Out-Null
 

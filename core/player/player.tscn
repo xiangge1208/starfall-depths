@@ -1,20 +1,15 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://core/player/player.gd" id="1_t7player"]
-
 [ext_resource type="Script" path="res://core/player/weapon_rig.gd" id="2_t8rig"]
-
 [ext_resource type="Script" path="res://core/player/melee.gd" id="3_t9melee"]
-
 [ext_resource type="Script" path="res://core/player/skills/skill_base.gd" id="4_t2skill"]
-
 [ext_resource type="Script" path="res://core/rooms/player_driver.gd" id="5_driver"]
-
 [ext_resource type="Script" path="res://core/player/gamepad_aim.gd" id="6_gamepad"]
-
 [ext_resource type="PackedScene" path="res://ui/touch_controls.tscn" id="7_touch"]
-
 [ext_resource type="Texture2D" path="res://art/generated/characters/hero_vanguard_sheet.png" id="8_hero"]
+[ext_resource type="Script" path="res://fx/drop_shadow.gd" id="9_shadow"]
+[ext_resource type="Script" path="res://core/player/weapon_visual.gd" id="10_visual"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_t7a"]
 radius = 6.0
@@ -26,12 +21,21 @@ script = ExtResource("1_t7player")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_t7a")
 
+[node name="DropShadow" type="Node2D" parent="."]
+script = ExtResource("9_shadow")
+radius_x = 7.0
+radius_y = 3.5
+offset_y = 6.0
+
 [node name="Sprite" type="Sprite2D" parent="."]
 texture_filter = 1
 hframes = 4
 vframes = 4
 scale = Vector2(0.75, 0.75)
 texture = ExtResource("8_hero")
+
+[node name="WeaponVisual" type="Node2D" parent="."]
+script = ExtResource("10_visual")
 
 [node name="WeaponRig" type="Node" parent="."]
 script = ExtResource("2_t8rig")

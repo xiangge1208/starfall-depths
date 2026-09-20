@@ -33,6 +33,7 @@ const DRIVER_SCRIPT := preload("res://core/rooms/player_driver.gd")
 const GAME_CAMERA := preload("res://fx/game_camera.gd")
 const SHOP_SCENE := preload("res://core/interact/shop.tscn")   # m1-t27 商店设施
 const FORGE_SCENE := preload("res://ui/forge.tscn")            # m2-t25 熔铸台设施
+const POST_PROCESS_SCRIPT := preload("res://fx/post_process.gd")
 const BULLET_VISUAL_CAP := 500
 const BLACK_SHOP_CHANCE := 0.25
 ## W2-c1（GDD §13.1）：战斗房增益祭坛每层至多 2 次（掷签命中数达上限即停）。
@@ -391,6 +392,7 @@ func setup(build: Dictionary, p_player: Player, p_buffs: BuffManager = null) -> 
 	_bullet_layer.name = "BulletVisuals"
 	_bullet_layer.z_index = 20
 	add_child(_bullet_layer)
+	POST_PROCESS_SCRIPT.apply_to_scene(self)
 	flow.room_event.connect(_on_flow_room_event)
 	# m2-t24 隐藏门携带判定：本层共鸣计数（EnemyBase 共鸣结算 → EventBus 广播）
 	EventBus.resonance_triggered.connect(_on_floor_resonance_triggered)
@@ -2494,9 +2496,13 @@ func _sync_bullet_visuals() -> void:
 			var p: Projectile = active[i]
 			vis.visible = true
 			vis.position = p.position
+			if p.vel != Vector2.ZERO:
+				vis.rotation = p.vel.angle()
 			vis.texture = ArtLookup.bullet_texture(p.faction, p.element,
 				crit_window and p.faction == Projectile.Faction.PLAYER)   # W2-c2 加 crit 位
-			vis.modulate = p.modulate
+			var is_crit := crit_window and p.faction == Projectile.Faction.PLAYER
+			var has_elem := p.element != Elements.Id.NONE
+			vis.modulate = POST_PROCESS_SCRIPT.get_bullet_hdr_modulate(p.modulate, is_crit, has_elem)
 			# m2-t37 fix1（评审 Important-1）：光圈内弹幕自增亮补偿（A2 暗视野可读性）。
 			# 实测探针口径：弹幕进光照参与集 +47 draw（150 预算下不可接受）——改走
 			# self_modulate 折叠（逐项 modulate 写入零批处理成本，首轮矩阵 f2_nomod 实证）。

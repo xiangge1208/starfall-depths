@@ -70,6 +70,7 @@ func after_test() -> void:
 	RunState.pending_trial_date = ""   # 清转让（防泄漏到其他套件的 select_hero）
 	RunState.start_run("vanguard")
 	DeathRecorder.reset()
+	AudioMgr.stop_music()              # MainMenu fixture starts global BGM; suite cleanup owns its reset
 
 
 # ================================================================ 1) 记录追加 + 落盘往返

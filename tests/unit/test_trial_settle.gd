@@ -47,6 +47,7 @@ func before_test() -> void:
 
 func after_test() -> void:
 	MainMenu.open_trial_panel_on_ready = false    # W2-c4b 静态旗标卫生（跨套件不泄漏）
+	AudioMgr.stop_music()                         # 主菜单夹具只释放节点，不会释放全局音乐通道
 	if _trial_cb.is_valid():
 		EventBus.trial_completed.disconnect(_trial_cb)
 	TrialPanelUI.settlement_records = null

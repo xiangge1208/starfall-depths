@@ -6,6 +6,8 @@ const SWING_TICKS := 9
 const PARRY_FROM := 3
 const PARRY_TO := 9
 
+signal melee_swung(weapon: Dictionary, aim: Vector2)
+
 var rig: WeaponRig
 var combat: CombatSystem
 var combat_rng: RandomNumberGenerator
@@ -30,6 +32,7 @@ func try_attack(frame: int) -> bool:
 	_swing_tick = 0
 	_hit_done = false
 	AudioMgr.play("melee_swing")         # m2-t5：挥击起始音
+	melee_swung.emit(w, player.facing if player != null else Vector2.RIGHT)
 	return true
 
 func is_parry_tick(tick: int) -> bool:

@@ -24,6 +24,16 @@ func test_remove_and_reinsert() -> void:
 	h.insert(1, Vector2(5, 5))
 	assert_int(h.query(Vector2(5, 5), 10.0).size()).is_equal(1)
 
+func test_move_and_remove_prune_empty_buckets() -> void:
+	var h := SpatialHash.new(32.0)
+	h.insert(1, Vector2.ZERO)
+	for i in 1000:
+		h.move(1, Vector2(float((i + 1) * 64), 0.0))
+	var buckets: Dictionary = h.get("_buckets")
+	assert_int(buckets.size()).is_equal(1)
+	h.remove(1)
+	assert_int(buckets.size()).is_equal(0)
+
 func test_5000_entities_perf_sanity() -> void:
 	var h := SpatialHash.new(32.0)
 	var rng := RngSvc.stream(0, "perf")

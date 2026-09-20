@@ -26,6 +26,7 @@ extends Node2D
 
 const INTER_FLOOR_SCENE := preload("res://core/rooms/inter_floor.tscn")
 const PLAYER_SCENE := preload("res://core/player/player.tscn")
+const POST_PROCESS_SCRIPT := preload("res://fx/post_process.gd")
 const VICTORY_SCENE := "res://ui/victory_summary.tscn"   # m2-t18：胜利结算场景（SceneRouter 路由键同步注册）
 
 const A2_ENTRY_FLOOR := 2
@@ -64,6 +65,7 @@ var _talents_applied := false              # m2-t35：开局 talents.apply 恰�
 ## 测试/嵌入缝：_ready 仅在「当前活动场景」时自举（同 FloorScene/InterFloor 约定）；
 ## 测试挂为子节点后直调 _begin()。
 func _ready() -> void:
+	POST_PROCESS_SCRIPT.apply_to_scene(self)
 	if get_tree() != null and get_tree().current_scene == self:
 		_begin()
 
