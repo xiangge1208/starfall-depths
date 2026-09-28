@@ -52,6 +52,8 @@
 | `sfx/crystal_get.wav` | 获得蓝晶 | 局内蓝晶掉落/结算 | 0.22 |
 | `sfx/unlock.wav` | 解锁提示（图鉴/成就/角色 toast） | GDD §19 右下角 toast | 0.4 |
 | `sfx/fuse_beep.wav` | 自爆引信倒计时哔声 | 苦力虫/自爆王虫 fuse（配 fx/fuse_zone） | 0.24 |
+| `sfx/bloodbath.wav` | 破釜（狂战士·烈技能，血怒爆发） | berserk_bloodbath.gd 施放拍（M5-T4） | 0.45 |
+| `sfx/sacrifice.wav` | 献祭（术士·蚀技能，血蓝转换） | warlock_sacrifice.gd 施放拍（M5-T4） | 0.4 |
 | `music/music_menu.wav` | 主菜单/层间 BGM 循环 | ui/main_menu.tscn / inter_floor.tscn（待建音频管理器） | 9.6 |
 | `music/music_battle.wav` | 战斗 BGM 循环 | room_combat / floor_scene 战斗态（待建音频管理器） | 19.2 |
 | `music/music_crystal.wav` | A2 晶核洞穴 BGM 循环 | GDD §17 音乐=菜单1+生态3+Boss1 | 9.6 |

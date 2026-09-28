@@ -21,6 +21,8 @@ const BLESSING_STACK_CAP := 4             # 祝福：单局叠层上限（至多
 const BLESSING_DMG_PCT_PER_STACK := 0.05  # 祝福：每层 +5% 全伤害
 const SHADOW_REAP_ENERGY := 5             # 掠影：近战击杀返还蓝量
 const SHADOW_REAP_ROLL_FREE_TICKS := 60   # 掠影：击杀后翻滚免冷却窗（1s）
+# m5-t4 英雄被动消费端数值（附录 L §3 逐字）。
+const SIPHON_KILL_ENERGY := 2             # 虹吸（术士·蚀）：每次击杀吸取蓝量
 # m2-t26 灾厄「治疗无效」meta 键单一出处（FloorScene 挂载/摘除；heal() 前置拦截一切治疗源）
 const CALAMITY_HEAL_DISABLED_META := "calamity_heal_disabled"
 # m2-t35 meta 生效接线（裁定⑨）：T12 增益键消费读数。
@@ -81,8 +83,16 @@ var tide_guard_until := -1         # 生命潮汐(升级)减伤窗：frame < 此
 ## m4-c3 复仇者（avenger）复仇窗终帧：受击落地时按 rig meta buff_vengeance_pct/ticks
 ## 开窗（take_hit_ctx 写入； CombatSystem 命中结算读窗 ×(1+pct)，GDD §7.1 全局乘区）。
 var vengeance_until := -1
+# m5-t4 技能全伤害窗（祝福同通道，player.scaled_damage 消费）：破釜 +40%（烈）/献祭
+# 强化 +10%（蚀）共用一对字段——单玩家恒单技能节点（HeroApplier 换装），无叠窗可能；
+# 后写者胜（同 atk_speed_boost 共享窗语义），窗口过期自然回落（pct 不清零，读点按帧判）。
+var skill_dmg_bonus_pct := 0.0
+var skill_dmg_bonus_until := -1
+## m5-t4 献祭（蚀）法杖/激光武器窗终帧：窗口内 staff/laser 类武器弹 ×1.2
+## （CombatSystem._player_global_mult 回响同款 category 口径消费；过期回落）。
+var sacrifice_weapon_until := -1
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
-var passive_id := ""               # m4-c2：英雄被动 id（HeroApplier 注入；echo/blessing/spare_parts/shadow_reap 消费门控）
+var passive_id := ""               # m4-c2：英雄被动 id（HeroApplier 注入；echo/blessing/spare_parts/shadow_reap 消费门控；m5-t4 + bloodrage/siphon）
 var blessing_stacks := 0           # m4-c2 祝福叠层（run_root 层入口写入；run 内持续，新局随玩家实例重建归零）
 var friction_mult := 1.0           # m2-t4 冰面接缝：IceZone 进域写 0.25 / 出域回 1.0（MoveMath 摩擦参数临时替换）
 var _roll_left := 0
@@ -245,9 +255,30 @@ func _open_vengeance_window(frame: int) -> void:
 ## 近战挥击（melee.gd）统一经此乘区。乘区 = (1 + 天赋 talent_dmg_pct) × (1 + 祝福
 ## blessing_stacks×5%)，round 取整沿袭 m2-t35 天赋先例；GDD §7.1 最终「向下取整、最小 1」
 ## 在命中结算侧（DamageCalc.compute / CombatSystem 回响乘区）完成。
-func scaled_damage(base: int) -> int:
+## m5-t4 增补技能全伤害窗（破釜 +40% / 献祭强化 +10%，祝福同通道）：窗口内再乘
+## (1 + skill_dmg_bonus_pct)。frame 参数为测试注入缝（缺省 -1 = 取当前物理帧，
+## 生产调用点 weapon_rig/melee 不传、签名向后兼容）。
+func scaled_damage(base: int, frame := -1) -> int:
+	var f := frame if frame >= 0 else Engine.get_physics_frames()
+	var skill := skill_dmg_bonus_pct if f < skill_dmg_bonus_until else 0.0
 	return int(round(float(base) * (1.0 + talent_effect_value("talent_dmg_pct")) \
-		* (1.0 + float(blessing_stacks) * BLESSING_DMG_PCT_PER_STACK)))
+		* (1.0 + float(blessing_stacks) * BLESSING_DMG_PCT_PER_STACK) * (1.0 + skill)))
+
+## m5-t4 血怒（狂战士·烈被动）激活判定单一出处：HP 严格低于 50%（整数口径
+## hp*2 < hp_max，恰 50% 不激活）。攻速 +25%（BerserkBloodbath.tick 续写共享窗）与
+## 受到伤害 +1（take_hit_ctx 入口读点）共用本判定，两处阈值不重复书写。
+func bloodrage_enraged() -> bool:
+	return passive_id == "bloodrage" and hp * 2 < hp_max
+
+## m5-t4 血蓝转换缝（破釜/献祭「耗 2 HP」）：技能施放侧固定扣 HP。不走 take_hit
+## 结算——不吃盾（破釜时护盾挡血会架空资源价）、不吃无敌帧、不响 hurt 音、不触发
+## 凤凰/复活图腾（资源支付不是受击）。hp<=n 拒绝并返回 false = 生产兜底的禁自杀
+## 守卫（技能 can_cast 先行门控，双保险）：支付后恒 hp>=1，任何路径不可自杀。
+func pay_hp(n: int) -> bool:
+	if hp <= n:
+		return false
+	hp -= n
+	return true
 
 ## m4-c2 掠影（刺客被动，GDD §6）：近战击杀 → 返还 5 蓝 + 1s（60t）翻滚免冷却窗。
 ## 窗口按最新击杀顺延（frame+60）；被动门控在 Player（melee.gd 击杀路径只负责上报）。
@@ -292,7 +323,13 @@ func passive_energy_tick(_frame: int) -> void:
 
 ## m2-t35 蓝能汲取：击杀 chance 概率回 amount 蓝（掷签走 RunState 独立盐流，可回放；
 ## chance ≤ 0 不消费 RNG。EventBus.enemy_killed 订阅在 _ready 建立）。
+## m5-t4 虹吸（术士·蚀被动）：击杀固定吸 2 蓝（无 RNG），passive_id 门控（同掠影
+## 先例）；全击杀源覆盖（弹/近战/状态/召唤物统一经 EnemyBase.die 广播）。遥感测
+## kill_energy_siphon（Telemetry 既有清单无撞名）。
 func _on_enemy_killed(_enemy_id: String) -> void:
+	if passive_id == "siphon":
+		add_energy(SIPHON_KILL_ENERGY)
+		Telemetry.log_row(["kill_energy_siphon", Engine.get_physics_frames(), SIPHON_KILL_ENERGY])
 	var chance := float(get_meta("buff_kill_energy_chance", 0.0))
 	if chance <= 0.0:
 		return
@@ -386,6 +423,11 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 		dmg = maxi(1, int(floor(float(dmg) * RAMPAGE_DR)))   # 狂潮(升级)：-30%
 	if frame < tide_guard_until:
 		dmg = maxi(1, int(floor(float(dmg) * TIDE_DR)))      # 生命潮汐(升级)：法阵内 -20%
+	# m5-t4 血怒（狂战士·烈被动，附录 L §3「受到伤害 +1」）：HP<50% 时来伤固定 +1。
+	# 加算收口在一切乘区（甲壳/狂潮/潮汐）之后——「固定」语义：不吃任何乘区；
+	# 激活判定走 bloodrage_enraged() 单一出处（按受击拍 hp 严格 <50%），非血怒零漂移。
+	if bloodrage_enraged():
+		dmg += 1
 	var shield_before := shield
 	var hp_before := hp
 	var effective_before := maxi(0, shield_before) + maxi(0, hp_before)

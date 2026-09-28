@@ -5,6 +5,7 @@ extends Node
 const BODY_HIT_COOLDOWN_TICKS := 6   # 同一弹对同一体的重复命中抑制（穿透用）
 const ENEMY_BULLET_CAP := 400        # m1-t18 GDD §7.5：敌方场上弹上限（总池 MAX_PROJECTILES 500 不变）
 const ECHO_WEAPON_DMG_MULT := 1.15   # m4-c2 回响（法师被动，GDD §6）：法杖/激光类武器伤害 ×1.15
+const SACRIFICE_WEAPON_DMG_MULT := 1.2  # m5-t4 献祭（术士·蚀，附录 L §3）：4s 内法杖/激光类武器伤害 ×1.2
 const BLAZE_CLOUD_RADIUS_PX := 100.0 # m0 燎原毒火云基线半径（GDD §7.3「100px 内传播」）
 const BLAZE_CLOUD_TICKS := 180       # m0 燎原毒火云基线持续（3s）
 
@@ -191,17 +192,25 @@ func _physics_process(_delta: float) -> void:
 ##   （StatusComponent.active 非空——已达阈值激活态；未达阈值的层数不算）时 ×(1+pct)；
 ## - 复仇者 avenger（vengeance 窗）：frame < player.vengeance_until（受击落地时由
 ##   Player.take_hit_ctx 按 rig meta buff_vengeance_ticks 开窗）时 ×(1+buff_vengeance_pct)。
+## m5-t4 献祭 sacrifice（术士·蚀主动，附录 L §3「4s 内法杖/激光伤 +20%」）：
+##   frame < player.sacrifice_weapon_until（WarlockSacrifice 施放开窗）时，与回响同款
+##   三重门（source_type "weapon" + category staff/laser 复用 _is_echo_weapon_category）
+##   命中 ×1.2；与回响乘区、技能全伤害窗（player.skill_dmg_bonus，祝福通道）叠乘。
 ## 无玩家注册/无 rig/meta 缺省 → 各乘区恒 1.0（零漂移）。热路径仅 meta/字段读，零分配。
 func _player_global_mult(player_shot: bool, meta: Dictionary, target: Node2D = null,
 		frame := -1) -> float:
 	if not player_shot:
 		return 1.0
 	var mult := 1.0
-	if hero_passive_id == "echo" \
-			and String(meta.get("source_type", "")) == "weapon" \
-			and _is_echo_weapon_category(String(GameDB.get_weapon(
-				String(meta.get("source_id", ""))).get("category", ""))):
+	var weapon_category := ""
+	if String(meta.get("source_type", "")) == "weapon":
+		weapon_category = String(GameDB.get_weapon(
+			String(meta.get("source_id", ""))).get("category", ""))
+	if hero_passive_id == "echo" and _is_echo_weapon_category(weapon_category):
 		mult *= ECHO_WEAPON_DMG_MULT
+	if player_body != null and frame >= 0 and frame < player_body.sacrifice_weapon_until \
+			and _is_echo_weapon_category(weapon_category):
+		mult *= SACRIFICE_WEAPON_DMG_MULT
 	var hunter_pct := _rig_buff_pct("buff_dmg_vs_statused_pct")
 	if hunter_pct > 0.0 and _target_statused(target):
 		mult *= 1.0 + hunter_pct

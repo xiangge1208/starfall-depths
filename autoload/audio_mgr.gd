@@ -58,6 +58,8 @@ const KEYS := [
 	# m4p-w2a：设施/交互/UI。
 	"door_lock", "room_clear", "drink", "forge", "empty", "ui_buy", "ui_error",
 	"unlock", "buff_pick",
+	# m5-t4：英雄技能（狂战士·烈「破釜」/术士·蚀「献祭」，附录 L §3；每技能 ≥1 键）。
+	"bloodbath", "sacrifice",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。
@@ -65,7 +67,7 @@ const KEYS := [
 const MUSIC_KEYS := ["menu", "garden", "crystal", "magma", "boss"]
 
 ## m4p-w2a 完备性豁免表（tests/unit/test_audio_wiring.gd 消费）：
-## sfx 目录下不落键的 WAV（当前无——47 个文件全部映射 KEYS/KEY_FILE）。
+## sfx 目录下不落键的 WAV（当前无——49 个文件全部映射 KEYS/KEY_FILE）。
 const SFX_WAV_EXEMPT: Array[String] = []
 ## music 目录下不进 MUSIC_KEYS 的 WAV（music_battle = T5 占位，见上）。
 const MUSIC_WAV_EXEMPT: Array[String] = ["music_battle"]
