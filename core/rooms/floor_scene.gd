@@ -146,6 +146,10 @@ const ARCHETYPE_COLORS := {
 ## 熔铸台常驻像素偏移回落（m2-audit：T25 披露「位置硬编码」收口——优先读模板行
 ## forge 字段，缺省/坏形状回落本常量；值 = 迁移前硬编码，行为保持）。
 const FORGE_FALLBACK_OFFSET := Vector2(0, 56)
+## M5-E 局内武器升级台像素偏移（自商店房中心）：与熔铸台同房错位——forge 走模板行
+## [0,56]/回落 (0,56)，本台硬编码 (48,56) 避让（DrinkMachine/Shrine 硬编码先例；
+## 未走 data/rooms 模板行：48 行统一数据编辑对本台收益为零，选择披露见提交体）。
+const UPGRADE_BENCH_OFFSET := Vector2(48, 56)
 ## m1-t28 美术接线（ArtLookup 表驱动）：地块按生物群系选 floor_*/wall_*。
 const BULLET_VISUAL_SCALE := 0.75      # 8x8 弹底图 ≈ 原 5px 方块
 
@@ -1971,6 +1975,14 @@ func _build_shop(room: FloorRoom, local_pos: Vector2) -> void:
 	forge.rng = RunState.stream(RunState.SALT_FORGE)
 	forge.run_state = RunState
 	room.add_child(forge)
+	# M5-E 局内武器升级台：每层商店房固定 1 台（与熔铸台同房错位 UPGRADE_BENCH_OFFSET；
+	# 避让 forge 模板行 [0,56] 与四雕像 y=-56 带）。up_level 状态在武器实例上随玩家
+	# 跨层存续（RunRoot 单次生成玩家），本台无需楼层级状态字典（DrinkMachine 反例）。
+	var bench := UpgradeBench.new()
+	bench.name = "UpgradeBench"
+	bench.position = local_pos + UPGRADE_BENCH_OFFSET
+	bench.wallet = RunState
+	room.add_child(bench)
 
 
 ## 商店回收回调（Shop.drop_weapon 契约）：丢弃副手（非当前槽）→ 返回武器信息

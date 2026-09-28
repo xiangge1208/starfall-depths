@@ -241,11 +241,25 @@ func _open_vengeance_window(frame: int) -> void:
 	vengeance_until = frame + maxi(1, int(rig.get_meta("buff_vengeance_ticks", 0)))
 	Telemetry.log_row(["vengeance_trigger", frame, pct])
 
+## m5-e 局内武器升级台乘区常量（升级台写入实例键 up_level，每级 +8%，至多 3 级）。
+const WEAPON_UP_DMG_PCT_PER_LEVEL := 0.08
+
 ## m4-c2 玩家伤害出口聚合点：远程（weapon_rig._fire_slot → talent_scaled_damage）与
 ## 近战挥击（melee.gd）统一经此乘区。乘区 = (1 + 天赋 talent_dmg_pct) × (1 + 祝福
 ## blessing_stacks×5%)，round 取整沿袭 m2-t35 天赋先例；GDD §7.1 最终「向下取整、最小 1」
 ## 在命中结算侧（DamageCalc.compute / CombatSystem 回响乘区）完成。
+## m5-e 升级台乘区插点披露：m5-c 配件 dmg_pct 在 weapon_rig._fire_slot / melee.gd
+## 内联 round 后才入参本函数——本函数是两出口唯一共同漏斗，故在**入口**先 round
+## 应用 up_level（＝「配件 dmg_pct 之后、玩家出口天赋×祝福之前」的既定次序），
+## 再进原乘区。up_level 缺省（无 rig/空槽/未升级）恒 1.0 零漂移。已知近似：双持
+## 齐射副手无武器上下文，按活动槽 up_level 计（武器实例隔离在单持态严格成立）。
 func scaled_damage(base: int) -> int:
+	var up_lvl := 0
+	if weapon_rig != null:
+		up_lvl = int(weapon_rig.current().get("up_level", 0))
+	if up_lvl > 0:
+		base = maxi(0, int(round(float(base) \
+			* (1.0 + WEAPON_UP_DMG_PCT_PER_LEVEL * float(up_lvl)))))
 	return int(round(float(base) * (1.0 + talent_effect_value("talent_dmg_pct")) \
 		* (1.0 + float(blessing_stacks) * BLESSING_DMG_PCT_PER_STACK)))
 
