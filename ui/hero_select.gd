@@ -115,6 +115,7 @@ var _passive_icons: Array[TextureRect] = []  # u3：被动行小图标
 var _skill_icons: Array[TextureRect] = []    # u3：技能行小图标
 var _upgrade_btn: Button = null              # m5-d：技能强化购买（1500 蓝晶，Appendix L 口径）
 var _gems_label: Label = null                # m5-d：蓝晶余额（购买反馈）
+var _skin_btn: Button = null                 # m5-h：外观换肤循环（默认/专属）
 var _badges: Array[Control] = []             # u3：未解锁角标（待解锁·开放体验）
 var _accents: Array[ColorRect] = []          # ui1：选中铭牌顶部高亮条（48px 下描边区分度补强）
 ## ui1 详情面板（共享单份，随 _selected 重建内容）：_detail_slots 存各段容器，
@@ -326,6 +327,13 @@ func _build_detail() -> void:
 	up_row.add_child(_upgrade_btn)
 	_gems_label = _label("", 12, Color(0.55, 0.75, 0.95))
 	up_row.add_child(_gems_label)
+	# m5-h：外观换肤行（默认/专属色循环，纯外观；局内进图生效）
+	var skin_row := HBoxContainer.new()
+	skin_row.add_theme_constant_override("separation", 8)
+	col.add_child(skin_row)
+	_skin_btn = Button.new()
+	_skin_btn.pressed.connect(_on_skin_pressed)
+	skin_row.add_child(_skin_btn)
 
 
 ## 详情面板内容同步（选中变化时调用；纯改文案/可见性，零节点增删）。
@@ -369,10 +377,34 @@ func _sync_detail() -> void:
 		_upgrade_btn.visible = true
 	if _gems_label != null:
 		_gems_label.text = "蓝晶 %d" % SaveSystem.gems()
+	# m5-h：换肤钮文案（当前外观名 ▸ 下一外观名；仅默认/专属两态循环）
+	if _skin_btn != null:
+		var skin: Dictionary = HeroApplier.SKINS.get(id, {})
+		if skin.is_empty():
+			_skin_btn.visible = false
+		else:
+			_skin_btn.visible = true
+			var cur := SaveSystem.skin_of(id)
+			_skin_btn.text = ("外观：%s ▸ 默认" % String(skin["name"])) if cur == String(skin["id"]) 				else "外观：默认 ▸ %s" % String(skin["name"])
 	if SaveSystem.skill_upgraded(id) and UPGRADE_DESC.has(id):
 		var target: Label = _skill_labels[_selected] if _selected < _skill_labels.size() else null
 		if target != null:
 			target.text += "｜强化：%s" % String(UPGRADE_DESC[id])
+
+
+## m5-h：换肤循环（默认 ↔ 专属；生产 SaveSystem.set_skin，刷新按钮文案）。
+func _on_skin_pressed() -> void:
+	if _selected < 0 or _selected >= _ids.size():
+		return
+	var id := String(_ids[_selected])
+	var skin: Dictionary = HeroApplier.SKINS.get(id, {})
+	if skin.is_empty():
+		return
+	if SaveSystem.skin_of(id) == String(skin["id"]):
+		SaveSystem.set_skin(id, "")
+	else:
+		SaveSystem.set_skin(id, String(skin["id"]))
+	_sync_detail()
 
 
 ## m5-d：强化购买（生产 API）→ 刷新详情（按钮态/余额/技能后缀）。

@@ -117,6 +117,9 @@ func _default_data() -> Dictionary:
 		# Appendix L 裁定：购买流关闭、强化 1500/名维持）。buy_skill_upgrade 入库，
 		# HeroApplier.apply 运行态覆盖 upgraded 注入。
 		"skill_upgrades": [] as Array[String],
+		# m5-h（v2 additive，不 bump 版本）：皮肤选择（hero_id -> skin_id，""/缺键 =
+		# 默认外观）。选角页换肤钮写入，HeroApplier.apply 运行态着色。
+		"skins": {},
 		# m2-t31（v2 新增）：图鉴解锁任务进度（CodexSystem.counters 快照：五标量
 		# 计数 + floor_clears 层号分桶）。CodexSystem 在层进入/解锁/终局结算点写入，
 		# _ready 读档恢复——J.2 跨局累计的持久化后端。
@@ -178,6 +181,14 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 			if typeof(e) == TYPE_STRING:
 				tarr.append(e)
 		out["purchased_talents"] = tarr
+	# m5-h：皮肤选择同口径合并（键值非 String 双向丢弃）
+	var skins_v: Variant = saved.get("skins")
+	if typeof(skins_v) == TYPE_DICTIONARY:
+		var skout := {}
+		for k: Variant in skins_v:
+			if typeof(k) == TYPE_STRING and typeof(skins_v[k]) == TYPE_STRING:
+				skout[k] = skins_v[k]
+		out["skins"] = skout
 	# m5-d：技能强化名录同口径合并（数组内非 String 元素静默丢弃）
 	var skup_v: Variant = saved.get("skill_upgrades")
 	if typeof(skup_v) == TYPE_ARRAY:
@@ -459,6 +470,25 @@ func record_boss_first_kill(id: String) -> bool:
 func has_boss_first_kill(id: String) -> bool:
 	var arr: Array = data.get("boss_first_kills", [])
 	return arr.has(id)
+
+# ---- m5-h 皮肤（纯外观，零数值面；HeroApplier 运行态着色）----
+
+## 皮肤查询（""/缺键 = 默认外观）。
+func skin_of(hero_id: String) -> String:
+	var d: Dictionary = data.get("skins", {})
+	return String(d.get(hero_id, ""))
+
+## 皮肤写入（选角页换肤钮；skin_id 空串 = 回默认）。非法 hero 静默拒绝（防御）。
+func set_skin(hero_id: String, skin_id: String) -> void:
+	if String(GameDB.get_hero(hero_id).get("id", "")) != hero_id:
+		return
+	var d: Dictionary = data.get("skins", {})
+	if skin_id.is_empty():
+		d.erase(hero_id)
+	else:
+		d[hero_id] = skin_id
+	data["skins"] = d
+	save_now()
 
 # ---- m5-d 技能强化（Appendix L：购买流关闭，强化 1500/名维持）----
 

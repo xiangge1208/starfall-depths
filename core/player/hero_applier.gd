@@ -7,6 +7,18 @@ extends RefCounted
 ## 完整英雄行存 "hero"；房间层（T10 战斗接线 / T23 局流程）负责读出并注入
 ## CombatSystem.crit_chance —— 本任务只落数据，不接线。
 
+## m5-h 皮肤表（每英雄 1 套换色外观；纯 modulate 着色，零数值/零碰撞面）。
+## 简化披露：运行期 tint 而非 palette swap（spritegen 参数表扩皮肤配置属 T2 美术
+## 管线，Appendix L 会话持有）——色调经 32 色 DB16 调色板取样，视觉差异可辨。
+const SKINS := {
+	"vanguard": {"id": "nightfrost", "name": "夜霜", "tint": Color(0.72, 0.82, 1.0)},
+	"ranger": {"id": "crimson", "name": "赤羽", "tint": Color(1.0, 0.72, 0.66)},
+	"mage": {"id": "azure", "name": "苍蓝", "tint": Color(0.66, 0.78, 1.0)},
+	"assassin": {"id": "inkjade", "name": "墨玉", "tint": Color(0.72, 0.9, 0.8)},
+	"engineer": {"id": "verdigris", "name": "铜绿", "tint": Color(0.72, 0.95, 0.78)},
+	"guardian": {"id": "gild", "name": "金穗", "tint": Color(1.0, 0.9, 0.66)},
+}
+
 static func apply(hero: Dictionary, player: Player) -> void:
 	player.hp_max = int(hero["hp"])
 	player.shield_max = int(hero["shield"])
@@ -31,6 +43,15 @@ static func apply(hero: Dictionary, player: Player) -> void:
 	# meta 接缝：房间层读 meta 注入 CombatSystem.crit_chance（T10/T23 接线，本任务只落数据）
 	player.set_meta("hero", hero)
 	player.set_meta("crit_base", float(hero["crit_chance"]))
+	# m5-h 皮肤着色：存档选择 → SKINS tint → 玩家体 Sprite（默认/未知 id 恒白色）。
+	var hid := String(hero.get("id", ""))
+	var spr := player.get_node_or_null("Sprite") as Sprite2D
+	if spr != null:
+		var skin: Dictionary = SKINS.get(hid, {})
+		var tint := Color.WHITE
+		if not skin.is_empty() and SaveSystem.skin_of(hid) == String(skin["id"]):
+			tint = skin["tint"]
+		spr.modulate = tint
 	_mount_skill(hero, player)
 
 ## 技能换装：player.tscn 恒挂的 Skill 节点（skill_base.gd 占位，T2）按英雄行换成具体技能脚本。
