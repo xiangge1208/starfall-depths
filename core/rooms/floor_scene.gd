@@ -1550,6 +1550,51 @@ func _spawn_drops_now(room: FloorRoom, row: Dictionary, world_pos: Vector2,
 			_spawn_gem(room, world_pos + _scatter(90 + i))
 	if drops.contains("soul"):
 		_build_boss_soul(room, world_pos)
+	# m5-c 配件掉落通道：精英房（elite_charger 死亡拍）必掉 1 个，稀有度 _loot_rng
+	# 掷签（白 70 / 蓝 25 / 橙 5）；drops 令牌 "attachment" 支持行内数据驱动声明
+	#（缺省 common——当前无行使用，为 drops 通道预留的通用入口）。
+	if String(row.get("wave_id", "")) == "elite_charger":
+		_spawn_attachment_pickup(room, world_pos + _scatter(111), elite_attachment_rarity(_loot_rng))
+	if drops.contains("attachment"):
+		_spawn_attachment_pickup(room, world_pos + _scatter(113), "common")
+
+
+## m5-c 精英配件稀有度掷签（白 70 / 蓝 25 / 橙 5）：static 纯函数（rng 注入，
+## 无头可测；FloorScene 实例构建重，测试直锚本函数）。
+static func elite_attachment_rarity(rng: RandomNumberGenerator) -> String:
+	var r := rng.randf()
+	if r < 0.70:
+		return "common"
+	if r < 0.95:
+		return "rare"
+	return "legend"
+
+
+## m5-c 指定稀有度桶内取 1 配件 id（桶内等概率、id 字典序稳定——同
+## _roll_challenge_epic_weapon 确定性口径）；桶空返回 ""（哨兵，调用方跳过）。
+func _roll_attachment_id(rarity: String) -> String:
+	var ids: Array[String] = []
+	for id: String in GameDB.attachments:
+		if String((GameDB.attachments[id] as Dictionary).get("rarity", "")) == rarity:
+			ids.append(id)
+	if ids.is_empty():
+		return ""
+	ids.sort()
+	return ids[_loot_rng.randi_range(0, ids.size() - 1)]
+
+
+## m5-c 配件拾取实体（Pickup kind="attachment"，接触即装当前武器同槽——非掉落台
+## 换手语义）。落点不做柱体钳制（同 _spawn_gem 习语：圆碰撞半径 6px，嵌柱可走位拾取）。
+func _spawn_attachment_pickup(room: FloorRoom, world_pos: Vector2, rarity: String) -> void:
+	var aid := _roll_attachment_id(rarity)
+	if aid.is_empty():
+		return
+	var pk := Pickup.new()
+	pk.kind = "attachment"
+	pk.attachment_id = aid
+	pk.position = world_pos - room.position   # 房间子节点：世界落点 → 房间局部
+	room.add_child(pk)
+	Telemetry.log_row(["loot", Engine.get_physics_frames(), aid, "attachment_drop"])
 
 
 ## 蓝晶掉落（星陨先知契约）：Pickup "gem" 拾取经 RunState.add_gems 入局内蓝晶账
@@ -2463,6 +2508,7 @@ func _restore_calamity(room: FloorRoom) -> void:
 ## 挑战房清房奖励（GDD §11：必得紫 + 大量金币）：epic 池取自 weapons_all 全量
 ## （紫武默认 locked 不进普通掉落池，挑战保底即获取途径本身；★熔铸限定 forge_only
 ## 仍排除）；金币 80~120 由 loot 盐流确定性掷签。标准奖励在挑战房配置中置零不重复。
+## m5-c 追加：挑战房必掉 1 橙配件（legend 桶内等概率，与金币/紫武同拍落位）。
 func _spawn_challenge_rewards(room: FloorRoom) -> void:
 	var center := room.outer.get_center()
 	var wid := _roll_challenge_epic_weapon()
@@ -2471,6 +2517,7 @@ func _spawn_challenge_rewards(room: FloorRoom) -> void:
 	var coins := _loot_rng.randi_range(CHALLENGE_COINS_MIN, CHALLENGE_COINS_MAX)
 	for i in coins:
 		_spawn_pickup(room, "coin", center + _scatter(i))
+	_spawn_attachment_pickup(room, center + _scatter(131), "legend")
 
 
 func _roll_challenge_epic_weapon() -> String:

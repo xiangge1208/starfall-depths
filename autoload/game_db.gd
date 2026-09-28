@@ -183,6 +183,48 @@ const TALENT_KEY_MAX := {
 	"talent_gem_gain_pct": 0.10, "talent_coin_gain_pct": 0.10,
 	"talent_pickup_radius_pct": 0.30,
 }
+# 配件（m5-c）：5 键全部必填，无 optional；行级校验 validate_attachment_row
+# （slot/rarity 白名单 + effects 键白名单 + 成对键约束）。
+# 【字段语义】slot：配件槽位（ATTACHMENT_SLOTS，每武器每槽至多 1 件，重复拾取同槽=替换）；
+# rarity 词汇对齐 weapons.json（common=白 / rare=蓝 / legend=橙）。
+# 【effects 键语义】（消费端：WeaponRig._attachment_effects 合成 → _fire_slot /
+# effective_attack_rate / element_hit_profile / try_fire 与 melee.gd 同出口消费）：
+#   dmg_pct           伤害乘区（加法叠加入 1+pct；先 round 整数化，再进玩家出口
+#                     scaled_damage 的天赋/祝福乘区——乘区顺序披露见 weapon_rig）
+#   rate_pct          射速乘区（1+pct，加法叠加）
+#   bullet_speed_pct  弹速乘区（1+pct，与既有 buff/talent 弹速乘区并列相乘）
+#   spread_pct        散布乘区（1+pct，负值=收束；clamp ≥0）
+#   energy_pct        蓝耗乘区（1+pct，负值=省蓝；消费在 try_fire cost 计算处，
+#                     TrialMods.player_energy_cost 之前）
+#   pierce_flat       穿透加算（+N）；bounce_flat 反弹加算（+N）
+#   projectiles_flat  弹丸加算（+N，直接加在武器 base_n 上——不参与「散弹扩张只
+#                     强化 base_n>1」的门槛判定，配件弹丸不触发二次叠加）
+#   element_inject    主元素覆盖（Elements 名字符串，非 none；低于试炼 force_element
+#                     与星髓像临时附魔的覆盖优先级）
+#   roll_boost_pct + roll_boost_ticks  翻滚后攻速窗（成对必填）：翻滚起始帧写
+#                     player.atk_speed_boost（复用战神像同款共享窗字段，后写者胜），
+#                     ticks 按物理帧计（90 = 1.5s）
+const ATTACHMENT_SCHEMA := {
+	"id": TYPE_STRING, "name": TYPE_STRING, "slot": TYPE_STRING,
+	"rarity": TYPE_STRING, "effects": TYPE_DICTIONARY,
+}
+const ATTACHMENT_OPTIONAL := {}
+const ATTACHMENT_SLOTS: Array[String] = ["muzzle", "mag", "stock"]
+const ATTACHMENT_RARITIES: Array[String] = ["common", "rare", "legend"]
+# effects 键白名单：百分比键取数值（可正可负，幅度护栏见下）；整型键取 int；
+# element_inject 为 Elements 名字符串；roll_boost 成对出现。
+const ATTACHMENT_PCT_KEYS: Array[String] = [
+	"dmg_pct", "rate_pct", "bullet_speed_pct", "spread_pct", "energy_pct",
+]
+const ATTACHMENT_INT_KEYS: Array[String] = [
+	"pierce_flat", "bounce_flat", "projectiles_flat", "roll_boost_ticks",
+]
+const ATTACHMENT_ROLL_PCT_KEY := "roll_boost_pct"
+# 单键幅度护栏（防手滑量级；正负双向）：乘区键 |v| ≤ 0.75、加算键 |v| ≤ 10、
+# roll_boost 窗长 ≤ 600t（10s）。
+const ATTACHMENT_PCT_ABS_MAX := 0.75
+const ATTACHMENT_INT_ABS_MAX := 10
+const ATTACHMENT_ROLL_TICKS_MAX := 600
 # 试炼因子（M3-R-A）：data/trials.json 契约（规格 §7）。数组形态（顶层标量 + factors
 # 数组）与 dict 键控表不同，走自定义装载器 _load_trials（对齐 _load_room_tables /
 # _finalize_talents 严谨度：任一标量/行校验失败 → load_ok=false 且整表拒收）。
@@ -236,6 +278,7 @@ const TABLES := {
 	"rooms_a3": "res://data/rooms/a3_templates.json",
 	"buffs": "res://data/buffs.json", "heroes": "res://data/heroes.json",
 	"drinks": "res://data/drinks.json", "talents": "res://data/talents.json",
+	"attachments": "res://data/attachments.json",
 }
 
 var weapons: Dictionary = {}        # 掉落池（locked 已排除；m2-t20 解锁非★经 grant_to_pool 回池）；消费方：FloorScene._roll_weapon / ShopLogic._weapons / validate_hero_row / get_weapon
@@ -246,6 +289,7 @@ var buffs: Dictionary = {}
 var heroes: Dictionary = {}
 var drinks: Dictionary = {}
 var talents: Dictionary = {}
+var attachments: Dictionary = {}    # 武器配件表（m5-c：id → 行；实例态挂武器行拷贝，本表只读）
 var trials: Dictionary = {}         # 试炼因子表（id → 行 {id,name,desc,mods}；M3-R-A 正式接线）
 var load_ok := true
 
@@ -266,6 +310,8 @@ func _ready() -> void:
 	drinks = _load_table(TABLES["drinks"], DRINK_SCHEMA, DRINK_OPTIONAL, validate_drink_row)
 	talents = _finalize_talents(_load_table(
 		TABLES["talents"], TALENT_SCHEMA, TALENT_OPTIONAL, validate_talent_row))
+	attachments = _load_table(
+		TABLES["attachments"], ATTACHMENT_SCHEMA, ATTACHMENT_OPTIONAL, validate_attachment_row)
 	trials = _load_trials()
 	if not load_ok:
 		push_error("GameDB: data validation failed")
@@ -307,6 +353,9 @@ func get_drink(id: String) -> Dictionary:
 
 func get_talent(id: String) -> Dictionary:
 	return talents.get(id, {})
+
+func get_attachment(id: String) -> Dictionary:
+	return attachments.get(id, {})
 
 func validate_row(row: Dictionary, schema: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -624,6 +673,56 @@ func validate_hero_row(row: Dictionary) -> Array[String]:
 	for w: Variant in sw:
 		if typeof(w) != TYPE_STRING or not (weapons.has(w) or weapons_all.has(w)):
 			errors.append("unknown start weapon: %s" % str(w))
+	return errors
+
+## 配件行语义校验（m5-c），作为 attachments 表 _load_table 的 extra_check。
+## 约束：slot/rarity ∈ 白名单（rarity 词汇对齐 weapons.json：common/rare/legend）；
+## effects 非空且键全部在白名单内；百分比键取数值（可正可负，|v| ≤ 护栏）；
+## 整型键取 int（|v| ≤ 护栏）；element_inject 必须是非 none 的合法 Elements 名；
+## roll_boost_pct 与 roll_boost_ticks 成对出现（缺一即拒），窗值 (0,1] / (0,600]。
+func validate_attachment_row(row: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	if not ATTACHMENT_SLOTS.has(row.get("slot")):
+		errors.append("bad slot: %s" % str(row.get("slot")))
+	if not ATTACHMENT_RARITIES.has(row.get("rarity")):
+		errors.append("bad rarity: %s" % str(row.get("rarity")))
+	var eff: Variant = row.get("effects")
+	if typeof(eff) != TYPE_DICTIONARY or (eff as Dictionary).is_empty():
+		errors.append("effects must be non-empty object")
+		return errors
+	for k: String in eff:
+		var v: Variant = eff[k]
+		if ATTACHMENT_PCT_KEYS.has(k):
+			if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
+				errors.append("effect %s must be number" % k)
+			elif absf(float(v)) > float(ATTACHMENT_PCT_ABS_MAX):
+				errors.append("effect %s |v| > %s" % [k, str(ATTACHMENT_PCT_ABS_MAX)])
+		elif ATTACHMENT_INT_KEYS.has(k):
+			if typeof(v) != TYPE_INT:
+				errors.append("effect %s must be int" % k)
+			elif k == "roll_boost_ticks":
+				pass   # 窗长键不吃通用 |v|≤10 护栏——(0,600] 专项护栏在下方成对检查执行
+			elif absi(int(v)) > ATTACHMENT_INT_ABS_MAX:
+				errors.append("effect %s |v| > %d" % [k, ATTACHMENT_INT_ABS_MAX])
+		elif k == ATTACHMENT_ROLL_PCT_KEY:
+			if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
+				errors.append("effect %s must be number" % k)
+			elif float(v) <= 0.0 or float(v) > 1.0:
+				errors.append("effect %s must be in (0, 1]" % k)
+		elif k == "element_inject":
+			if typeof(v) != TYPE_STRING or Elements.from_name(String(v)) == Elements.Id.NONE:
+				errors.append("effect element_inject must be non-none Elements name")
+		else:
+			errors.append("unknown effect key: %s" % k)
+	# roll_boost 成对约束（同 element_enchant/element_proc_chance 先例）
+	var has_pct := (eff as Dictionary).has(ATTACHMENT_ROLL_PCT_KEY)
+	var has_ticks := (eff as Dictionary).has("roll_boost_ticks")
+	if has_pct != has_ticks:
+		errors.append("roll_boost_pct and roll_boost_ticks must appear together")
+	if has_ticks and typeof((eff as Dictionary)["roll_boost_ticks"]) == TYPE_INT:
+		var ticks := int((eff as Dictionary)["roll_boost_ticks"])
+		if ticks <= 0 or ticks > ATTACHMENT_ROLL_TICKS_MAX:
+			errors.append("effect roll_boost_ticks must be in (0, %d]" % ATTACHMENT_ROLL_TICKS_MAX)
 	return errors
 
 ## 天赋行语义校验（m2-t2），作为 talents 表 _load_table 的 extra_check。

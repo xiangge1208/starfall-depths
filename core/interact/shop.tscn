@@ -68,6 +68,11 @@ layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
+[node name="AttRow" type="HBoxContainer" parent="UILayer/UI/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
 [node name="CloseBtn" type="Button" parent="UILayer/UI/Center/Panel/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10

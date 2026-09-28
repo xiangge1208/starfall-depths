@@ -3,18 +3,22 @@ extends Area2D
 ## 掉落拾取（m0-t12）：coin / energy / heart / gem。玩家接触结算；coin 带磁吸。
 ## 结算：coin → 房间计数（on_collect 回调）；energy → add_energy(8)；heart → heal(1)；
 ## gem → on_collect 回调（m2-t24：蓝晶拾取，接线方落 RunState.add_gems）。
+## m5-c：attachment → 装配到当前武器同槽（attachment_id 必填；当前无武器=手刀态
+## 时不可装配，实体保留待装备后拾取——不 queue_free、不发音不计拾取遥测）。
 
 const COLORS := {
 	"coin": Color(1.0, 0.85, 0.2),
 	"energy": Color(0.3, 0.6, 1.0),
 	"heart": Color(1.0, 0.3, 0.4),
 	"gem": Color(0.35, 0.6, 1.0),
+	"attachment": Color(0.95, 0.75, 0.3),
 }
 const MAGNET_RANGE_PX := 56.0
 const MAGNET_SPEED := 140.0
 
 var kind := "coin"
 var on_collect := Callable()               # 房间注入（金币计数）
+var attachment_id := ""                    # m5-c：kind=="attachment" 携带的配件 id
 
 func _ready() -> void:
 	var cs := CollisionShape2D.new()
@@ -62,8 +66,17 @@ func _on_body_entered(body: Node2D) -> void:
 		"gem":
 			if on_collect.is_valid():
 				on_collect.call()
+		"attachment":
+			# m5-c：装配到当前武器同槽（同槽已有件=替换且旧件消失，语义在 rig 侧）。
+			# 当前无武器（手刀态）/ rig 缺席 → 提前 return：不消费实体、不发音、
+			# 不计遥测（玩家装备武器后可再次接触拾取）。
+			var rig: WeaponRig = pl.weapon_rig
+			if rig == null or rig.apply_attachment(attachment_id).is_empty():
+				return
 	Telemetry.log_row(["pickup", Engine.get_physics_frames(), kind])
-	AudioMgr.play("pickup_" + kind)      # m2-t5：coin/energy/heart → pickup_* 三连 key
+	# m5-c：attachment 无专属音键（audio_mgr 归共用域不可加键），按 gem 别名习语
+	# 回落既有 pickup_energy（AudioMgr 对未知键本就 warn-once + no-op，此处直落已知键零噪音）。
+	AudioMgr.play("pickup_energy" if kind == "attachment" else "pickup_" + kind)
 	queue_free()                             # flush 上下文中安全（延迟到帧末释放）
 
 func _find_player() -> Player:

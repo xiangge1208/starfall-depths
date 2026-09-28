@@ -25,9 +25,16 @@ const ITEM_NAMES := {"heart": "红心", "energy": "蓝瓶"}
 const ITEM_EFFECTS := {"heart": "回复 2 HP", "energy": "蓝 +20"}
 const WEAPON_SLOTS := 3
 const STOCK_STATE_KEY := "_shop_runtime_state"
+# m5-c 配件第 4 货架：固定白/蓝/橙各一（价 30/60/120 与稀有度一一对应）。固定常量
+# 不吃楼层系数/黑市/议价（沿 ITEM_PRICES 道具习语披露，测试钉死）；仅过试炼
+# shop_discount_pct 整层折让。购买即装当前武器同槽（无武器=手刀态拒售）。
+const ATTACHMENT_SHELF: Array[String] = [
+	"att_muzzle_dmg10", "att_mag_dmg20", "att_muzzle_burst",
+]
+const ATTACHMENT_PRICES := {"common": 30, "rare": 60, "legend": 120}
 
 ## m2-t35：购买成功点信号（T3 K 表同名，附录 K.1 发射点接线归本卡）。
-## kind ∈ "weapon" / "heart" / "energy" / "drink"（回收不是购买，不发）。
+## kind ∈ "weapon" / "heart" / "energy" / "drink" / "attachment"（m5-c 追加；回收不是购买，不发）。
 ## 消费方（T25 结算聚合 / T20 buy_x 计数同源口径）后续按同名对接；缺席期间无副作用。
 signal shop_purchase(kind: String)
 
@@ -51,6 +58,11 @@ var _weapon_name_labels: Array[Label] = []
 var _weapon_price_labels: Array[Label] = []
 var _item_cards := {}                      # kind -> PanelContainer
 var _item_price_labels := {}               # kind -> Label
+var _att_ids: Array[String] = []           # m5-c 第 4 货架：配件 id（固定 ATTACHMENT_SHELF）
+var _att_sold: Array[bool] = []
+var _att_cards: Array[PanelContainer] = []
+var _att_name_labels: Array[Label] = []
+var _att_price_labels: Array[Label] = []
 var _drink_id := ""
 var _drink_sold := false
 var _drink_card: PanelContainer = null
@@ -151,6 +163,17 @@ func _bind_stock_state() -> void:
 	var drink_value: Variant = _stock_state.get("drink_sold", false)
 	_drink_sold = typeof(drink_value) == TYPE_BOOL and bool(drink_value)
 	_stock_state["drink_sold"] = _drink_sold
+	# m5-c 第 4 货架售罄态（3 固定位，沿武器位同款数组归一化习语）
+	var raw_atts: Array = []
+	var atts_value: Variant = _stock_state.get("attachments_sold", [])
+	if typeof(atts_value) == TYPE_ARRAY:
+		raw_atts = atts_value
+	var normalized_atts: Array[bool] = []
+	for i in ATTACHMENT_SHELF.size():
+		normalized_atts.append(i < raw_atts.size() \
+			and typeof(raw_atts[i]) == TYPE_BOOL and bool(raw_atts[i]))
+	_att_sold = normalized_atts
+	_stock_state["attachments_sold"] = _att_sold
 	var recycled_value: Variant = _stock_state.get("recycled", false)
 	_recycled = typeof(recycled_value) == TYPE_BOOL and bool(recycled_value)
 	_stock_state["recycled"] = _recycled
@@ -214,6 +237,34 @@ func _buy_item(kind: String) -> void:
 	AudioMgr.play("ui_buy")   # m4p-w2a：购买成功拍（武器/道具/饮料三路共用成功点）
 	CodexSystem.count_buy()   # m2-t20：图鉴 buy_x 计数（购买成功点）
 	shop_purchase.emit(kind)   # m2-t35：T3 K 表同名购买信号（成功点）
+
+
+## 买配件第 4 货架 idx：扣款成功 → 装配当前武器同槽 + 已售；失败 → 价签闪红拒绝。
+## 当前无武器（手刀态）先于扣款拒售（装配是购买效果的唯一载体）。价格走试炼
+## shop_discount_pct 折让、不走议价（固定价披露同 ITEM_PRICES）。
+func _buy_attachment(idx: int) -> void:
+	if idx < 0 or idx >= ATTACHMENT_SHELF.size() or _att_sold[idx]:
+		return
+	var id := ATTACHMENT_SHELF[idx]
+	var row := GameDB.get_attachment(id)
+	if row.is_empty():
+		return
+	var p := _player as Player
+	if p == null or p.weapon_rig == null or p.weapon_rig.current().is_empty():
+		return
+	var cost := TrialMods.shop_price(int(ATTACHMENT_PRICES.get(
+		String(row.get("rarity", "common")), 30)))
+	if wallet == null or not wallet.spend_coins(cost):
+		_flash(_att_price_labels[idx])
+		return
+	p.weapon_rig.apply_attachment(id)
+	_att_sold[idx] = true
+	_stock_state["attachments_sold"] = _att_sold
+	_att_price_labels[idx].text = "已售"
+	_refresh_coins()
+	AudioMgr.play("ui_buy")
+	CodexSystem.count_buy()
+	shop_purchase.emit("attachment")
 
 
 ## 买商店第六饮料卡：使用 stock.drink 指向的 GameDB 行内价格与效果。
@@ -326,6 +377,18 @@ func item_sold(kind: String) -> bool:
 	return bool(_item_sold.get(kind, false))
 
 
+func attachment_name_text(idx: int) -> String:
+	return _att_name_labels[idx].text
+
+
+func attachment_price_text(idx: int) -> String:
+	return _att_price_labels[idx].text
+
+
+func attachment_sold(idx: int) -> bool:
+	return _att_sold[idx]
+
+
 func drink_visible() -> bool:
 	return _drink_card != null and _drink_card.visible
 
@@ -395,6 +458,15 @@ func _build_ui() -> void:
 	_drink_name_label = _add_label(_drink_card)
 	_drink_effect_label = _add_label(_drink_card)
 	_drink_price_label = _add_label(_drink_card)
+	# m5-c 配件第 4 货架（固定白/蓝/橙各一，30/60/120）
+	var att_row: HBoxContainer = $UILayer/UI/Center/Panel/VBox/AttRow
+	for i in ATTACHMENT_SHELF.size():
+		var card := _card(Color.WHITE)
+		card.gui_input.connect(_on_att_input.bind(i))
+		att_row.add_child(card)
+		_att_cards.append(card)
+		_att_name_labels.append(_add_label(card))
+		_att_price_labels.append(_add_label(card))
 	# 回收卡与道具同排（480×270 视口竖向空间紧，单排溢出屏外）
 	var rec := _card(Color("ffa64d"))
 	rec.gui_input.connect(_on_recycle_input)
@@ -444,10 +516,33 @@ func _fill() -> void:
 		card.modulate = Color.WHITE
 		price_l.text = "已售" if bool(_item_sold.get(kind, false)) \
 			else "%d 金币" % TrialMods.shop_price(int(ITEM_PRICES[kind]))
+	_fill_attachments()
 	_fill_drink()
 	_fill_recycle()
 	_refresh_coins()
 	_ui.show()
+
+
+## m5-c 第 4 货架填充：固定三件（白/蓝/橙），卡框色随稀有度、价签走试炼折让
+##（不吃议价/黑市，披露沿 ITEM_PRICES 习语）。
+func _fill_attachments() -> void:
+	for i in ATTACHMENT_SHELF.size():
+		var id := ATTACHMENT_SHELF[i]
+		var card := _att_cards[i]
+		var name_l := _att_name_labels[i]
+		var price_l := _att_price_labels[i]
+		card.modulate = Color.WHITE
+		var row := GameDB.get_attachment(id)
+		if row.is_empty():
+			name_l.text = "?"
+			price_l.text = "-"
+			continue
+		var rarity := String(row.get("rarity", "common"))
+		card.add_theme_stylebox_override("panel", _card_style(
+			RARITY_COLORS.get(rarity, Color.WHITE)))
+		name_l.text = String(row.get("name", id))
+		price_l.text = "已售" if _att_sold[i] \
+			else "%d 金币" % TrialMods.shop_price(int(ATTACHMENT_PRICES.get(rarity, 30)))
 
 
 ## 商店饮料卡由 stock.drink 填充；售罄状态来自绑定到该库存实例的运行态。
@@ -546,6 +641,13 @@ func _on_item_input(event: InputEvent, kind: String) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 			_buy_item(kind)
+
+
+func _on_att_input(event: InputEvent, idx: int) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			_buy_attachment(idx)
 
 
 func _on_drink_input(event: InputEvent) -> void:

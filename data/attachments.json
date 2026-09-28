@@ -1,0 +1,50 @@
+{
+  "att_muzzle_dmg10": {
+    "id": "att_muzzle_dmg10", "name": "锐利膛线", "slot": "muzzle", "rarity": "common",
+    "effects": {"dmg_pct": 0.10}
+  },
+  "att_muzzle_rate10": {
+    "id": "att_muzzle_rate10", "name": "轻量击锤", "slot": "muzzle", "rarity": "common",
+    "effects": {"rate_pct": 0.10}
+  },
+  "att_muzzle_speed15": {
+    "id": "att_muzzle_speed15", "name": "加长枪管", "slot": "muzzle", "rarity": "common",
+    "effects": {"bullet_speed_pct": 0.15}
+  },
+  "att_muzzle_spread20": {
+    "id": "att_muzzle_spread20", "name": "稳定支架", "slot": "muzzle", "rarity": "common",
+    "effects": {"spread_pct": -0.20}
+  },
+  "att_muzzle_pierce1": {
+    "id": "att_muzzle_pierce1", "name": "穿甲弹头", "slot": "muzzle", "rarity": "common",
+    "effects": {"pierce_flat": 1}
+  },
+  "att_mag_dmg20": {
+    "id": "att_mag_dmg20", "name": "重装弹芯", "slot": "mag", "rarity": "rare",
+    "effects": {"dmg_pct": 0.20, "rate_pct": -0.05}
+  },
+  "att_mag_double": {
+    "id": "att_mag_double", "name": "双子弹匣", "slot": "mag", "rarity": "rare",
+    "effects": {"projectiles_flat": 1, "dmg_pct": -0.20}
+  },
+  "att_mag_energy25": {
+    "id": "att_mag_energy25", "name": "蓄能回路", "slot": "mag", "rarity": "rare",
+    "effects": {"energy_pct": -0.25}
+  },
+  "att_stock_bounce1": {
+    "id": "att_stock_bounce1", "name": "弹力枪托", "slot": "stock", "rarity": "rare",
+    "effects": {"bounce_flat": 1}
+  },
+  "att_muzzle_burst": {
+    "id": "att_muzzle_burst", "name": "三连发模块", "slot": "muzzle", "rarity": "legend",
+    "effects": {"projectiles_flat": 2, "dmg_pct": -0.25}
+  },
+  "att_mag_frost": {
+    "id": "att_mag_frost", "name": "冰霜弹匣", "slot": "mag", "rarity": "legend",
+    "effects": {"element_inject": "ice"}
+  },
+  "att_stock_blink": {
+    "id": "att_stock_blink", "name": "折跃枪托", "slot": "stock", "rarity": "legend",
+    "effects": {"roll_boost_pct": 0.5, "roll_boost_ticks": 90}
+  }
+}

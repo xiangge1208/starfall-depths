@@ -41,7 +41,7 @@ func try_attack(frame: int) -> bool:
 		return false
 	var player := get_parent() as Player
 	_next_frame = frame + maxi(1, int(round(TimeConst.FPS \
-		/ rig.effective_attack_rate(w, player, frame))))
+		/ rig.effective_attack_rate(w, player, frame, true))))
 	_swing_left = SWING_TICKS
 	_swing_tick = 0
 	_hit_done = false
@@ -73,7 +73,14 @@ func _physics_process(_delta: float) -> void:
 	if not _hit_done:
 		_hit_done = true
 		# m4-c2：基础伤害走玩家伤害出口聚合点（祝福叠层/天赋乘区，与远程同一口径）。
-		var base_damage := player.scaled_damage(int(w["damage"]))
+		# m5-c 配件乘区顺序（与远程 _fire_slot 同两段口径）：近战 muzzle 槽无效
+		#（无枪口，exclude_muzzle=true）；mag/stock 生效——配件 dmg_pct 先 round
+		# 整数化 → player.scaled_damage（天赋/祝福）。披露：双子弹匣的 dmg_pct
+		# -0.20 惩罚对近战照收（mag 槽生效）；projectiles_flat/energy_pct 近战无
+		# 消费面 = no-op；roll_boost（stock）经 rig._physics_process 轮询触发。
+		var eff := rig._attachment_effects(w, true)
+		var att_base := maxi(0, int(round(float(int(w["damage"])) * (1.0 + float(eff["dmg_pct"])))))
+		var base_damage := player.scaled_damage(att_base)
 		# 暴击本地 roll；combat_rng 未注入（纯逻辑测试）时跳过 roll 用平伤。
 		var roll: Dictionary = {"amount": base_damage, "is_crit": false}
 		if combat_rng != null:

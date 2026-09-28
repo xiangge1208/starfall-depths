@@ -98,7 +98,9 @@ static func hud_snapshot(player: Player, run: Node, frame: int = -1) -> Dictiona
 			slot = rig.slot
 			for i in mini(rig.slots.size(), 2):
 				var w: Dictionary = rig.slots[i]
-				names[i] = "手刀" if w.is_empty() else String(w.get("name", ""))   # M5-A2：空槽=手刀（可用）
+				# m5-c：配件后缀（「老伙计·锐」式）；空槽=手刀（可用，手刀无配件面）
+				names[i] = "手刀" if w.is_empty() \
+				else String(w.get("name", "")) + attachment_suffix(w)
 				ids[i] = "" if w.is_empty() else String(w.get("id", ""))
 		else:
 			for i in 2:
@@ -144,6 +146,24 @@ static func weapon_display_name(weapon_id: String) -> String:
 	if weapon_id.is_empty():
 		return ""
 	return String(GameDB.get_weapon(weapon_id).get("name", weapon_id))
+
+
+## m5-c 配件后缀：武器实例字典 attachments（muzzle/mag/stock 序）每件配件取名
+## 首字拼「·XYZ」。只读 GameDB 配件表，不改名判定路径。RunState 快照路径（无
+## rig 实例）不带后缀——配件状态只存在于武器实例字典（最小方案披露，不做图标管线）。
+static func attachment_suffix(w: Dictionary) -> String:
+	var atts: Dictionary = w.get("attachments", {})
+	if atts.is_empty():
+		return ""
+	var tag := ""
+	for slot_name: String in GameDB.ATTACHMENT_SLOTS:
+		var aid := String(atts.get(slot_name, ""))
+		if aid.is_empty():
+			continue
+		var row := GameDB.get_attachment(aid)
+		if not row.is_empty():
+			tag += String(row.get("name", "")).substr(0, 1)
+	return "" if tag.is_empty() else "·" + tag
 
 ## Buff 中文缩写：中文名前 2 字（tooltip 走全名）；表外 id / 空值原样回显。
 static func buff_abbrev(buff_id: String) -> String:
