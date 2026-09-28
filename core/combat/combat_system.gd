@@ -261,6 +261,18 @@ func _kill(p: Projectile) -> void:
 	_proj_meta.erase(p.get_instance_id())
 	pool.despawn(p)
 
+## M5-A1 复活图腾：清除玩家周围 radius 内的敌方弹幕（复活瞬间清场，防复活即再吃弹）。
+## 先收集后逐杀（_kill 会从 pool.active 摘除，遍历中原地删不安全）。返回清除数。
+func clear_enemy_bullets_around(pos: Vector2, radius: float) -> int:
+	var doomed: Array[Projectile] = []
+	for p in pool.active:
+		if p.faction == Projectile.Faction.ENEMY \
+				and p.position.distance_to(pos) <= radius:
+			doomed.append(p)
+	for p in doomed:
+		_kill(p)
+	return doomed.size()
+
 # ---- 近战支持 ----
 func projectiles_in_arc(origin: Vector2, facing: float, range_px: float, arc_deg: float, faction: int) -> Array[Projectile]:
 	var out: Array[Projectile] = []

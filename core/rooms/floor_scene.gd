@@ -435,6 +435,26 @@ func _build_room(id: int, data: Dictionary) -> void:
 		room.add_child(room.combat)
 		for prop in room.destructibles:            # m4-c5：可破坏体进本房 combat 判定流
 			prop.attach_combat(room.combat)
+	# M5-A1 复活图腾：小 Boss 房固定一台（GDD §9.1 小 Boss 恒在 Boss 主路径倒数第二
+	# 节点 = 字面「Boss 房前」§14.2 锚点）。嘉宾战斗房「无设施」惯例的唯一例外——
+	# 本设施专为该点位设计（ReviveTotem 头注）。与模板 forge 行（0,56）同位时错开。
+	if room.type == "miniboss":
+		var totem := ReviveTotem.new()
+		totem.name = "ReviveTotem"
+		totem.position = Vector2(w * 0.5, h * 0.5) \
+			+ (Vector2(-48, 0) if room.has_node("Forge") else Vector2(0, 56))
+		totem.action_label = "复活图腾（150金）：本局死亡时原地复活"
+		room.add_child(totem)
+
+
+## M5-A1 复活瞬间清场：委托当前战斗房的 CombatSystem（非战斗房/无 combat no-op）。
+## 坐标空间与 pool.active 弹体一致（bot 观测先例：弹体 position 与
+## player.global_position 同空间直比）。
+func clear_enemy_bullets_around(pos: Vector2, radius: float) -> int:
+	var room := room_node(flow.current_room)
+	if room == null or room.combat == null:
+		return 0
+	return room.combat.clear_enemy_bullets_around(pos, radius)
 
 
 ## 房内几何：地板贴图 + 四面墙（模板门方向留 32px 门洞）。M0 _solid 习语。

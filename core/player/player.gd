@@ -30,6 +30,9 @@ const SALT_KILL_ENERGY := "kill_energy"
 # 不死鸟「每局 1 次」消费记号（独立于 buff_phoenix_flag 聚合 meta——后者会被
 # BuffManager.apply_to_player 幂等绝对重写回 1，复活次数必须跨重 apply 存活）。
 const PHOENIX_USED_META := "m2t35_phoenix_used"
+const REVIVE_SHIELD := 2           # M5-A1 复活图腾：复活时回 2 盾（不超上限）
+const REVIVE_IFRAME_TICKS := 48    # 复活无敌帧 0.8s（同受击无敌帧 GDD §5.2）
+const REVIVE_CLEAR_RADIUS := 200.0 # 复活清弹半径（防复活即再吃弹）
 # m2-t17 四向行走帧表：art/generated/characters/hero_<id>_sheet.png（64x64，
 # 4 行=下/上/左/右 × 4 列=idle+walk×3，16px/帧）。帧序 = 方向行*4 + 列。
 const ANIM_SHEET_COLS := 4
@@ -396,6 +399,22 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 			and int(get_meta(PHOENIX_USED_META, 0)) == 0:
 		set_meta(PHOENIX_USED_META, 1)
 		hp = 1
+	elif hp <= 0 and RunState.revive_charged:
+		# M5-A1 复活图腾（小 Boss 房 150 金购买，RunState.revive_charged 局内一次性）：
+		# 致命伤原地复活 50% HP / 2 盾 / 0.8s 无敌帧 / 清周围 200px 敌弹；死亡结算短路
+		# （fatal 在下方按复活后 hp 重算）。优先级低于不死鸟——增益先消费，图腾留给
+		# 下一次致命伤。floor_scene 清场委托经祖先链寻址（无 FloorScene 的测试环境
+		# 安全 no-op）。
+		RunState.revive_charged = false
+		hp = int(ceil(hp_max * 0.5))
+		shield = mini(shield_max, REVIVE_SHIELD)
+		apply_iframes(REVIVE_IFRAME_TICKS, frame)
+		var anc: Node = get_parent()
+		while anc != null and not (anc is FloorScene):
+			anc = anc.get_parent()
+		if anc != null:
+			(anc as FloorScene).clear_enemy_bullets_around(global_position, REVIVE_CLEAR_RADIUS)
+		Telemetry.log_row(["revive_totem", frame])
 	# 事件、死亡回顾、遥测和表现均使用真实落地伤害。来伤可以超过剩余
 	# 护盾+生命，但 overkill 不能虚高本次受击或死亡窗口中的数值。
 	var actual := mini(maxi(0, dmg), effective_before)

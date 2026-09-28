@@ -148,6 +148,7 @@ const FACILITY_TEXTURES := {
 	"fountain_full": "tiles/fountain_full.png",
 	"fountain_used": "tiles/fountain_used.png",
 	"event_device": "tiles/event_device.png",
+	"totem_revive": "tiles/totem_revive.png",   # M5-A1 复活图腾（此前挂图死物，机制本卡落地）
 	"event_merchant": "tiles/event_merchant.png",
 	"event_beggar": "tiles/event_beggar.png",
 	"event_spring": "tiles/event_spring.png",

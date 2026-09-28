@@ -62,6 +62,9 @@ var current_slot: int:
 		selected_slot = value
 var kills: int = 0
 var rooms_cleared: int = 0
+## M5-A1 复活图腾（局内一次性）：小 Boss 房购买 → 致命伤时玩家侧消耗复活。
+## 局内态不入存档；start_run 重置。
+var revive_charged: bool = false
 var run_time_frames: int = 0         # 物理帧计（60/s）
 var pending_investment: int = 0      # 乞丐事件接缝（T19 规格）
 var beggar_paid_floor: int = 0       # 乞丐付款层号（T19 declare-only；0 = 未付；返还消费归 T20 跨层）
@@ -102,6 +105,7 @@ func start_run(hero: String) -> void:
 	selected_slot = 0
 	kills = 0
 	rooms_cleared = 0
+	revive_charged = false               # M5-A1：图腾购买不跨局（重新购买制）
 	run_time_frames = 0
 	pending_investment = 0
 	beggar_paid_floor = 0
