@@ -27,6 +27,10 @@ func _ready() -> void:
 	# m4p-w2a 结算切曲：进胜利结算页即切 menu 曲（同曲幂等，回主菜单连续不跳变）。
 	AudioMgr.play_music("menu")
 	_fill()
+	# M5-G：「复制分享码」仅试炼局显示（普通局无码可分享）。
+	var share_btn: Button = $Panel/Box/ShareBtn
+	share_btn.visible = RunState.is_trial_run
+	share_btn.pressed.connect(_on_share_pressed)
 
 func label_texts() -> Array[String]:
 	var out: Array[String] = []
@@ -101,9 +105,27 @@ func _confirm() -> void:
 	if codex != null and codex.has_method("persist_counters"):
 		codex.persist_counters()
 	TrialPanelUI.settlement_record(awarded, true)   # M3-R-C：试炼局 records + trial_completed（普通局无操作）
+	# M5-G：试炼胜利入本地蓝晶 Top10 榜（唯一写点 = 本生产结算路径；死亡/放弃
+	# settlement_record(false) 两路不入榜）。seed 十进制串（int64 JSON 精度口径见
+	# SaveSystem.record_trial_victory）；duration = run_time_frames/60，60Hz 帧计禁墙钟。
+	if RunState.is_trial_run:
+		SaveSystem.record_trial_victory(RunState.trial_date, str(RunState.run_seed),
+			RunState.trial_factors, awarded, int(RunState.run_time_frames / 60.0))
 	DeathRecorder.reset()
 	dismissed.emit()
 	_exit_to_menu()
+
+
+## 分享码文案（M5-G，测试缝：按钮复制的就是它）——格式单一出处 TrialSystem.share_code。
+func share_code_text() -> String:
+	return TrialSystem.share_code(str(RunState.run_seed), RunState.trial_factors)
+
+
+## 复制分享码到剪贴板（M5-G；headless 无头剪贴板为安全 no-op，测试只验文案与反馈）。
+## 只复制不导入（v1.1 边界：无校验防伪造，导入随在线榜 backlog 再议）。
+func _on_share_pressed() -> void:
+	DisplayServer.clipboard_set(share_code_text())
+	($Panel/Box/ShareBtn as Button).text = "已复制"
 
 func _exit_to_menu() -> void:
 	if exit_override.is_valid():

@@ -60,7 +60,9 @@ func refresh() -> void:
 	_rebuild_factors(trial.pick_factors(_today))
 	var table := records.load_records()
 	var today_best: Variant = (table["daily_best"] as Dictionary).get(_today, {})
-	_best_label.text = best_line(today_best if today_best is Dictionary else {})
+	# M5-G：蓝晶榜今日最佳并入行尾（SaveSystem.trial_today_best；空档/无记录日空字典）
+	_best_label.text = best_line(today_best if today_best is Dictionary else {},
+		SaveSystem.trial_today_best(_today))
 	_fill_history(recent_from(table, HISTORY_ROWS))
 
 
@@ -166,12 +168,20 @@ static func history_line(rec: Dictionary) -> String:
 	]
 
 
-## 今日最佳行（规格 §5：深层数 + 最短用时；无记录日回落「暂无」）。
-static func best_line(best: Dictionary) -> String:
-	if best.is_empty():
-		return "今日最佳：暂无记录"
-	return "今日最佳：第 %d 层 · %s" % [
-		int(best.get("deepest_floor", 0)), format_time(int(best.get("clear_time_s", 0)))]
+## 今日最佳行：M3-R-B 深层/用时 + M5-G 蓝晶榜同标签合并展示（面板 480×270 预算内
+## 单行收口）。两源皆无 → 「今日未挑战」（M5-G 文案）；仅深层/用时 → 原「第 X 层 ·
+## mm:ss」；仅蓝晶 → 「+N 蓝晶」；两源皆有 → 「第 X 层 · mm:ss · +N 蓝晶」。
+## gems_rec 缺省空字典（既有调用方零改动兼容）。
+static func best_line(best: Dictionary, gems_rec: Dictionary = {}) -> String:
+	if best.is_empty() and gems_rec.is_empty():
+		return "今日未挑战"
+	var parts: Array[String] = []
+	if not best.is_empty():
+		parts.append("第 %d 层 · %s" % [
+			int(best.get("deepest_floor", 0)), format_time(int(best.get("clear_time_s", 0)))])
+	if not gems_rec.is_empty():
+		parts.append("+%d 蓝晶" % maxi(int(gems_rec.get("gems", 0)), 0))
+	return "今日最佳：" + " · ".join(parts)
 
 
 ## 用时 mm:ss（记录秒为非负整数口径；异常负值按 0 处理）。

@@ -95,3 +95,15 @@ func pick_mods(date_str: String) -> Dictionary:
 				push_warning("TrialSystem: mod key collision '%s' (later wins)" % k)
 			mods[k] = factor_mods[k]
 	return mods
+
+
+## ---- M5-G 分享码 ----
+
+## 分享码（M5-G 规格：「STF-<seed>-<因子 id 用 - 连接>」）：纯函数确定式——同
+## (seed, factors) 恒同串，可单测。seed 取试炼蓝晶榜记录内的十进制串（int64 JSON
+## 往返精度缺口 → 榜内以字符串存，见 SaveSystem.record_trial_victory 注；生产调用
+## 方 = 胜利结算页 str(RunState.run_seed)——试炼局 run_seed 即当日 trial_seed）。
+## 因子段为空时尾部留空段（实际只试炼胜利有 2 因子，不达此态；不做 import 解析，
+## v1.1 边界：无校验防伪造，导入随在线榜 backlog 再议）。
+static func share_code(seed_str: String, factors: Array[String]) -> String:
+	return "STF-%s-%s" % [seed_str, "-".join(factors)]

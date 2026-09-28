@@ -62,7 +62,7 @@ theme_override_constants/separation = 1
 [node name="Best" type="Label" parent="Center/Panel/Margin/Rows"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "今日最佳：暂无记录"
+text = "今日未挑战"
 
 [node name="History" type="Label" parent="Center/Panel/Margin/Rows"]
 layout_mode = 2

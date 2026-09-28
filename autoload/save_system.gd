@@ -128,6 +128,11 @@ func _default_data() -> Dictionary:
 		# 若把嵌套字典挂进 settings 常量，其默认值会跨实例共享（浅拷贝只复制顶层），
 		# 顶层键经本函数全新构造无此患。
 		"key_rebinds": {},
+		# m5-g（v2 additive，不 bump 版本）：每日试炼胜利蓝晶 Top10 榜（元素形状见
+		# record_trial_victory 注；旧档缺失由 _merge_saved 回落默认空表）。注意与
+		# M3-R-B 的 TrialRecords（user://trial_records.json 全量战绩+daily_best）
+		# 互补不互替——本键只收试炼胜利、按蓝晶收益取前 10。
+		"trial_records": [],
 	}
 
 ## 读取存档到 data 并返回。缺文件→默认档（静默）；损坏/畸形→push_error+默认档；
@@ -214,6 +219,9 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 	# RebindPanelUI.REBINDABLE_ACTIONS，覆写应用时跳过清单外动作——同 unlock_tasks
 	# 不做 codex 白名单的先例）。
 	out["key_rebinds"] = _normalize_key_rebinds(saved.get("key_rebinds"))
+	# m5-g（v2 additive）：试炼胜利蓝晶 Top10 榜合并（防御归一化：非数组丢弃、
+	# 数组内非字典/缺关键键整条剔除——见 _normalize_trial_records 注）。
+	out["trial_records"] = _normalize_trial_records(saved.get("trial_records"))
 	if typeof(saved.get("achievements")) == TYPE_DICTIONARY:
 		var ach_in: Dictionary = saved["achievements"]
 		var ach: Dictionary = {}
@@ -473,6 +481,120 @@ func buy_skill_upgrade(hero_id: String) -> bool:
 		save_now()
 		return true
 	return false
+
+# ---- m5-g 每日试炼胜利蓝晶 Top10 榜（v2 additive，不 bump 版本）----
+
+## 榜容量（M5-G 规格：按蓝晶收益保留 Top10）。
+const TRIAL_RECORDS_MAX := 10
+
+## 试炼胜利入库（M5-G 唯一写点 = victory_summary._confirm 生产结算路径；死亡/放弃
+## 不入本榜——全量战绩归 M3-R-B 的 TrialRecords，两榜互补不互替）。追加 1 条
+## {date, seed, factors, gems, duration_s} → 按蓝晶降序取前 10（同分按日期新者优先，
+## 同分同日按追加序新者优先）→ 落盘。date 空串拒收（业务日快照缺失即脏数据）。
+## ★ seed 以十进制字符串入库：trial_seed 是 FNV-1a-64 全域 int64，JSON 数字解析恒为
+## float，|seed| > 2^53 段往返必丢精度（实测钉死）——字符串往返无损，分享码直接取用。
+func record_trial_victory(date: String, seed: String, factors: Array[String],
+		gems: int, duration_s: int) -> bool:
+	if date.is_empty():
+		return false
+	var board: Array = data.get("trial_records", [])
+	board.append({
+		"date": date,
+		"seed": String(seed),
+		"factors": factors.duplicate(),
+		"gems": maxi(gems, 0),
+		"duration_s": maxi(duration_s, 0),
+	})
+	data["trial_records"] = _top_trial_records(board, TRIAL_RECORDS_MAX, true)
+	save_now()
+	return true
+
+## 榜读取（防御性）：经归一化过滤，恒返回排序正确、至多 10 条的记录数组（消费方 =
+## 试炼面板今日最佳 / 测试走查看口）。读取侧并列保存储序（data 由写入侧维护成
+## 「同分同日追加序新者优先」，见 _top_trial_records 注——若读侧再按位置反转并列
+## 顺序，会把写入侧的追加序恰好倒回去）。
+func trial_records_board() -> Array:
+	return _top_trial_records(_normalize_trial_records(data.get("trial_records")),
+		TRIAL_RECORDS_MAX, false)
+
+## 某日今日最佳（M5-G 规格：入口「今日最佳：+N 蓝晶」数据源）：该日蓝晶最高的一条；
+## 无记录日 → 空字典。边界（披露）：榜只存 Top10，被挤出榜的旧当日成绩不再可查
+## （本地榜 only 口径，在线榜/全量史归 backlog）。
+func trial_today_best(date_str: String) -> Dictionary:
+	var best: Dictionary = {}
+	for rec_v: Variant in trial_records_board():
+		var rec: Dictionary = rec_v
+		if String(rec.get("date", "")) == date_str \
+				and int(rec.get("gems", 0)) > int(best.get("gems", -1)):
+			best = rec
+	return best
+
+## 榜归一化（_merge_saved 读回 + 读取侧共用）：非数组丢弃；数组内非字典 / 缺关键键
+## （date 非空 String、factors Array——与 TrialRecords._sanitize_record 同口径）整条
+## 剔除；其余字段从宽回落默认（gems/duration_s 数字 int 还原，负值钳 0；seed 数字
+## → 十进制串、非数字非串 → 空串）。factors 元素统一 String 归一。
+func _normalize_trial_records(saved: Variant) -> Array:
+	var out: Array = []
+	if typeof(saved) != TYPE_ARRAY:
+		return out
+	for r: Variant in saved:
+		if typeof(r) != TYPE_DICTIONARY:
+			continue
+		var d: Dictionary = r
+		var date: Variant = d.get("date", "")
+		if not (date is String) or (date as String).is_empty():
+			continue
+		var factors_v: Variant = d.get("factors", null)
+		if not (factors_v is Array):
+			continue
+		var factors: Array[String] = []
+		for fid: Variant in factors_v:
+			factors.append(String(fid))
+		var seed_v: Variant = d.get("seed", "")
+		var seed := ""
+		if seed_v is String:
+			seed = seed_v
+		elif _is_number(seed_v):
+			seed = str(int(seed_v))
+		out.append({
+			"date": date,
+			"seed": seed,
+			"factors": factors,
+			"gems": maxi(_as_int(d.get("gems", 0)), 0),
+			"duration_s": maxi(_as_int(d.get("duration_s", 0)), 0),
+		})
+	return out
+
+## Top-N 排序裁剪（M5-G 规格）：蓝晶降序 → 同分日期新者优先（ISO 日期串字典序即
+## 时间序）→ 并列收口由 tie_latest_first 决定——true（写入侧）= 位置靠后者先
+## （追加序新者优先）；false（读取侧）= 位置靠前先（保存储序，避免把写入侧的
+## 追加序倒回去）。三键并列不可能（位置唯一），不稳定排序无歧义面。
+## 返回前 limit 条的记录数组（剥离排序位置）。
+func _top_trial_records(board: Array, limit: int, tie_latest_first: bool) -> Array:
+	var indexed: Array = []
+	for i in board.size():
+		indexed.append({"i": i, "rec": board[i]})
+	indexed.sort_custom(func(a: Variant, b: Variant) -> bool:
+		var ra: Dictionary = a["rec"]
+		var rb: Dictionary = b["rec"]
+		var ga := int(ra.get("gems", 0))
+		var gb := int(rb.get("gems", 0))
+		if ga != gb:
+			return ga > gb
+		var da := String(ra.get("date", ""))
+		var db := String(rb.get("date", ""))
+		if da != db:
+			return da > db
+		if tie_latest_first:
+			return int(a["i"]) > int(b["i"])
+		return int(a["i"]) < int(b["i"]))
+	var out: Array = []
+	for row: Variant in indexed.slice(0, maxi(limit, 0)):
+		out.append((row as Dictionary)["rec"])
+	return out
+
+func _as_int(v: Variant) -> int:
+	return int(v) if _is_number(v) else 0
 
 ## 解锁任务进度读取（m2-t31 v2）：防御性——档内非字典/脏键经 _merge_saved 归一化，
 ## 恒返回 Dictionary（空表 = 全零进度）。CodexSystem._ready 恢复计数器用。
