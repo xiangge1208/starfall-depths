@@ -459,6 +459,24 @@ def sfx_sacrifice():
     b.save("sfx/sacrifice.wav", "献祭（术士·蚀技能，血蓝转换）", "warlock_sacrifice.gd 施放拍（M5-T4）")
 
 
+def sfx_puppet_summon():
+    # m5-t5 死灵·骸「起傀」：骨殖拼合——三声下行骨响 + 短促落地闷响（骸骨立起）
+    b = Buf(0.4)
+    for i, f in enumerate((620, 470, 350)):
+        b.mix(lambda t, f=f: square(f, t) * env(t, 0.07, 0.002, 0.05), 0.4, delay=i * 0.1)
+    b.mix(lambda t: sine(130, t) * env(t, 0.1, 0.002, 0.08), 0.45, delay=0.28)
+    b.mix(burst(0.25, 0.35, 36), 0.3)
+    b.save("sfx/puppet_summon.wav", "起傀召出（死灵·骸技能，骸骨拼合）", "necro_puppet.gd 施放拍（M5-T5）")
+
+
+def sfx_puppet_burst():
+    # m5-t5 强化傀儡死亡自爆：噪声爆裂 + 低频冲击（骨爆）
+    b = Buf(0.42)
+    b.mix(burst(0.4, 1.0, 37), 0.85)
+    b.mix(slide(220, 55, 0.35, sine), 0.7)
+    b.save("sfx/puppet_burst.wav", "傀儡死亡自爆（死灵·骸强化，骸爆 24 AoE）", "core/summons/puppet.gd 自爆拍（M5-T5）")
+
+
 def music_crystal():
     """A2 晶核洞穴 BGM：冷色调慢琶音（Dm-Am-Bb-F），三角波+正弦垫。"""
     dur, bpm = 9.6, 96
@@ -710,6 +728,8 @@ def main():
     sfx_fuse_beep()
     sfx_bloodbath()
     sfx_sacrifice()
+    sfx_puppet_summon()
+    sfx_puppet_burst()
     music_menu()
     music_battle()
     music_crystal()
