@@ -8,10 +8,87 @@ const HERO_SELECT_SCENE := preload("res://ui/hero_select.tscn")
 
 # ---- 数据层：heroes 装载 + schema ----
 
-func test_six_heroes_loaded() -> void:
+func test_roster_20_loaded() -> void:
 	assert_bool(GameDB.load_ok).is_true()
 	assert_dict(GameDB.heroes).contains_keys("vanguard", "ranger", "engineer", "mage", "guardian", "assassin")
-	assert_int(GameDB.heroes.size()).is_equal(6)   # M2-T8：+engineer；M2-T11：+mage/+guardian；M2-T13：+assassin
+	assert_int(GameDB.heroes.size()).is_equal(20)   # M5-T1：附录 L §3 +14（berserk..staranchor）
+
+# ---- M5-T1：附录 L §3 十四名新角色（数据基座钉值） ----
+
+## 附录 L §3 表 7~20 行 id（顺序同表）。
+const M5_NEW_HERO_IDS := [
+	"berserk", "hunter", "monk", "cleric", "necro", "timeweaver", "alchemist",
+	"gunslinger", "bard", "mirage", "lycan", "warlock", "bulwark", "staranchor",
+]
+
+func test_m5_fourteen_new_hero_rows_field_complete() -> void:
+	# 每行 16 必填键全在（HERO_SCHEMA fail-closed 装载即保证，此处显式钉死防漏检）；
+	# 全免费裁定（附录 L §2）→ 无 unlock/price 字段（约束 15）；暴击全部 5% 基础
+	# （§3 面板列「游侠除外不再造暴击特例」）；初始武器 id 全部存在于 weapons 表。
+	for id: String in M5_NEW_HERO_IDS:
+		var h: Dictionary = GameDB.get_hero(id)
+		assert_dict(h).is_not_empty()
+		for key: String in GameDB.HERO_SCHEMA:
+			assert_bool(h.has(key)).is_true()
+		assert_str(String(h["id"])).is_equal(id)
+		assert_bool(bool(h["has_defiance"])).is_false()   # 坚毅唯一 vanguard（模板行不动）
+		assert_bool(bool(h["upgraded"])).is_false()
+		assert_float(float(h["crit_chance"])).is_equal_approx(0.05, 0.0001)
+		assert_bool(String(h["skill_desc"]).is_empty()).is_false()
+		var sw: Array = h["start_weapons"]
+		assert_int(sw.size()).is_greater(0)
+		for wid: Variant in sw:
+			assert_dict(GameDB.weapons).contains_keys(String(wid))
+
+func test_m5_new_hero_panels_match_appendix_l() -> void:
+	# 面板五元组（HP/盾/蓝/速度）逐格照抄附录 L §3（约束 13：照抄不调参）。
+	var want := {
+		"berserk": [8, 3, 100, 82.0], "hunter": [6, 3, 110, 82.0],
+		"monk": [7, 3, 100, 82.0], "cleric": [6, 5, 120, 78.0],
+		"necro": [6, 3, 130, 80.0], "timeweaver": [5, 4, 120, 84.0],
+		"alchemist": [6, 3, 120, 80.0], "gunslinger": [6, 4, 110, 80.0],
+		"bard": [6, 3, 120, 82.0], "mirage": [6, 3, 110, 82.0],
+		"lycan": [7, 3, 100, 84.0], "warlock": [5, 4, 140, 80.0],
+		"bulwark": [7, 4, 100, 78.0], "staranchor": [6, 3, 120, 80.0],
+	}
+	assert_int(want.size()).is_equal(14)
+	for id: String in want:
+		var h: Dictionary = GameDB.get_hero(id)
+		var w: Array = want[id]
+		assert_int(int(h["hp"])).is_equal(int(w[0]))
+		assert_int(int(h["shield"])).is_equal(int(w[1]))
+		assert_int(int(h["energy"])).is_equal(int(w[2]))
+		assert_float(float(h["speed"])).is_equal_approx(float(w[3]), 0.001)
+
+func test_m5_start_weapon_dps_band_and_overband_exceptions_pinned() -> void:
+	# L1 初始武器带：DPS（damage×rate）∈ [10,14]；三件越带例外钉死防误改
+	# （裁定 2「不修」）：长枪 16.2（220px 长柄射程档不同不可直比）/ 毒牙短刃 15.6
+	# （狼人主题绑定）/ 光棱手电 15.0（圣光主题边缘超带）——附录 L §3 ⚠ 注记。
+	var exceptions := {"changqiang": 16.2, "duyaduanren": 15.6, "guanglengshoudian": 15.0}
+	for id: String in M5_NEW_HERO_IDS:
+		var w: Dictionary = GameDB.get_weapon(String(GameDB.get_hero(id)["start_weapons"][0]))
+		var dps := float(w["damage"]) * float(w["rate"])
+		if exceptions.has(String(w["id"])):
+			assert_float(dps).is_equal_approx(float(exceptions[String(w["id"])]), 0.001)
+		else:
+			assert_float(dps).is_greater_equal(10.0)
+			assert_float(dps).is_less_equal(14.0)
+
+func test_m5_placeholder_skills_cast_noop_through_framework() -> void:
+	# 14 占位脚本（路径即最终路径，T3~T9 原地替换内容）：setup 数值注入 + cast 过
+	# 框架门（CD+耗蓝）后生效体 no-op（push_warning 留痕）——bot 冒烟/进局链路跑通。
+	# 存在性与基链继承另有通用用例 test_hero_skill_scripts_exist_and_extend_skill_base。
+	for id: String in M5_NEW_HERO_IDS:
+		var h: Dictionary = GameDB.get_hero(id)
+		var sk: SkillBase = auto_free(load(String(h["skill_script"])).new())
+		sk.setup(null, {
+			"id": id, "cooldown_ticks": int(h["skill_cd"]),
+			"energy_cost": int(h["skill_energy"]), "upgraded": false,
+		})
+		assert_int(sk.cooldown_ticks).is_equal(int(h["skill_cd"]))
+		assert_int(sk.energy_cost).is_equal(int(h["skill_energy"]))
+		assert_bool(sk.cast(0)).is_true()   # 0 拍即可放（无玩家绑定 → 耗蓝门直通）
+		assert_int(sk.cooldown_remaining(1)).is_equal(int(h["skill_cd"]) - 1)
 
 func test_hero_schema_16_required_keys_and_optional_registry() -> void:
 	var want := {
@@ -306,13 +383,16 @@ func test_hero_select_scene_builds_all_hero_cards() -> void:
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
-	assert_int(ui._cards.size()).is_equal(6)   # M2-T8/T11/T13：GameDB 驱动自动扩展（+assassin 零改动验证）
-	assert_int(ui._ids.size()).is_equal(6)
+	assert_int(ui._cards.size()).is_equal(GameDB.heroes.size())   # GameDB 驱动自动扩展（M5-T1：20 卡）
+	assert_int(ui._ids.size()).is_equal(GameDB.heroes.size())
 
-func test_hero_select_passives_cover_all_hero_ids() -> void:
+func test_hero_select_passives_cover_legacy_hero_ids() -> void:
 	# 被动中文文案归 UI 层 PASSIVES 常量：新英雄 passive_id 必须同步补文案，
-	# 防卡片回退显示裸 id（m2-t13：+assassin shadow_reap 掠影）
-	for id: String in GameDB.heroes:
+	# 防卡片回退显示裸 id（m2-t13：+assassin shadow_reap 掠影）。
+	# M5-T1 过渡口径：14 新角色 passive 文案随 T10 选角页扩容补齐——本卡禁碰 ui/
+	# （hero_select PASSIVES 注册表），此处先钉现役 6 人覆盖不回退；新 14 人缺文案
+	# 走 PASSIVES.get 裸 id 回落（fail-closed，不崩不破版）。
+	for id: String in ["vanguard", "ranger", "engineer", "mage", "guardian", "assassin"]:
 		var passive := String(GameDB.heroes[id].get("passive_id", ""))
 		assert_bool(HeroSelect.PASSIVES.has(passive)).is_true()
 
@@ -339,7 +419,7 @@ func test_hero_select_choose_out_of_range_ignored() -> void:
 	var chosen: Array = []
 	ui.hero_chosen.connect(func(id: String) -> void: chosen.append(id))
 	ui._choose(-1)
-	ui._choose(9)
+	ui._choose(GameDB.heroes.size())             # 名册 20：越界下界按名册数（M5-T1 前为 9）
 	assert_array(chosen).is_empty()
 	_reset_last_chosen()
 
@@ -396,8 +476,9 @@ func test_hero_select_tap_vs_drag_release_displacement() -> void:
 
 func test_hero_select_scroll_layout_and_focus_chain_closed() -> void:
 	# M4-K2 撤 S-C 豁免的落地验收（单测侧结构断言；像素视口断言归 font_render_smoke）：
-	# 卡行收进 CardScroll 横滚 + follow_focus；6 卡 FOCUS_ALL；focus_neighbors 右向
-	# 6 跳闭合遍历全卡（卡 5 → 卡 0 环回），左向对称；上/下自锚防纵向逃逸
+	# 卡行收进 CardScroll 横滚 + follow_focus；全卡 FOCUS_ALL；focus_neighbors 右向
+	# N 跳闭合遍历全卡（末卡 → 卡 0 环回），左向对称；上/下自锚防纵向逃逸。
+	# M5-T1：N = 名册 20（GameDB 驱动自动扩展，闭环断言按卡数走满）。
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
@@ -406,19 +487,20 @@ func test_hero_select_scroll_layout_and_focus_chain_closed() -> void:
 	assert_bool(scroll.follow_focus).is_true()
 	assert_int(scroll.horizontal_scroll_mode).is_not_equal(ScrollContainer.SCROLL_MODE_DISABLED)
 	var cards: Array = ui._cards
-	assert_int(cards.size()).is_equal(6)
+	var n := cards.size()
+	assert_int(n).is_equal(GameDB.heroes.size())
 	for c: Control in cards:
 		assert_int(c.focus_mode).is_equal(Control.FOCUS_ALL)
 	for dir: String in ["focus_neighbor_right", "focus_neighbor_left"]:
 		var visited := {}
 		var cur: Control = cards[0]
-		for i in 6:
-			assert_bool(visited.has(cur)).is_false()   # 未走满 6 卡即成环 = 链断
+		for i in n:
+			assert_bool(visited.has(cur)).is_false()   # 未走满 N 卡即成环 = 链断
 			visited[cur] = true
 			assert_bool((cur as Control).has_node(cur.get(dir))).is_true()
 			cur = cur.get_node(cur.get(dir)) as Control
-		assert_object(cur).is_same(cards[0])           # 6 跳后回到起点（闭环）
-		assert_int(visited.size()).is_equal(6)
+		assert_object(cur).is_same(cards[0])           # N 跳后回到起点（闭环）
+		assert_int(visited.size()).is_equal(n)
 	for c: Control in cards:
 		assert_object(c.get_node(c.focus_neighbor_top) as Control).is_same(c)
 		assert_object(c.get_node(c.focus_neighbor_bottom) as Control).is_same(c)
@@ -458,14 +540,14 @@ func _key(code: Key) -> InputEventKey:
 # ---- M4.5 u3：选角卡立绘/技能/被动图标接线 + 解锁状态视觉标签 ----
 
 func test_hero_select_portraits_wired() -> void:
-	# 6 卡各有非空 portrait 纹理：生成器原生 32x32、×2 整数放大、最近邻、
-	# 鼠标穿透（不吞 PanelContainer 的轻点判定）
+	# 卡全量建成（M5-T1：20）；立绘纹理断言按现役 6 人（portrait_<id> 图盘上齐）——
+	# M5 新 14 人 png 归 T2，缺图走 _icon fail-closed（tr.visible = false）。
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
-	assert_int(ui._portraits.size()).is_equal(6)
-	for i in 6:
-		var p: TextureRect = ui._portraits[i]
+	assert_int(ui._portraits.size()).is_equal(GameDB.heroes.size())
+	for id: String in ["vanguard", "ranger", "engineer", "mage", "guardian", "assassin"]:
+		var p: TextureRect = ui._portraits[ui._ids.find(id)]
 		assert_object(p.texture).is_not_null()
 		assert_int(p.texture.get_width()).is_equal(32)
 		assert_int(p.texture.get_height()).is_equal(32)
@@ -474,11 +556,12 @@ func test_hero_select_portraits_wired() -> void:
 		assert_int(p.mouse_filter).is_equal(Control.MOUSE_FILTER_IGNORE)
 
 func test_hero_select_icon_maps_cover_all_heroes_and_files_exist() -> void:
-	# 表驱动映射全覆盖 6 英雄（passive 按 passive_id、skill 按英雄 id），且每条
-	# 映射指向的贴图文件真实存在（同 ArtLookup「表驱动路径必须存在」契约）
+	# 表驱动映射指向的贴图文件真实存在（同 ArtLookup「表驱动路径必须存在」契约）。
+	# M5-T1 过渡口径：PASSIVE_ICONS/SKILL_ICONS 注册表（ui 层，本卡禁碰）仍为现役
+	# 6 人全量；14 新角色的被动/技能图标随 T10 扩容补注册——此处钉 6 人覆盖不回退。
 	assert_int(HeroSelect.PASSIVE_ICONS.size()).is_equal(6)
 	assert_int(HeroSelect.SKILL_ICONS.size()).is_equal(6)
-	for id: String in GameDB.heroes:
+	for id: String in ["vanguard", "ranger", "engineer", "mage", "guardian", "assassin"]:
 		var pid := String(GameDB.heroes[id].get("passive_id", ""))
 		assert_bool(HeroSelect.PASSIVE_ICONS.has(pid)).is_true()
 		assert_bool(FileAccess.file_exists(
@@ -488,18 +571,19 @@ func test_hero_select_icon_maps_cover_all_heroes_and_files_exist() -> void:
 			"res://art/generated/ui/%s.png" % HeroSelect.SKILL_ICONS[id])).is_true()
 
 func test_hero_select_cards_show_skill_and_passive_icons() -> void:
-	# 卡内被动/技能行各挂非空图标：原生 12x12/16x16 ×2 整数放大、最近邻
+	# 卡内被动/技能行注册表全量建成（M5-T1：20）；图标纹理断言按现役 6 人
+	# （icons 注册表在 ui 层，14 新角色随 T10 扩容补注册）
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
-	assert_int(ui._passive_icons.size()).is_equal(6)
-	assert_int(ui._skill_icons.size()).is_equal(6)
-	for i in 6:
-		var pi: TextureRect = ui._passive_icons[i]
+	assert_int(ui._passive_icons.size()).is_equal(GameDB.heroes.size())
+	assert_int(ui._skill_icons.size()).is_equal(GameDB.heroes.size())
+	for id: String in ["vanguard", "ranger", "engineer", "mage", "guardian", "assassin"]:
+		var pi: TextureRect = ui._passive_icons[ui._ids.find(id)]
 		assert_object(pi.texture).is_not_null()
 		assert_vector(pi.custom_minimum_size).is_equal(Vector2(24, 24))
 		assert_int(pi.texture_filter).is_equal(CanvasItem.TEXTURE_FILTER_NEAREST)
-		var si: TextureRect = ui._skill_icons[i]
+		var si: TextureRect = ui._skill_icons[ui._ids.find(id)]
 		assert_object(si.texture).is_not_null()
 		assert_vector(si.custom_minimum_size).is_equal(Vector2(32, 32))
 		assert_int(si.texture_filter).is_equal(CanvasItem.TEXTURE_FILTER_NEAREST)
@@ -514,7 +598,7 @@ func test_hero_select_unlock_badges_follow_unlocked_list() -> void:
 	auto_free(ui)
 	ui.unlocked_override = ["vanguard"] as Array[String]
 	add_child(ui)
-	for i in 6:
+	for i in ui._ids.size():
 		var locked := String(ui._ids[i]) != "vanguard"
 		assert_bool(ui._badges[i].visible).is_equal(locked)
 		assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_equal(not locked)
@@ -541,9 +625,9 @@ func test_hero_select_unlock_badges_follow_unlocked_list() -> void:
 	_reset_last_chosen()
 
 func test_hero_select_detail_panel_shows_only_selected_hero() -> void:
-	# m4p-ui1 视觉重做的核心契约：长文案（被动/技能）从「6 张卡各抄一份」改为
-	# 「共享详情面板只渲染选中那份」。逐英雄预建 6 份行容器（图标注册表长度恒 6
-	# 的既有契约不变），任一时刻恰好 1 份可见；名字/数值/初始武器随选中同步。
+	# m4p-ui1 视觉重做的核心契约：长文案（被动/技能）从「每张卡各抄一份」改为
+	# 「共享详情面板只渲染选中那份」。逐英雄预建行容器（注册表长度 = 名册数，
+	# M5-T1 起 20），任一时刻恰好 1 份可见；名字/数值/初始武器随选中同步。
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
@@ -556,7 +640,7 @@ func test_hero_select_detail_panel_shows_only_selected_hero() -> void:
 		assert_str(ui._detail_name.text).is_equal(String(hero["name"]))
 		var visible_passives := 0
 		var visible_skills := 0
-		for i in 6:
+		for i in ui._passive_rows.size():
 			if ui._passive_rows[i].visible:
 				visible_passives += 1
 				assert_int(i).is_equal(sel)      # 可见的那份必须是选中英雄
@@ -576,19 +660,18 @@ func test_hero_select_detail_panel_shows_only_selected_hero() -> void:
 	assert_str((hp_chip.get_child(0).get_child(1) as Label).text) \
 		.is_equal(str(int(vanguard["hp"])))
 
-func test_hero_select_plaques_all_fit_without_scrolling() -> void:
-	# ui1 布局意图钉死：6 枚铭牌一屏全见（旧 206px 卡在 480px 视窗只见 2 张）。
-	# 铭牌总宽 = 6×72 + 5×6 间距 = 462 ≤ CardScroll 视窗 468；同时保留横滚容器
-	# （触屏惯例 + follow_focus + 窄屏兜底），故只断言「不需要滚动」而非「禁用滚动」。
+func test_hero_select_plaques_scroll_and_selection_signals() -> void:
+	# M5-T1 过渡口径：名册 6→20 后铭牌总宽（20×72 + 19×6 间距 = 1554px）超 CardScroll
+	# 视窗（468px）——横滚容器本来就在（触屏惯例 + follow_focus + 窄屏兜底），
+	# 滚动可达全部卡；「6 枚一屏全见」的 ui1 布局意图由 T10 选角页扩容卡按新布局
+	# 重新落断言。本卡只钉：卡尺寸契约不变 + 横滚可用 + 选中态四重视觉信号。
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
 	assert_vector(HeroSelect.CARD_MIN).is_equal(Vector2(72, 96))
-	var row := ui.get_node("CardScroll/Cards") as HBoxContainer
-	var sep := int(row.get_theme_constant("separation"))
-	var total := 6 * int(HeroSelect.CARD_MIN.x) + 5 * sep
-	var viewport_w := int((ui.get_node("CardScroll") as ScrollContainer).size.x)
-	assert_int(total).is_less_equal(viewport_w)
+	var scroll := ui.get_node("CardScroll") as ScrollContainer
+	assert_bool(scroll.follow_focus).is_true()
+	assert_int(scroll.horizontal_scroll_mode).is_not_equal(ScrollContainer.SCROLL_MODE_DISABLED)
 	# 选中态四重视觉信号（48px 级铭牌单靠 1px 描边区分度不足）：顶部高亮条不透明、
 	# 立绘微放大、名字金字、底色转暖——逐项断言选中/未选中确有差异
 	ui._selected = 2
@@ -606,7 +689,7 @@ func test_hero_select_save_absent_renders_all_unlocked_zero_drift() -> void:
 	auto_free(ui)
 	ui.ignore_save = true
 	add_child(ui)
-	for i in 6:
+	for i in ui._ids.size():
 		assert_bool(ui._badges[i].visible).is_false()
 		assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_true()
 		assert_float(ui._portraits[i].modulate.a).is_equal_approx(1.0, 0.001)
@@ -622,9 +705,9 @@ func test_hero_select_unlock_labels_match_ambient_save_when_present() -> void:
 	add_child(ui)
 	var saved: Variant = (ss.get("data") as Dictionary).get("unlocked_heroes")
 	if typeof(saved) != TYPE_ARRAY:
-		for i in 6:
+		for i in ui._ids.size():
 			assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_true()
 		return
-	for i in 6:
+	for i in ui._ids.size():
 		var id := String(ui._ids[i])
 		assert_bool(ui.is_hero_unlocked(id)).is_equal((saved as Array).has(id))

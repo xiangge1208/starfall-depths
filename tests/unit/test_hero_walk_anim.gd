@@ -15,13 +15,16 @@ const FULL_ROSTER := ["vanguard", "ranger", "engineer", "mage", "assassin", "gua
 # ---------- 帧表完整性（数据驱动 + 美术名录并集） ----------
 
 func test_walk_sheets_exist_for_all_data_heroes() -> void:
-	# data/heroes.json 现有全部行必须有帧表（新英雄入表 → 重跑生成器即覆盖）
+	# data/heroes.json 行 → 帧表盘上存在（新英雄入表 → 重跑生成器即覆盖）。
+	# M5-T1 过渡口径：14 新角色帧表 png 归 T2 美术卡增量生成（约束 16 禁裸跑
+	# gen_placeholder_art 全量）——先钉名册行数 20 与现役 6 人帧表不回退；
+	# T2 落图后恢复全量遍历。
 	var txt := FileAccess.get_file_as_string("res://data/heroes.json")
 	var parsed: Variant = JSON.parse_string(txt)
 	assert_object(parsed).is_not_null()
 	var heroes: Dictionary = parsed
-	assert_int(heroes.size()).is_greater_equal(3)
-	for hid: String in heroes:
+	assert_int(heroes.size()).is_equal(20)
+	for hid: String in FULL_ROSTER:
 		assert_bool(FileAccess.file_exists(SHEET_FMT % hid)).is_true()
 
 func test_walk_sheets_full_six_roster_64px() -> void:

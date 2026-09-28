@@ -11,6 +11,23 @@ func test_get_weapon_returns_row() -> void:
 	assert_int(w.get("damage", -1)).is_equal(3)   # m4p-bal-a：2→3，白板 DPS 8.0→12.0 入 GDD §8.1 10~14 带
 	assert_bool(w.get("is_melee", true)).is_false()
 
+func test_m5_weapon_band_fixes_pinned() -> void:
+	# M5-T1 🔧 三件存量低带武器向上入带（附录 L §3 🔧 注记；附录 A 已回写）：
+	# 毒箭 5→7 伤（DPS 8.0→11.2）、火球杖 6→7 伤（9.0→10.5）、蜂刺射速 3.0→3.5（9.0→10.5）。
+	# 其余字段不动（energy_cost/element/子弹参数逐字节原值）。
+	var dujian := GameDB.get_weapon("dujian")
+	assert_int(int(dujian["damage"])).is_equal(7)
+	assert_float(float(dujian["rate"])).is_equal_approx(1.6, 0.001)
+	assert_str(String(dujian["element"])).is_equal("poison")
+	var huoqiuzhang := GameDB.get_weapon("huoqiuzhang")
+	assert_int(int(huoqiuzhang["damage"])).is_equal(7)
+	assert_float(float(huoqiuzhang["rate"])).is_equal_approx(1.5, 0.001)
+	assert_str(String(huoqiuzhang["element"])).is_equal("fire")
+	var fengci := GameDB.get_weapon("fengci")
+	assert_int(int(fengci["damage"])).is_equal(3)
+	assert_float(float(fengci["rate"])).is_equal_approx(3.5, 0.001)
+	assert_int(int(fengci["energy_cost"])).is_equal(1)
+
 func test_validate_rejects_bad_row() -> void:
 	var bad := {"id": "x", "damage": "many"}   # 缺键 + 类型错
 	var errors: Array[String] = GameDB.validate_row(bad, GameDB.WEAPON_SCHEMA)

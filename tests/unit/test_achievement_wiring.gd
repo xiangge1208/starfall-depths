@@ -364,13 +364,14 @@ func test_talent_purchase_notifies_gifted_and_overflowing() -> void:
 
 func test_hero_unlock_success_point_notifies_full_roster() -> void:
 	# K.2：hero_unlocked 发射点 = SaveSystem.unlock_hero 成功点。
+	# M5-T1：名册 6→20（附录 L 全免费），逐名解锁 19 名后 full_roster 达成。
 	var ids: Array = GameDB.heroes.keys()
-	assert_int(ids.size()).is_equal(6)
+	assert_int(ids.size()).is_equal(20)
 	var unlocked := 0
 	for id in ids:
 		if _iso_save.unlock_hero(String(id)):
 			unlocked += 1
-	assert_int(unlocked).is_equal(5)               # vanguard 默认已解锁
+	assert_int(unlocked).is_equal(19)              # vanguard 默认已解锁
 	assert_bool(_iso_save.is_achievement_unlocked("full_roster")).is_true()
 
 
