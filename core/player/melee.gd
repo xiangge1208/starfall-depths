@@ -6,6 +6,16 @@ const SWING_TICKS := 9
 const PARRY_FROM := 3
 const PARRY_TO := 9
 
+## M5-A2 手刀（空手攻击，对标复盘 #2 借鉴元气骑士）：空槽时的保底挥击——虚拟
+## 武器行走与真实近战**完全同一条**挥击/反弹路径（GDD §7.4 反弹窗口/挥砍区
+## 无敌判定单一事实源）。不入武器表（GameDB），id "hand_blade" 仅供遥测/成就
+## 类目特判（AchievementSystem.notify_weapon_used）。
+const HAND_BLADE := {
+	"id": "hand_blade", "name": "手刀", "is_melee": true, "category": "melee",
+	"damage": 1, "rate": 3.0, "range": 26.0, "arc_deg": 90.0,
+	"energy_cost": 0, "element": "none",
+}
+
 signal melee_swung(weapon: Dictionary, aim: Vector2)
 
 var rig: WeaponRig
@@ -15,14 +25,18 @@ var _swing_left := 0
 var _swing_tick := -1
 var _hit_done := false
 var _next_frame := 0
+var _active_row: Dictionary = {}    # 本次挥击的行（真实行或 HAND_BLADE）——_physics_process 读此而非 rig.current()（空槽挥击期间行必须稳定）
 
 func _test_init() -> void:
 	pass
 
 func try_attack(frame: int) -> bool:
 	var w := rig.current()
-	if w.is_empty() or not w["is_melee"]:
+	if w.is_empty():
+		w = HAND_BLADE                    # M5-A2：空槽=手刀
+	elif not w["is_melee"]:
 		return false
+	_active_row = w
 	if _swing_left > 0 or frame < _next_frame:
 		return false
 	var player := get_parent() as Player
@@ -44,7 +58,7 @@ func _physics_process(_delta: float) -> void:
 	_swing_tick += 1
 	_swing_left -= 1
 	var player := get_parent() as Player
-	var w := rig.current()
+	var w := _active_row                # M5-A2：空槽挥击期间读启动时行（虚拟行稳定）
 	var range_px := float(w.get("range", 40))
 	var arc := float(w.get("arc_deg", 90.0))
 	if is_parry_tick(_swing_tick):

@@ -553,7 +553,9 @@ func notify_heart_pickup() -> bool:
 
 ## 开火窗口源（赤手空拳本层口径）：近战挥击计 melee，其余（含未知 id）保守计远程。
 func notify_weapon_used(weapon_id: String) -> bool:
-	var cat := String(GameDB.get_weapon(weapon_id).get("category", ""))
+	# M5-A2：手刀不在 GameDB（虚拟行），特判计入 melee——K.3「赤手空拳」的
+	# 「本层仅用近战」口径对空槽挥击诚实。
+	var cat := "melee" if weapon_id == "hand_blade" 		else String(GameDB.get_weapon(weapon_id).get("category", ""))
 	return _notify_and_report("weapon_used", {"weapon_category": cat})
 
 

@@ -85,11 +85,13 @@ func test_snapshot_weapon_names_from_rig_via_gamedb() -> void:
 	var snap := HUD.hud_snapshot(p, _run_like(), 100)
 	assert_array(snap["weapon_names"]).is_equal(["老伙计", "铁剑"])
 
-func test_snapshot_empty_weapon_slot_blank_name() -> void:
+func test_snapshot_empty_weapon_slot_hand_blade() -> void:
+	# M5-A2：空槽=手刀（可用）——原「空槽空白名」契约被手刀落地取代（证据：空槽
+	# 现在真实可挥击，玩家可达状态，回收架卖副手即出现）。
 	var p := _player()
 	_rig(p).equip("laohuoji")
 	var snap := HUD.hud_snapshot(p, _run_like(), 100)
-	assert_array(snap["weapon_names"]).is_equal(["老伙计", ""])
+	assert_array(snap["weapon_names"]).is_equal(["老伙计", "手刀"])
 
 func test_snapshot_current_slot_follows_rig() -> void:
 	var p := _player()
@@ -142,7 +144,7 @@ func test_hud_weapon_slot_shows_icon_and_hides_text() -> void:
 	assert_str(hud._slot_labels[0].text).override_failure_message(
 		"图标命中时不应再画中文名（否则就是用户看到的『方框写着短弓』）").is_equal("")
 	assert_bool(hud._slot_icons[1].visible).is_false()   # 空槽：无图标
-	assert_str(hud._slot_labels[1].text).is_equal("")
+	assert_str(hud._slot_labels[1].text).is_equal("手刀")  # M5-A2：空槽回落手刀名（可用）
 	# 缺图回落：表外 id 无图标文件 → 隐藏图标、回落显示文字（同 codex 缺图口径）
 	hud._apply_bottom({"weapon_names": ["no_such_gun", ""], "weapon_ids": ["no_such_gun", ""],
 		"current_slot": 0, "skill_cd_ratio": 0.0, "skill_ready": true, "roll_ready": true})

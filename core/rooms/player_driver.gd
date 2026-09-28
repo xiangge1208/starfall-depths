@@ -37,9 +37,11 @@ func _physics_process(_delta: float) -> void:
 		_skill.cast(frame)
 	if _fire_requested() or _auto_target_locked:
 		var w := _rig.current() if _rig != null else {}
-		if not w.is_empty() and bool(w.get("is_melee", false)):
+		if w.is_empty() or bool(w.get("is_melee", false)):
+			# M5-A2：空槽=手刀（melee.try_attack 内部落虚拟行）；遥测/成就按
+			# "hand_blade" 记（AchievementSystem 特判 melee 类目）
 			if _melee != null and _melee.combat != null and _melee.try_attack(frame):
-				_log_fire(w, frame)
+				_log_fire({"id": "hand_blade"} if w.is_empty() else w, frame)
 		elif _rig != null and _rig.combat != null and current_aim != Vector2.ZERO \
 				and _rig.try_fire(current_aim, frame):
 			_log_fire(_rig.current(), frame)

@@ -98,7 +98,7 @@ static func hud_snapshot(player: Player, run: Node, frame: int = -1) -> Dictiona
 			slot = rig.slot
 			for i in mini(rig.slots.size(), 2):
 				var w: Dictionary = rig.slots[i]
-				names[i] = "" if w.is_empty() else String(w.get("name", ""))
+				names[i] = "手刀" if w.is_empty() else String(w.get("name", ""))   # M5-A2：空槽=手刀（可用）
 				ids[i] = "" if w.is_empty() else String(w.get("id", ""))
 		else:
 			for i in 2:
