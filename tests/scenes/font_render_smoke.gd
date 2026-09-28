@@ -49,10 +49,10 @@ func _run() -> void:
 	# hero_select M4-K2 重排落地：卡行改 CardScroll 横向滚动（卡 206px 固定宽不缩、
 	# 12px 像素字体零缩放；触屏滑动 + follow_focus 焦点跟随），S-C「卡行超界」豁免
 	# 撤销，恢复全量视口断言（滚动容器内内容按 ④ 总则归 ScrollContainer 裁剪豁免）；
-	# 另保「卡内文案不破卡」专项 + 新增「6 卡 focus_neighbors 导航序闭合」专项。
+	# 另保「卡内文案不破卡」专项 + 新增「全卡 focus_neighbors 导航序闭合」专项。
 	print("SMOKE 2: scene cases")
 	await _scene_case("res://ui/main_menu.tscn", "", true)          # 主菜单（含挂接的设置/试炼层）
-	await _scene_case("res://ui/hero_select.tscn", "", true, _check_hero_select_cards)  # 选角（横滚 6 卡 + 专项）
+	await _scene_case("res://ui/hero_select.tscn", "", true, _check_hero_select_cards)  # 选角（横滚全卡 + 专项）
 	await _scene_case("res://ui/codex.tscn", "open", true)          # 图鉴（115 格长条件）
 	await _scene_case("res://ui/talents.tscn", "", true)            # 天赋树（3 系列 dense 布局）
 	await _scene_case("res://ui/achievements.tscn", "open", true)   # 成就页（24 卡网格 + 详情区，m4p-u1）
@@ -176,8 +176,8 @@ func _in_clipped_scope(c: Control, root: Node) -> bool:
 ##    滚出可视域，键盘/手柄导航逐卡可达）；
 ## ② 卡内文案不破卡——每个 Label 收在其所属 PanelContainer 卡片矩形内（12px 长中文
 ##    断行不破卡，沿 S-C 专项口径）；
-## ③ 导航序闭合——6 卡 FOCUS_ALL 且 focus_neighbor_right 自卡 0 起 6 跳回到卡 0、
-##    途中不重复地遍历全部 6 卡（keyboard/gamepad 导航链无断点）。
+## ③ 导航序闭合——全卡（M5-T1 起 20）FOCUS_ALL 且 focus_neighbor_right 自卡 0 起
+##    N 跳回到卡 0、途中不重复地遍历全部卡（keyboard/gamepad 导航链无断点）。
 func _check_hero_select_cards(root: Node) -> void:
 	var scroll := root.find_child("CardScroll", true, false) as ScrollContainer
 	_check(scroll != null and scroll.follow_focus
@@ -204,7 +204,8 @@ func _check_hero_select_cards(root: Node) -> void:
 				bad.append("%s %s outside %s" % [l.name, lr, cr])
 	_check(bad.is_empty(), "hero_select card labels stay inside cards" +
 		("" if bad.is_empty() else " overflow: " + ", ".join(bad.slice(0, 4))))
-	_check(cards.size() == 6, "hero_select 6 focusable cards (got %d)" % cards.size())
+	_check(cards.size() == GameDB.heroes.size(),
+		"hero_select %d focusable cards (got %d)" % [GameDB.heroes.size(), cards.size()])
 	if not cards.is_empty():
 		var visited: Array[Control] = []
 		var cur := cards[0]

@@ -10,7 +10,11 @@ extends RefCounted
 
 const BASE := "res://art/generated/"
 
-## 六英雄站立像（data/heroes.json id → characters/hero_<id>.png）。
+## 英雄站立像（data/heroes.json id → characters/hero_<id>.png）。
+## M5 T1：6 → 20 行全量登记——前 6 键图已盘上（test_art_lookup 断言盘上存在）；
+## 后 14 键（附录 L 新角色）产物 png 由 T2 美术卡增量生成，缺图期间经 tex()/make_sprite
+## null 回落原色块表现（hero_texture_path 命中但文件缺失 → tex() push_warning 兜底，
+## 同本表「绝不给 load() 塞坏路径」契约——T2 落图后 test_art_atlas 图集覆盖断言翻实）。
 const HERO_TEXTURES := {
 	"vanguard": "characters/hero_vanguard.png",
 	"ranger": "characters/hero_ranger.png",
@@ -18,6 +22,21 @@ const HERO_TEXTURES := {
 	"engineer": "characters/hero_engineer.png",
 	"guardian": "characters/hero_guardian.png",
 	"mage": "characters/hero_mage.png",
+	## M5 附录 L §3 十四名新角色（id 顺序 = 附录 L 表 7~20 行）。
+	"berserk": "characters/hero_berserk.png",
+	"hunter": "characters/hero_hunter.png",
+	"monk": "characters/hero_monk.png",
+	"cleric": "characters/hero_cleric.png",
+	"necro": "characters/hero_necro.png",
+	"timeweaver": "characters/hero_timeweaver.png",
+	"alchemist": "characters/hero_alchemist.png",
+	"gunslinger": "characters/hero_gunslinger.png",
+	"bard": "characters/hero_bard.png",
+	"mirage": "characters/hero_mirage.png",
+	"lycan": "characters/hero_lycan.png",
+	"warlock": "characters/hero_warlock.png",
+	"bulwark": "characters/hero_bulwark.png",
+	"staranchor": "characters/hero_staranchor.png",
 }
 
 ## 敌人名录 → enemies/<id>.png（name == data id；M1 八行全量 + M2 附录 B/C 预置行）。

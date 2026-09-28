@@ -58,6 +58,15 @@ func test_hero_texture_path_six_heroes() -> void:
 			.is_equal("res://art/generated/characters/hero_%s.png" % hero_id)
 		assert_bool(FileAccess.file_exists(ArtLookup.hero_texture_path(hero_id))).is_true()
 
+func test_hero_texture_path_m5_new_14_keys() -> void:
+	# M5-T1：附录 L §3 十四名新角色键登记（characters/hero_<id>.png 约定寻址）。
+	# 产物 png 归 T2 美术卡——此阶段只钉「表内查得路径」与命名约定，不作盘上存在
+	# 断言（缺图经 tex() null 回落色块表现；T2 落图后补盘上存在 + 图集覆盖断言）。
+	for hero_id: String in ["berserk", "hunter", "monk", "cleric", "necro", "timeweaver",
+			"alchemist", "gunslinger", "bard", "mirage", "lycan", "warlock", "bulwark", "staranchor"]:
+		assert_str(ArtLookup.hero_texture_path(hero_id)) \
+			.is_equal("res://art/generated/characters/hero_%s.png" % hero_id)
+
 func test_hero_texture_path_unknown_returns_empty() -> void:
 	assert_str(ArtLookup.hero_texture_path("no_such_hero")).is_empty()
 

@@ -293,7 +293,7 @@ func _build_detail() -> void:
 			hero.get("passive_id", "?")))
 		_passive_labels.append(passive)
 		_passive_rows.append(_add_icon_row(_detail_rows, _passive_icons,
-			String(PASSIVE_ICONS.get(hero.get("passive_id", ""))), passive, 24))
+			String(PASSIVE_ICONS.get(hero.get("passive_id", ""), "")), passive, 24))
 		var skill := _label("", 12, SKILL_COLOR)
 		skill.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		skill.text = "%s %s" % [str(hero.get("skill_name", "?")), str(hero.get("skill_desc", ""))]
