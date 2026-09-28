@@ -83,6 +83,17 @@ const PASSIVE_ICONS := {
 	"blessing": "passive_blessing",
 	"shadow_reap": "passive_swift_shadow",
 }
+## m5-d 技能强化文案（GDD §6 强化列；实际接线以各技能 upgraded 分支为准——
+## 刺客残影爆炸为本卡新增，其余五分支 M2/M4 已在产）。
+const UPGRADE_DESC := {
+	"vanguard": "狂潮期间受到伤害 -30%",
+	"ranger": "影袭后 0.6s 持续无敌",
+	"mage": "奥术新星半径 +40%，冻结延长至 2s",
+	"assassin": "突进终点留下残影，0.5s 后爆炸（20 伤 / 80px）",
+	"engineer": "炮台每 3s 追加一发导弹（12 AoE）",
+	"guardian": "生命潮汐法阵内额外 -20% 受伤",
+}
+
 ## 技能图（skill_* 基础版 6 张；_plus 强化版留技能升级流接线，选角卡用基础版）。
 const SKILL_ICONS := {
 	"vanguard": "skill_rampage",          # 狂潮（骑士·凛）
@@ -102,6 +113,8 @@ var _name_labels: Array[Label] = []          # 选中金字高亮寻址（u3 布
 var _portraits: Array[TextureRect] = []      # u3：卡首立绘（解锁状态 modulate 寻址）
 var _passive_icons: Array[TextureRect] = []  # u3：被动行小图标
 var _skill_icons: Array[TextureRect] = []    # u3：技能行小图标
+var _upgrade_btn: Button = null              # m5-d：技能强化购买（1500 蓝晶，Appendix L 口径）
+var _gems_label: Label = null                # m5-d：蓝晶余额（购买反馈）
 var _badges: Array[Control] = []             # u3：未解锁角标（待解锁·开放体验）
 var _accents: Array[ColorRect] = []          # ui1：选中铭牌顶部高亮条（48px 下描边区分度补强）
 ## ui1 详情面板（共享单份，随 _selected 重建内容）：_detail_slots 存各段容器，
@@ -303,6 +316,16 @@ func _build_detail() -> void:
 	_detail_weapon = _label("", 12, WEAPON_COLOR)
 	_detail_weapon.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_detail_weapon)
+	# m5-d：技能强化购买行（按钮 + 蓝晶余额）
+	var up_row := HBoxContainer.new()
+	up_row.add_theme_constant_override("separation", 8)
+	col.add_child(up_row)
+	_upgrade_btn = Button.new()
+	_upgrade_btn.text = "技能强化（1500 蓝晶）"
+	_upgrade_btn.pressed.connect(_on_upgrade_pressed)
+	up_row.add_child(_upgrade_btn)
+	_gems_label = _label("", 12, Color(0.55, 0.75, 0.95))
+	up_row.add_child(_gems_label)
 
 
 ## 详情面板内容同步（选中变化时调用；纯改文案/可见性，零节点增删）。
@@ -334,6 +357,30 @@ func _sync_detail() -> void:
 		_passive_rows[i].visible = on
 		_skill_rows[i].visible = on
 	_detail_weapon.text = "初始 %s" % _weapon_names(hero.get("start_weapons", []))
+	# m5-d：强化按钮三态（已强化 / 可购 / 蓝晶不足禁用）+ 余额 + 技能行强化后缀
+	if _upgrade_btn != null:
+		var upgraded := SaveSystem.skill_upgraded(id)
+		if upgraded:
+			_upgrade_btn.text = "已强化"
+			_upgrade_btn.disabled = true
+		else:
+			_upgrade_btn.text = "技能强化（1500 蓝晶）"
+			_upgrade_btn.disabled = SaveSystem.gems() < SaveSystem.SKILL_UPGRADE_COST
+		_upgrade_btn.visible = true
+	if _gems_label != null:
+		_gems_label.text = "蓝晶 %d" % SaveSystem.gems()
+	if SaveSystem.skill_upgraded(id) and UPGRADE_DESC.has(id):
+		var target: Label = _skill_labels[_selected] if _selected < _skill_labels.size() else null
+		if target != null:
+			target.text += "｜强化：%s" % String(UPGRADE_DESC[id])
+
+
+## m5-d：强化购买（生产 API）→ 刷新详情（按钮态/余额/技能后缀）。
+func _on_upgrade_pressed() -> void:
+	if _selected < 0 or _selected >= _ids.size():
+		return
+	if SaveSystem.buy_skill_upgrade(String(_ids[_selected])):
+		_sync_detail()
 
 
 ## 数值芯片：底色块 + 「标签 值」两段（标签暗、值亮，12px 下靠明度分层而非字号）。

@@ -113,6 +113,10 @@ func _default_data() -> Dictionary:
 		# m2-t31（v2 新增）：Boss 首杀名录（击杀蓝晶 +300 的防重刷标记；旧档缺失
 		# 由 _merge_saved 回落默认空表）。
 		"boss_first_kills": [] as Array[String],
+		# m5-d（v2 additive，不 bump 版本）：技能强化名录（hero_id -> 已购 1500 蓝晶；
+		# Appendix L 裁定：购买流关闭、强化 1500/名维持）。buy_skill_upgrade 入库，
+		# HeroApplier.apply 运行态覆盖 upgraded 注入。
+		"skill_upgrades": [] as Array[String],
 		# m2-t31（v2 新增）：图鉴解锁任务进度（CodexSystem.counters 快照：五标量
 		# 计数 + floor_clears 层号分桶）。CodexSystem 在层进入/解锁/终局结算点写入，
 		# _ready 读档恢复——J.2 跨局累计的持久化后端。
@@ -169,6 +173,14 @@ func _merge_saved(saved: Dictionary) -> Dictionary:
 			if typeof(e) == TYPE_STRING:
 				tarr.append(e)
 		out["purchased_talents"] = tarr
+	# m5-d：技能强化名录同口径合并（数组内非 String 元素静默丢弃）
+	var skup_v: Variant = saved.get("skill_upgrades")
+	if typeof(skup_v) == TYPE_ARRAY:
+		var skarr: Array[String] = []
+		for e: Variant in skup_v:
+			if typeof(e) == TYPE_STRING:
+				skarr.append(e)
+		out["skill_upgrades"] = skarr
 	# m2-t20：图鉴已解锁武器同口径合并（数组内非 String 元素静默丢弃）
 	var weapons_v: Variant = saved.get("unlocked_weapons")
 	if typeof(weapons_v) == TYPE_ARRAY:
@@ -439,6 +451,28 @@ func record_boss_first_kill(id: String) -> bool:
 func has_boss_first_kill(id: String) -> bool:
 	var arr: Array = data.get("boss_first_kills", [])
 	return arr.has(id)
+
+# ---- m5-d 技能强化（Appendix L：购买流关闭，强化 1500/名维持）----
+
+const SKILL_UPGRADE_COST := 1500
+
+## 技能强化只读查询：HeroApplier.apply 装配时覆盖注入 upgraded（heroes 行字段为
+## 纸面锚点，运行态以本名录为准）。
+func skill_upgraded(hero_id: String) -> bool:
+	var arr: Array = data.get("skill_upgrades", [])
+	return arr.has(hero_id)
+
+## 购买技能强化：未知英雄 / 重复购买 / 蓝晶不足 → false（业务拒绝静默）；成功扣
+## 1500 + 入库 + 落盘。英雄存在性以 GameDB.heroes 为准（与选角页同源）。
+func buy_skill_upgrade(hero_id: String) -> bool:
+	if not GameDB.get_hero(hero_id).is_empty() and not skill_upgraded(hero_id) 			and gems() >= SKILL_UPGRADE_COST:
+		add_gems(-SKILL_UPGRADE_COST)
+		var arr: Array = data.get("skill_upgrades", [])
+		arr.append(hero_id)
+		data["skill_upgrades"] = arr
+		save_now()
+		return true
+	return false
 
 ## 解锁任务进度读取（m2-t31 v2）：防御性——档内非字典/脏键经 _merge_saved 归一化，
 ## 恒返回 Dictionary（空表 = 全零进度）。CodexSystem._ready 恢复计数器用。

@@ -48,11 +48,13 @@ static func _mount_skill(hero: Dictionary, player: Player) -> void:
 		push_error("HeroApplier: cannot load skill script %s" % path)
 		return
 	skill.set_script(script)
-	# T2 setup 契约键：id / cooldown_ticks / energy_cost / upgraded；另带 has_defiance 供技能侧读取
+	# T2 setup 契约键：id / cooldown_ticks / energy_cost / upgraded；另带 has_defiance 供技能侧读取。
+	# m5-d：upgraded 运行态覆盖——heroes 行字段为纸面锚点（恒 false），实际以存档
+	# skill_upgrades 名录为准（1500 蓝晶购买，Appendix L 裁定：购买流关闭、强化保留）。
 	skill.setup(player, {
 		"id": path.get_file().get_basename(),
 		"cooldown_ticks": int(hero["skill_cd"]),
 		"energy_cost": int(hero["skill_energy"]),
-		"upgraded": bool(hero["upgraded"]),
+		"upgraded": bool(hero["upgraded"]) or SaveSystem.skill_upgraded(String(hero["id"])),
 		"has_defiance": bool(hero["has_defiance"]),
 	})
