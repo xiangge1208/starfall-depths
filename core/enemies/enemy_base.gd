@@ -433,7 +433,14 @@ func _physics_process(_delta: float) -> void:
 	# brain_pos 为权威位置：以差值速度过 move_and_slide 处理碰撞，之后把 brain 对齐实际位置
 	# m3-fix1 试炼 enemy_speed_pct 消费端：体速整体 ×TrialMods.enemy_speed_scale()
 	# （×1.0 为 IEEE 精确恒等，非试炼局逐字节零漂移）。
-	velocity = (brain_pos - global_position) * (TimeConst.FPS * TrialMods.enemy_speed_scale())
+	# m5-t3 时空·隙 时缓域体速乘区（唯一体侧消费点）：域内 ×0.6、Boss 行 ×0.8；无域/
+	# 域外恒 1.0（IEEE 恒等零漂移；数值与进出域判定单点在 TimeweaverTimeDilation
+	# .domain_scale，读点 = ProjectilePool.field_velocity_scale，禁散弹式改写）。
+	# Boss 判定用 self is BossBase（全部 Boss 行经 boss_script 装配为 BossBase 子类；
+	# 逐拍热路径避免行查表）。
+	velocity = (brain_pos - global_position) * (TimeConst.FPS * TrialMods.enemy_speed_scale()
+		* ProjectilePool.field_velocity_scale(global_position, Projectile.Faction.ENEMY,
+			self is BossBase, Engine.get_physics_frames()))
 	move_and_slide()
 	brain_pos = global_position
 	# m0-t12 fix1：接触伤害（收口 t10 缺口）。玩家侧 0.8s 受击无敌帧天然节流同体连击，不另设冷却；

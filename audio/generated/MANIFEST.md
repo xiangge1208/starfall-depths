@@ -40,6 +40,8 @@
 | `sfx/freeze.wav` | 冻结生效 | 冰状态叠满冻结（GDD §7.3） | 0.2 |
 | `sfx/nova.wav` | 奥术新星（法师技能） | 法师·烬 skill 奥术新星 | 0.32 |
 | `sfx/turret_place.wav` | 炮台部署 | 工程师·铆 技能/被动 | 0.12 |
+| `sfx/time_dilation.wav` | 时缓域施放（时空·隙技能） | 时空·隙 skill 时缓域 | 0.5 |
+| `sfx/vial_throw.wav` | 投瓶掷出（炼金·汞技能） | 炼金·汞 skill 投瓶 | 0.22 |
 | `sfx/turret_shot.wav` | 炮台射击 | 工程师炮台开火 | 0.04 |
 | `sfx/missile.wav` | 导弹发射（炮台强化/星陨炮） | 工程师强化导弹 / 星陨炮 | 0.3 |
 | `sfx/heal_tide.wav` | 生命潮汐（守护者治疗法阵） | 守护者·萄 技能 | 0.42 |

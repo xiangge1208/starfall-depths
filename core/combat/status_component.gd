@@ -52,12 +52,20 @@ func apply_hit_scaled(element: int, damage: int, now: int, stack_gain: float) ->
 		_stacks[element] = float(_stacks[element]) - float(stacks_to_trigger)
 		_trigger(element, now)
 
+## M5-T3 炼金·汞 被动「侵蚀」乘区钩子（status 系统侧单点）：() -> float。由
+## AlchemistVial 装配期注入（绑定技能实例，释放即 is_valid()=false 回落恒等）。
+## 只在 apply_hit_context 统一命中契约漏斗乘入（ctx.status_rate_mult 之后）——
+## 与玩家侧同名增益（状态侵蚀 status_rate_pct 加法桶）叠乘：合成口径 (1+Σ增益)×1.2。
+static var attacker_stack_scale_hook := Callable()
+
 ## 统一的远程/近战命中元素契约：一次伤害可同时携带武器主元素和一条 Buff proc。
 ## 伤害只在 EnemyBase/BossBase 结算一次；这里仅分别推进状态积累。
 func apply_hit_context(ctx: Dictionary, damage: int, now: int) -> void:
 	if damage <= 0:
 		return
 	var stack_gain := float(ctx.get("status_rate_mult", 1.0))
+	if attacker_stack_scale_hook.is_valid():                     # M5-T3 侵蚀 ×1.2（无钩子恒等零漂移）
+		stack_gain *= float(attacker_stack_scale_hook.call())
 	var primary := int(ctx.get("element", Elements.Id.NONE))
 	var proc := int(ctx.get("proc_element", Elements.Id.NONE))
 	apply_hit_scaled(primary, damage, now, stack_gain)
