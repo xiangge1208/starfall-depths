@@ -18,6 +18,48 @@
 | `characters/hero_mage_sheet.png` | 64x64 | 英雄「法师·烬」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
 | `characters/hero_guardian_sheet.png` | 64x64 | 英雄「守护者·萄」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
 | `characters/hero_assassin_sheet.png` | 64x64 | 英雄「刺客·蝉」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_berserk_sheet.png` | 64x64 | 英雄「狂战士·烈」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_hunter_sheet.png` | 64x64 | 英雄「猎手·隼」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_monk_sheet.png` | 64x64 | 英雄「武僧·岳」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_cleric_sheet.png` | 64x64 | 英雄「圣职·烛」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_necro_sheet.png` | 64x64 | 英雄「死灵·骸」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_timeweaver_sheet.png` | 64x64 | 英雄「时空·隙」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_alchemist_sheet.png` | 64x64 | 英雄「炼金·汞」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_gunslinger_sheet.png` | 64x64 | 英雄「火枪手·铳」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_bard_sheet.png` | 64x64 | 英雄「吟游·弦」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_mirage_sheet.png` | 64x64 | 英雄「影卫·蜃」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_lycan_sheet.png` | 64x64 | 英雄「狼人·牙」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_warlock_sheet.png` | 64x64 | 英雄「术士·蚀」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_bulwark_sheet.png` | 64x64 | 英雄「铁卫·锚」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_staranchor_sheet.png` | 64x64 | 英雄「星辰·晷」四向行走帧表（行=下/上/左/右, 列=idle+walk×3, 16px/帧） | core/player/player.gd _update_walk_anim 帧驱动; player.tscn Sprite hframes=4 vframes=4 | m2-t17：移动方向自动切行, idle 列0 / 行走循环列1-3（8t/帧）; 受击白闪沿用 Fx（节点名 Sprite 不变） |
+| `characters/hero_berserk.png` | 16x16 | 英雄「狂战士·烈」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「horns」+ 剪影 gun；宽体型 |
+| `ui/portrait_berserk.png` | 32x32 | 狂战士·烈 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_hunter.png` | 16x16 | 英雄「猎手·隼」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「feather」+ 剪影 gun |
+| `ui/portrait_hunter.png` | 32x32 | 猎手·隼 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_monk.png` | 16x16 | 英雄「武僧·岳」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「bald」+ 剪影 spear |
+| `ui/portrait_monk.png` | 32x32 | 武僧·岳 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_cleric.png` | 16x16 | 英雄「圣职·烛」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「flame」+ 剪影 gun |
+| `ui/portrait_cleric.png` | 32x32 | 圣职·烛 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_necro.png` | 16x16 | 英雄「死灵·骸」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「hood」+ 剪影 gun |
+| `ui/portrait_necro.png` | 32x32 | 死灵·骸 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_timeweaver.png` | 16x16 | 英雄「时空·隙」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「brim」+ 剪影 staff |
+| `ui/portrait_timeweaver.png` | 32x32 | 时空·隙 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_alchemist.png` | 16x16 | 英雄「炼金·汞」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「hood」+ 剪影 bow |
+| `ui/portrait_alchemist.png` | 32x32 | 炼金·汞 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_gunslinger.png` | 16x16 | 英雄「火枪手·铳」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「brim」+ 剪影 gun |
+| `ui/portrait_gunslinger.png` | 32x32 | 火枪手·铳 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_bard.png` | 16x16 | 英雄「吟游·弦」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「feather」+ 剪影 bow |
+| `ui/portrait_bard.png` | 32x32 | 吟游·弦 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_mirage.png` | 16x16 | 英雄「影卫·蜃」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「hood」+ 剪影 gun |
+| `ui/portrait_mirage.png` | 32x32 | 影卫·蜃 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_lycan.png` | 16x16 | 英雄「狼人·牙」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「lycan」+ 剪影 dagger |
+| `ui/portrait_lycan.png` | 32x32 | 狼人·牙 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_warlock.png` | 16x16 | 英雄「术士·蚀」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「wizard」+ 剪影 staff |
+| `ui/portrait_warlock.png` | 32x32 | 术士·蚀 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_bulwark.png` | 16x16 | 英雄「铁卫·锚」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「greathelm」+ 剪影 gauntlet；宽体型 |
+| `ui/portrait_bulwark.png` | 32x32 | 铁卫·锚 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
+| `characters/hero_staranchor.png` | 16x16 | 英雄「星辰·晷」站立像（正面） | core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行） | m5-t2 程序化增量：定位基调「star」+ 剪影 gun |
+| `ui/portrait_staranchor.png` | 32x32 | 星辰·晷 选人立绘 32x32 | ui/hero_select.gd _icon("portrait_%s") 卡首行立绘（m4p-ui1/u3 约定） | 同 gen_heroes_m2 头像构造（m2 同构） |
 | `enemies/kuli_bug.png` | 16x16 | 敌人「苦力虫（自爆虫）」 | data/enemies.json id=kuli_bug; 现为 room_combat.gd:191-197 按 ARCHETYPE_COLORS.suicide 0.4,0.8,0.35 纯色块 | 原型:绿色圆虫+引信触角+大眼；死亡闪烁接 fuse_ticks |
 | `enemies/cave_bat.png` | 16x16 | 敌人「穴蝠」 | 同上, archetype=orbiter 0.45,0.42,0.55 | 原型:灰紫蝙蝠,展开双翼,红眼獠牙；飞行做 2 帧扑翼 |
 | `enemies/crossbowman.png` | 16x16 | 敌人「弩兵」 | 同上, archetype=shooter 0.5,0.6,0.85 | 原型:蓝衣弩手+弩；蓄力(windup 30t)需抬弩帧 |

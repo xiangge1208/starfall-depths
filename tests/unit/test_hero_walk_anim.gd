@@ -10,26 +10,31 @@ extends GdUnitTestSuite
 const SHEET_FMT := "res://art/generated/characters/hero_%s_sheet.png"
 const MANIFEST_PATH := "res://art/generated/MANIFEST.md"
 const SHEET_PX := 64
-const FULL_ROSTER := ["vanguard", "ranger", "engineer", "mage", "assassin", "guardian"]
+
+
+func _data_roster() -> PackedStringArray:
+	# data/heroes.json 全部行 id（m5-t2 起 20 人全量——帧表/清单断言不再钉过渡 6 人）。
+	var txt := FileAccess.get_file_as_string("res://data/heroes.json")
+	var parsed: Variant = JSON.parse_string(txt)
+	assert_object(parsed).is_not_null()
+	return PackedStringArray((parsed as Dictionary).keys())
+
 
 # ---------- 帧表完整性（数据驱动 + 美术名录并集） ----------
 
 func test_walk_sheets_exist_for_all_data_heroes() -> void:
 	# data/heroes.json 行 → 帧表盘上存在（新英雄入表 → 重跑生成器即覆盖）。
-	# M5-T1 过渡口径：14 新角色帧表 png 归 T2 美术卡增量生成（约束 16 禁裸跑
-	# gen_placeholder_art 全量）——先钉名册行数 20 与现役 6 人帧表不回退；
-	# T2 落图后恢复全量遍历。
 	var txt := FileAccess.get_file_as_string("res://data/heroes.json")
 	var parsed: Variant = JSON.parse_string(txt)
 	assert_object(parsed).is_not_null()
 	var heroes: Dictionary = parsed
 	assert_int(heroes.size()).is_equal(20)
-	for hid: String in FULL_ROSTER:
+	for hid: String in _data_roster():
 		assert_bool(FileAccess.file_exists(SHEET_FMT % hid)).is_true()
 
-func test_walk_sheets_full_six_roster_64px() -> void:
-	# 全六英雄（含 T11 mage / T13 assassin+guardian 未落数据行的名录兜底）
-	for hid: String in FULL_ROSTER:
+func test_walk_sheets_full_roster_64px() -> void:
+	# 全量 20 英雄（含 T11/T13 名录兜底出图的现役 4 人）：帧表可寻址 + 64x64 规格
+	for hid: String in _data_roster():
 		var t := ArtLookup.tex(SHEET_FMT % hid)
 		assert_object(t).is_not_null()
 		assert_vector(t.get_size()).is_equal(Vector2(SHEET_PX, SHEET_PX))
@@ -38,7 +43,7 @@ func test_manifest_lists_all_walk_sheets() -> void:
 	# MANIFEST 比对：每张帧表一行、尺寸列 64x64、用途列点名四向帧表
 	var manifest := FileAccess.get_file_as_string(MANIFEST_PATH)
 	assert_bool(manifest.is_empty()).is_false()
-	for hid: String in FULL_ROSTER:
+	for hid: String in _data_roster():
 		var row := "| `characters/hero_%s_sheet.png` | 64x64 |" % hid
 		assert_bool(manifest.contains(row)).is_true()
 		assert_bool(manifest.contains("英雄") and manifest.contains("四向行走帧表")).is_true()
