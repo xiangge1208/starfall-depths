@@ -1109,6 +1109,11 @@ func _wire_room_combat(room: FloorRoom) -> void:
 	for node in get_tree().get_nodes_in_group("summons"):
 		if node is SummonBase:
 			(node as SummonBase).combat = room.combat
+	# m5-f：佣兵跟随跨房残留同款收口——独立 "follow_ally" 组（不进 summons 组，
+	# 防污染工程师炮台 summon_cap 库存计数；组纪律见 FollowAlly 头注）。
+	for node in get_tree().get_nodes_in_group("follow_ally"):
+		if node is SummonBase:
+			(node as SummonBase).combat = room.combat
 	# m1-t27：英雄暴击基础值注入（HeroApplier meta 接缝 "crit_base" 的房间层读出，
 	# T11 披露的接线位；无 meta（裸玩家测试路径）保持 CombatSystem 默认值）。
 	if player.has_meta("crit_base"):
@@ -2001,8 +2006,8 @@ func _drop_offhand(p: Node2D) -> Dictionary:
 		"rarity": String(w.get("rarity", "common"))}
 
 
-## 事件设施（T19 EventRoom 契约）：进房即 4 选 1 开面板（每房一次由 flow 单发 +
-## EventRoom._used 双守卫）；抽取确定性 = RunState loot 盐流。
+## 事件设施（T19 EventRoom 契约）：进房即 5 选 1 开面板（m5-f 追加佣兵选；每房一次
+## 由 flow 单发 + EventRoom._used 双守卫）；抽取确定性 = RunState loot 盐流。
 ## m4p-u2：事件设施世界贴图——按掷中事件挂对应 NPC/装置图（event_merchant/beggar/
 ## spring/graffiti），未掷中（守卫拒绝/重入）回落事件装置图 event_device.png。
 ## 落位复用 safe placement 缝（房心被柱/箱占用时弹到最近合法空位）；纯视觉无碰撞。
@@ -2010,6 +2015,7 @@ func _build_event(room: FloorRoom) -> void:
 	var ev := EventRoom.new()
 	ev.setup(player, _facility_rng)
 	ev.apply_effect = _apply_event_drink_effect
+	ev.summon_follower = _hire_follow_ally   # m5-f：佣兵招募缝（扣款成功后召唤）
 	room.add_child(ev)                        # _ready 建面板 UI
 	var rolled := ev.open_random_event()
 	var vis := ArtLookup.make_sprite(ArtLookup.facility_texture_path(
@@ -2020,7 +2026,18 @@ func _build_event(room: FloorRoom) -> void:
 		room.add_child(vis)
 
 
-## 事件 id → 设施贴图键（未知/空回落 event_device；映射与 EventRoom.EVENT_IDS 对齐）。
+## m5-f 佣兵招募缝（EventRoom.summon_follower）：事件扣款成功后召唤跟随随从。
+## 挂玩家父节点（跨房存活于本层，换房 combat 重接走 _wire_room_combat follow_ally
+## 组扫描）、注入当前房 combat 与玩家引用——同工程师炮台部署习语；事件房本房无
+## CombatSystem 时传 null 亦可（FollowAlly 携带空引用，下一战斗房重接自愈）。
+## 至多 1 名的替换语义由 FollowAlly.deploy 收口。
+func _hire_follow_ally() -> void:
+	FollowAlly.deploy(player.get_parent(), player, player.combat,
+		Engine.get_physics_frames())
+
+
+## 事件 id → 设施贴图键（未知/空回落 event_device；映射与 EventRoom.EVENT_IDS 对齐；
+## m5-f mercenary 暂无专属贴图，走 event_device 回落，美术卡落地后补映射）。
 func _event_art_name(event_id: String) -> String:
 	match event_id:
 		"mystery_merchant":

@@ -1,8 +1,8 @@
 class_name EventRoom
 extends Node
 ## 事件房编排器（m1-t19）：房挂载节点（同 buff_pick 的「纯逻辑+自建 UI」模式），
-## 进房由房间接线调 open_random_event() 4 选 1（神秘商人/乞丐/星髓泉/涂鸦墙），
-## 弹中文面板（标题/描述/接受·拒绝两按钮，Esc=拒绝）。
+## 进房由房间接线调 open_random_event() 5 选 1（神秘商人/乞丐/星髓泉/涂鸦墙/佣兵，
+## m5-f 追加第 5 选），弹中文面板（标题/描述/接受·拒绝两按钮，Esc=拒绝）。
 ## 每房每局一次（_used 简单守卫）；局级守卫走 RunState 旗（star_spring_used）。
 ##
 ## 披露（规格明示/整合期对齐）：
@@ -12,14 +12,20 @@ extends Node
 ##   房间接缝，缺省路径同样复用 DrinkMachine._apply_drink，七种效果均走生产消费者；
 ## - 乞丐只记账（pending_investment=120 + beggar_paid_floor），70% 返还掷签与
 ##   跨层消费归 T20 inter-floor；
+## - 佣兵（m5-f）：50 金经 RunState.spend_coins 扣款 → summon_follower Callable
+##   接缝召唤 FollowAlly（扣款前先验接缝，未接线 fail-closed 零副作用；余额不足同
+##   乞丐惯例零副作用关面板）。至多 1 名的替换语义与无敌简化在 FollowAlly 头注披露；
 ## - RunState.start_run 会重置 beggar_paid_floor / star_spring_used，防跨局状态泄漏。
 
 signal event_resolved(id: String, accepted: bool)
 
-const EVENT_IDS: Array[String] = ["mystery_merchant", "beggar", "star_spring", "graffiti"]
+const EVENT_IDS: Array[String] = [
+	"mystery_merchant", "beggar", "star_spring", "graffiti", "mercenary",
+]
 const MERCHANT_HP_COST := 2        # 神秘商人血价（GDD §11：2HP 换随机道具）
 const BEGGAR_COST := 40            # 乞丐投入（GDD §11：40 金）
 const BEGGAR_PAYOUT := 120         # 记账返还额（70% 掷签在 T20 跨层结算）
+const MERCENARY_COST := 50         # 佣兵雇佣价（M5 卡 F：50 金，当层随从）
 const PANEL_BG := Color(0.07, 0.08, 0.1, 0.96)
 const PANEL_BORDER := Color("5ab0ff")
 const DESC_WIDTH := 300.0
@@ -40,6 +46,7 @@ const EVENT_TITLES := {
 	"beggar": "乞丐",
 	"star_spring": "星髓泉",
 	"graffiti": "涂鸦墙",
+	"mercenary": "佣兵",
 }
 
 # 涂鸦墙构筑提示池（10 条，纯叙事，引用既有系统口径）
@@ -57,6 +64,7 @@ const GRAFFITI_TIPS: Array[String] = [
 ]
 
 var apply_effect: Callable = Callable()   # 饮料效果落地接缝：(effect, value, player)
+var summon_follower: Callable = Callable()  # 佣兵召唤接缝（m5-f）：FloorScene 注入，无参
 
 var _player: Node2D = null
 var _rng: RandomNumberGenerator = null
@@ -116,6 +124,8 @@ func accept() -> void:
 			_spring_accept()
 		"graffiti":
 			pass                                       # 纯叙事，无副作用
+		"mercenary":
+			_mercenary_accept()
 	_close(id, true)
 
 
@@ -173,6 +183,16 @@ func _spring_accept() -> void:
 		p.shield += 1
 
 
+## 佣兵（m5-f）：接缝未注入（standalone）先验 fail-closed 零副作用；扣款成功才召唤
+## （FollowAlly.deploy 内收口至多 1 名替换语义）。余额不足同乞丐惯例零副作用关面板。
+func _mercenary_accept() -> void:
+	if not summon_follower.is_valid():
+		return
+	if not RunState.spend_coins(MERCENARY_COST):
+		return
+	summon_follower.call()
+
+
 ## 默认效果落地：与 FloorScene 注入路径一样复用真实饮料消费者，避免 standalone 退化。
 func _apply_effect(effect: String, value: float, p: Node2D) -> void:
 	var player := p as Player
@@ -214,6 +234,8 @@ func _desc_for(id: String) -> String:
 			return "一泓星光在泉中流转。\n饮下它，本局护盾上限 +1（每局一次）。"
 		"graffiti":
 			return _tip
+		"mercenary":
+			return "落单的弩手朝你抱拳，弦已上好。\n「%d 金币，换我 90 秒的忠心——弹无虚发。」\n（场上至多一名随从，再次雇佣将替换旧随从）" % MERCENARY_COST
 	return ""
 
 
