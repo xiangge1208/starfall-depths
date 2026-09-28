@@ -76,7 +76,12 @@ func _on_body_entered(body: Node2D) -> void:
 	Telemetry.log_row(["pickup", Engine.get_physics_frames(), kind])
 	# m5-c：attachment 无专属音键（audio_mgr 归共用域不可加键），按 gem 别名习语
 	# 回落既有 pickup_energy（AudioMgr 对未知键本就 warn-once + no-op，此处直落已知键零噪音）。
-	AudioMgr.play("pickup_energy" if kind == "attachment" else "pickup_" + kind)
+	# m5-c：attachment 走 gem 别名单列；其余 kind 保持动态键原样（test_audio_wiring
+	# DYNAMIC_EXPR 绊线按字面表达式匹配，勿改写为三元/变量形态）。
+	if kind == "attachment":
+		AudioMgr.play("pickup_energy")
+	else:
+		AudioMgr.play("pickup_" + kind)
 	queue_free()                             # flush 上下文中安全（延迟到帧末释放）
 
 func _find_player() -> Player:
