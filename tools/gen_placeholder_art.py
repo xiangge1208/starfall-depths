@@ -253,6 +253,38 @@ HERO_WALK_SPEC = {
                  "hood": "#74749c", "hair": "#74749c", "weapon": "dagger", "shield": False},
     "guardian": {"name": "守护者·萄", "body": "#7a9ab8", "cloak": "#54748f", "hat": "halo",
                  "hair": "#d8b040", "weapon": "mace", "shield": False},
+    # ---- m5-t2：附录 L §3 十四名新角色（「定位」栏定美术基调，配色/帽/体型微调）。
+    # weapon 剪影对齐 data/heroes.json start_weapons 的武器类别（枪械/法杖/弓/匕首），
+    # 长枪（岳）与磁力手套（锚）为新增剪影 kind；bulk=宽体型（烈/锚）。
+    "berserk":   {"name": "狂战士·烈", "body": "#c25a4a", "cloak": "#b04c3c", "hat": "horns",
+                  "hair": "#e05034", "weapon": "gun", "shield": False, "bulk": True},
+    "hunter":    {"name": "猎手·隼", "body": "#a8845a", "cloak": "#876e49", "hat": "feather",
+                  "hair": "#876e49", "weapon": "gun", "shield": False},
+    "monk":      {"name": "武僧·岳", "body": "#d8924a", "cloak": "#c07830", "hat": "bald",
+                  "hair": "#c89868", "weapon": "spear", "shield": False},
+    "cleric":    {"name": "圣职·烛", "body": "#e8e0d0", "cloak": "#c8b060", "hat": "flame",
+                  "hair": "#e2c04c", "weapon": "gun", "shield": False},
+    "necro":     {"name": "死灵·骸", "body": "#b8b4a8", "cloak": "#6a6a72", "hat": "hood",
+                  "hood": "#8a867c", "hair": "#6a6a72", "weapon": "gun", "shield": False,
+                  "skin": "#d8d4c4"},
+    "timeweaver": {"name": "时空·隙", "body": "#58b8c8", "cloak": "#4188a8", "hat": "brim",
+                   "hair": "#31657b", "weapon": "staff", "shield": False},
+    "alchemist": {"name": "炼金·汞", "body": "#96b23c", "cloak": "#5f7a2a", "hat": "hood",
+                  "hood": "#6a8a34", "hair": "#5f7a2a", "weapon": "bow", "shield": False},
+    "gunslinger": {"name": "火枪手·铳", "body": "#7a5a48", "cloak": "#8f6a50", "hat": "brim",
+                   "hair": "#77594a", "weapon": "gun", "shield": False},
+    "bard":      {"name": "吟游·弦", "body": "#c86a9e", "cloak": "#8a4a78", "hat": "feather",
+                  "hair": "#b05a8a", "weapon": "bow", "shield": False},
+    "mirage":    {"name": "影卫·蜃", "body": "#6a7a8a", "cloak": "#5d6e7b", "hat": "hood",
+                  "hood": "#6e8090", "hair": "#5d6e7b", "weapon": "gun", "shield": False},
+    "lycan":     {"name": "狼人·牙", "body": "#8a7458", "cloak": "#7d6446", "hat": "lycan",
+                  "hair": "#907551", "weapon": "dagger", "shield": False, "skin": "#c8a078"},
+    "warlock":   {"name": "术士·蚀", "body": "#7a4a8a", "cloak": "#9456b4", "hat": "wizard",
+                  "hair": "#74468a", "weapon": "staff", "shield": False, "orb": "#ff8a2e"},
+    "bulwark":   {"name": "铁卫·锚", "body": "#8a94a4", "cloak": "#565e6c", "hat": "greathelm",
+                  "hair": "#565e6c", "weapon": "gauntlet", "shield": True, "bulk": True},
+    "staranchor": {"name": "星辰·晷", "body": "#3a4a8a", "cloak": "#4e5eb4", "hat": "star",
+                   "hair": "#6276d2", "weapon": "gun", "shield": False},
 }
 
 
@@ -375,6 +407,70 @@ def _hero_hat(img, spec, d, y):
     elif kind == "halo":
         hline(img, 5, 10, y, C("#ffe86a"))
         hline(img, 4, 11, 2 + y, C("#e2c04c"))
+    # ---- m5-t2 新帽种（附录 L §3 定位基调；现役 6 人不经以下分支）
+    elif kind == "horns":                 # 狂战士·烈: 铁额带 + 双骨角
+        iron, bone = C("#5a5a66"), C("#e8e4da")
+        if d == 1:
+            rect(img, 4, y, 11, 1 + y, iron)
+            px(img, 4, y, bone)
+            px(img, 11, y, bone)
+        else:
+            rect(img, 4, y, 11, 1 + y, iron)
+            px(img, 3, y, bone)
+            px(img, 12, y, bone)
+            if d == 0:
+                px(img, 3, 1 + y, shade(bone, 0.8))
+                px(img, 12, 1 + y, shade(bone, 0.8))
+    elif kind == "feather":               # 猎手·隼/吟游·弦: 软帽 + 侧羽饰
+        rect(img, 4, y, 11, 1 + y, cloak)
+        hline(img, 3, 12, 2 + y, shade(cloak, 0.75))
+        px(img, 12, y, C("#e2c04c"))
+        px(img, 13, y, C("#e2c04c"))
+    elif kind == "bald":                  # 武僧·岳: 秃头 + 铁头带 + 发髻
+        hline(img, 4, 11, 1 + y, C("#8a5a44"))
+        px(img, 7, y, C(spec["hair"]))
+        px(img, 8, y, C(spec["hair"]))
+    elif kind == "flame":                 # 圣职·烛: 金环 + 烛焰（顶焰双色）
+        hline(img, 4, 11, 1 + y, C("#e2c04c"))
+        px(img, 7, y, C("#ffd94a"))
+        px(img, 8, y, C("#ff8a2e"))
+    elif kind == "brim":                  # 时空·隙/火枪手·铳: 宽檐帽 + 金带
+        rect(img, 5, y, 10, 1 + y, cloak)
+        hline(img, 2, 13, 2 + y, shade(cloak, 0.75))
+        hline(img, 5, 10, y, C("#e2c04c"))
+    elif kind == "lycan":                 # 狼人·牙: 兽耳 + 颈毛 + 獠牙
+        fur = shade(C(spec["hair"]), 1.15)
+        if d == 0:
+            px(img, 4, y, fur)
+            px(img, 11, y, fur)
+            hline(img, 4, 11, 1 + y, C(spec["hair"]))
+            px(img, 6, 6 + y, C("#f4f4f0"))          # 獠牙（眼下一行）
+            px(img, 9, 6 + y, C("#f4f4f0"))
+        elif d == 1:
+            px(img, 4, y, fur)
+            px(img, 11, y, fur)
+            hline(img, 4, 11, 1 + y, shade(C(spec["hair"]), 0.8))
+        else:
+            px(img, 5 if d == 2 else 10, y, fur)     # 耳尖偏后侧
+            hline(img, 5, 10, 1 + y, C(spec["hair"]))
+    elif kind == "greathelm":             # 铁卫·锚: 全覆钢盔 + 观察缝 + 铆钉
+        steel = C("#9aa6b8")
+        if d == 0:
+            rect(img, 3, y, 12, 2 + y, steel)
+            hline(img, 4, 11, 3 + y, C("#20242c"))   # 观察缝（眼行上方）
+            px(img, 3, 2 + y, C("#e2c04c"))
+            px(img, 12, 2 + y, C("#e2c04c"))
+        elif d == 1:
+            rect(img, 3, y, 12, 3 + y, steel)
+            hline(img, 4, 11, 3 + y, shade(steel, 0.8))
+        else:
+            rect(img, 4, y, 11, 3 + y, steel)
+            hline(img, 6, 9, 3 + y, C("#20242c"))
+            px(img, 4 if d == 2 else 11, y, C("#e2c04c"))
+    elif kind == "star":                  # 星辰·晷: 冠带 + 顶上双星
+        hline(img, 4, 11, 1 + y, shade(cloak, 1.35))
+        px(img, 7, y, C("#ffd94a"))
+        px(img, 8, y, C("#fff3b8"))
 
 
 def _hero_weapon(img, spec, d, y):
@@ -413,7 +509,13 @@ def _hero_weapon(img, spec, d, y):
             px(img, 12, 11 + y, wood)
         elif kind == "staff":
             vv(13, 3 + y, 12 + y, wood)
-            disk(img, 13 if d == 3 else 2, 2 + y, 1, C("#8ae8ff"))
+            disk(img, 13 if d == 3 else 2, 2 + y, 1, C(spec.get("orb", "#8ae8ff")))
+        elif kind == "spear":                 # m5-t2 武僧·岳: 长杆 + 钢尖（220px 长柄剪影）
+            vv(13, 5 + y, 12 + y, wood)
+            px(img, 13 if d == 3 else 2, 4 + y, blade)
+        elif kind == "gauntlet":              # m5-t2 铁卫·锚: 磁力手套（钢拳套）
+            rr(11, 8 + y, 12, 10 + y, C("#8a97ad"))
+            px(img, 13 if d == 3 else 2, 9 + y, C("#c8d0dc"))
         elif kind == "dagger":
             hh(11, 12, 8 + y, blade)
             px(img, 11 if d == 3 else 4, 9 + y, C("#e2c04c"))
@@ -434,35 +536,52 @@ def _hero_weapon(img, spec, d, y):
             rect(img, 12, 8 + y, 14, 12 + y, C("#8194ad"))   # 背面盾背在身后
             px(img, 13, 10 + y, C("#e2c04c"))
         else:
-            rect(img, 13, 9 + y, 14, 12 + y, wood if kind != "staff" else C("#7a5230"))
-            if kind == "staff" and d == 1:
-                disk(img, 13, 8 + y, 1, C("#8ae8ff"))
-            if kind == "bow":
-                vline(img, 13, 3 + y, 10 + y, wood)   # 背弓露出肩侧
+            if kind == "spear":                       # m5-t2: 背持长杆露杆头
+                vline(img, 13, 4 + y, 11 + y, wood)
+                px(img, 13, 3 + y, blade)
+            elif kind == "gauntlet":                  # m5-t2: 正/背面钢拳套
+                rect(img, 12, 9 + y, 13, 10 + y, C("#8a97ad"))
+                px(img, 13, 9 + y, C("#c8d0dc"))
+            else:
+                rect(img, 13, 9 + y, 14, 12 + y, wood if kind != "staff" else C("#7a5230"))
+                if kind == "staff" and d == 1:
+                    disk(img, 13, 8 + y, 1, C(spec.get("orb", "#8ae8ff")))
+                if kind == "bow":
+                    vline(img, 13, 3 + y, 10 + y, wood)   # 背弓露出肩侧
 
 
 def _paint_hero_frame(spec, d, phase):
-    """单帧 16x16。d: 0=down 1=up 2=left 3=right；phase: 0=idle 1..3=walk。"""
+    """单帧 16x16。d: 0=down 1=up 2=left 3=right；phase: 0=idle 1..3=walk。
+    m5-t2 微调项（现役 6 人 spec 无键 → 行为零变化，字节稳定）:
+    - spec["skin"] 肤色覆盖（骸=骨白 / 牙=兽褐）；
+    - spec["bulk"] 宽体型（烈/锚 躯干左右各 +1px，正/背面；侧身同步加宽）。"""
     img = canvas(16, 16)
     body = C(spec["body"])
     cloak = C(spec["cloak"])
-    skin = C("#f2dfbe")
+    skin = C(spec.get("skin", "#f2dfbe"))
+    bulk = bool(spec.get("bulk", False))
     y = 1 if phase == 2 else 0            # passing 相位躯干下沉 1px（步幅顶点恢复）
     _hero_legs(img, d, phase)
     if d in (0, 1):                       # 正/背面躯干
-        rect(img, 4, 7 + y, 11, 12 + y, body)
-        rect(img, 4, 7 + y, 11, 8 + y, shade(body, 1.18))
+        tx0, tx1 = (3, 12) if bulk else (4, 11)
+        rect(img, tx0, 7 + y, tx1, 12 + y, body)
+        rect(img, tx0, 7 + y, tx1, 8 + y, shade(body, 1.18))
         if d == 0:
-            rect(img, 4, 8 + y, 5, 12 + y, cloak)    # 侧披
-            rect(img, 10, 8 + y, 11, 12 + y, cloak)
+            if bulk:                      # 宽体披风侧条外移 1px
+                rect(img, 3, 8 + y, 4, 12 + y, cloak)
+                rect(img, 11, 8 + y, 12, 12 + y, cloak)
+            else:
+                rect(img, 4, 8 + y, 5, 12 + y, cloak)    # 侧披
+                rect(img, 10, 8 + y, 11, 12 + y, cloak)
         else:
-            rect(img, 4, 8 + y, 11, 12 + y, cloak)   # 背面整片披风
+            rect(img, tx0, 8 + y, tx1, 12 + y, cloak)   # 背面整片披风
         rect(img, 4, 1 + y, 11, 7 + y, skin if d == 0 else C(spec["hair"]))
         if d == 0:
             eyes(img, 8, 4 + y, gap=2)
-    else:                                 # 侧面躯干（窄身）
-        rect(img, 6, 7 + y, 9, 12 + y, body)
-        rect(img, 6, 7 + y, 9, 8 + y, shade(body, 1.18))
+    else:                                 # 侧面躯干（窄身；bulk 加宽 1px/侧）
+        sx0, sx1 = (5, 10) if bulk else (6, 9)
+        rect(img, sx0, 7 + y, sx1, 12 + y, body)
+        rect(img, sx0, 7 + y, sx1, 8 + y, shade(body, 1.18))
         bx = 6 if d == 3 else 8                     # 披风在后侧
         rect(img, bx, 8 + y, bx + 1, 12 + y, cloak)
         rect(img, 5, 1 + y, 10, 6 + y, skin)
@@ -474,9 +593,9 @@ def _paint_hero_frame(spec, d, phase):
     _hero_weapon(img, spec, d, y)
     # Side-view bow silhouettes otherwise form a detached second component.
     if spec["weapon"] == "bow" and d == 3:
-        hline(img, 9, 13, 8 + y, C(spec["cloak"]))
+        hline(img, 9, 13, 8 + y, cloak)
     elif spec["weapon"] == "bow" and d == 2:
-        hline(img, 2, 6, 8 + y, C(spec["cloak"]))
+        hline(img, 2, 6, 8 + y, cloak)
     return img
 
 
@@ -537,6 +656,83 @@ def gen_hero_sheets_scoped():
     gen_hero_walk_sheets()
     _manifest_splice_hero_sheets()
     print(f"[scoped] 英雄行走帧表 {len(SPEC)} 张 -> {OUT / 'characters'}（MANIFEST 已同步）")
+
+
+# ---------------------------------------------------------------- m5-t2 增量（附录 L 14 新英雄）
+# 全量 main() 为破坏性操作禁裸跑（先生成后按 SPEC 清理的时序会清非本管线文件）——
+# 本节走窄通道：只写 新英雄三件套（characters/hero_<id>.png 站立像 +
+# characters/hero_<id>_sheet.png 行走帧表 + ui/portrait_<id>.png 选人立绘）
+# 并定点拼接 MANIFEST 行 + 幂等重打包图集。现役 6 人三件套画笔/参数零触碰
+# （重跑帧表逐字节同图，sha256 自证归测试管）。
+M5_LEGACY_SIX = ("vanguard", "ranger", "assassin", "engineer", "guardian", "mage")
+M5_SHEET_ANCHOR = "| `characters/hero_assassin_sheet.png` |"
+
+
+def gen_hero_standings_m5():
+    """附录 L 14 新英雄：站立像 = 行走帧表 d0/idle 帧（同画笔 → 站立像与帧表逐像素同源），
+    选人立绘 = m2 英雄头像同构（32x32 底板 + 站立像 24x24 最近邻放大 + 上下饰线）。
+    剪影 kind：长枪（岳）/磁力手套（锚）为 m5-t2 新增，其余沿用既有剪影表。"""
+    n = 0
+    for hid, name in _hero_walk_roster():
+        if hid in M5_LEGACY_SIX:
+            continue                      # 现役 6 人站立像归原画笔（gen_hero_* / gen_heroes_m2）
+        spec = HERO_WALK_SPEC[hid]
+        img = _paint_hero_frame(spec, 0, 0)
+        outline(img)
+        save(img, f"characters/hero_{hid}.png", f"英雄「{name}」站立像（正面）",
+             "core/art/art_lookup.gd HERO_TEXTURES（附录 L §3 第 7~20 行）",
+             f"m5-t2 程序化增量：定位基调「{spec['hat']}」+ 剪影 {spec['weapon']}"
+             + ("；宽体型" if spec.get("bulk") else ""))
+        pimg = canvas(32, 32)
+        pimg.paste(img.resize((24, 24), Image.NEAREST), (4, 2))
+        for i in range(32):
+            px(pimg, i, 31, C("#2a3444"))
+            px(pimg, i, 0, C("#5ab0ff"))
+        save(pimg, f"ui/portrait_{hid}.png", f"{name} 选人立绘 32x32",
+             "ui/hero_select.gd _icon(\"portrait_%s\") 卡首行立绘（m4p-ui1/u3 约定）",
+             "同 gen_heroes_m2 头像构造（m2 同构）")
+        n += 1
+    return n
+
+
+def _manifest_splice_m5_hero_rows():
+    """把 m5-t2 SPEC 缺行（14 新英雄 × 站立像/帧表/立绘 42 行）定点拼接进既有 MANIFEST。
+    幂等：逐行查重（同 m2-t27 _manifest_splice_missing_rows 口径），已登记行零重写；
+    锚点=现役最后一张帧表行（hero_assassin_sheet），新行序与 SPEC 一致。"""
+    p = OUT / "MANIFEST.md"
+    text = p.read_text(encoding="utf-8")
+    rows = []
+    for rel, purpose, current, note in SPEC:
+        if not (rel.startswith("characters/hero_") or rel.startswith("ui/portrait_")):
+            continue
+        if f"`{rel}`" in text:
+            continue                      # 幂等：已登记行跳过（重跑零字节漂移）
+        img = Image.open(OUT / rel)
+        rows.append(f"| `{rel}` | {img.width}x{img.height} | {purpose} | {current} | "
+                    f"{note if note else '—'} |")
+    if not rows:
+        return
+    out = []
+    inserted = False
+    for line in text.split("\n"):
+        out.append(line)
+        if line.startswith(M5_SHEET_ANCHOR):
+            out.extend(rows)
+            inserted = True
+    if not inserted:
+        raise RuntimeError("MANIFEST 锚点行缺失: " + M5_SHEET_ANCHOR)
+    p.write_text("\n".join(out), encoding="utf-8")
+
+
+def gen_m5_heroes_scoped():
+    """m5-t2 窄通道入口：20 人帧表（14 新 + 6 现役同参重写零漂移）+ 14 新站立像/立绘
+    + MANIFEST 定点拼接 + 图集幂等重打包（新站立像入包）。不触碰其它子树。"""
+    SPEC.clear()
+    gen_hero_walk_sheets()
+    n_new = gen_hero_standings_m5()
+    _manifest_splice_m5_hero_rows()
+    print(f"[scoped] 行走帧表 {len([s for s in SPEC if s[0].endswith('_sheet.png')])} 张 "
+          f"+ 新英雄站立像/立绘 {n_new}x2 -> {OUT}（MANIFEST 已同步）")
 
 
 ENEMY_SPRITES = {
@@ -2065,6 +2261,12 @@ if __name__ == "__main__":
         _atlas.pack_atlas(OUT)
     elif "--atlas" in _argv.argv[1:]:
         # m2-t37 窄通道：仅重打包图集（additive/idempotent，不触碰任何源图）
+        import gen_art_atlas as _atlas
+        _atlas.pack_atlas(OUT)
+    elif "--heroes-m5" in _argv.argv[1:]:
+        # m5-t2 窄通道：附录 L 14 新英雄三件套（帧表/站立像/立绘）+ MANIFEST 拼接
+        # + 图集幂等重打包（新站立像入包）。禁裸跑全量 main()。
+        gen_m5_heroes_scoped()
         import gen_art_atlas as _atlas
         _atlas.pack_atlas(OUT)
     else:

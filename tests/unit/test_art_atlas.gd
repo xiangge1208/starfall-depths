@@ -16,12 +16,12 @@ const PAGE_RELPATH := "res://art/generated/atlas/"
 const SRC_BASE := "res://art/generated/"
 
 # 区域钉值（确定性 shelf 装箱产物，tools/gen_art_atlas.py 同输入逐字节同输出；
-# 再打包若漂移即失败——保护 atlas 区域映射不悄悄变更。m5-b：六 Boss 专属橙
-# 12 张精灵首次入包（源集合法扩充 → 确定性重排），钉值随之刷新）
+# 再打包若漂移即失败——保护 atlas 区域映射不悄悄变更。m5-t2：附录 L 14 新英雄
+# 站立像首次入包（源集合法扩充 → 确定性重排），钉值随之刷新）
 const PIN_KULI_BUG := "enemies/kuli_bug.png"
-const PIN_KULI_BUG_RECT := Rect2i(42, 94, 16, 16)
+const PIN_KULI_BUG_RECT := Rect2i(322, 94, 16, 16)
 const PIN_BULLET_ENEMY := "projectiles/bullet_enemy.png"
-const PIN_BULLET_ENEMY_RECT := Rect2i(166, 314, 8, 8)
+const PIN_BULLET_ENEMY_RECT := Rect2i(446, 314, 8, 8)
 
 var manifest: Dictionary = {}
 
@@ -81,7 +81,7 @@ func _pow2(v: int) -> bool:
 
 func test_entries_non_empty_and_shapes_integer() -> void:
 	var entries := _entries()
-	assert_int(entries.size()).is_greater(100)   # 世界精灵主力（敌人 48+弹 10+拾取 4+英雄 6…）
+	assert_int(entries.size()).is_greater(100)   # 世界精灵主力（敌人 48+弹 10+拾取 4+英雄 20…）
 	for rel: String in entries:
 		var rect: Array = entries[rel]
 		assert_int(rect.size()).is_equal(4)
@@ -155,14 +155,12 @@ func test_pinned_region_mapping_survives_repack() -> void:
 
 func test_manifest_covers_runtime_world_tables() -> void:
 	# 运行时世界精灵表（ArtLookup）必须全量入图集（新精灵落盘即被生成器扫入，
-	# 表新增而图集缺行 = 契约破坏）
+	# 表新增而图集缺行 = 契约破坏）。m5-t2 起 HERO_TEXTURES 20 键全量断言
+	# （T1 过渡钉 6 键口径随 14 新站立像入包而解除）。
 	var entries := _entries()
 	for id: String in ArtLookup.ENEMY_TEXTURES:
 		assert_bool(entries.has(String(ArtLookup.ENEMY_TEXTURES[id]))).is_true()
-	# M5-T1 过渡口径：HERO_TEXTURES 已登记 20 键，其中 14 新键 png 归 T2 生成、
-	# 图集（tools/gen_art_atlas.py 产物 atlas.json）此阶段尚无对应条目——先钉现役
-	# 6 键全量入图集不回退；T2 落图重打包后恢复全量遍历。
-	for hid: String in ["vanguard", "ranger", "assassin", "engineer", "guardian", "mage"]:
+	for hid: String in ArtLookup.HERO_TEXTURES:
 		assert_bool(entries.has(String(ArtLookup.HERO_TEXTURES[hid]))).is_true()
 	for kind: String in ArtLookup.PICKUP_TEXTURES:
 		assert_bool(entries.has(String(ArtLookup.PICKUP_TEXTURES[kind]))).is_true()
