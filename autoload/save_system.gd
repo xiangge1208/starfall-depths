@@ -432,6 +432,14 @@ func record_boss_first_kill(id: String) -> bool:
 	save_now()
 	return true
 
+## Boss 首杀只读查询（m5-b）：纯读档内名录，不掉标记不落盘（幂等无副作用）。
+## 消费方 = FloorScene 死亡路由：settle_kill_gems（标记型）**之前**捕获「本次是否
+## Boss 首杀」透传掉落链——掉落时点再查标记恒为复杀（settle 先标记后掉落，见
+## floor_scene._on_enemy_died 时序注）。
+func has_boss_first_kill(id: String) -> bool:
+	var arr: Array = data.get("boss_first_kills", [])
+	return arr.has(id)
+
 ## 解锁任务进度读取（m2-t31 v2）：防御性——档内非字典/脏键经 _merge_saved 归一化，
 ## 恒返回 Dictionary（空表 = 全零进度）。CodexSystem._ready 恢复计数器用。
 func unlock_tasks() -> Dictionary:

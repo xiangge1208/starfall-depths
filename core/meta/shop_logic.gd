@@ -140,11 +140,16 @@ static func _roll_rarity(rng: RandomNumberGenerator, floor_idx: int, source := "
 
 ## 稀有度桶：表内该稀有度、未被 exclude 的 id 集（字典序，保证确定性）；
 ## melee_only（m3-fix1 试炼近战洗礼）再过滤 category=="melee"。
+## m5-b：boss_exclusive 行（Boss 专属橙）恒跳过——不进任何通用掉落池/商店
+## （获取途径唯一 = Boss 行 boss_drop 首杀/复杀掉落台；行同时 locked 不在
+## GameDB.weapons，本过滤兜 grant_to_pool/回退装载等未来入池路径）。
 static func _bucket(weapons: Dictionary, rarity: String, exclude: Array[String],
 		melee_only := false) -> Array[String]:
 	var out: Array[String] = []
 	for id: String in weapons:
 		if String(weapons[id].get("rarity", "")) == rarity and not exclude.has(id):
+			if bool(weapons[id].get("boss_exclusive", false)):
+				continue
 			if melee_only and String(weapons[id].get("category", "")) != "melee":
 				continue
 			out.append(id)

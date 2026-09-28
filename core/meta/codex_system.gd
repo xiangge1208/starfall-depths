@@ -141,7 +141,15 @@ func persist_counters() -> void:
 func is_unlocked(weapon_id: String) -> bool:
 	if save_system == null:
 		return false
-	return save_system.unlocked_weapons().has(weapon_id)
+	if save_system.unlocked_weapons().has(weapon_id):
+		return true
+	# m5-b：Boss 专属橙（source_tag 标注、无 unlock_tasks 行）不走任务解锁——
+	# 拾取见集（codex_seen，经 WeaponRig.equip 收口写入）即视为图鉴解锁，否则该
+	# 六行永远「???」与 cond 行的来源标注矛盾。非标注行口径不变（本分支不触发）。
+	if not String(GameDB.weapons_all.get(weapon_id, {}).get("source_tag", "")).is_empty() \
+			and save_system.codex_seen().has(weapon_id):
+		return true
+	return false
 
 
 ## ★熔铸限定（unlock_tasks.forge_only；未知武器 → false）

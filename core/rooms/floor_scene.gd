@@ -115,6 +115,9 @@ const MINIBOSS_POOL: Array[String] = [
 ## 口径不变），真实行路由在 _spawn_real_guest 替换。
 const BOSS_POOL: Array[String] = ["gem_queen", "prism_golem", "frost_widow"]
 const BOSS_FLOOR_ROWS := {1: "vine_colossus", 3: "magma_tyrant"}
+## m5-b Boss 专属橙复杀掉率：行内 boss_drop 武器首杀必掉、复杀按本率掷签
+## （_loot_rng 掷；首杀路径不消费随机数——短路 or 保证判定序列可注入复现）。
+const BOSS_DROP_REPEAT_CHANCE := 0.25
 ## m1-t27 真实嘉宾映射（波次标记 id → 数据行 id）：精英=双刀蜥人（词缀按层递进
 ## §12.3——m2-audit 起覆盖行内固定 swift+berserk，drops weapon+hearts2）、
 ## 垒主=自爆王虫（armored+leech，drops weapon+hearts2）、
@@ -1436,6 +1439,11 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	var kill_kind := String(e.row.get("guest_kind", ""))
 	if kill_kind.is_empty() and String(e.row.get("boss_script", "")) != "":
 		kill_kind = "boss"
+	# m5-b 首杀窗口捕获（必须在 settle 之前）：settle_kill_gems 是**标记型**——先写
+	# boss_first_kills 再返回，掉落时点再查标记恒为复杀。故此处用只读查询
+	# SaveSystem.has_boss_first_kill 捕获「本次是否 Boss 首杀」，作为参数穿透
+	# _spawn_guest_drops/_spawn_drops_now（含 J7 defer 闭包捕获）供 boss_drop 判定。
+	var boss_first_kill := kill_kind == "boss" and not SaveSystem.has_boss_first_kill(enemy_id)
 	RunState.settle_kill_gems(kill_kind, enemy_id)
 	if kill_kind == "boss":
 		AudioMgr.play("crystal_get")   # m4p-w2a：Boss 击杀蓝晶大额入账拍（settle_kill_gems 同拍）
@@ -1451,13 +1459,13 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 	_spawn_frames.erase(e.get_instance_id())
 	if not e.counts_for_wave:
 		# m2-t24：星陨先知为隐藏门波次外嘉宾——死亡仍走行内 drops（3 蓝晶+头目魂），
-		# 但不消费 RoomFlow 波次（不回锁已清房）。
+		# 但不消费 RoomFlow 波次（不回锁已清房）。m5-b：boss_first_kill 同窗口穿透。
 		if String(killed_row.get("id", "")) == "starfall_prophet":
-			_spawn_guest_drops(room, killed_row, death_pos)
+			_spawn_guest_drops(room, killed_row, death_pos, boss_first_kill)
 			AudioMgr.boss_layer(false)   # m2-t24 fix（评审 M-5）：隐藏 Boss 退场 → 恢复生态曲
 		return
 	room.room_flow.notify_killed(notify_id, frame)
-	_spawn_guest_drops(room, killed_row, death_pos)
+	_spawn_guest_drops(room, killed_row, death_pos, boss_first_kill)
 	if room.room_flow.cleared and not room.cleared_emitted:
 		flow.notify_room_cleared(room.room_id)
 		if room.is_challenge:                # m2-t26：紫武器+大量金币必得；灾厄仅本房生效
@@ -1487,25 +1495,40 @@ func _on_enemy_died(e: EnemyBase, room: FloorRoom) -> void:
 ## m1-t27 嘉宾死亡掉落（行内 drops 契约："weapon"=随机武器掉落台（ShopLogic.roll_weapon_id，
 ## loot 盐流确定性），"hearts2"=2 红心）。掉落台复用宝箱的 _build_loot_station（E 拾取换手）。
 ## m2-t24 追加："gems3"=3 蓝晶（RunState 局内蓝晶账）+ "soul"=头目魂（纯叙事贴花，无战斗奖励数值）。
+## m5-b 追加："boss_drop"（行内武器 id，m2 起 boss 行专属）=Boss 专属橙掉落——首杀必掉、
+## 复杀按 BOSS_DROP_REPEAT_CHANCE 掷签（boss_first_kill 由死亡路由在 settle 标记前捕获穿透，
+## 默认 false 供既有调用方零漂移）；走 _build_loot_station 同通道 + Telemetry loot 行。
 ## J7/D-3c：Boss（boss_script 行）死亡演出链在跑时把掉落生成挂起到导演 loot 段开始
 ## （快进/链接管补发同口径）——规格「战利品延迟 300ms 喷出（视觉聚焦）」，延迟段仍保持
 ## 0.3× 慢速。链缺席（hitstop off/加载失败/前台门外）时 defer 拒绝、同步照旧：掉落内容、
 ## 盐流与判定零改动，只挪表现时机。
-func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> void:
+func _spawn_guest_drops(room: FloorRoom, row: Dictionary, world_pos: Vector2,
+		boss_first_kill := false) -> void:
 	var drops := String(row.get("drops", ""))
-	if drops.is_empty():
+	var boss_drop := String(row.get("boss_drop", ""))
+	if drops.is_empty() and boss_drop.is_empty():
 		return
-	if String(row.get("boss_script", "")) != "" \
-			and Fx.defer_boss_loot(func() -> void: _spawn_drops_now(room, row, world_pos)):
-		return
-	_spawn_drops_now(room, row, world_pos)
+	if String(row.get("boss_script", "")) != "":
+		var deferred := Fx.defer_boss_loot(func() -> void:
+			_spawn_drops_now(room, row, world_pos, boss_first_kill))
+		if deferred:
+			return
+	_spawn_drops_now(room, row, world_pos, boss_first_kill)
 
 
 ## 掉落生成本体（J7/D-3c 前的既有路径，原样保留）。
-func _spawn_drops_now(room: FloorRoom, row: Dictionary, world_pos: Vector2) -> void:
+func _spawn_drops_now(room: FloorRoom, row: Dictionary, world_pos: Vector2,
+		boss_first_kill := false) -> void:
 	var drops := String(row.get("drops", ""))
-	if drops.is_empty():
+	var boss_drop := String(row.get("boss_drop", ""))
+	if drops.is_empty() and boss_drop.is_empty():
 		return
+	# m5-b Boss 专属橙：首杀必掉（不消费随机数）；复杀 _loot_rng 掷签。掉落台走
+	# _build_loot_station 同通道（E 拾取换手 + codex_seen 记账口径不变）。
+	if not boss_drop.is_empty() \
+			and (boss_first_kill or _loot_rng.randf() < BOSS_DROP_REPEAT_CHANCE):
+		Telemetry.log_row(["loot", Engine.get_physics_frames(), boss_drop, "boss_drop"])
+		room.add_child(_build_loot_station(room, world_pos - room.position, boss_drop))
 	if drops.contains("weapon"):
 		var exclude: Array[String] = []
 		# m2-audit：精英房必得武器走 §8.2 精英房奖励行（10/30/35/20/5）；小 Boss

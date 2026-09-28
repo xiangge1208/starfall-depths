@@ -1,21 +1,22 @@
 class_name TestWeaponsPool
 extends GdUnitTestSuite
-## M2-T6 武器池数据卡测试：附录 A 全量 115 把（精确）、稀有度分布逐档精确
-## （附录 A 实际清点：白 9 / 绿 21 / 蓝 36 / 紫 33 / 橙 16 = 115）、4 元素覆盖、
-## id 唯一、逐行 schema v2 校验、紫/橙 49 把默认锁定（locked:true，含 4 把 ★熔铸限定）、
+## M2-T6 武器池数据卡测试：附录 A 全量 121 把（精确；m5-b 六 Boss 专属橙并入）、
+## 稀有度分布逐档精确（实际清点：白 9 / 绿 21 / 蓝 36 / 紫 33 / 橙 22 = 121）、
+## 4 元素覆盖、id 唯一、逐行 schema v2 校验、紫/橙 55 把默认锁定（locked:true，
+## 含 4 把 ★熔铸限定 + 6 把 m5-b Boss 专属橙 boss_exclusive）、
 ## 掉落池出口（GameDB.weapons）排除 locked 而图鉴出口（weapons_all）保留全量。
 ## fresh-instance pattern（同 test_game_db.gd）：不污染 autoload 状态。
 
 const POOL_PATH := "res://data/weapons.json"
-const EXACT_TOTAL := 115
-# 附录 A 实际清点（先数一遍再写死）：白9 绿21 蓝36 紫33 橙16，合计 115
+const EXACT_TOTAL := 121
+# 实际清点（先数一遍再写死）：白9 绿21 蓝36 紫33 橙22（m5-b +6 专属橙），合计 121
 const EXACT_COMMON := 9
 const EXACT_UNCOMMON := 21
 const EXACT_RARE := 36
 const EXACT_EPIC := 33
-const EXACT_LEGEND := 16
-# 附录 A 解锁规则：紫/橙共 49 把默认锁定（图鉴任务解锁后才进掉落池）
-const EXACT_LOCKED := 49
+const EXACT_LEGEND := 22
+# 解锁规则：紫/橙共 55 把默认锁定（图鉴任务解锁后才进掉落池；m5-b 前 49）
+const EXACT_LOCKED := 55
 const MIN_PER_ELEMENT := 2
 # 设计文档 §8「11 类」：手枪/冲锋枪/步枪/霰弹/狙击重炮/激光/法杖/弓弩/投掷/近战/特殊
 const CATEGORIES: Array[String] = [
@@ -56,7 +57,7 @@ func _count_locked() -> int:
 	return n
 
 
-func test_pool_exactly_115() -> void:
+func test_pool_exactly_121() -> void:
 	assert_int(_pool.size()).override_failure_message(
 		"weapons pool has %d rows, want exactly %d" % [_pool.size(), EXACT_TOTAL]) \
 		.is_equal(EXACT_TOTAL)
@@ -86,7 +87,7 @@ func test_every_row_passes_schema_v2() -> void:
 
 
 func test_rarity_distribution_exact() -> void:
-	# 附录 A 实际清点逐档精确断言（白9/绿21/蓝36/紫33/橙16）
+	# 实际清点逐档精确断言（白9/绿21/蓝36/紫33/橙22，m5-b 后）
 	assert_int(_count_by("rarity", "common")).override_failure_message(
 		"common %d want %d" % [_count_by("rarity", "common"), EXACT_COMMON]) \
 		.is_equal(EXACT_COMMON)
@@ -172,7 +173,7 @@ func test_drop_pool_excludes_locked_but_codex_keeps_all() -> void:
 		if not CodexSystem.forge_only(id):
 			poolable_unlocked += 1
 	assert_int(GameDB.weapons.size()).override_failure_message(
-		"drop pool has %d rows, want %d (115 - 49 locked + %d unlocked-poolable)"
+		"drop pool has %d rows, want %d (121 - 55 locked + %d unlocked-poolable)"
 			% [GameDB.weapons.size(), EXACT_TOTAL - EXACT_LOCKED + poolable_unlocked,
 				poolable_unlocked]) \
 		.is_equal(EXACT_TOTAL - EXACT_LOCKED + poolable_unlocked)

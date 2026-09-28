@@ -9,8 +9,12 @@ const WEAPON_SCHEMA := {
 	"element": TYPE_STRING, "is_melee": TYPE_BOOL,
 	"bullet_life": TYPE_FLOAT, "bullet_radius": TYPE_FLOAT, "muzzle": TYPE_FLOAT,
 }
-# 可选键及默认值；locked:TYPE_BOOL（M2-T6）紫/橙默认锁定标记：不进 weapons 掉落池，留在 weapons_all
-const WEAPON_OPTIONAL := {"range": 0, "arc_deg": 0.0, "locked": false}
+# 可选键及默认值；locked:TYPE_BOOL（M2-T6）紫/橙默认锁定标记：不进 weapons 掉落池，留在 weapons_all。
+# m5-b：boss_exclusive（Boss 专属橙标记，ShopLogic._bucket 双保险跳过——行同时 locked
+# 本就不在 GameDB.weapons 池，此键兜 _load_fallback/未来回池路径）+
+# source_tag（图鉴来源标注文案，缺省 "" = 未标注沿用类别小字）。
+const WEAPON_OPTIONAL := {"range": 0, "arc_deg": 0.0, "locked": false,
+	"boss_exclusive": false, "source_tag": ""}
 # 敌人（t10）：required 仅 5 键，其余全部 optional 默认 0
 const ENEMY_SCHEMA := {
 	"id": TYPE_STRING, "name": TYPE_STRING, "archetype": TYPE_STRING,

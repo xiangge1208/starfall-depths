@@ -168,19 +168,31 @@ func test_param_and_goal_are_int() -> void:
 
 
 func test_bidirectional_match_with_weapons_locked_set() -> void:
-	# 双向一致：任务 id 集合 == data/weapons.json 中 locked:true 的武器 id 集合
+	# 双向一致（m5-b 口径演进）：任务 id 集合 ⊆ locked 武器 id 集合；反向由下方
+	# 「无任务 locked 行必为 boss_exclusive 专属行」补偿断言收口。
 	var locked := {}
 	for id: String in GameDB.weapons_all:
 		if bool((GameDB.weapons_all[id] as Dictionary).get("locked", false)):
 			locked[id] = true
-	assert_int(locked.size()).is_equal(49)
+	assert_int(locked.size()).is_equal(55)   # 49 任务武器 + 6 把 m5-b Boss 专属橙
 	for id: String in _rows:
 		assert_bool(locked.has(id)) \
 			.override_failure_message("task %s is not a locked weapon" % id).is_true()
+	# m5-b：locked 无任务的剩余集恰为 boss_exclusive 专属行（获取途径 = Boss 掉落，
+	# 不走图鉴任务解锁、永不经 grant_to_pool 入普通池——池过滤双保险见 ShopLogic._bucket）。
+	var no_task: Array[String] = []
 	for id: String in locked:
-		assert_bool(_rows.has(id)) \
-			.override_failure_message("locked weapon %s has no unlock task" % id).is_true()
-
+		if _rows.has(id):
+			continue
+		no_task.append(id)
+		assert_bool(bool((GameDB.weapons_all[id] as Dictionary).get("boss_exclusive", false))) \
+			.override_failure_message(
+				"locked weapon %s has no unlock task and is not boss-exclusive" % id) \
+			.is_true()
+	no_task.sort()   # contains_exactly 顺序敏感：locked 迭代随 weapons_all 插入序
+	assert_array(no_task).contains_exactly(
+		["fenghoulengci", "jinglenguanchuan", "ronghepenliu",
+			"shuangzhurensi", "shuangziyunxing", "tengmanjiaobian"])
 
 func test_rarity_distribution_33_epic_16_legend() -> void:
 	var epic := 0

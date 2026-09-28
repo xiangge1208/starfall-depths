@@ -90,10 +90,13 @@ func _make_icon(weapon_id: String, unlocked: bool) -> Control:
 	ph.color = Color(0.16, 0.18, 0.22, 1.0)
 	return ph
 
-## 未解锁：条件中文（unlock_tasks.desc）+ 进度；已解锁：类别；未知任务：仅 "未解锁"。
+## 未解锁：条件中文（unlock_tasks.desc）+ 进度；已解锁：来源标注（source_tag，m5-b
+## Boss 掉落等特殊获取途径）优先，缺省回落类别；未知任务：仅 "未解锁"。
 func _cond_text(weapon_id: String, unlocked: bool) -> String:
 	if unlocked:
-		return String(GameDB.weapons_all.get(weapon_id, {}).get("category", ""))
+		var tag := String(GameDB.weapons_all.get(weapon_id, {}).get("source_tag", ""))
+		return tag if not tag.is_empty() \
+			else String(GameDB.weapons_all.get(weapon_id, {}).get("category", ""))
 	if codex_system == null:
 		return "未解锁"
 	var p: Dictionary = codex_system.progress(weapon_id)

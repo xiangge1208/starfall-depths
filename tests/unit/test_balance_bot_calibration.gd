@@ -135,7 +135,8 @@ func test_loot_epic_key_falls_down_not_full_pool() -> void:
 	# 期望分布：stub_c0 ≈ common30+uncommon35 = 65%，stub_r0 ≈ rare22+epic10+legend3 = 35%
 	assert_int(int(hits["stub_r0"])).is_between(50, 90)
 	GameDB.weapons = saved_weapons
-	# 全量表复核（weapons_all 含 locked）：紫 33 + 橙 16 = 49 全 locked（裁定②口径）。
+	# 全量表复核（weapons_all 含 locked）：紫 33 + 橙 16+6(m5-b Boss 专属) = 55 全 locked
+	# （裁定②口径；m5-b 后 115→121，6 把 Boss 专属橙同为 legend/locked 不进池）。
 	var locked_epic := 0
 	var locked := 0
 	for wid: String in GameDB.weapons_all:
@@ -144,8 +145,8 @@ func test_loot_epic_key_falls_down_not_full_pool() -> void:
 			locked += 1
 			if String(row.get("rarity", "")) == "epic":
 				locked_epic += 1
-	assert_int(GameDB.weapons_all.size()).is_equal(115)
-	assert_int(locked).is_equal(49)
+	assert_int(GameDB.weapons_all.size()).is_equal(121)
+	assert_int(locked).is_equal(55)
 	assert_int(locked_epic).is_equal(33)
 
 

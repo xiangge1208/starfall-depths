@@ -156,7 +156,7 @@ func test_drop_pool_excludes_locked_by_default() -> void:
 		.override_failure_message("non-locked weapon missing from pool").is_true()
 	assert_bool(GameDB.drop_pool().has("yahuozhe")) \
 		.override_failure_message("locked weapon leaked into pool").is_false()
-	assert_int(GameDB.drop_pool().size()).is_equal(66)   # 115 − 49 locked
+	assert_int(GameDB.drop_pool().size()).is_equal(66)   # 121 − 55 locked（m5-b 后 66 不变：6 把专属橙同为 locked）
 
 
 func test_unlocked_non_forge_enters_drop_pool() -> void:
@@ -230,11 +230,12 @@ func test_on_floor_entered_triggers_check_unlocks() -> void:
 
 # ---- 图鉴 UI（数据驱动断言） ----
 
-func test_codex_scene_builds_115_cells() -> void:
+func test_codex_scene_builds_121_cells() -> void:
+	# m5-b：weapons_all 115→121（6 Boss 专属橙入图鉴全量展示）
 	var ui: Control = auto_free((load(CODEX_SCENE) as PackedScene).instantiate())
 	ui.codex_system = _cs("ui115")
 	add_child(ui)
-	assert_int(ui.cell_count()).is_equal(115)
+	assert_int(ui.cell_count()).is_equal(121)
 
 
 func test_codex_cell_states_unlocked_vs_locked() -> void:
@@ -261,7 +262,7 @@ func test_codex_summary_counts_unlocked() -> void:
 	var ui: Control = auto_free((load(CODEX_SCENE) as PackedScene).instantiate())
 	ui.codex_system = cs
 	add_child(ui)
-	assert_str(ui.summary_text()).contains("1 / 115")
+	assert_str(ui.summary_text()).contains("1 / 121")
 
 
 # ================================================================ m2-t31 计数器持久化（存档 v2 对接）

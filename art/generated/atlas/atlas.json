@@ -1,5 +1,5 @@
 {
- "count": 329,
+ "count": 341,
  "entries": {
   "characters/hero_assassin.png": [
    90,
@@ -386,14 +386,14 @@
    24
   ],
   "fx/fx_muzzle.png": [
-   354,
-   294,
+   94,
+   314,
    8,
    8
   ],
   "fx/fx_puff.png": [
-   366,
-   294,
+   106,
+   314,
    8,
    8
   ],
@@ -416,8 +416,8 @@
    16
   ],
   "fx/reticle.png": [
-   378,
-   294,
+   118,
+   314,
    8,
    8
   ],
@@ -488,109 +488,109 @@
    16
   ],
   "fx/trial_medal.png": [
-   322,
-   294,
+   62,
+   314,
    12,
    12
   ],
   "pickups/coin.png": [
-   390,
-   294,
+   130,
+   314,
    8,
    8
   ],
   "pickups/energy.png": [
-   402,
-   294,
+   142,
+   314,
    8,
    8
   ],
   "pickups/heart.png": [
-   414,
-   294,
+   154,
+   314,
    8,
    8
   ],
   "pickups/weapon_crate.png": [
-   338,
-   294,
+   78,
+   314,
    12,
    12
   ],
   "projectiles/bullet_enemy.png": [
-   426,
-   294,
+   166,
+   314,
    8,
    8
   ],
   "projectiles/bullet_enemy_crit.png": [
-   438,
-   294,
+   178,
+   314,
    8,
    8
   ],
   "projectiles/bullet_player.png": [
-   450,
-   294,
+   190,
+   314,
    8,
    8
   ],
   "projectiles/bullet_player_crit.png": [
-   462,
-   294,
+   202,
+   314,
    8,
    8
   ],
   "projectiles/elem_fire.png": [
-   474,
-   294,
+   214,
+   314,
    8,
    8
   ],
   "projectiles/elem_fire_enemy.png": [
-   486,
-   294,
+   226,
+   314,
    8,
    8
   ],
   "projectiles/elem_ice.png": [
-   498,
-   294,
+   238,
+   314,
    8,
    8
   ],
   "projectiles/elem_ice_enemy.png": [
-   2,
+   250,
    314,
    8,
    8
   ],
   "projectiles/elem_poison.png": [
-   14,
+   262,
    314,
    8,
    8
   ],
   "projectiles/elem_poison_enemy.png": [
-   26,
+   274,
    314,
    8,
    8
   ],
   "projectiles/elem_shock.png": [
-   38,
+   286,
    314,
    8,
    8
   ],
   "projectiles/elem_shock_enemy.png": [
-   50,
+   298,
    314,
    8,
    8
   ],
   "projectiles/laser_seg.png": [
-   62,
+   310,
    314,
    16,
    6
@@ -763,1215 +763,1287 @@
    16,
    16
   ],
-  "ui/weapons/fengqun.png": [
+  "ui/weapons/fenghoulengci.png": [
    282,
+   134,
+   16,
+   16
+  ],
+  "ui/weapons/fengqun.png": [
+   302,
    134,
    16,
    16
   ],
   "ui/weapons/fenliejian.png": [
-   302,
+   322,
    134,
    16,
    16
   ],
   "ui/weapons/fenshenxinhaotan.png": [
-   322,
+   342,
    134,
    16,
    16
   ],
   "ui/weapons/guanchuanzhe.png": [
-   342,
+   362,
    134,
    16,
    16
   ],
   "ui/weapons/guangjian.png": [
-   362,
+   382,
    134,
    16,
    16
   ],
   "ui/weapons/guanglengshoudian.png": [
-   382,
+   402,
    134,
    16,
    16
   ],
   "ui/weapons/guanri.png": [
-   402,
+   422,
    134,
    16,
    16
   ],
   "ui/weapons/guanxinggong.png": [
-   422,
+   442,
    134,
    16,
    16
   ],
   "ui/weapons/guidaobiaojiqi.png": [
-   442,
+   462,
    134,
    16,
    16
   ],
   "ui/weapons/heidongfashengqi.png": [
-   462,
+   482,
    134,
    16,
    16
   ],
   "ui/weapons/hudunfashengqi.png": [
-   482,
-   134,
+   2,
+   154,
    16,
    16
   ],
   "ui/weapons/huixuanbiao.png": [
-   2,
+   22,
    154,
    16,
    16
   ],
   "ui/weapons/huixuanrengong.png": [
-   22,
+   42,
    154,
    16,
    16
   ],
   "ui/weapons/huoqiuzhang.png": [
-   42,
+   62,
    154,
    16,
    16
   ],
   "ui/weapons/huoshenzhongpao.png": [
-   62,
+   82,
    154,
    16,
    16
   ],
   "ui/weapons/jiaoju.png": [
-   82,
+   102,
    154,
    16,
    16
   ],
   "ui/weapons/jingjizhang.png": [
-   102,
+   122,
+   154,
+   16,
+   16
+  ],
+  "ui/weapons/jinglenguanchuan.png": [
+   142,
    154,
    16,
    16
   ],
   "ui/weapons/jingmianzhang.png": [
-   122,
+   162,
    154,
    16,
    16
   ],
   "ui/weapons/jishulei.png": [
-   142,
+   182,
    154,
    16,
    16
   ],
   "ui/weapons/kuileiling.png": [
-   162,
+   202,
    154,
    16,
    16
   ],
   "ui/weapons/lanshan.png": [
-   182,
+   222,
    154,
    16,
    16
   ],
   "ui/weapons/lantuhanqiang.png": [
-   202,
+   242,
    154,
    16,
    16
   ],
   "ui/weapons/laobing.png": [
-   222,
+   262,
    154,
    16,
    16
   ],
   "ui/weapons/laohuoji.png": [
-   242,
+   282,
    154,
    16,
    16
   ],
   "ui/weapons/leilianzhang.png": [
-   262,
+   302,
    154,
    16,
    16
   ],
   "ui/weapons/leimingnu.png": [
-   282,
+   322,
    154,
    16,
    16
   ],
   "ui/weapons/leishenzhichui.png": [
-   302,
+   342,
    154,
    16,
    16
   ],
   "ui/weapons/lengjingquanzhang.png": [
-   322,
+   362,
    154,
    16,
    16
   ],
   "ui/weapons/lianchui.png": [
-   342,
+   382,
    154,
    16,
    16
   ],
   "ui/weapons/liannu.png": [
-   362,
+   402,
    154,
    16,
    16
   ],
   "ui/weapons/liedizhe.png": [
-   382,
+   422,
    154,
    16,
    16
   ],
   "ui/weapons/liefengchanggong.png": [
-   402,
+   442,
    154,
    16,
    16
   ],
   "ui/weapons/lieluren.png": [
-   422,
+   462,
    154,
    16,
    16
   ],
   "ui/weapons/liexiong.png": [
-   442,
+   482,
    154,
    16,
    16
   ],
   "ui/weapons/lieyanjian.png": [
-   462,
-   154,
+   2,
+   174,
    16,
    16
   ],
   "ui/weapons/liuhuang.png": [
-   482,
-   154,
+   22,
+   174,
    16,
    16
   ],
   "ui/weapons/longxi.png": [
-   2,
+   42,
    174,
    16,
    16
   ],
   "ui/weapons/maodingqiang.png": [
-   22,
+   62,
    174,
    16,
    16
   ],
   "ui/weapons/pojixuanding.png": [
-   42,
+   82,
    174,
    16,
    16
   ],
   "ui/weapons/qianguan.png": [
-   62,
+   102,
    174,
    16,
    16
   ],
   "ui/weapons/qiegezhe.png": [
-   82,
+   122,
    174,
    16,
    16
   ],
   "ui/weapons/ranshaodanlian.png": [
-   102,
+   142,
    174,
    16,
    16
   ],
   "ui/weapons/ranshaoping.png": [
-   122,
+   162,
    174,
    16,
    16
   ],
   "ui/weapons/rongduanjiguang.png": [
-   142,
+   182,
+   174,
+   16,
+   16
+  ],
+  "ui/weapons/ronghepenliu.png": [
+   202,
    174,
    16,
    16
   ],
   "ui/weapons/ronghuoshouqiang.png": [
-   162,
+   222,
    174,
    16,
    16
   ],
   "ui/weapons/sandianjungui.png": [
-   182,
+   242,
    174,
    16,
    16
   ],
   "ui/weapons/shenkong.png": [
-   202,
+   262,
    174,
    16,
    16
   ],
   "ui/weapons/shenpanzhe.png": [
-   222,
+   282,
    174,
    16,
    16
   ],
   "ui/weapons/shenpanzhiri.png": [
-   242,
+   302,
    174,
    16,
    16
   ],
   "ui/weapons/shezhezhe.png": [
-   262,
+   322,
    174,
    16,
    16
   ],
   "ui/weapons/shijianshalou.png": [
-   282,
+   342,
    174,
    16,
    16
   ],
   "ui/weapons/shoulei.png": [
-   302,
+   362,
    174,
    16,
    16
   ],
   "ui/weapons/shuangbi.png": [
-   322,
+   382,
    174,
    16,
    16
   ],
   "ui/weapons/shuangchixuanfeng.png": [
-   342,
+   402,
    174,
    16,
    16
   ],
   "ui/weapons/shuangguanliyi.png": [
-   362,
+   422,
    174,
    16,
    16
   ],
   "ui/weapons/shuangya.png": [
-   382,
+   442,
+   174,
+   16,
+   16
+  ],
+  "ui/weapons/shuangzhurensi.png": [
+   462,
    174,
    16,
    16
   ],
   "ui/weapons/shuangzixing.png": [
-   402,
-   174,
-   16,
-   16
-  ],
-  "ui/weapons/suijingpao.png": [
-   422,
-   174,
-   16,
-   16
-  ],
-  "ui/weapons/tanshexian.png": [
-   442,
-   174,
-   16,
-   16
-  ],
-  "ui/weapons/tantiaokuwu.png": [
-   462,
-   174,
-   16,
-   16
-  ],
-  "ui/weapons/tiejian.png": [
    482,
    174,
    16,
    16
   ],
-  "ui/weapons/weixiubi.png": [
+  "ui/weapons/shuangziyunxing.png": [
    2,
+   194,
+   16,
+   16
+  ],
+  "ui/weapons/suijingpao.png": [
+   22,
+   194,
+   16,
+   16
+  ],
+  "ui/weapons/tanshexian.png": [
+   42,
+   194,
+   16,
+   16
+  ],
+  "ui/weapons/tantiaokuwu.png": [
+   62,
+   194,
+   16,
+   16
+  ],
+  "ui/weapons/tengmanjiaobian.png": [
+   82,
+   194,
+   16,
+   16
+  ],
+  "ui/weapons/tiejian.png": [
+   102,
+   194,
+   16,
+   16
+  ],
+  "ui/weapons/weixiubi.png": [
+   122,
    194,
    16,
    16
   ],
   "ui/weapons/wulianbao.png": [
-   22,
+   142,
    194,
    16,
    16
   ],
   "ui/weapons/wurenjimujian.png": [
-   42,
+   162,
    194,
    16,
    16
   ],
   "ui/weapons/xiangweirenguang.png": [
-   62,
+   182,
    194,
    16,
    16
   ],
   "ui/weapons/xinggui.png": [
-   82,
+   202,
    194,
    16,
    16
   ],
   "ui/weapons/xingheliudan.png": [
-   102,
+   222,
    194,
    16,
    16
   ],
   "ui/weapons/xinghuizhang.png": [
-   122,
+   242,
    194,
    16,
    16
   ],
   "ui/weapons/xingxie.png": [
-   142,
+   262,
    194,
    16,
    16
   ],
   "ui/weapons/xingyunpao.png": [
-   162,
+   282,
    194,
    16,
    16
   ],
   "ui/weapons/xuetufazhang.png": [
-   182,
+   302,
    194,
    16,
    16
   ],
   "ui/weapons/xuewenci.png": [
-   202,
+   322,
    194,
    16,
    16
   ],
   "ui/weapons/xunxiang.png": [
-   222,
+   342,
    194,
    16,
    16
   ],
   "ui/weapons/yahuozhe.png": [
-   242,
+   362,
    194,
    16,
    16
   ],
   "ui/weapons/yamiehexin.png": [
-   262,
+   382,
    194,
    16,
    16
   ],
   "ui/weapons/yaniemhaojiao.png": [
-   282,
+   402,
    194,
    16,
    16
   ],
   "ui/weapons/yingwan.png": [
-   302,
+   422,
    194,
    16,
    16
   ],
   "ui/weapons/yinsuizhui.png": [
-   322,
+   442,
    194,
    16,
    16
   ],
   "ui/weapons/yunshizhang.png": [
-   342,
+   462,
    194,
    16,
    16
   ],
   "ui/weapons/zhanhaoqingxiao.png": [
-   362,
+   482,
    194,
    16,
    16
   ],
   "ui/weapons/zhanjiandao.png": [
-   382,
-   194,
+   2,
+   214,
    16,
    16
   ],
   "ui/weapons/zhishibuqiang.png": [
-   402,
-   194,
+   22,
+   214,
    16,
    16
   ],
   "ui/weapons/zhongyanjicu.png": [
-   422,
-   194,
+   42,
+   214,
    16,
    16
   ],
   "ui/weapons/zhongyanzhizhang.png": [
-   442,
-   194,
+   62,
+   214,
    16,
    16
   ],
   "ui/weapons/zhuixingdajian.png": [
-   462,
-   194,
+   82,
+   214,
    16,
    16
   ],
   "ui/weapons/zhusi.png": [
-   482,
-   194,
+   102,
+   214,
    16,
    16
   ],
   "ui/weapons/zuolunzhengwu.png": [
-   2,
+   122,
    214,
    16,
    16
   ],
   "weapons/baoliejian.png": [
-   22,
+   142,
    214,
    16,
    16
   ],
   "weapons/bingdonglei.png": [
-   42,
+   162,
    214,
    16,
    16
   ],
   "weapons/bingjian.png": [
-   62,
+   182,
    214,
    16,
    16
   ],
   "weapons/bingjingshexian.png": [
-   82,
+   202,
    214,
    16,
    16
   ],
   "weapons/bingshuangjujian.png": [
-   102,
+   222,
    214,
    16,
    16
   ],
   "weapons/bingzhuiji.png": [
-   122,
+   242,
    214,
    16,
    16
   ],
   "weapons/bingzhuizhang.png": [
-   142,
+   262,
    214,
    16,
    16
   ],
   "weapons/caihongfashengqi.png": [
-   162,
+   282,
    214,
    16,
    16
   ],
   "weapons/caijue.png": [
-   182,
+   302,
    214,
    16,
    16
   ],
   "weapons/changfeng.png": [
-   202,
+   322,
    214,
    16,
    16
   ],
   "weapons/changqiang.png": [
-   222,
+   342,
    214,
    16,
    16
   ],
   "weapons/chuanlengjing.png": [
-   242,
+   362,
    214,
    16,
    16
   ],
   "weapons/chuansongbiaoqiang.png": [
-   262,
+   382,
    214,
    16,
    16
   ],
   "weapons/cibao.png": [
-   282,
+   402,
    214,
    16,
    16
   ],
   "weapons/cilishoutao.png": [
-   302,
+   422,
    214,
    16,
    16
   ],
   "weapons/dianciguidao.png": [
-   322,
+   442,
    214,
    16,
    16
   ],
   "weapons/diancimaichonglei.png": [
-   342,
+   462,
    214,
    16,
    16
   ],
   "weapons/dianhubian.png": [
-   362,
+   482,
    214,
    16,
    16
   ],
   "weapons/dianque.png": [
-   382,
-   214,
+   2,
+   234,
    16,
    16
   ],
   "weapons/donghehe.png": [
-   402,
-   214,
+   22,
+   234,
    16,
    16
   ],
   "weapons/duangong.png": [
-   422,
-   214,
+   42,
+   234,
    16,
    16
   ],
   "weapons/duantoutai.png": [
-   442,
-   214,
+   62,
+   234,
    16,
    16
   ],
   "weapons/dujian.png": [
-   462,
-   214,
+   82,
+   234,
    16,
    16
   ],
   "weapons/duqiguan.png": [
-   482,
-   214,
+   102,
+   234,
    16,
    16
   ],
   "weapons/duyaduanren.png": [
-   2,
+   122,
    234,
    16,
    16
   ],
   "weapons/duyepensa.png": [
-   22,
+   142,
    234,
    16,
    16
   ],
   "weapons/duyunzhang.png": [
-   42,
+   162,
    234,
    16,
    16
   ],
   "weapons/fengci.png": [
-   62,
+   182,
+   234,
+   16,
+   16
+  ],
+  "weapons/fenghoulengci.png": [
+   202,
    234,
    16,
    16
   ],
   "weapons/fengqun.png": [
-   82,
+   222,
    234,
    16,
    16
   ],
   "weapons/fenliejian.png": [
-   102,
+   242,
    234,
    16,
    16
   ],
   "weapons/fenshenxinhaotan.png": [
-   122,
+   262,
    234,
    16,
    16
   ],
   "weapons/guanchuanzhe.png": [
-   142,
+   282,
    234,
    16,
    16
   ],
   "weapons/guangjian.png": [
-   162,
+   302,
    234,
    16,
    16
   ],
   "weapons/guanglengshoudian.png": [
-   182,
+   322,
    234,
    16,
    16
   ],
   "weapons/guanri.png": [
-   202,
+   342,
    234,
    16,
    16
   ],
   "weapons/guanxinggong.png": [
-   222,
+   362,
    234,
    16,
    16
   ],
   "weapons/guidaobiaojiqi.png": [
-   242,
+   382,
    234,
    16,
    16
   ],
   "weapons/heidongfashengqi.png": [
-   262,
+   402,
    234,
    16,
    16
   ],
   "weapons/hudunfashengqi.png": [
-   282,
+   422,
    234,
    16,
    16
   ],
   "weapons/huixuanbiao.png": [
-   302,
+   442,
    234,
    16,
    16
   ],
   "weapons/huixuanrengong.png": [
-   322,
+   462,
    234,
    16,
    16
   ],
   "weapons/huoqiuzhang.png": [
-   342,
+   482,
    234,
    16,
    16
   ],
   "weapons/huoshenzhongpao.png": [
-   362,
-   234,
+   2,
+   254,
    16,
    16
   ],
   "weapons/jiaoju.png": [
-   382,
-   234,
+   22,
+   254,
    16,
    16
   ],
   "weapons/jingjizhang.png": [
-   402,
-   234,
+   42,
+   254,
+   16,
+   16
+  ],
+  "weapons/jinglenguanchuan.png": [
+   62,
+   254,
    16,
    16
   ],
   "weapons/jingmianzhang.png": [
-   422,
-   234,
+   82,
+   254,
    16,
    16
   ],
   "weapons/jishulei.png": [
-   442,
-   234,
+   102,
+   254,
    16,
    16
   ],
   "weapons/kuileiling.png": [
-   462,
-   234,
+   122,
+   254,
    16,
    16
   ],
   "weapons/lanshan.png": [
-   482,
-   234,
+   142,
+   254,
    16,
    16
   ],
   "weapons/lantuhanqiang.png": [
-   2,
+   162,
    254,
    16,
    16
   ],
   "weapons/laobing.png": [
-   22,
+   182,
    254,
    16,
    16
   ],
   "weapons/laohuoji.png": [
-   42,
+   202,
    254,
    16,
    16
   ],
   "weapons/leilianzhang.png": [
-   62,
+   222,
    254,
    16,
    16
   ],
   "weapons/leimingnu.png": [
-   82,
+   242,
    254,
    16,
    16
   ],
   "weapons/leishenzhichui.png": [
-   102,
+   262,
    254,
    16,
    16
   ],
   "weapons/lengjingquanzhang.png": [
-   122,
+   282,
    254,
    16,
    16
   ],
   "weapons/lianchui.png": [
-   142,
+   302,
    254,
    16,
    16
   ],
   "weapons/liannu.png": [
-   162,
+   322,
    254,
    16,
    16
   ],
   "weapons/liedizhe.png": [
-   182,
+   342,
    254,
    16,
    16
   ],
   "weapons/liefengchanggong.png": [
-   202,
+   362,
    254,
    16,
    16
   ],
   "weapons/lieluren.png": [
-   222,
+   382,
    254,
    16,
    16
   ],
   "weapons/liexiong.png": [
-   242,
+   402,
    254,
    16,
    16
   ],
   "weapons/lieyanjian.png": [
-   262,
+   422,
    254,
    16,
    16
   ],
   "weapons/liuhuang.png": [
-   282,
+   442,
    254,
    16,
    16
   ],
   "weapons/longxi.png": [
-   302,
+   462,
    254,
    16,
    16
   ],
   "weapons/maodingqiang.png": [
-   322,
+   482,
    254,
    16,
    16
   ],
   "weapons/pojixuanding.png": [
-   342,
-   254,
+   2,
+   274,
    16,
    16
   ],
   "weapons/qianguan.png": [
-   362,
-   254,
+   22,
+   274,
    16,
    16
   ],
   "weapons/qiegezhe.png": [
-   382,
-   254,
+   42,
+   274,
    16,
    16
   ],
   "weapons/ranshaodanlian.png": [
-   402,
-   254,
+   62,
+   274,
    16,
    16
   ],
   "weapons/ranshaoping.png": [
-   422,
-   254,
+   82,
+   274,
    16,
    16
   ],
   "weapons/rongduanjiguang.png": [
-   442,
-   254,
+   102,
+   274,
+   16,
+   16
+  ],
+  "weapons/ronghepenliu.png": [
+   122,
+   274,
    16,
    16
   ],
   "weapons/ronghuoshouqiang.png": [
-   462,
-   254,
+   142,
+   274,
    16,
    16
   ],
   "weapons/sandianjungui.png": [
-   482,
-   254,
+   162,
+   274,
    16,
    16
   ],
   "weapons/shenkong.png": [
-   2,
+   182,
    274,
    16,
    16
   ],
   "weapons/shenpanzhe.png": [
-   22,
+   202,
    274,
    16,
    16
   ],
   "weapons/shenpanzhiri.png": [
-   42,
+   222,
    274,
    16,
    16
   ],
   "weapons/shezhezhe.png": [
-   62,
+   242,
    274,
    16,
    16
   ],
   "weapons/shijianshalou.png": [
-   82,
+   262,
    274,
    16,
    16
   ],
   "weapons/shoulei.png": [
-   102,
+   282,
    274,
    16,
    16
   ],
   "weapons/shuangbi.png": [
-   122,
+   302,
    274,
    16,
    16
   ],
   "weapons/shuangchixuanfeng.png": [
-   142,
-   274,
-   16,
-   16
-  ],
-  "weapons/shuangguanliyi.png": [
-   162,
-   274,
-   16,
-   16
-  ],
-  "weapons/shuangya.png": [
-   182,
-   274,
-   16,
-   16
-  ],
-  "weapons/shuangzixing.png": [
-   202,
-   274,
-   16,
-   16
-  ],
-  "weapons/suijingpao.png": [
-   222,
-   274,
-   16,
-   16
-  ],
-  "weapons/tanshexian.png": [
-   242,
-   274,
-   16,
-   16
-  ],
-  "weapons/tantiaokuwu.png": [
-   262,
-   274,
-   16,
-   16
-  ],
-  "weapons/tiejian.png": [
-   282,
-   274,
-   16,
-   16
-  ],
-  "weapons/weixiubi.png": [
-   302,
-   274,
-   16,
-   16
-  ],
-  "weapons/wulianbao.png": [
    322,
    274,
    16,
    16
   ],
-  "weapons/wurenjimujian.png": [
+  "weapons/shuangguanliyi.png": [
    342,
    274,
    16,
    16
   ],
-  "weapons/xiangweirenguang.png": [
+  "weapons/shuangya.png": [
    362,
    274,
    16,
    16
   ],
-  "weapons/xinggui.png": [
+  "weapons/shuangzhurensi.png": [
    382,
    274,
    16,
    16
   ],
-  "weapons/xingheliudan.png": [
+  "weapons/shuangzixing.png": [
    402,
    274,
    16,
    16
   ],
-  "weapons/xinghuizhang.png": [
+  "weapons/shuangziyunxing.png": [
    422,
    274,
    16,
    16
   ],
-  "weapons/xingxie.png": [
+  "weapons/suijingpao.png": [
    442,
    274,
    16,
    16
   ],
-  "weapons/xingyunpao.png": [
+  "weapons/tanshexian.png": [
    462,
    274,
    16,
    16
   ],
-  "weapons/xuetufazhang.png": [
+  "weapons/tantiaokuwu.png": [
    482,
    274,
    16,
    16
   ],
-  "weapons/xuewenci.png": [
+  "weapons/tengmanjiaobian.png": [
    2,
    294,
    16,
    16
   ],
-  "weapons/xunxiang.png": [
+  "weapons/tiejian.png": [
    22,
    294,
    16,
    16
   ],
-  "weapons/yahuozhe.png": [
+  "weapons/weixiubi.png": [
    42,
    294,
    16,
    16
   ],
-  "weapons/yamiehexin.png": [
+  "weapons/wulianbao.png": [
    62,
    294,
    16,
    16
   ],
-  "weapons/yaniemhaojiao.png": [
+  "weapons/wurenjimujian.png": [
    82,
    294,
    16,
    16
   ],
-  "weapons/yingwan.png": [
+  "weapons/xiangweirenguang.png": [
    102,
    294,
    16,
    16
   ],
-  "weapons/yinsuizhui.png": [
+  "weapons/xinggui.png": [
    122,
    294,
    16,
    16
   ],
-  "weapons/yunshizhang.png": [
+  "weapons/xingheliudan.png": [
    142,
    294,
    16,
    16
   ],
-  "weapons/zhanhaoqingxiao.png": [
+  "weapons/xinghuizhang.png": [
    162,
    294,
    16,
    16
   ],
-  "weapons/zhanjiandao.png": [
+  "weapons/xingxie.png": [
    182,
    294,
    16,
    16
   ],
-  "weapons/zhishibuqiang.png": [
+  "weapons/xingyunpao.png": [
    202,
    294,
    16,
    16
   ],
-  "weapons/zhongyanjicu.png": [
+  "weapons/xuetufazhang.png": [
    222,
    294,
    16,
    16
   ],
-  "weapons/zhongyanzhizhang.png": [
+  "weapons/xuewenci.png": [
    242,
    294,
    16,
    16
   ],
-  "weapons/zhuixingdajian.png": [
+  "weapons/xunxiang.png": [
    262,
    294,
    16,
    16
   ],
-  "weapons/zhusi.png": [
+  "weapons/yahuozhe.png": [
    282,
    294,
    16,
    16
   ],
-  "weapons/zuolunzhengwu.png": [
+  "weapons/yamiehexin.png": [
    302,
    294,
+   16,
+   16
+  ],
+  "weapons/yaniemhaojiao.png": [
+   322,
+   294,
+   16,
+   16
+  ],
+  "weapons/yingwan.png": [
+   342,
+   294,
+   16,
+   16
+  ],
+  "weapons/yinsuizhui.png": [
+   362,
+   294,
+   16,
+   16
+  ],
+  "weapons/yunshizhang.png": [
+   382,
+   294,
+   16,
+   16
+  ],
+  "weapons/zhanhaoqingxiao.png": [
+   402,
+   294,
+   16,
+   16
+  ],
+  "weapons/zhanjiandao.png": [
+   422,
+   294,
+   16,
+   16
+  ],
+  "weapons/zhishibuqiang.png": [
+   442,
+   294,
+   16,
+   16
+  ],
+  "weapons/zhongyanjicu.png": [
+   462,
+   294,
+   16,
+   16
+  ],
+  "weapons/zhongyanzhizhang.png": [
+   482,
+   294,
+   16,
+   16
+  ],
+  "weapons/zhuixingdajian.png": [
+   2,
+   314,
+   16,
+   16
+  ],
+  "weapons/zhusi.png": [
+   22,
+   314,
+   16,
+   16
+  ],
+  "weapons/zuolunzhengwu.png": [
+   42,
+   314,
    16,
    16
   ]
