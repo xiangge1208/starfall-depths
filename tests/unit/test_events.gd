@@ -1,7 +1,7 @@
 class_name TestEvents
 extends GdUnitTestSuite
-## m1-t19 事件房（4 选 1）契约测试。
-## 1) open_random_event 确定性（注入 rng：同 seed 同事件）+ 合法 id + 4 id 全覆盖
+## m1-t19 事件房契约测试（m5-f 池扩为 5 选 1）。
+## 1) open_random_event 确定性（注入 rng：同 seed 同事件）+ 合法 id + 全 id 覆盖
 ## 2) 神秘商人：仅 hp > 2 时可用 2 HP 交易（绕盾）+ 随机饮料效果经 apply_effect
 ##    接缝落地（spy）；hp=1/2 fail-closed，面板保持可拒绝且不发成功信号/奖励；
 ##    无接缝时默认 _apply_effect 落地（hp_max 路径实证）
@@ -85,8 +85,9 @@ func test_open_random_event_always_returns_valid_id() -> void:
 		assert_bool(EventRoom.EVENT_IDS.has(room.open_random_event())).is_true()
 
 
-func test_open_random_event_covers_all_four_ids() -> void:
-	# 200 抽全缺席任一 id 的概率 ~4×(3/4)^200 ≈ 0——覆盖性 sanity
+func test_open_random_event_covers_all_five_ids() -> void:
+	# m5-f 池扩为 5 选 1（按证据改期望：EVENT_IDS 追加 mercenary）。
+	# 200 抽全缺席任一 id 的概率 ~5×(4/5)^200 ≈ 0——覆盖性 sanity
 	var root: Node2D = auto_free(Node2D.new())
 	add_child(root)
 	var seen := {}
@@ -95,7 +96,7 @@ func test_open_random_event_covers_all_four_ids() -> void:
 		root.add_child(room)
 		room.setup(auto_free(Player.new()), _rng(i * 7919))
 		seen[room.open_random_event()] = true
-	assert_int(seen.size()).is_equal(4)
+	assert_int(seen.size()).is_equal(5)
 
 
 func test_open_event_unknown_id_rejected() -> void:
