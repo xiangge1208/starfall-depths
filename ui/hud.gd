@@ -163,6 +163,9 @@ static func attachment_suffix(w: Dictionary) -> String:
 		var row := GameDB.get_attachment(aid)
 		if not row.is_empty():
 			tag += String(row.get("name", "")).substr(0, 1)
+	var lvl := int(w.get("up_level", 0))
+	if lvl > 0:
+		tag += "+%d" % lvl   # m5-e：升级台级数角标（「老伙计·锐+2」式）
 	return "" if tag.is_empty() else "·" + tag
 
 ## Buff 中文缩写：中文名前 2 字（tooltip 走全名）；表外 id / 空值原样回显。
