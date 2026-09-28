@@ -344,6 +344,22 @@ def sfx_turret_place():
     b.save("sfx/turret_place.wav", "炮台部署", "工程师·铆 技能/被动")
 
 
+def sfx_time_dilation():
+    # m5-t3 时空·隙「时缓域」：下行长滑音 + 低频嗡鸣（时间被拖慢的听感）
+    b = Buf(0.5)
+    b.mix(slide(900, 300, 0.45, sine), 0.45)
+    b.mix(lambda t: sine(75, t) * env(t, 0.45, 0.05, 0.2), 0.35)
+    b.save("sfx/time_dilation.wav", "时缓域施放（时空·隙技能）", "时空·隙 skill 时缓域")
+
+
+def sfx_vial_throw():
+    # m5-t3 炼金·汞「投瓶」：短促上抛滑音 + 落地闷响（玻璃瓶掷出）
+    b = Buf(0.22)
+    b.mix(slide(500, 900, 0.12, tri), 0.4)
+    b.mix(lambda t: sine(160, t) * env(t, 0.08, 0.002, 0.06), 0.45, delay=0.13)
+    b.save("sfx/vial_throw.wav", "投瓶掷出（炼金·汞技能）", "炼金·汞 skill 投瓶")
+
+
 def sfx_turret_shot():
     b = Buf(0.04)
     b.mix(slide(1600, 1100, 0.035, square), 0.35)
@@ -660,6 +676,8 @@ def main():
     sfx_freeze()
     sfx_nova()
     sfx_turret_place()
+    sfx_time_dilation()
+    sfx_vial_throw()
     sfx_turret_shot()
     sfx_missile()
     sfx_heal_tide()

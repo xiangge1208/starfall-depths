@@ -58,6 +58,8 @@ const KEYS := [
 	# m4p-w2a：设施/交互/UI。
 	"door_lock", "room_clear", "drink", "forge", "empty", "ui_buy", "ui_error",
 	"unlock", "buff_pick",
+	# m5-t3：时空·隙「时缓域」施放 / 炼金·汞「投瓶」掷瓶（技能 sfx，constraint 17）。
+	"time_dilation", "vial_throw",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。
