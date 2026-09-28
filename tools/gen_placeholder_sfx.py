@@ -443,6 +443,22 @@ def sfx_fuse_beep():
     b.save("sfx/fuse_beep.wav", "自爆引信倒计时哔声", "苦力虫/自爆王虫 fuse（配 fx/fuse_zone）")
 
 
+def sfx_bloodbath():
+    b = Buf(0.45)
+    b.mix(slide(70, 180, 0.35, saw), 0.8)
+    b.mix(burst(0.4, 0.7, 34), 0.5)
+    b.mix(lambda t: square(440, t) * env(t, 0.12, 0.005, 0.08), 0.3, delay=0.3)
+    b.save("sfx/bloodbath.wav", "破釜（狂战士·烈技能，血怒爆发）", "berserk_bloodbath.gd 施放拍（M5-T4）")
+
+
+def sfx_sacrifice():
+    b = Buf(0.4)
+    for i, f in enumerate((784, 587, 392)):
+        b.mix(lambda t, f=f: tri(f, t) * env(t, 0.16, 0.01, 0.1), 0.4, delay=i * 0.11)
+    b.mix(burst(0.3, 0.4, 35), 0.3)
+    b.save("sfx/sacrifice.wav", "献祭（术士·蚀技能，血蓝转换）", "warlock_sacrifice.gd 施放拍（M5-T4）")
+
+
 def music_crystal():
     """A2 晶核洞穴 BGM：冷色调慢琶音（Dm-Am-Bb-F），三角波+正弦垫。"""
     dur, bpm = 9.6, 96
@@ -638,7 +654,9 @@ def write_manifest():
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     SPEC.clear()
-    for p in OUT.rglob("*.wav"):
+    # 仅清 sfx/（本脚本产出域）。music/ 归 gen_placeholder_music.py 所有——历史上
+    # rglob 全删曾连带吞掉 music_garden.wav（M5-T4 踩坑修复），不得跨域清理。
+    for p in (OUT / "sfx").rglob("*.wav"):
         p.unlink()
     sfx_shoot_player()
     sfx_shoot_enemy()
@@ -690,6 +708,8 @@ def main():
     sfx_crystal_get()
     sfx_unlock()
     sfx_fuse_beep()
+    sfx_bloodbath()
+    sfx_sacrifice()
     music_menu()
     music_battle()
     music_crystal()
