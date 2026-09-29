@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""M4-B4 蓝晶经济模拟器（GDD §14.3 三点带判定）。
+"""M4-B4 蓝晶经济模拟器（GDD §14.3 三点带判定）+ M5-T11 扩展判定。
 
 任务卡：docs/superpowers/plans/2026-09-02-m4-v1-completion.md「Task B-4」①。
+M5-T11 扩展：docs/superpowers/plans/2026-09-07-m5-hero-roster-20.md「T11」
+  - 技能强化 sink 30k（1500/名 × 20，生产消费端 SaveSystem.buy_skill_upgrade
+    已于 m5-d 落地——原「纸面锚点无消费端」披露作废）；
+  - 免费裁定（2026-09-07 用户裁定：20 名角色全部免费开放，GDD §6 解锁价格行
+    作废、无解锁购买流）→ P1 节奏判定转为「不适用」，保留计算值作历史对照；
+  - 三档扫参新增两点：P4 天赋满点（10k）/ P5 强化满充（30k）时长带判定
+    （带为 T11 预声明工作锚点，非 GDD 数字——披露；非阻塞，约束 13 例外走用户）。
 
 模型策略（防虚假精度，计划明文）：
   产出侧以 §14.1 规则的**生产代码解析值**为主——FLOOR_GEMS/KILL_GEMS/
   BOSS_FIRST_KILL_GEMS 从 autoload/run_state.gd 正则读点（勿手抄）；成就蓝晶
   从 core/meta/achievement_system.gd 解析（id/gems/active）；天赋成本从
   data/talents.json 实值；图鉴任务从 data/unlock_tasks.json 实值；Boss 数从
-  data/enemies.json（archetype=="boss"）实值。bot 局 gems_curve（--bot-json）
-  只作悲观档校准与模型对照，不作主口径。
+  data/enemies.json（archetype=="boss"）实值；强化单价从 autoload/save_system.gd
+  SKILL_UPGRADE_COST 读点、名册数从 data/heroes.json 行数读点。bot 局
+  gems_curve（--bot-json）只作悲观档校准与模型对照，不作主口径。
   生产实现口径差异（模型按实现建模，差异在报告披露）：
     - F3 Boss 死亡直接胜利（inter_floor_flow.gd VICTORY_FLOOR=3 跳过 DOOR），
       「通过第 3 层」的 +200 永不结算 → 胜利局过层蓝晶上限 60+120=180；
@@ -23,9 +31,9 @@
   - 乐观档：熟练上限（胜率曲线上沿 + 快节奏局）。
 三点判定按区间结论汇报而非单点。
 
-消费侧=实值：天赋树 data/talents.json 24 条总成本（唯一在产消费端）；角色解锁
-2000/2000/5000/5000/8000 与技能强化 1500/名 为 GDD §6 纸面锚点（数据表无价格
-字段、产品无购买消费端——报告披露，不入数据读点）。
+消费侧=实值：天赋树 data/talents.json 24 条总成本（唯一在产消费端）；技能强化
+1500/名 × 20（生产消费端 m5-d buy_skill_upgrade）；角色解锁按裁定①免费（无
+购买流，GDD 价格仅历史锚点保留）。
 
 三点判定（每点「带内/出带」）：
   P1 2~3h 解锁第 1 角色（最便宜锚点 2000，带 [2,3]h）
@@ -92,6 +100,14 @@ REVISION_WINDOW = 0.20          # Global Constraint 11：数值修订 ≤±20%
 
 HORIZON_H = 20.0                # 模拟时域（覆盖 P2/P3 判定点）
 
+# M5-T11 长线 sink 判定（非 GDD 数字——T11 预声明工作锚点，非阻塞，披露）：
+#   P4 天赋满点 10k / P5 天赋 + 20 名强化满充 40k。带取「长线目标」量级：
+#   P4 ≤20h（天赋全点应在首个 20h 目标窗内）、P5 20~60h（全 sink 是长尾收集，
+#   过快 = sink 失效、过慢 = 20 人强化不可及）。
+P4_BAND_H = (0.0, 20.0)
+P5_BAND_H = (20.0, 60.0)
+LONGTAIL_HORIZON_H = 120.0      # P4/P5 长时域（超出即「不达到」）
+
 
 # ---------------------------------------------------------------- 数据读点
 def _read(path: str) -> str:
@@ -138,6 +154,16 @@ def read_talents(repo: str) -> Dict:
 def read_unlock_tasks(repo: str) -> Dict:
     with open(os.path.join(repo, "data", "unlock_tasks.json"), "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def read_skill_upgrade_sink(repo: str) -> Dict:
+    """M5-T11 强化 sink 读点：单价 save_system.gd SKILL_UPGRADE_COST × 名册行数。"""
+    ss = _read(os.path.join(repo, "autoload", "save_system.gd"))
+    m = re.search(r"const SKILL_UPGRADE_COST\s*:?=\s*(\d+)", ss)
+    unit = int(m.group(1)) if m else GDD_HERO_UPGRADE_COST
+    with open(os.path.join(repo, "data", "heroes.json"), "r", encoding="utf-8") as f:
+        roster = len(json.load(f))
+    return {"unit_cost": unit, "roster": roster, "total": unit * roster}
 
 
 def read_boss_count(repo: str) -> int:
@@ -505,6 +531,19 @@ def judge_points(repo: str, bot_json: List[str]) -> Dict:
     for name, tier in tiers.items():
         frac = codex_fraction_at(name, tier, tasks, prod, calib)
         p3[name] = {"fraction_at_20h": frac}
+    # M5-T11 P4 天赋满点 / P5 天赋 + 20 名强化满充（长时域曲线；一次性成就总额按
+    # 长时域摊薄爬坡——不随时域放大，保守）
+    upgrade = read_skill_upgrade_sink(repo)
+    full_sink = talent_total + upgrade["total"]
+    long_curves = {name: simulate(name, tier, prod, ach_total,
+                                  prod["boss_first_kill_gems"], boss_pairs,
+                                  horizon_h=LONGTAIL_HORIZON_H)
+                   for name, tier in tiers.items()}
+    p4 = {}
+    p5 = {}
+    for name, curve in long_curves.items():
+        p4[name] = {"hours": hours_to_reach(curve, talent_total)}
+        p5[name] = {"hours": hours_to_reach(curve, full_sink)}
 
     return {
         "production": prod,
@@ -518,10 +557,14 @@ def judge_points(repo: str, bot_json: List[str]) -> Dict:
                         "cheapest_hero": hero1_price},
         "calibration": calib,
         "curves": {k: v for k, v in curves.items()},
-        "points": {"p1_hero": p1, "p2_talent60": p2, "p3_codex80": p3},
+        "points": {"p1_hero": p1, "p2_talent60": p2, "p3_codex80": p3,
+                   "p4_talent_full": p4, "p5_full_sink": p5},
         "bands": {"p1_hours": list(P1_BAND_H),
                   "p2_hours": list(band_of_reach(P2_TARGET_H, P2_BAND_REL)),
-                  "p3_fraction": list(band_of_reach(0.80, P3_BAND_REL))},
+                  "p3_fraction": list(band_of_reach(0.80, P3_BAND_REL)),
+                  "p4_hours": list(P4_BAND_H), "p5_hours": list(P5_BAND_H)},
+        "m5_sink": {"upgrade": upgrade, "talent_total": talent_total,
+                    "full_sink": full_sink, "horizon_h": LONGTAIL_HORIZON_H},
     }
 
 
@@ -682,9 +725,9 @@ def render_markdown(report: Dict, revision: List[Dict]) -> str:
     L.append("**区间结论**：到达时点区间 %s；主判（目标档）%s。" % (
         ("%s~%s h" % (("%.1f" % min(p1_hours)), ("%.1f" % max(p1_hours)))) if p1_hours else "全部 >20h",
         ("带内" if in_band(pts["p1_hero"]["target"]["hours"] or -1, p1lo, p1hi) else "出带")))
-    L.append("**可交付性披露**：角色解锁价格无数据字段、无购买消费端（`SaveSystem.unlock_hero` 无扣费、"
-             "hero_select 无门槛全开放）——「购买节奏」在产品内不可发生，本点节奏判定按 GDD 纸面锚点计算；"
-             "接线购买端属功能改动（超数据修订窗口），记意向不在本卡执行。")
+    L.append("**M5-T11 裁定更新：本点不适用**——2026-09-07 用户裁定 20 名角色全部免费开放"
+             "（附录 L §7），GDD §6 解锁价格行作废、产品无解锁购买流；上表按历史纸面锚点保留"
+             "计算值仅作对照，不入门禁判定。蓝晶长线消费改由 P4/P5（天赋 + 强化 sink）承担。")
     L.append("")
     p2lo, p2hi = report["bands"]["p2_hours"]
     L.append("### P2 天赋树 60%%（成本 %d，带 %.0f~%.0fh 到达；10h 应达 60%%）"
@@ -724,6 +767,30 @@ def render_markdown(report: Dict, revision: List[Dict]) -> str:
     L.append("")
     L.append("**主导不确定性披露**：P3 的共鸣/熔铸/购买每局速率无遥测读点，为档位假设；"
              "悲观档击杀/时长由 bot 实测锚定但 bot 局时长（速死）与真人不可比，仅作下界。")
+    L.append("")
+    # ---- M5-T11 P4/P5 长线 sink ----
+    sink = report["m5_sink"]
+    up = sink["upgrade"]
+    horizon = sink["horizon_h"]
+    for key, title, thresh, band_key in (
+            ("p4_talent_full", "P4 天赋满点", sink["talent_total"], "p4_hours"),
+            ("p5_full_sink", "P5 天赋 + %d 名强化满充" % up["roster"], sink["full_sink"], "p5_hours")):
+        lo, hi = report["bands"][band_key]
+        L.append("### %s（阈值 %d 蓝晶，工作锚点带 %.0f~%.0fh）" % (title, thresh, lo, hi))
+        L.append("")
+        L.append("| 档 | 到达时点 | 判定 |")
+        L.append("| --- | --- | --- |")
+        for t in tiers:
+            hrs = pts[key][t]["hours"]
+            verdict = "带内" if (hrs is not None and in_band(hrs, lo, hi)) else "出带"
+            L.append("| %s | %s | %s |" % (labels[t],
+                     ("%.1f h" % hrs) if hrs is not None else ">%.0fh（不达到）" % horizon, verdict))
+        L.append("")
+    L.append("**P4/P5 口径披露**：带为 M5-T11 预声明的工作锚点（非 GDD 数字），**非阻塞**；"
+             "强化 sink = %d/名 × %d 名 = %d（`autoload/save_system.gd` SKILL_UPGRADE_COST × "
+             "`data/heroes.json` 行数读点）；长时域 %.0fh 下一次性成就总额按时域摊薄爬坡（保守）。"
+             "出带时数值杆位（产出 run_state.gd / 单价 save_system.gd）均不在本卡所有权，按"
+             "约束 13 交用户裁定。" % (up["unit_cost"], up["roster"], up["total"], horizon))
     L.append("")
     L.append("## 5. 出带修订台账（≤±20% 窗口纪律）")
     L.append("")
@@ -837,6 +904,11 @@ def self_test(repo: str) -> int:
     check("ach_total_4350", sum(a["gems"] for a in achs) == 4350)
     check("boss_count_6", read_boss_count(repo) == 6)
     check("hero1_price_2000", min(GDD_HERO_UNLOCK_PRICES.values()) == 2000)
+    # M5-T11：强化 sink 读点（单价 1500 × 名册 20 = 30000）
+    sink = read_skill_upgrade_sink(repo)
+    check("upgrade_unit_1500", sink["unit_cost"] == 1500)
+    check("roster_20", sink["roster"] == 20)
+    check("upgrade_sink_30000", sink["total"] == 30000)
 
     # 6) 图鉴解锁率纯函数（含 clear_floor_x 分桶 + 边界 cur==goal 解锁）
     tasks = {"a": {"type": "kill_x", "goal": 100},

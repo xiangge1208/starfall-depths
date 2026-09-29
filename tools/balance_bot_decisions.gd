@@ -735,3 +735,18 @@ static func turret_cycle_dps(row: Dictionary) -> Dictionary:
 		"first_shot_ticks": windup,
 		"sustained_dps": snappedf(dps, 0.01),
 	}
+
+
+# ---------------- m5-t11：--hero-list 名单轮转解析（单一事实源） ----------------
+
+## 逗号分隔名单 → 去空白/去空项的英雄 id 列表（顺序保序、不去重——重复项即重复
+## 跑批，属调用方意图）。空/全空输入 → 空数组（调用方回落单 --hero 路径）。
+## GameDB 侧合法性校验不在本函数（decisions 零 autoload 依赖），在
+## balance_bot._parse_user_args 尾段（fail-safe 剔除语义见彼处注释）。
+static func hero_roster(raw: String) -> Array[String]:
+	var out: Array[String] = []
+	for tok: String in raw.split(","):
+		var id := tok.strip_edges()
+		if id != "":
+			out.append(id)
+	return out

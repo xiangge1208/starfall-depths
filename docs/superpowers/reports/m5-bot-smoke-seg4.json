@@ -1,0 +1,4925 @@
+{
+	"aggregate": {
+		"avg_duration_s": 102.7,
+		"ceiling_rate": 0.0,
+		"crashes": 0,
+		"death_hot_rooms": {
+			"F1:boss": 1,
+			"F1:combat": 4,
+			"F1:elite": 3,
+			"F1:miniboss": 7
+		},
+		"deaths": 15,
+		"floor_dur": [],
+		"lifetime": {
+			"boss": {},
+			"elite": {
+				"median_s": 4.0,
+				"n": 84,
+				"p90_s": 20.3
+			},
+			"miniboss": {
+				"median_s": 2.6,
+				"n": 19,
+				"p90_s": 5.9
+			},
+			"minion_a1": {
+				"median_s": 3.3,
+				"n": 454,
+				"p90_s": 7.8
+			},
+			"minion_a2": {},
+			"minion_a3": {}
+		},
+		"median_duration_s": 112.0,
+		"milestones": 0,
+		"prophet_kills": 0,
+		"room_dur": {
+			"combat": {
+				"median_s": 13.4,
+				"n": 65,
+				"p90_s": 24.7
+			},
+			"elite": {
+				"median_s": 27.8,
+				"n": 10,
+				"p90_s": 36.2
+			},
+			"miniboss": {
+				"median_s": 22.6,
+				"n": 1,
+				"p90_s": 22.6
+			}
+		},
+		"runs": 16,
+		"stalls": 1,
+		"timeouts": 0,
+		"ttk": {
+			"boss": {},
+			"elite": {
+				"median_s": 0.9,
+				"n": 79,
+				"p90_s": 12.4
+			},
+			"miniboss": {
+				"median_s": 1.9,
+				"n": 19,
+				"p90_s": 5.5
+			},
+			"minion_a1": {
+				"median_s": 1.5,
+				"n": 426,
+				"p90_s": 4.5
+			},
+			"minion_a2": {},
+			"minion_a3": {}
+		},
+		"win_rate": 0.0,
+		"wins": 0
+	},
+	"calibration": [
+		{
+			"id": "thorn_turret",
+			"kind": "turret_dps",
+			"value": {
+				"cycle_ticks": 160,
+				"first_shot_ticks": 30,
+				"shots_per_cycle": 3,
+				"sustained_dps": 4.5
+			}
+		},
+		{
+			"id": "rock_crystal_turret",
+			"kind": "turret_dps",
+			"value": {
+				"cycle_ticks": 180,
+				"first_shot_ticks": 36,
+				"shots_per_cycle": 1,
+				"sustained_dps": 2.0
+			}
+		},
+		{
+			"id": "lava_turret",
+			"kind": "turret_dps",
+			"value": {
+				"cycle_ticks": 180,
+				"first_shot_ticks": 30,
+				"shots_per_cycle": 5,
+				"sustained_dps": 13.33
+			}
+		},
+		{
+			"id": "forge_cost_ladder",
+			"kind": "forge_cost",
+			"value": {
+				"common": 30,
+				"epic": 235,
+				"legend": 390,
+				"rare": 130,
+				"uncommon": 65
+			}
+		},
+		{
+			"id": "guardian_staff",
+			"kind": "guardian_weapon",
+			"value": {
+				"damage": 4,
+				"rarity": "epic",
+				"rate": 3.0,
+				"weapon": "xinghuizhang"
+			}
+		},
+		{
+			"id": "life_tide_circle",
+			"kind": "tide_heal",
+			"value": {
+				"duration_ticks": 180,
+				"heal_per_tick": 0.5,
+				"instant": 2,
+				"landed_hp": 1,
+				"nominal_hp": 1.5
+			}
+		},
+		{
+			"id": "oracle_economy",
+			"kind": "oracle_gems",
+			"value": {
+				"boss_first_kill": 300,
+				"boss_kill": 50,
+				"covered": false,
+				"in_run_prophet_kills": 0,
+				"prophet_drops_gems3": true,
+				"prophet_hp": 3200,
+				"prophet_on_main": true,
+				"settle_first": 350,
+				"settle_repeat": 50
+			}
+		}
+	],
+	"floor_durations": [],
+	"gems_curve": [
+		{
+			"floor": 1,
+			"frames": 7217,
+			"gems": 5,
+			"hero": "alchemist",
+			"seed": 3205
+		},
+		{
+			"floor": 1,
+			"frames": 1481,
+			"gems": 0,
+			"hero": "alchemist",
+			"seed": 3217
+		},
+		{
+			"floor": 1,
+			"frames": 7621,
+			"gems": 25,
+			"hero": "alchemist",
+			"seed": 3223
+		},
+		{
+			"floor": 1,
+			"frames": 4821,
+			"gems": 0,
+			"hero": "alchemist",
+			"seed": 3230
+		},
+		{
+			"floor": 1,
+			"frames": 7429,
+			"gems": 5,
+			"hero": "gunslinger",
+			"seed": 3205
+		},
+		{
+			"floor": 1,
+			"frames": 15739,
+			"gems": 5,
+			"hero": "gunslinger",
+			"seed": 3217
+		},
+		{
+			"floor": 1,
+			"frames": 8532,
+			"gems": 5,
+			"hero": "gunslinger",
+			"seed": 3223
+		},
+		{
+			"floor": 1,
+			"frames": 6234,
+			"gems": 5,
+			"hero": "gunslinger",
+			"seed": 3230
+		},
+		{
+			"floor": 1,
+			"frames": 6722,
+			"gems": 5,
+			"hero": "bard",
+			"seed": 3205
+		},
+		{
+			"floor": 1,
+			"frames": 933,
+			"gems": 0,
+			"hero": "bard",
+			"seed": 3217
+		},
+		{
+			"floor": 1,
+			"frames": 7525,
+			"gems": 5,
+			"hero": "bard",
+			"seed": 3223
+		},
+		{
+			"floor": 1,
+			"frames": 3062,
+			"gems": 0,
+			"hero": "bard",
+			"seed": 3230
+		},
+		{
+			"floor": 1,
+			"frames": 8466,
+			"gems": 5,
+			"hero": "mirage",
+			"seed": 3205
+		},
+		{
+			"floor": 1,
+			"frames": 2662,
+			"gems": 0,
+			"hero": "mirage",
+			"seed": 3217
+		},
+		{
+			"floor": 1,
+			"frames": 6385,
+			"gems": 5,
+			"hero": "mirage",
+			"seed": 3223
+		},
+		{
+			"floor": 1,
+			"frames": 3804,
+			"gems": 0,
+			"hero": "mirage",
+			"seed": 3230
+		}
+	],
+	"opts": {
+		"hero": "vanguard",
+		"hero_list": "alchemist,gunslinger,bard,mirage",
+		"max_frames_per_run": 32400,
+		"out_json": "docs/superpowers/reports/m5-bot-smoke-seg4.json",
+		"out_md": "docs/superpowers/reports/m5-bot-smoke-seg4.md",
+		"quit_when_done": true,
+		"runs": 10,
+		"save_suffix": "m5smoke4",
+		"seed_base": 2001,
+		"seeds": "3205,3217,3223,3230",
+		"time_scale": 1.0,
+		"trial": ""
+	},
+	"results": [
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 79,
+			"death_cause": "电磁蛛的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "miniboss",
+			"duration_s": 120.3,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 1,
+			"hero": "alchemist",
+			"kills": 48,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 52.1,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 10,
+			"seed": 3205,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 0,
+			"death_cause": "弩兵的弹幕",
+			"death_floor": 1,
+			"death_room_type": "combat",
+			"duration_s": 24.7,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"hero": "alchemist",
+			"kills": 8,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 57.0,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 0,
+			"seed": 3217,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:swift_trigger",
+			"boss_first_kill_eligible": true,
+			"buffs": "swift_trigger",
+			"coins": 120,
+			"death_cause": "藤蔓巨像的巨掌拍击",
+			"death_floor": 1,
+			"death_room_type": "boss",
+			"duration_s": 127.0,
+			"floor": 1,
+			"gems": 25,
+			"hearts": 1,
+			"hero": "alchemist",
+			"kills": 49,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 56.0,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "yingwan",
+			"outcome": "death",
+			"rooms": 11,
+			"seed": 3223,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:resonance_amp",
+			"boss_first_kill_eligible": true,
+			"buffs": "resonance_amp",
+			"coins": 95,
+			"death_cause": "双刀蜥人的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "elite",
+			"duration_s": 80.3,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"hero": "alchemist",
+			"kills": 25,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 54.2,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 3,
+			"seed": 3230,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 115,
+			"death_cause": "电磁蛛的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "miniboss",
+			"duration_s": 123.8,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 1,
+			"hero": "gunslinger",
+			"kills": 48,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 48.7,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 10,
+			"seed": 3205,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 96,
+			"death_cause": "",
+			"death_floor": 0,
+			"death_room_type": "",
+			"duration_s": 262.3,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 1,
+			"hero": "gunslinger",
+			"kills": 30,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 41.7,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "stalled",
+			"rooms": 5,
+			"seed": 3217,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:swift_trigger",
+			"boss_first_kill_eligible": true,
+			"buffs": "swift_trigger",
+			"coins": 139,
+			"death_cause": "石盾武僧的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "miniboss",
+			"duration_s": 142.2,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 0,
+			"hero": "gunslinger",
+			"kills": 48,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 58.1,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 10,
+			"seed": 3223,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:resonance_amp",
+			"boss_first_kill_eligible": true,
+			"buffs": "resonance_amp",
+			"coins": 119,
+			"death_cause": "苦力虫的自爆",
+			"death_floor": 1,
+			"death_room_type": "combat",
+			"duration_s": 103.9,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 0,
+			"hero": "gunslinger",
+			"kills": 29,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 52.7,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 5,
+			"seed": 3230,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 134,
+			"death_cause": "冰蛛的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "miniboss",
+			"duration_s": 112.0,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 1,
+			"hero": "bard",
+			"kills": 49,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 46.8,
+			"obs_hearts_seen": 1,
+			"obs_loot_ids": "bingshuangjujian",
+			"outcome": "death",
+			"rooms": 10,
+			"seed": 3205,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 0,
+			"death_cause": "苦力虫的自爆",
+			"death_floor": 1,
+			"death_room_type": "combat",
+			"duration_s": 15.6,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"hero": "bard",
+			"kills": 7,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 65.7,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 0,
+			"seed": 3217,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:swift_trigger",
+			"boss_first_kill_eligible": true,
+			"buffs": "swift_trigger",
+			"coins": 142,
+			"death_cause": "石盾武僧的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "miniboss",
+			"duration_s": 125.4,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 0,
+			"hero": "bard",
+			"kills": 48,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 51.8,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 10,
+			"seed": 3223,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:resonance_amp",
+			"boss_first_kill_eligible": true,
+			"buffs": "resonance_amp",
+			"coins": 94,
+			"death_cause": "苦力虫的自爆",
+			"death_floor": 1,
+			"death_room_type": "elite",
+			"duration_s": 51.0,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"hero": "bard",
+			"kills": 26,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 61.3,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 3,
+			"seed": 3230,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 156,
+			"death_cause": "电磁蛛的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "miniboss",
+			"duration_s": 141.1,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 0,
+			"hero": "mirage",
+			"kills": 49,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 46.4,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 10,
+			"seed": 3205,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "",
+			"boss_first_kill_eligible": true,
+			"buffs": "",
+			"coins": 95,
+			"death_cause": "苦力虫的自爆",
+			"death_floor": 1,
+			"death_room_type": "combat",
+			"duration_s": 44.4,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"hero": "mirage",
+			"kills": 19,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 71.7,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 3,
+			"seed": 3217,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:swift_trigger",
+			"boss_first_kill_eligible": true,
+			"buffs": "swift_trigger",
+			"coins": 144,
+			"death_cause": "石盾武僧的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "miniboss",
+			"duration_s": 106.4,
+			"floor": 1,
+			"gems": 5,
+			"hearts": 0,
+			"hero": "mirage",
+			"kills": 48,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 54.9,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "yingwan",
+			"outcome": "death",
+			"rooms": 10,
+			"seed": 3223,
+			"trial_date": "",
+			"trial_factors": ""
+		},
+		{
+			"altars": "buff:resonance_amp",
+			"boss_first_kill_eligible": true,
+			"buffs": "resonance_amp",
+			"coins": 29,
+			"death_cause": "藤蔓冲锋者的接触冲撞",
+			"death_floor": 1,
+			"death_room_type": "elite",
+			"duration_s": 63.4,
+			"floor": 1,
+			"gems": 0,
+			"hearts": 0,
+			"hero": "mirage",
+			"kills": 26,
+			"obs_enemy_bullet_speed_avg": 110.0,
+			"obs_enemy_move_speed_avg": 52.3,
+			"obs_hearts_seen": 0,
+			"obs_loot_ids": "",
+			"outcome": "death",
+			"rooms": 3,
+			"seed": 3230,
+			"trial_date": "",
+			"trial_factors": ""
+		}
+	],
+	"room_durations": [
+		{
+			"dur_s": 13.2,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 21.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 13.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 12.4,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 26.9,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 10.8,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 7.5,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 32.0,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 6.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 11.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 5.0,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 17.4,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 9.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 5.5,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 22.6,
+			"floor": 1,
+			"room_type": "miniboss"
+		},
+		{
+			"dur_s": 16.3,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 22.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 24.5,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 13.4,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 20.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 16.9,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 8.8,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 28.0,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 17.0,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 9.9,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 23.5,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 10.2,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 8.0,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 36.2,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 32.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 15.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 17.2,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 14.9,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 27.8,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 16.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 10.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 11.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 35.4,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 19.4,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 32.3,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 13.5,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 23.2,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 11.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 9.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 22.2,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 9.3,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 7.8,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 28.9,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 10.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 16.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 13.9,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 27.3,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 12.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 9.5,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 10.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 18.8,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 13.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 10.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 25.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 15.8,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 9.2,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 38.9,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 16.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 14.1,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 25.8,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 11.6,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 23.2,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 8.4,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 9.0,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 8.0,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 14.8,
+			"floor": 1,
+			"room_type": "elite"
+		},
+		{
+			"dur_s": 6.0,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 6.2,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 10.9,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 24.7,
+			"floor": 1,
+			"room_type": "combat"
+		},
+		{
+			"dur_s": 19.0,
+			"floor": 1,
+			"room_type": "combat"
+		}
+	],
+	"ttk_rows": [
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 6.5,
+			"room_type": "combat",
+			"ttk_s": 5.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.0,
+			"room_type": "combat",
+			"ttk_s": 3.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.6,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.3,
+			"room_type": "combat",
+			"ttk_s": 3.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 1.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.5,
+			"room_type": "combat",
+			"ttk_s": 4.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.9,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 6.4,
+			"room_type": "combat",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 6.8,
+			"room_type": "combat",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.8,
+			"room_type": "combat",
+			"ttk_s": 3.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.7,
+			"room_type": "combat",
+			"ttk_s": 6.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.8,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.5,
+			"room_type": "combat",
+			"ttk_s": 3.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 1.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.4,
+			"room_type": "combat",
+			"ttk_s": 3.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "elite",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "elite",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.5,
+			"room_type": "elite",
+			"ttk_s": 6.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.2,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "elite",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 11.9,
+			"room_type": "elite",
+			"ttk_s": 6.4
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 20.3,
+			"room_type": "elite",
+			"ttk_s": 13.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.5,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 2.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.2,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.6,
+			"room_type": "combat",
+			"ttk_s": 1.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.8,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "miniboss",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.1,
+			"room_type": "miniboss",
+			"ttk_s": 7.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.2,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 6.5,
+			"room_type": "combat",
+			"ttk_s": 5.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.7,
+			"room_type": "combat",
+			"ttk_s": 8.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 6.7,
+			"room_type": "combat",
+			"ttk_s": 2.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.9,
+			"room_type": "combat",
+			"ttk_s": 1.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.2,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.4,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 5.7,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 9.0,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 14.3,
+			"room_type": "combat",
+			"ttk_s": 5.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 5.4,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.6,
+			"room_type": "combat",
+			"ttk_s": 1.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 10.1,
+			"room_type": "combat",
+			"ttk_s": 3.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.1,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.8,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.8,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.8,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 0.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.6,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.3,
+			"room_type": "elite"
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.0,
+			"room_type": "elite"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.3,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.2,
+			"room_type": "elite"
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.9,
+			"room_type": "elite"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 6.6,
+			"room_type": "elite",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 13.0,
+			"room_type": "elite",
+			"ttk_s": 12.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 0.8,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.7,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.4,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.6,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "miniboss",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "miniboss",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "stone_shield_monk",
+			"floor": 1,
+			"lifetime_s": 21.3,
+			"room_type": "miniboss",
+			"ttk_s": 18.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.9,
+			"room_type": "combat",
+			"ttk_s": 3.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.8,
+			"room_type": "combat",
+			"ttk_s": 8.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.5,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.4,
+			"room_type": "combat",
+			"ttk_s": 3.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.5,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 11.9,
+			"room_type": "combat",
+			"ttk_s": 7.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.7,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.9,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.6,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.6,
+			"room_type": "combat",
+			"ttk_s": 1.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 12.4,
+			"room_type": "combat",
+			"ttk_s": 3.2
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.9,
+			"room_type": "combat",
+			"ttk_s": 3.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 12.0,
+			"room_type": "combat",
+			"ttk_s": 5.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "elite",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "elite",
+			"ttk_s": 2.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.5,
+			"room_type": "elite",
+			"ttk_s": 5.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "elite",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 3.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.3,
+			"room_type": "combat",
+			"ttk_s": 7.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.0,
+			"room_type": "combat",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 3.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.0,
+			"room_type": "combat",
+			"ttk_s": 5.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 5.8,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.2,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.9,
+			"room_type": "combat",
+			"ttk_s": 3.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.7,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.9,
+			"room_type": "combat",
+			"ttk_s": 9.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.2,
+			"room_type": "combat",
+			"ttk_s": 0.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.5,
+			"room_type": "combat",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 5.5,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.3,
+			"room_type": "elite",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.4,
+			"room_type": "elite",
+			"ttk_s": 0.2
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 5.7,
+			"room_type": "elite",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 7.5,
+			"room_type": "elite",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 20.4,
+			"room_type": "elite",
+			"ttk_s": 18.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 22.5,
+			"room_type": "elite",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.7,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.0,
+			"room_type": "combat",
+			"ttk_s": 4.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.0,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.0,
+			"room_type": "combat",
+			"ttk_s": 2.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.8,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "miniboss",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "miniboss",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.2,
+			"room_type": "combat",
+			"ttk_s": 4.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.1,
+			"room_type": "combat",
+			"ttk_s": 8.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.3,
+			"room_type": "combat",
+			"ttk_s": 3.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 2.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.0,
+			"room_type": "combat",
+			"ttk_s": 3.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.4,
+			"room_type": "combat",
+			"ttk_s": 1.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.7,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 2.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.6,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "elite",
+			"ttk_s": 0.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.0,
+			"room_type": "elite",
+			"ttk_s": 4.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 12.3,
+			"room_type": "elite",
+			"ttk_s": 4.2
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.5,
+			"room_type": "elite"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.6,
+			"room_type": "elite",
+			"ttk_s": 4.5
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 22.6,
+			"room_type": "elite",
+			"ttk_s": 21.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 23.8,
+			"room_type": "elite",
+			"ttk_s": 14.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.3,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 19.0,
+			"room_type": "combat",
+			"ttk_s": 9.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.9,
+			"room_type": "combat",
+			"ttk_s": 4.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.3,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.1,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.2,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 11.6,
+			"room_type": "combat",
+			"ttk_s": 7.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.7,
+			"room_type": "combat",
+			"ttk_s": 3.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.7,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 12.4,
+			"room_type": "combat",
+			"ttk_s": 3.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 0.2,
+			"room_type": "combat",
+			"ttk_s": 0.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 2.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 11.4,
+			"room_type": "combat",
+			"ttk_s": 6.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.8,
+			"room_type": "elite",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.2,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.1,
+			"room_type": "elite",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "elite",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.1,
+			"room_type": "elite",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 22.6,
+			"room_type": "elite",
+			"ttk_s": 19.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 2.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.1,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "combat",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.0,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.0,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.5,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.4,
+			"room_type": "combat",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.2,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "miniboss",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "miniboss",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 3.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.9,
+			"room_type": "combat",
+			"ttk_s": 6.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.6,
+			"room_type": "combat",
+			"ttk_s": 2.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.5,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.9,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 12.8,
+			"room_type": "combat",
+			"ttk_s": 4.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 6.6,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 7.8,
+			"room_type": "combat",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 6.5,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 14.7,
+			"room_type": "combat",
+			"ttk_s": 7.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 14.4,
+			"room_type": "combat",
+			"ttk_s": 7.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "elite",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "elite",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.0,
+			"room_type": "elite",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.7,
+			"room_type": "elite",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "elite",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 9.3,
+			"room_type": "elite",
+			"ttk_s": 2.6
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 25.2,
+			"room_type": "elite",
+			"ttk_s": 21.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 4.5,
+			"room_type": "combat",
+			"ttk_s": 4.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 3.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 5.2
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.8,
+			"room_type": "combat",
+			"ttk_s": 3.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.1,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.1,
+			"room_type": "combat",
+			"ttk_s": 4.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 6.7,
+			"room_type": "combat",
+			"ttk_s": 4.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 7.3,
+			"room_type": "combat",
+			"ttk_s": 4.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 2.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 10.7,
+			"room_type": "combat",
+			"ttk_s": 7.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.9,
+			"room_type": "combat",
+			"ttk_s": 3.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.3,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.9,
+			"room_type": "combat",
+			"ttk_s": 3.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 1.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "elite",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.6,
+			"room_type": "elite",
+			"ttk_s": 3.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.7,
+			"room_type": "elite",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 11.8,
+			"room_type": "elite",
+			"ttk_s": 10.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 12.9,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 13.9,
+			"room_type": "elite",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 16.4,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.7,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 3.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.7,
+			"room_type": "combat",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.6,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 1.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.0,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.9,
+			"room_type": "combat",
+			"ttk_s": 1.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 4.3,
+			"room_type": "combat",
+			"ttk_s": 4.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "miniboss",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.8,
+			"room_type": "miniboss",
+			"ttk_s": 5.5
+		},
+		{
+			"enemy_id": "ice_spider",
+			"floor": 1,
+			"lifetime_s": 5.9,
+			"room_type": "miniboss",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.9,
+			"room_type": "combat",
+			"ttk_s": 4.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.8,
+			"room_type": "combat",
+			"ttk_s": 7.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.4,
+			"room_type": "combat",
+			"ttk_s": 3.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.1,
+			"room_type": "combat",
+			"ttk_s": 5.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.6,
+			"room_type": "combat",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.0,
+			"room_type": "combat",
+			"ttk_s": 4.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 11.2,
+			"room_type": "combat",
+			"ttk_s": 4.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.2,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.8,
+			"room_type": "combat",
+			"ttk_s": 3.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.0,
+			"room_type": "combat",
+			"ttk_s": 3.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 4.3,
+			"room_type": "combat",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.5,
+			"room_type": "combat",
+			"ttk_s": 2.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.2,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 2.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.5,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.9,
+			"room_type": "combat",
+			"ttk_s": 3.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.5,
+			"room_type": "combat",
+			"ttk_s": 6.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.5,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 3.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 4.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.1,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 8.5,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "elite",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.7,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.6,
+			"room_type": "elite",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.2,
+			"room_type": "elite",
+			"ttk_s": 1.2
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 6.7,
+			"room_type": "elite",
+			"ttk_s": 5.2
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 21.6,
+			"room_type": "elite",
+			"ttk_s": 19.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.0,
+			"room_type": "combat",
+			"ttk_s": 4.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 1.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.6,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.8,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 3.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 3.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "miniboss",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "miniboss",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.5,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "combat",
+			"ttk_s": 2.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.6,
+			"room_type": "combat",
+			"ttk_s": 4.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.1,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.0,
+			"room_type": "combat",
+			"ttk_s": 3.3
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.5,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.8,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.9,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.4,
+			"room_type": "combat",
+			"ttk_s": 4.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.0,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 2.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.2,
+			"room_type": "combat",
+			"ttk_s": 1.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.3,
+			"room_type": "combat",
+			"ttk_s": 3.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 2.9,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 3.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "elite",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "elite",
+			"ttk_s": 2.3
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "elite",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 1.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.8,
+			"room_type": "combat",
+			"ttk_s": 3.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.3,
+			"room_type": "combat",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 10.3,
+			"room_type": "combat",
+			"ttk_s": 4.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.5,
+			"room_type": "combat",
+			"ttk_s": 4.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.3,
+			"room_type": "combat",
+			"ttk_s": 5.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 7.8,
+			"room_type": "combat",
+			"ttk_s": 4.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 9.6,
+			"room_type": "combat",
+			"ttk_s": 2.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.8,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.6,
+			"room_type": "combat",
+			"ttk_s": 4.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.9,
+			"room_type": "combat",
+			"ttk_s": 2.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.8,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 1.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.9,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.7,
+			"room_type": "combat",
+			"ttk_s": 0.2
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 3.4
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.6,
+			"room_type": "elite",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.5,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.2,
+			"room_type": "elite",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "elite",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 11.7,
+			"room_type": "elite",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 12.2,
+			"room_type": "elite",
+			"ttk_s": 5.8
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 30.6,
+			"room_type": "elite",
+			"ttk_s": 26.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.9,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 3.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.4,
+			"room_type": "combat",
+			"ttk_s": 4.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.0,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 1.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.6,
+			"room_type": "combat",
+			"ttk_s": 3.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.4,
+			"room_type": "combat",
+			"ttk_s": 2.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.6,
+			"room_type": "combat",
+			"ttk_s": 4.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 0.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.1,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.5,
+			"room_type": "combat",
+			"ttk_s": 5.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "miniboss",
+			"ttk_s": 1.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.4,
+			"room_type": "miniboss",
+			"ttk_s": 2.7
+		},
+		{
+			"enemy_id": "ice_spider",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "miniboss",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.2,
+			"room_type": "combat",
+			"ttk_s": 3.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 9.2,
+			"room_type": "combat",
+			"ttk_s": 9.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.8,
+			"room_type": "combat",
+			"ttk_s": 5.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.5,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.6,
+			"room_type": "combat",
+			"ttk_s": 4.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.3,
+			"room_type": "combat",
+			"ttk_s": 1.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.8,
+			"room_type": "combat",
+			"ttk_s": 3.0
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 4.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.2,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 1.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.2,
+			"room_type": "combat",
+			"ttk_s": 4.7
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.8,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 1.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.9,
+			"room_type": "combat",
+			"ttk_s": 5.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.8,
+			"room_type": "combat",
+			"ttk_s": 3.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.8,
+			"room_type": "combat",
+			"ttk_s": 3.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 4.0,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 7.4,
+			"room_type": "combat",
+			"ttk_s": 6.9
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.5,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.0,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 2.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 2.8
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.2,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 2.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.6,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 2.5,
+			"room_type": "combat",
+			"ttk_s": 2.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "combat",
+			"ttk_s": 2.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.7,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.4,
+			"room_type": "combat",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.2,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "elite",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.1,
+			"room_type": "elite",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.0,
+			"room_type": "elite",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "elite",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.8,
+			"room_type": "elite",
+			"ttk_s": 0.3
+		},
+		{
+			"enemy_id": "shuangdao_lizardman",
+			"floor": 1,
+			"lifetime_s": 11.7,
+			"room_type": "elite",
+			"ttk_s": 9.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 0.7,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 0.2
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 1.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "combat",
+			"ttk_s": 1.4
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.0,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.8,
+			"room_type": "combat",
+			"ttk_s": 0.2
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.1,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 3.3,
+			"room_type": "combat",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.6,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.3,
+			"room_type": "combat",
+			"ttk_s": 0.2
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 2.9,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 0.6,
+			"room_type": "miniboss",
+			"ttk_s": 0.5
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 2.0,
+			"room_type": "miniboss",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat"
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 4.4,
+			"room_type": "combat",
+			"ttk_s": 4.3
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 3.2,
+			"room_type": "combat",
+			"ttk_s": 1.5
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.5,
+			"room_type": "combat",
+			"ttk_s": 3.1
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 6.5,
+			"room_type": "combat",
+			"ttk_s": 5.8
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.9,
+			"room_type": "combat",
+			"ttk_s": 1.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 4.6,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 10.5,
+			"room_type": "combat",
+			"ttk_s": 10.1
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.2,
+			"room_type": "combat",
+			"ttk_s": 0.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.5,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.3,
+			"room_type": "combat",
+			"ttk_s": 3.6
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 1.4,
+			"room_type": "combat",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.9,
+			"room_type": "combat",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.7,
+			"room_type": "combat",
+			"ttk_s": 4.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 1.3,
+			"room_type": "combat",
+			"ttk_s": 1.0
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 7.0,
+			"room_type": "combat",
+			"ttk_s": 2.9
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 8.9,
+			"room_type": "combat",
+			"ttk_s": 8.3
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 4.3,
+			"room_type": "combat",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "vine_charger",
+			"floor": 1,
+			"lifetime_s": 5.9,
+			"room_type": "combat",
+			"ttk_s": 2.6
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 10.0,
+			"room_type": "combat",
+			"ttk_s": 3.3
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 0.9,
+			"room_type": "elite",
+			"ttk_s": 0.9
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "elite",
+			"ttk_s": 0.8
+		},
+		{
+			"enemy_id": "crossbowman",
+			"floor": 1,
+			"lifetime_s": 5.2,
+			"room_type": "elite",
+			"ttk_s": 2.5
+		},
+		{
+			"enemy_id": "kuli_bug",
+			"floor": 1,
+			"lifetime_s": 2.1,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		},
+		{
+			"enemy_id": "cave_bat",
+			"floor": 1,
+			"lifetime_s": 3.7,
+			"room_type": "elite",
+			"ttk_s": 0.7
+		}
+	],
+	"turret_intake": {}
+}

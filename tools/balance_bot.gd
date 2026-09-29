@@ -49,6 +49,9 @@ extends Node
 ##       --save-suffix=<s>（m4-b3 并行隔离档；缺省共享 save_headless.json 行为不变）
 ##       --hero=<id>（m4-c2 最小参数：GameDB.heroes 英雄 id，缺省 vanguard 行为逐字节不变；
 ##       仅替换 start_run/start_trial_run 的英雄注入点）
+##       --hero-list=<a,b,c>（m5-t11 名单轮转：每个英雄 × 种子列表全矩阵——20 人
+##       冒烟按 5 进程 × 4 人分组，进程内共享一个 --save-suffix，逐局 row 带 hero
+##       字段供分组归因；与 --hero 同给时以 hero-list 为准）
 ##       M3-B1 试炼因子局：--trial=YYYY-MM-DD（基日期；第 i 局业务日=基日期+i 天，
 ##       经生产 start_trial_run 注入当日因子对——因子对随局递增以扩覆盖度）
 ## 一键挂载：tools/run_balance.cmd（10 局 + 报告落 docs/superpowers/reports/）。
@@ -148,6 +151,11 @@ var opts := {
 	"seed_base": 2001,
 	"hero": "vanguard",                  # m4-c2 最小 --hero 参数（缺省 vanguard 零漂移；
 	                                     #   仅英雄注入点变化）
+	"hero_list": "",                     # m5-t11：名单轮转 "a,b,c"（非空时逐英雄 × 种子
+	                                     #   全矩阵展开；单一事实源解析在
+	                                     #   BalanceBotDecisions.hero_roster，校验在
+	                                     #   _parse_user_args——非法 id 报错剔除，全空回落
+	                                     #   vanguard，同 --hero 的 fail-safe 语义）
 	"seeds": "",                         # m3-fix1：定向种子列表 "a,b,c"（非空时优先于
 	                                     #   runs/seed_base）——B-1 停滞种子定向复跑等用途
 	"save_suffix": "",                   # m4-b3：save 隔离后缀（信息性记录；实际重定向
@@ -168,6 +176,8 @@ var opts := {
 var results: Array[Dictionary] = []      # 每局：seed/outcome/floor/rooms/kills/duration_s/...
 var aggregate := {}                      # 汇总（结局分布/TTK 分位/死亡热房/崩溃数）
 var gems_curve: Array[Dictionary] = []   # {seed, floor, gems, frames} 层末/终局采样
+var _run_total := 0                      # m5-t11：轮转矩阵总局数（hero_list × 种子；进度打印）
+var _cur_hero := ""                      # m5-t11：当前局英雄 id（逐局 row/gems_curve 归因）
 var turret_intake := {}                  # source_id -> {dmg, first, last}（bot 实吃炮台伤）
 var prophet_kills := 0                   # 星陨先知对局击杀数（⑥动态半边覆盖度）
 
@@ -298,6 +308,11 @@ func _run_all() -> void:
 	else:
 		for i in int(opts["runs"]):
 			seed_list.append(int(opts["seed_base"]) + i)
+	# m5-t11：--hero-list 名单轮转（每个英雄 × 种子列表全矩阵；空 = 单 --hero 原路径）。
+	var hero_list := BalanceBotDecisions.hero_roster(String(opts["hero_list"]))
+	if hero_list.is_empty():
+		hero_list = [String(opts["hero"])]
+	_run_total = hero_list.size() * seed_list.size()
 	# m3-fix2 探针：每种子自动展开 N 次尝试（敌 AI 相位非确定性 → 单次尝试停滞
 	# 不保证复现，B-2 复跑实证 seed 3221 转正常死亡）；已取证种子跳过后续尝试。
 	if _probe:
@@ -310,17 +325,18 @@ func _run_all() -> void:
 	var timeouts := 0
 	var stalls := 0
 	var skipped := 0
-	for seed_value in seed_list:
-		if _probe and _probe_captured.has(seed_value):
-			skipped += 1
-			continue
-		var outcome := await _run_one(seed_value)
-		if outcome == "crash":
-			crashes += 1
-		elif outcome == "timeout":
-			timeouts += 1
-		elif outcome == "stalled":
-			stalls += 1
+	for hero_id in hero_list:
+		for seed_value in seed_list:
+			if _probe and _probe_captured.has(seed_value):
+				skipped += 1
+				continue
+			var outcome := await _run_one(seed_value, hero_id)
+			if outcome == "crash":
+				crashes += 1
+			elif outcome == "timeout":
+				timeouts += 1
+			elif outcome == "stalled":
+				stalls += 1
 	aggregate = _aggregate(crashes)
 	aggregate["stalls"] = stalls
 	_write_outputs()
@@ -346,8 +362,9 @@ func _arm_watchdog() -> void:
 		get_tree().quit(2))
 
 
-func _run_one(seed: int) -> String:
+func _run_one(seed: int, hero_id: String) -> String:
 	_cur_seed = seed
+	_cur_hero = hero_id
 	_reset_run_state(seed)
 	_probe_run_reset(seed)
 	_arm_watchdog()
@@ -355,12 +372,12 @@ func _run_one(seed: int) -> String:
 		# M3-B1 因子局注入口：生产 start_trial_run 单点（mods+SALT_TRIAL 抽取链）。
 		# 随后种子仍被批次种子覆写（布局采样；与生产同日同布局的偏离见报告披露）。
 		var tdate := _trial_date(seed - int(opts["seed_base"]))
-		RunState.start_trial_run(String(opts["hero"]), tdate)   # m4-c2：--hero 注入（缺省 vanguard 零漂移）
+		RunState.start_trial_run(hero_id, tdate)   # m4-c2：--hero 注入（缺省 vanguard 零漂移）
 		print("BALANCE-BOT TRIAL seed=%d date=%s factors=%s mods=%s" % [
 			seed, tdate, ",".join(RunState.trial_factors),
 			",".join(RunState.mods.keys())])
 	else:
-		RunState.start_run(String(opts["hero"]))   # m4-c2：--hero 注入（缺省 vanguard 零漂移）
+		RunState.start_run(hero_id)                # m4-c2：--hero 注入（缺省 vanguard 零漂移）
 	RunState.run_seed = seed                 # 种子覆写（口径披露：start_run 的墙钟
 	RngSvc.setup_run(seed)                   # 种子被确定性种子替换，其余状态不变）
 	_run_root = RUN_ROOT_SCENE.instantiate()
@@ -419,8 +436,8 @@ func _run_one(seed: int) -> String:
 			var prog_player: Player = _run_root.player
 			if prog_player != null and is_instance_valid(prog_player):
 				prog_hp = prog_player.hp
-			print("BOT-PROG seed=%d t=%.0fs floor=%d rooms=%d kills=%d hp=%d" % [
-				seed, float(RunState.run_time_frames) / 60.0, RunState.floor_idx,
+			print("BOT-PROG hero=%s seed=%d t=%.0fs floor=%d rooms=%d kills=%d hp=%d" % [
+				_cur_hero, seed, float(RunState.run_time_frames) / 60.0, RunState.floor_idx,
 				RunState.rooms_cleared, RunState.kills, prog_hp])
 		if _won:
 			outcome = "win"
@@ -439,6 +456,7 @@ func _run_one(seed: int) -> String:
 	var boss_kills: Array = SaveSystem.data.get("boss_first_kills", [])
 	var row := {
 		"seed": seed,
+		"hero": hero_id,                     # m5-t11：轮转逐局归因（单 --hero 时同样记录）
 		"outcome": outcome,
 		"floor": RunState.floor_idx,
 		"rooms": RunState.rooms_cleared,
@@ -462,8 +480,8 @@ func _run_one(seed: int) -> String:
 	}
 	results.append(row)
 	_write_outputs()                         # M3-B1 逐局落盘：批被中断时保留已完成局
-	print("BALANCE-BOT RUN %d/%d: seed=%d outcome=%s floor=%d rooms=%d kills=%d dur=%.1fs coins=%d gems=%d hearts=%d death=%s(%s)" % [
-		results.size(), int(opts["runs"]), seed, outcome, RunState.floor_idx, RunState.rooms_cleared,
+	print("BALANCE-BOT RUN %d/%d: hero=%s seed=%d outcome=%s floor=%d rooms=%d kills=%d dur=%.1fs coins=%d gems=%d hearts=%d death=%s(%s)" % [
+		results.size(), _run_total, hero_id, seed, outcome, RunState.floor_idx, RunState.rooms_cleared,
 		RunState.kills, float(RunState.run_time_frames) / 60.0, RunState.coins, RunState.gems,
 		_hearts_bought, String(row["death_cause"]), String(row["death_room_type"])])
 	if _run_root != null and is_instance_valid(_run_root):
@@ -1790,7 +1808,9 @@ func _close_floor_duration() -> void:
 
 func _record_gems_sample(floor_idx: int) -> void:
 	gems_curve.append({
-		"seed": int(opts["seed_base"]) + results.size(),
+		"seed": _cur_seed,                   # m5-t11：实际局种子（旧式 seed_base+index 在
+		                                     #   定向种子/轮转下与逐局对不上）
+		"hero": _cur_hero,                   # m5-t11：轮转逐局归因
 		"floor": floor_idx,
 		"gems": RunState.gems,
 		"frames": RunState.run_time_frames,
@@ -2315,6 +2335,8 @@ func _parse_user_args() -> void:
 				opts["seed_base"] = int(kv[1])
 			"hero":
 				opts["hero"] = kv[1]   # m4-c2 最小参数（GameDB.heroes id；非法值见尾注回落）
+			"hero-list":
+				opts["hero_list"] = kv[1]   # m5-t11 名单轮转（校验见 _parse_user_args 尾段）
 			"seeds":
 				opts["seeds"] = kv[1]
 			"save-suffix":
@@ -2342,3 +2364,16 @@ func _parse_user_args() -> void:
 		push_error("BalanceBot: unknown --hero '%s'（可选：%s）→ 回落 vanguard" % [
 			String(opts["hero"]), ",".join(GameDB.heroes.keys())])
 		opts["hero"] = "vanguard"
+	# m5-t11：--hero-list 校验（同 fail-safe 语义：非法 id 报错剔除；全空回落单
+	# --hero 路径——_run_all 的 hero_roster 空列表分支）。
+	if String(opts["hero_list"]) != "":
+		var valid: Array[String] = []
+		for hid: String in BalanceBotDecisions.hero_roster(String(opts["hero_list"])):
+			if GameDB.heroes.has(hid):
+				valid.append(hid)
+			else:
+				push_error("BalanceBot: unknown --hero-list id '%s'（可选：%s）→ 剔除" % [
+					hid, ",".join(GameDB.heroes.keys())])
+		if valid.is_empty():
+			push_error("BalanceBot: --hero-list 全部非法 → 回落 --hero（%s）" % String(opts["hero"]))
+		opts["hero_list"] = ",".join(valid)

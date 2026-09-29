@@ -1209,3 +1209,33 @@ func test_melee_pickup_still_fills_empty_slot() -> void:
 	# 但仅限「有空槽」这一分支，不得放宽到顶替远程武器。
 	assert_bool(BalanceBotDecisions.weapon_upgrade_pickup(
 		[{"damage": 3, "rate": 4.0}, {}], _melee_row(32.0))).is_true()
+
+
+# ---------------- m5-t11：--hero-list 名单轮转解析（hero_roster 单一事实源） ----------------
+
+func test_hero_roster_parses_and_strips() -> void:
+	# 逗号分隔 + 去空白 + 保序；20 人冒烟按 5 进程 × 4 人传名单。
+	var got := BalanceBotDecisions.hero_roster(" vanguard , ranger,mage")
+	assert_int(got.size()).is_equal(3)
+	assert_str(got[0]).is_equal("vanguard")
+	assert_str(got[1]).is_equal("ranger")
+	assert_str(got[2]).is_equal("mage")
+
+
+func test_hero_roster_drops_empty_tokens() -> void:
+	# 空项（",,x,"）剔除；全空/空白输入 → 空数组（调用方回落单 --hero 路径）。
+	var got := BalanceBotDecisions.hero_roster(", ,lycan,,")
+	assert_int(got.size()).is_equal(1)
+	assert_str(got[0]).is_equal("lycan")
+	assert_int(BalanceBotDecisions.hero_roster("").size()).is_equal(0)
+	assert_int(BalanceBotDecisions.hero_roster(" , , ").size()).is_equal(0)
+
+
+func test_hero_roster_twenty_heroes_roundtrip() -> void:
+	# 名册全量轮转入口：GameDB 20 行 id 逐个经解析器往返无损（名单与数据表同源）。
+	assert_int(GameDB.heroes.size()).is_equal(20)
+	var joined := ",".join(GameDB.heroes.keys())
+	var got := BalanceBotDecisions.hero_roster(joined)
+	assert_int(got.size()).is_equal(20)
+	for i in 20:
+		assert_str(got[i]).is_equal(String(GameDB.heroes.keys()[i]))
