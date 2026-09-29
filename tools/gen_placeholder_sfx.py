@@ -459,6 +459,24 @@ def sfx_sacrifice():
     b.save("sfx/sacrifice.wav", "献祭（术士·蚀技能，血蓝转换）", "warlock_sacrifice.gd 施放拍（M5-T4）")
 
 
+def sfx_hunter_mark():
+    # m5-t7 猎手·隼「猎印」：鹰唳双滑音 + 标记落定叮声（锁定目标听感）
+    b = Buf(0.32)
+    b.mix(slide(1400, 700, 0.1, saw), 0.3)
+    b.mix(slide(1600, 800, 0.1, saw), 0.3, delay=0.08)
+    b.mix(lambda t: tri(1046, t) * env(t, 0.12, 0.003, 0.09), 0.4, delay=0.2)
+    b.save("sfx/hunter_mark.wav", "猎印（猎手·隼技能，标记目标）", "hunter_mark.gd 施放拍（M5-T7）")
+
+
+def sfx_bard_finale():
+    # m5-t7 吟游·弦「高潮」：上行大琶音（渐强高潮听感，C-E-G-C 五度堆叠）
+    b = Buf(0.55)
+    for i, f in enumerate((523, 659, 784, 1046)):
+        b.mix(lambda t, f=f: tri(f, t) * env(t, 0.18, 0.01, 0.12), 0.38, delay=i * 0.09)
+    b.mix(lambda t: sine(131, t) * env(t, 0.5, 0.05, 0.3), 0.25)
+    b.save("sfx/bard_finale.wav", "高潮（吟游·弦技能，全体攻速光环）", "bard_finale.gd 施放拍（M5-T7）")
+
+
 def music_crystal():
     """A2 晶核洞穴 BGM：冷色调慢琶音（Dm-Am-Bb-F），三角波+正弦垫。"""
     dur, bpm = 9.6, 96
@@ -710,6 +728,8 @@ def main():
     sfx_fuse_beep()
     sfx_bloodbath()
     sfx_sacrifice()
+    sfx_hunter_mark()
+    sfx_bard_finale()
     music_menu()
     music_battle()
     music_crystal()

@@ -62,6 +62,8 @@ const KEYS := [
 	"time_dilation", "vial_throw",
 	# m5-t4：英雄技能（狂战士·烈「破釜」/术士·蚀「献祭」，附录 L §3；每技能 ≥1 键）。
 	"bloodbath", "sacrifice",
+	# m5-t7：英雄技能（猎手·隼「猎印」/吟游·弦「高潮」，附录 L §3；每技能 ≥1 键）。
+	"hunter_mark", "bard_finale",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。
