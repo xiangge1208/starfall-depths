@@ -84,11 +84,12 @@ func _tick_ai(frame: int) -> void:
 		return
 	var target := _acquire_target()
 	if shot_due:
-		_next_shot_at = frame + fire_interval_ticks
+		# m5-t7 高潮光环：开火节拍间隔 ÷(1+pct)（无窗恒等，见 SummonBase.ally_fire_interval）
+		_next_shot_at = frame + ally_fire_interval(fire_interval_ticks, frame)
 		if target != null:
 			_fire_shot(target)
 	if missile_due:
-		_next_missile_at = frame + MISSILE_INTERVAL_TICKS
+		_next_missile_at = frame + ally_fire_interval(MISSILE_INTERVAL_TICKS, frame)
 		if target != null:
 			_fire_missile(target, frame)
 

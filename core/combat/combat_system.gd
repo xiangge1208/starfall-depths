@@ -145,9 +145,21 @@ func _physics_process(_delta: float) -> void:
 			var cc := crit_chance if player_shot else 0.0
 			if player_shot and Engine.get_physics_frames() < forced_crit_until:
 				cc = 1.0                        # m1-t5 影袭：玩家弹必暴窗（帧口径同上物理帧）
+			# m5-t7 命中计数缝：玩家弹命中恒喂玩家挂载技能（隼弱点洞察逐敌计数 /
+			# 弦渐强连击），返回 true = 同敌第 3 连发 → 暴击率置 1（影袭同口径）。
+			var seam_force_crit := false
+			if player_shot:
+				seam_force_crit = _skill_seam_note(node, frame)
+			if player_shot and cc < 1.0 and seam_force_crit:
+				cc = 1.0
 			var roll: Dictionary = DamageCalc.compute(p.damage, _rng, cc,
 				crit_multiplier if player_shot else 2.0,
 				_player_global_mult(player_shot, meta, node, frame))
+			# m5-t7 猎印叠伤缝：标记敌受伤 ×1.25（GDD §7.1 全局乘区，向下取整 min 1）。
+			if player_shot:
+				var mark_mult := _skill_seam_mult(node, frame)
+				if mark_mult > 1.0:
+					roll["amount"] = maxi(1, int(floor(float(roll["amount"]) * mark_mult)))
 			if p.faction == Projectile.Faction.PLAYER and roll["is_crit"]:
 				EventBus.player_crit_landed.emit(roll["amount"], p.position)   # m1-t2：玩家弹暴击落地
 			# 附录 C 的附魔在「有效命中」才掷签；没有附魔时 helper 不消费 RNG。
@@ -389,3 +401,35 @@ func reflect(p: Projectile, new_damage: int) -> void:
 
 func block(p: Projectile) -> void:
 	_kill(p)
+
+# ---- m5-t7 技能命中缝（隼「弱点洞察/猎印」· 弦「渐强」） ----
+## 转发-only 设计：计数/标记状态全在玩家挂载的 Skill 节点（技能按角色注入——非隼/弦
+## 不挂对应脚本，has_method 门控恒等回落，零漂移）。本缝与 m5-t4 的 _player_global_mult
+## 乘区改动互不同 hunk（合并序纪律）。节点引用按 player_body 变更懒刷新
+## （register/unregister 每房刷新）；无玩家/无 Skill 节点/方法缺失恒 false/1.0。
+var _seam_host: Node = null
+var _seam_skill: Node = null
+
+func _skill_seam_node() -> Node:
+	if player_body == null:
+		_seam_host = null
+		_seam_skill = null
+		return null
+	if _seam_host != player_body or _seam_skill == null or not is_instance_valid(_seam_skill):
+		_seam_host = player_body
+		_seam_skill = player_body.get_node_or_null("Skill")
+	return _seam_skill
+
+## 命中计数转发：隼弱点洞察（返回本发是否同敌第 3 连发必暴）/ 弦渐强连击喂点。
+func _skill_seam_note(target: Node2D, frame: int) -> bool:
+	var skill := _skill_seam_node()
+	if skill == null or not skill.has_method("note_player_hit"):
+		return false
+	return skill.note_player_hit(target, frame)
+
+## 猎印叠伤转发：目标在标记窗内 ×1.25，否则 1.0（frame 与命中结算拍一致）。
+func _skill_seam_mult(target: Node2D, frame: int) -> float:
+	var skill := _skill_seam_node()
+	if skill == null or not skill.has_method("hit_damage_mult"):
+		return 1.0
+	return float(skill.hit_damage_mult(target, frame))

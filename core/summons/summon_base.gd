@@ -72,6 +72,22 @@ func combat_faction() -> int:
 func is_despawned() -> bool:
 	return _despawned
 
+## m5-t7 高潮光环读点缝（吟游·弦「高潮」4s 我方全体含召唤物攻速 +30%）：召唤主的
+## ally_atk_speed_* meta（BardFinale 施放单次写入，frame 判窗过期自然回落）。子类开火
+## 节拍经本 helper 换算间隔 ÷(1+pct)（TurretSummon/FollowAlly 已消费；m5-t5 傀儡继承
+## 框架自动生效）。无 meta / 无 player / pct<=0 → 恒等 base_ticks（非高潮窗零漂移）。
+func ally_fire_interval(base_ticks: int, frame: int) -> int:
+	if base_ticks <= 1:
+		return base_ticks
+	if player == null or not is_instance_valid(player):
+		return base_ticks
+	if frame >= int(player.get_meta("ally_atk_speed_until", -1)):
+		return base_ticks
+	var pct := float(player.get_meta("ally_atk_speed_pct", 0.0))
+	if pct <= 0.0:
+		return base_ticks
+	return maxi(1, int(round(float(base_ticks) / (1.0 + pct))))
+
 ## 统一退场：幂等；注销战斗体 → despawned 信号（HUD/上层可挂）→ 遥测统计行 → queue_free。
 func despawn(reason: String) -> void:
 	if _despawned:

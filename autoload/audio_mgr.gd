@@ -67,6 +67,8 @@ const KEYS := [
 	# m5-t6：英雄技能（铁卫·锚「架设」/影卫·蜃「留影+烟爆」，附录 L §3；每技能 ≥1 键；
 	# 盾碎裂复用既有 props 键 destroy）。
 	"steel_shield", "decoy_leave", "decoy_burst",
+	# m5-t7：英雄技能（猎手·隼「猎印」/吟游·弦「高潮」，附录 L §3；每技能 ≥1 键）。
+	"hunter_mark", "bard_finale",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。

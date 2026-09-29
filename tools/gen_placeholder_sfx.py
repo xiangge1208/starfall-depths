@@ -498,6 +498,22 @@ def sfx_decoy_burst():
     b.mix(burst(0.28, 0.6, 30), 0.7)
     b.mix(slide(220, 60, 0.3, sine), 0.6)
     b.save("sfx/decoy_burst.wav", "诱饵烟爆（影卫·蜃技能消失/引爆）", "mirage_decoy.gd 烟爆拍（M5-T6）")
+def sfx_hunter_mark():
+    # m5-t7 猎手·隼「猎印」：鹰唳双滑音 + 标记落定叮声（锁定目标听感）
+    b = Buf(0.32)
+    b.mix(slide(1400, 700, 0.1, saw), 0.3)
+    b.mix(slide(1600, 800, 0.1, saw), 0.3, delay=0.08)
+    b.mix(lambda t: tri(1046, t) * env(t, 0.12, 0.003, 0.09), 0.4, delay=0.2)
+    b.save("sfx/hunter_mark.wav", "猎印（猎手·隼技能，标记目标）", "hunter_mark.gd 施放拍（M5-T7）")
+
+
+def sfx_bard_finale():
+    # m5-t7 吟游·弦「高潮」：上行大琶音（渐强高潮听感，C-E-G-C 五度堆叠）
+    b = Buf(0.55)
+    for i, f in enumerate((523, 659, 784, 1046)):
+        b.mix(lambda t, f=f: tri(f, t) * env(t, 0.18, 0.01, 0.12), 0.38, delay=i * 0.09)
+    b.mix(lambda t: sine(131, t) * env(t, 0.5, 0.05, 0.3), 0.25)
+    b.save("sfx/bard_finale.wav", "高潮（吟游·弦技能，全体攻速光环）", "bard_finale.gd 施放拍（M5-T7）")
 
 
 def music_crystal():
@@ -756,6 +772,8 @@ def main():
     sfx_steel_shield()
     sfx_decoy_leave()
     sfx_decoy_burst()
+    sfx_hunter_mark()
+    sfx_bard_finale()
     music_menu()
     music_battle()
     music_crystal()

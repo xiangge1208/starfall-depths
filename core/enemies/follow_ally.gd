@@ -92,7 +92,7 @@ func _ready() -> void:
 	EventBus.player_damaged.connect(_on_player_damaged)
 
 func _on_deploy(frame: int) -> void:
-	_fire_wait = _fire_interval()                  # 部署拍起整周期（首拍不开火，同炮台）
+	_fire_wait = _fire_interval(frame)             # 部署拍起整周期（首拍不开火，同炮台）
 
 ## 每拍：跟随走位 + 开火节拍（生产由 SummonBase._physics_process 自驱；测试注入帧直驱）。
 func _tick_ai(frame: int) -> void:
@@ -104,7 +104,7 @@ func _tick_ai(frame: int) -> void:
 	_fire_wait = maxi(_fire_wait - 1, 0)
 	if _fire_wait > 0:
 		return
-	_fire_wait = _fire_interval()
+	_fire_wait = _fire_interval(frame)   # m5-t7 高潮光环：窗内间隔 ÷(1+pct)（见下）
 	var target := _acquire_target()
 	if target != null:
 		_fire_at(target)
@@ -158,8 +158,11 @@ func _fire_at(target: EnemyBase) -> void:
 		"source_name": SOURCE_NAME, "attack_name": ATTACK_NAME,
 	})
 
-func _fire_interval() -> int:
-	return maxi(int(row.get("cd_ticks", DEFAULT_CD_TICKS)), 1)
+## 开火周期（m5-t7 高潮光环缝：frame>=0 时经 SummonBase.ally_fire_interval 换算，
+## 窗内间隔 ÷(1+pct)、无窗恒等；缺省 -1 = 当前物理帧，部署拍同口径）。
+func _fire_interval(frame: int = -1) -> int:
+	var f := frame if frame >= 0 else Engine.get_physics_frames()
+	return ally_fire_interval(maxi(int(row.get("cd_ticks", DEFAULT_CD_TICKS)), 1), f)
 
 ## ★ 无敌简化（规格明示，与头注双重披露）：不实现 HP——任何来源 take_hit 恒 no-op。
 ## 敌方弹命中本体的既有结算语义 = 弹被身体拦截消耗（无穿透时）+ 零伤害。
