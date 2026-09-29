@@ -25,3 +25,7 @@ __pycache__/
 # 只忽略仓库根的散落物（前导 / 锚定根）——归档进 docs/.../*-probe/ 的留档探针照常入库
 /probe-*/
 /probe-*.json
+# AI 生图：密钥与产物目录（密钥绝不入库——仓库公开）
+.ai_art_key
+art_ai/
+.playwright-mcp/

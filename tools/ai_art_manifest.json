@@ -1,0 +1,605 @@
+{
+  "style_prefix": "Retro 16-bit pixel art game sprite, cozy fantasy dungeon adventure, limited vibrant palette, bold dark outline, strong readable silhouette, crisp chunky pixels, one single subject centered and filling most of the frame, isolated on a transparent background, no scenery, no floor shadow, no text, no watermark",
+  "items": [
+    {
+      "id": "portrait_vanguard",
+      "out": "art/generated/ui/portrait_vanguard.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Young knight wearing a round steel helmet with an open face, steel shoulder armor, and a small blue shield with a gold cross held up in front of the chest.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the knight (balanced frontliner, shield)",
+      "despeckle": true
+    },
+    {
+      "id": "portrait_ranger",
+      "out": "art/generated/ui/portrait_ranger.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a swift female archer with deep green hood, feather trim, confident smirk, a shortbow strap across the chest, facing slightly right.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the archer ranger (hood, bow)"
+    },
+    {
+      "id": "portrait_mage",
+      "out": "art/generated/ui/portrait_mage.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a frost mage with ice-blue pointed hat and robe, silver hair, small ice crystals floating around, calm focus.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the frost mage"
+    },
+    {
+      "id": "portrait_assassin",
+      "out": "art/generated/ui/portrait_assassin.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of an agile masked rogue with a dark scarf over the face, only sharp confident eyes visible, deep purple and charcoal outfit, nimble look.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the masked rogue/assassin"
+    },
+    {
+      "id": "portrait_engineer",
+      "out": "art/generated/ui/portrait_engineer.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a stocky engineer with brass goggles on forehead, leather apron, holding a small wrench, friendly grin, oily smudges on cheek.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the engineer (goggles, wrench, turret builder)"
+    },
+    {
+      "id": "portrait_guardian",
+      "out": "art/generated/ui/portrait_guardian.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a gentle guardian priestess with warm golden halo, white-and-gold hood, holding a small star-tipped staff, serene smile.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the holy guardian healer"
+    },
+    {
+      "id": "portrait_berserk",
+      "out": "art/generated/ui/portrait_berserk.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a bold highland adventurer with wild red hair, fur shoulder guard, big energetic grin, strong heroic pose.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the berserker warrior (red hair, axe)"
+    },
+    {
+      "id": "portrait_hunter",
+      "out": "art/generated/ui/portrait_hunter.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a keen hunter with leather cap, small falcon perched on the shoulder, crossbow bolt in the hat band, sharp eyes.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the hunter with falcon"
+    },
+    {
+      "id": "portrait_monk",
+      "out": "art/generated/ui/portrait_monk.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a stout stone-monk martial artist with grey robe, wrapped fists raised, bald head, unshakeable calm expression.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the martial-arts monk"
+    },
+    {
+      "id": "portrait_cleric",
+      "out": "art/generated/ui/portrait_cleric.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a kind healer priestess holding a white candle staff, warm soft glow on her face, light blue veil, gentle smile.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the cleric healer (candle staff)"
+    },
+    {
+      "id": "portrait_necro",
+      "out": "art/generated/ui/portrait_necro.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a quiet lantern keeper with a pale lavender hood, calm violet eyes, holding a small glowing lantern with friendly wisps of light.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the lantern-keeper summoner (spirit wisps)"
+    },
+    {
+      "id": "portrait_timeweaver",
+      "out": "art/generated/ui/portrait_timeweaver.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Calm young mage with short white hair and a teal hood, holding up one golden hourglass in front of the chest.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the time mage (hourglass)",
+      "despeckle": true
+    },
+    {
+      "id": "portrait_alchemist",
+      "out": "art/generated/ui/portrait_alchemist.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a chaotic alchemist with round glass goggles, wild green-tinted hair, holding a bubbling green vial, patched leather coat.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the alchemist (potions, goggles)"
+    },
+    {
+      "id": "portrait_gunslinger",
+      "out": "art/generated/ui/portrait_gunslinger.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Sharpshooter with a big dark brown wide-brim hat and a bright red scarf, simple tan coat, confident face.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the gunslinger sharpshooter (wide-brim hat)",
+      "despeckle": true
+    },
+    {
+      "id": "portrait_bard",
+      "out": "art/generated/ui/portrait_bard.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Cheerful bard with a green feathered cap, holding a simple orange lute diagonally across the chest.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the bard with lute",
+      "despeckle": true
+    },
+    {
+      "id": "portrait_mirage",
+      "out": "art/generated/ui/portrait_mirage.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a mirror-shade phantom warrior, semi-transparent duplicate silhouette behind, silver mask, silver-grey cloak.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the illusionist decoy fighter"
+    },
+    {
+      "id": "portrait_lycan",
+      "out": "art/generated/ui/portrait_lycan.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a wolf-eared wanderer with grey fur-trimmed hood, bright amber eyes, confident playful grin, rugged traveler look.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the wolf-eared wanderer"
+    },
+    {
+      "id": "portrait_warlock",
+      "out": "art/generated/ui/portrait_warlock.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a stargazer mage in a deep indigo hood with little constellation patterns, calm glowing eyes, an orb of soft purple light in hand.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the star mage (purple hood)"
+    },
+    {
+      "id": "portrait_bulwark",
+      "out": "art/generated/ui/portrait_bulwark.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a heavy fortress knight behind a tower shield rim, heavy helm with narrow visor, anchor emblem on the shield, immovable stance.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the heavy shield knight"
+    },
+    {
+      "id": "portrait_staranchor",
+      "out": "art/generated/ui/portrait_staranchor.png",
+      "size": [
+        32,
+        32
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Head-and-shoulders portrait of a celestial star-mage holding a brass sextant, falling star trail reflected in the eyes, midnight-blue robe with star patterns.",
+      "fit": "portrait",
+      "slot": "character-select portrait (head and shoulders) of the celestial star mage"
+    },
+    {
+      "id": "tile_shopkeeper",
+      "out": "art/generated/tiles/shopkeeper.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A friendly shopkeeper in a green hood, only head and shoulders visible behind a plain brown wooden counter.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: shop merchant NPC standing behind a counter"
+    },
+    {
+      "id": "tile_shopkeeper_black",
+      "out": "art/generated/tiles/shopkeeper_black.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Mysterious traveling trader in a deep purple hooded cloak with a sly smile, standing behind a small counter with a golden lockbox, three-quarter front view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: black-market trader NPC (hooded, rare goods)"
+    },
+    {
+      "id": "tile_fusion_forge",
+      "out": "art/generated/tiles/fusion_forge.png",
+      "size": [
+        20,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A classic black iron blacksmith anvil shape, flat top and curved horn on the left side, with one bright orange glowing spot on top. Side view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: weapon fusion forge / anvil crafting station",
+      "despeckle": true
+    },
+    {
+      "id": "tile_drink_machine",
+      "out": "art/generated/tiles/drink_machine.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A tall red box vending machine with one big clear front window showing three colorful potion bottles, and a small slot at the bottom. Front view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: potion vending machine",
+      "despeckle": true
+    },
+    {
+      "id": "tile_shrine_base",
+      "out": "art/generated/tiles/shrine.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "An empty grey stone pedestal with a small glowing blue rune on its front.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: empty blessing shrine pedestal"
+    },
+    {
+      "id": "tile_shrine_zhanshen",
+      "out": "art/generated/tiles/shrine_zhanshen.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A small grey stone statue of a knight holding a sword upright, on a pedestal.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: war-god statue shrine (attack buff)"
+    },
+    {
+      "id": "tile_shrine_jingling",
+      "out": "art/generated/tiles/shrine_jingling.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Small stone statue of a friendly fairy with wings on a pedestal, soft cyan glow, magical blessing shrine.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: fairy statue shrine (shield buff)"
+    },
+    {
+      "id": "tile_shrine_fengshen",
+      "out": "art/generated/tiles/shrine_fengshen.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A small grey stone statue with a big swirling white-cyan wind spiral around it.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: wind-god statue shrine (speed buff)"
+    },
+    {
+      "id": "tile_shrine_xingsui",
+      "out": "art/generated/tiles/shrine_xingsui.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Stone altar topped with a cluster of glowing purple crystals, soft violet sparkles, front view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: star-crystal altar shrine (element buff)"
+    },
+    {
+      "id": "tile_fountain_full",
+      "out": "art/generated/tiles/fountain_full.png",
+      "size": [
+        16,
+        16
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A fountain made of a wide round grey stone bowl on a short pedestal, with one small jet of bright blue water shooting up from the middle. Side view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: healing fountain (full, usable)",
+      "despeckle": true
+    },
+    {
+      "id": "tile_fountain_used",
+      "out": "art/generated/tiles/fountain_used.png",
+      "size": [
+        16,
+        16
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A round grey stone basin that is empty and dry, seen from slightly above.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: healing fountain (dry, already used)"
+    },
+    {
+      "id": "tile_event_device",
+      "out": "art/generated/tiles/event_device.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A bright yellow wooden crate with a big black question mark painted on its front. Front view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: mystery event machine",
+      "despeckle": true
+    },
+    {
+      "id": "tile_event_merchant",
+      "out": "art/generated/tiles/event_merchant.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Traveling merchant seen from the front: small person in a brown cloak, big simple face, and a huge round yellow backpack twice the size of the body behind him.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: wandering merchant NPC with big backpack",
+      "despeckle": true
+    },
+    {
+      "id": "tile_event_beggar",
+      "out": "art/generated/tiles/event_beggar.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "An old traveler in a patched brown cloak sitting on the ground holding out a small bowl.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: beggar NPC sitting with a bowl"
+    },
+    {
+      "id": "tile_event_spring",
+      "out": "art/generated/tiles/event_spring.png",
+      "size": [
+        16,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A small round stone well filled with glowing purple water, with one white star shape floating on the water. Side view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: magic star spring pool",
+      "despeckle": true
+    },
+    {
+      "id": "tile_event_graffiti",
+      "out": "art/generated/tiles/event_graffiti.png",
+      "size": [
+        18,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A flat rectangular grey stone wall slab with a messy white spray-paint star drawn on it, a few paint drips. Front view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: wall graffiti plaque",
+      "despeckle": true
+    },
+    {
+      "id": "tile_exit_crystal",
+      "out": "art/generated/tiles/exit_crystal.png",
+      "size": [
+        12,
+        18
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "One tall glowing cyan crystal shard standing upright on a small stone base.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: floor exit portal crystal"
+    },
+    {
+      "id": "tile_totem_revive",
+      "out": "art/generated/tiles/totem_revive.png",
+      "size": [
+        16,
+        20
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Small carved wooden totem pole with a glowing green phoenix feather crest, gentle magic light, front view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: revive totem (one-time extra life)"
+    },
+    {
+      "id": "tile_hazard_spikes",
+      "out": "art/generated/tiles/hazard_spikes.png",
+      "size": [
+        16,
+        16
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Three tall sharp bright silver spikes pointing straight up from a thin dark brown stone slab.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: floor spike trap"
+    },
+    {
+      "id": "tile_hazard_vent",
+      "out": "art/generated/tiles/hazard_vent.png",
+      "size": [
+        16,
+        16
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Round metal floor grate with warm orange steam glowing through the slots, seen from above.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: floor fire vent trap"
+    },
+    {
+      "id": "tile_prop_debris",
+      "out": "art/generated/tiles/prop_debris.png",
+      "size": [
+        16,
+        16
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "Small pile of broken stone chunks and pebbles, low wide shape, three-quarter view.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: rubble left from a destroyed crate or pillar"
+    },
+    {
+      "id": "tile_recycle_rack",
+      "out": "art/generated/tiles/recycle_rack.png",
+      "size": [
+        16,
+        16
+      ],
+      "gen_size": "512x512",
+      "quality": "low",
+      "bg": "transparent",
+      "prompt": "A simple brown wooden rack with two swords hanging on it, seen from the front.",
+      "fit": "contain",
+      "slot": "dungeon facility sprite: shop weapon trade-in rack"
+    }
+  ],
+  "note": "42 项 = 选角立绘 20 + 设施/陈设贴图 22（游戏内实际渲染的单张独立贴图）。logo_title/icon_app 游戏内零引用（主菜单标题为 Label、应用图标为 icon.svg），替换无可见效果，不纳入。"
+}
