@@ -91,6 +91,10 @@ var skill_dmg_bonus_until := -1
 ## m5-t4 献祭（蚀）法杖/激光武器窗终帧：窗口内 staff/laser 类武器弹 ×1.2
 ## （CombatSystem._player_global_mult 回响同款 category 口径消费；过期回落）。
 var sacrifice_weapon_until := -1
+# m5-t6 固守（铁卫·锚）通用受伤减伤窗（狂潮/潮汐硬编码窗之后的通用 pct 对，按帧判过期）：
+# 技能侧自测位移续窗（静止 1.5s 开窗，移动停写 ≤2 拍过期）；T8 圣环「-25% 受伤」可复用。
+var incoming_dr_pct := 0.0
+var incoming_dr_until := -1
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
 var passive_id := ""               # m4-c2：英雄被动 id（HeroApplier 注入；echo/blessing/spare_parts/shadow_reap 消费门控；m5-t4 + bloodrage/siphon）
 var blessing_stacks := 0           # m4-c2 祝福叠层（run_root 层入口写入；run 内持续，新局随玩家实例重建归零）
@@ -436,6 +440,10 @@ func take_hit_ctx(ctx: Dictionary, frame: int) -> void:
 		dmg = maxi(1, int(floor(float(dmg) * RAMPAGE_DR)))   # 狂潮(升级)：-30%
 	if frame < tide_guard_until:
 		dmg = maxi(1, int(floor(float(dmg) * TIDE_DR)))      # 生命潮汐(升级)：法阵内 -20%
+	# m5-t6 固守（铁卫·锚被动）通用技能减伤窗：×(1-pct) 向下取整 min 1（狂潮/潮汐同口径）；
+	# 乘区收口在血怒 +1 之前（+1 为「一切乘区之后」的加算，次序不变）。
+	if frame < incoming_dr_until:
+		dmg = maxi(1, int(floor(float(dmg) * (1.0 - incoming_dr_pct))))
 	# m5-t4 血怒（狂战士·烈被动，附录 L §3「受到伤害 +1」）：HP<50% 时来伤固定 +1。
 	# 加算收口在一切乘区（甲壳/狂潮/潮汐）之后——「固定」语义：不吃任何乘区；
 	# 激活判定走 bloodrage_enraged() 单一出处（按受击拍 hp 严格 <50%），非血怒零漂移。

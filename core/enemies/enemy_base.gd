@@ -29,6 +29,7 @@ var combat: CombatSystem = null    # 房间注入
 var combat_bounds := Rect2()       # 房间可玩内域（Boss 安全区/召唤落点约束；空矩形=脑测兜底）
 var status: Node = null            # StatusComponent，m0-t11 注入
 var player_ref = null              # 玩家替身/实例（需有 brain_pos），房间注入
+var target_override = null         # m5-t6 调虎：仇恨磁体（技能侧注入；需 brain_pos，缺省 null 恒等）
 var stun_until := -1               # m1-t2 坚守眩晕窗：frame < stun_until 时 brain 空转
 # ---- m1-t12 精英词缀落点（EliteAffix.apply 写入；默认值即无词缀原行为）----
 var split_on_death := false        # 分裂：die() 经 spawn_callback 生成 2 个同 row 子体（hp 半）
@@ -415,7 +416,14 @@ func _signature_cooldown(specific_cd_key: String, specific_windup_key: String,
 	return _attack_cooldown_ticks(default_cd, default_windup)
 
 ## 原型取玩家位置；未注入 player_ref（纯 brain 测试）时退化为自身位置（零向量方向，不移动）。
+## m5-t6 影卫·蜃「调虎」仇恨读点（单点缝）：target_override 有效且自证存活时，全原型
+## 瞄准/逼近统一改读诱饵——引用经技能侧（MirageDecoy）注入/清除，覆写体释放（
+## is_instance_valid）或自报亡故（is_alive() duck）时自动回落玩家。直读 player_ref 的
+## 路径（接触伤/charger 冲刺/laser 瞄准/heavy 拉拽）不在本缝口径（单点最小增量，披露）。
 func _player_pos() -> Vector2:
+	if target_override != null and is_instance_valid(target_override) \
+			and (not target_override.has_method("is_alive") or target_override.is_alive()):
+		return target_override.brain_pos
 	return player_ref.brain_pos if player_ref != null else brain_pos
 
 # ---- 物理表现层（手动验证；测试直接驱动 brain，不经此处） ----
