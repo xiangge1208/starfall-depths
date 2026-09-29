@@ -187,7 +187,14 @@ func _restore_run_build(weapon_mirror: Array[String], weapon_slot: int) -> void:
 					if not rig.slots[i].is_empty():
 						rig.slots[i] = {}
 				elif String(rig.slots[i].get("id", "")) != want:
-					rig.slots[i] = GameDB.get_weapon(want)
+					# M5-S1：落实例拷贝（同 equip 的 m5-c 实例化口径）——直写 GameDB
+					# 共享行会让下面的 0 耗蓝规则污染全池同名武器。
+					var row := GameDB.get_weapon(want)
+					rig.slots[i] = row.duplicate(true) if not row.is_empty() else {}
+					if not rig.slots[i].is_empty():
+						rig.slots[i]["attachments"] = {}
+			var hero: Dictionary = player.get_meta("hero", {})
+			HeroApplier._zero_starter_energy_cost(rig, hero.get("start_weapons", []))
 			if weapon_slot >= 0 and weapon_slot < rig.slots.size() \
 					and not rig.slots[weapon_slot].is_empty():
 				rig.slot = weapon_slot         # 状态恢复直写（非游戏切换路径，无锁定窗语义）

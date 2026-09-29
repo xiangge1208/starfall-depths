@@ -40,6 +40,7 @@ static func apply(hero: Dictionary, player: Player) -> void:
 	if player.weapon_rig != null:
 		for wid: Variant in hero["start_weapons"]:
 			player.weapon_rig.equip(String(wid))
+		_zero_starter_energy_cost(player.weapon_rig, hero["start_weapons"])
 	# meta 接缝：房间层读 meta 注入 CombatSystem.crit_chance（T10/T23 接线，本任务只落数据）
 	player.set_meta("hero", hero)
 	player.set_meta("crit_base", float(hero["crit_chance"]))
@@ -53,6 +54,23 @@ static func apply(hero: Dictionary, player: Player) -> void:
 			tint = skin["tint"]
 		spr.modulate = tint
 	_mount_skill(hero, player)
+
+## M5-S1 GDD §7.2「初始武器 0 耗蓝」实例级保证：蓝量无被动回复，初始武器若按表值
+## 耗蓝会在数秒内打空、远程禁射（附录 L 的 14 名新角色绑定了绿装初始武器，表值
+## 1~4 蓝/发——圣职·烛 6s、狂战士·烈 10s 空蓝，bot 冒烟 0 房即死实证）。equip 已
+## deep-copy 成武器实例，只改实例不改 GameDB 共享行——同名武器作为掉落/商店获取时
+## 仍按表值耗蓝（稀有度权衡不变）。现役 6 人中 5 人初始武器表值本就 0，守护者·萄的
+## 星辉杖（GDD「弱化版」）一并落回规格。
+## 共享入口：HeroApplier 初始装配 + run_root 重开恢复路径（同一口径单一事实源）。
+## 前置：槽内须为 equip/duplicate 产出的武器实例（绝不能是 GameDB 共享行）。
+## 已知口径：按 id 识别——局内另拾同名初始武器同样 0 耗蓝（初始武器均为白/绿低档，
+## 可接受）。
+static func _zero_starter_energy_cost(rig: WeaponRig, start_weapons: Array) -> void:
+	for i in rig.slots.size():
+		var w: Dictionary = rig.slots[i]
+		if not w.is_empty() and start_weapons.has(String(w.get("id", ""))):
+			w["energy_cost"] = 0
+			w["starter"] = true
 
 ## 技能换装：player.tscn 恒挂的 Skill 节点（skill_base.gd 占位，T2）按英雄行换成具体技能脚本。
 ## set_script 为干净换装：技能均为无导出属性/无编辑器状态的纯 Node 脚本（enemy-style
