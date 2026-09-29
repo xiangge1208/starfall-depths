@@ -291,6 +291,30 @@ func test_apply_equips_start_weapons_in_order() -> void:
 	assert_str(String(q.weapon_rig.slots[0].get("id", ""))).is_equal("duangong")
 	assert_dict(q.weapon_rig.slots[1]).is_empty()                                  # 仅 1 把：槽 1 空
 
+func test_apply_starter_weapons_cost_zero_energy_for_full_roster() -> void:
+	# M5-S1 GDD §7.2「初始武器 0 耗蓝」：全 20 名角色初始武器实例蓝耗 0（蓝量无被动
+	# 回复，表值 1~4 蓝/发的绿装初始武器数秒打空——bot 冒烟 0 房即死实证）。
+	for id: String in GameDB.heroes.keys():
+		var p := _in_tree_player()
+		HeroApplier.apply(GameDB.get_hero(id), p)
+		for w: Dictionary in p.weapon_rig.slots:
+			if w.is_empty():
+				continue
+			assert_int(int(w["energy_cost"])).override_failure_message(
+				"hero %s starter %s energy_cost != 0" % [id, w["id"]]).is_equal(0)
+			assert_bool(bool(w.get("starter", false))).is_true()
+
+func test_starter_zero_cost_does_not_mutate_shared_weapon_rows() -> void:
+	# 只改 equip 实例拷贝：同名武器作为掉落/商店获取时仍按表值耗蓝（稀有度权衡不变）。
+	var p := _in_tree_player()
+	HeroApplier.apply(GameDB.get_hero("cleric"), p)                  # 光棱手电 表值 4 蓝/发
+	assert_int(int(p.weapon_rig.slots[0]["energy_cost"])).is_equal(0)
+	assert_int(int(GameDB.get_weapon("guanglengshoudian")["energy_cost"])).is_equal(4)
+	var q := _in_tree_player()
+	q.weapon_rig.equip("guanglengshoudian")                          # 非初始获取路径
+	assert_int(int(q.weapon_rig.slots[0]["energy_cost"])).is_equal(4)
+	assert_bool(q.weapon_rig.slots[0].has("starter")).is_false()
+
 func test_apply_sets_meta_seams() -> void:
 	var p := _in_tree_player()
 	HeroApplier.apply(GameDB.get_hero("vanguard"), p)
