@@ -63,6 +63,8 @@
 | `sfx/decoy_burst.wav` | 诱饵烟爆（影卫·蜃技能消失/引爆） | mirage_decoy.gd 烟爆拍（M5-T6） | 0.35 |
 | `sfx/hunter_mark.wav` | 猎印（猎手·隼技能，标记目标） | hunter_mark.gd 施放拍（M5-T7） | 0.32 |
 | `sfx/bard_finale.wav` | 高潮（吟游·弦技能，全体攻速光环） | bard_finale.gd 施放拍（M5-T7） | 0.55 |
+| `sfx/monk_quake.wav` | 震山（武僧·岳技能，环形震荡） | monk_quake.gd 施放拍（M5-T8） | 0.42 |
+| `sfx/cleric_sanctuary.wav` | 圣环（圣职·烛技能，神圣领域） | cleric_sanctuary.gd 施放拍（M5-T8） | 0.6 |
 | `music/music_menu.wav` | 主菜单/层间 BGM 循环 | ui/main_menu.tscn / inter_floor.tscn（待建音频管理器） | 9.6 |
 | `music/music_battle.wav` | 战斗 BGM 循环 | room_combat / floor_scene 战斗态（待建音频管理器） | 19.2 |
 | `music/music_crystal.wav` | A2 晶核洞穴 BGM 循环 | GDD §17 音乐=菜单1+生态3+Boss1 | 9.6 |

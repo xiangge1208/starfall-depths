@@ -6,6 +6,10 @@ const SWING_TICKS := 9
 const PARRY_FROM := 3
 const PARRY_TO := 9
 
+## m5-t8 行云强化（武僧·岳，附录 L）：满「势」反弹窗口 ×2 —— 本次挥击反弹上界
+## （默认基线 PARRY_TO；窗口开启拍经玩家 meta 单点读数改写，MonkQuake.META_PARRY_EXTRA）。
+var _parry_to := PARRY_TO
+
 ## M5-A2 手刀（空手攻击，对标复盘 #2 借鉴元气骑士）：空槽时的保底挥击——虚拟
 ## 武器行走与真实近战**完全同一条**挥击/反弹路径（GDD §7.4 反弹窗口/挥砍区
 ## 无敌判定单一事实源）。不入武器表（GameDB），id "hand_blade" 仅供遥测/成就
@@ -50,7 +54,7 @@ func try_attack(frame: int) -> bool:
 	return true
 
 func is_parry_tick(tick: int) -> bool:
-	return tick >= PARRY_FROM and tick <= PARRY_TO
+	return tick >= PARRY_FROM and tick <= _parry_to
 
 func _physics_process(_delta: float) -> void:
 	if _swing_left <= 0:
@@ -61,6 +65,15 @@ func _physics_process(_delta: float) -> void:
 	var w := _active_row                # M5-A2：空槽挥击期间读启动时行（虚拟行稳定）
 	var range_px := float(w.get("range", 40))
 	var arc := float(w.get("arc_deg", 90.0))
+	# m5-t8 行云强化缝（单点读数）：反弹窗开启拍读 meta 定格本挥击反弹上界（满势 ×2：
+	# 3..16t ≈ 0.24s）并补足挥击处理长度；meta 缺省 0 = 基线 3..9t 零漂移。窗口开启后
+	# 中途耗势不缩窗（已定格，语义见 MonkQuake 头注）。
+	if _swing_tick == PARRY_FROM:
+		var parry_extra := int(player.get_meta(MonkQuake.META_PARRY_EXTRA, 0)) \
+			if player != null else 0
+		_parry_to = PARRY_TO + parry_extra
+		if _parry_to > PARRY_TO:
+			_swing_left = maxi(_swing_left, _parry_to - _swing_tick)
 	if is_parry_tick(_swing_tick):
 		for p in combat.projectiles_in_arc(player.global_position, player.facing.angle(), range_px, arc, Projectile.Faction.ENEMY):
 			# 披露（m4-c2）：反弹伤害镜像武器行原值（GDD §7.4 反弹窗口防御机制），
@@ -81,6 +94,17 @@ func _physics_process(_delta: float) -> void:
 		var eff := rig._attachment_effects(w, true)
 		var att_base := maxi(0, int(round(float(int(w["damage"])) * (1.0 + float(eff["dmg_pct"])))))
 		var base_damage := player.scaled_damage(att_base)
+		# m5-t8 行云势层乘区缝（单点读数）：meta 由 MonkQuake 随层变化续写（1+0.08×层），
+		# 位置 = 玩家出口聚合点之后、暴击掷签之前（祝福同段位）；round + min 1 收口。
+		# meta 缺省 1.0 = 非武僧零漂移。
+		var momentum_mult := float(player.get_meta(MonkQuake.META_MOMENTUM_MULT, 1.0)) \
+			if player != null else 1.0
+		if momentum_mult != 1.0:
+			base_damage = maxi(1, int(round(float(base_damage) * momentum_mult)))
+		# m5-t8 行云上报缝（单点，has_method 门控——"Skill" 未挂 MonkQuake 时零副作用）：
+		# 近战命中逐目标喂「势」（口径同相邻 Fx.on_combo_hit），MonkQuake.note_melee_hit 消费。
+		var flow_skill := player.get_node_or_null("Skill") if player != null else null
+		var flow_ready := flow_skill != null and flow_skill.has_method("note_melee_hit")
 		# 暴击本地 roll；combat_rng 未注入（纯逻辑测试）时跳过 roll 用平伤。
 		var roll: Dictionary = {"amount": base_damage, "is_crit": false}
 		if combat_rng != null:
@@ -90,6 +114,8 @@ func _physics_process(_delta: float) -> void:
 		var element_profile := rig.element_hit_profile(w, Engine.get_physics_frames())
 		for body in combat.bodies_in_arc(player.global_position, player.facing.angle(), range_px, arc, Projectile.Faction.ENEMY):
 			Fx.on_combo_hit()   # J5：近战命中上报连击（每目标一次，口径同弹幕）
+			if flow_ready:
+				flow_skill.note_melee_hit()   # m5-t8 行云：近战命中积「势」
 			var proc_element := ElementProc.roll_element(int(element_profile["proc_element"]),
 				float(element_profile["proc_chance"]), combat_rng)
 			var force_resonance := bool(roll["is_crit"]) \

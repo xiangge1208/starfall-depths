@@ -516,6 +516,25 @@ def sfx_bard_finale():
     b.save("sfx/bard_finale.wav", "高潮（吟游·弦技能，全体攻速光环）", "bard_finale.gd 施放拍（M5-T7）")
 
 
+def sfx_monk_quake():
+    # m5-t8 武僧·岳「震山」：低频轰鸣冲击 + 下滑震颤（环形大地震荡听感）
+    b = Buf(0.42)
+    b.mix(lambda t: sine(68, t) * env(t, 0.36, 0.004, 0.26), 0.6)
+    b.mix(slide(230, 55, 0.32, sine), 0.42)
+    b.mix(lambda t: square(52, t) * env(t, 0.18, 0.002, 0.14) * 0.5, 0.25, delay=0.03)
+    b.save("sfx/monk_quake.wav", "震山（武僧·岳技能，环形震荡）", "monk_quake.gd 施放拍（M5-T8）")
+
+
+def sfx_cleric_sanctuary():
+    # m5-t8 圣职·烛「圣环」：上行圣咏式纯三和弦叠入 + 高频泛音光晕（圣环展开听感）
+    b = Buf(0.6)
+    b.mix(slide(420, 640, 0.45, sine), 0.32)
+    b.mix(lambda t: sine(630, t) * env(t, 0.5, 0.06, 0.3), 0.28, delay=0.08)
+    b.mix(lambda t: sine(840, t) * env(t, 0.4, 0.08, 0.24), 0.2, delay=0.16)
+    b.save("sfx/cleric_sanctuary.wav", "圣环（圣职·烛技能，神圣领域）", "cleric_sanctuary.gd 施放拍（M5-T8）")
+
+
+
 def music_crystal():
     """A2 晶核洞穴 BGM：冷色调慢琶音（Dm-Am-Bb-F），三角波+正弦垫。"""
     dur, bpm = 9.6, 96
@@ -774,6 +793,8 @@ def main():
     sfx_decoy_burst()
     sfx_hunter_mark()
     sfx_bard_finale()
+    sfx_monk_quake()
+    sfx_cleric_sanctuary()
     music_menu()
     music_battle()
     music_crystal()

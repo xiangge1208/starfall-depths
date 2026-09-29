@@ -69,6 +69,8 @@ const KEYS := [
 	"steel_shield", "decoy_leave", "decoy_burst",
 	# m5-t7：英雄技能（猎手·隼「猎印」/吟游·弦「高潮」，附录 L §3；每技能 ≥1 键）。
 	"hunter_mark", "bard_finale",
+	# m5-t8：英雄技能（武僧·岳「震山」/圣职·烛「圣环」，附录 L §3；每技能 ≥1 键）。
+	"monk_quake", "cleric_sanctuary",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。
