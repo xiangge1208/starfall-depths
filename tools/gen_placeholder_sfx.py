@@ -516,6 +516,35 @@ def sfx_bard_finale():
     b.save("sfx/bard_finale.wav", "高潮（吟游·弦技能，全体攻速光环）", "bard_finale.gd 施放拍（M5-T7）")
 
 
+def sfx_volley():
+    # m5-t9 火枪手·铳「齐射」：六连短促枪击（快速 slide 爆点，扇形复制弹听感）
+    b = Buf(0.36)
+    for i in range(6):
+        off = i * 0.05
+        b.mix(lambda t, d=off: slide(1100 - i * 60, 500, 0.06, square)(t) if t + d < 0.36 else 0.0,
+              0.5, delay=off)
+    b.save("sfx/volley.wav", "齐射（火枪手·铳技能，扇形复制弹）", "gunslinger_volley.gd 施放拍（M5-T9）")
+
+
+def sfx_lycan_shift():
+    # m5-t9 狼人·牙「变身」：低吼下滑 + 撕裂噪声（形态切换听感）
+    b = Buf(0.5)
+    b.mix(slide(320, 90, 0.4, saw), 0.55)
+    b.mix(burst(0.32, 0.8, 9), 0.45, delay=0.12)
+    b.mix(lambda t: sine(65, t) * env(t, 0.5, 0.04, 0.35), 0.4)
+    b.save("sfx/lycan_shift.wav", "变身（狼人·牙技能，狼形形态切换）", "lycan_shift.gd 施放拍（M5-T9）")
+
+
+def sfx_starfall():
+    # m5-t9 星辰·晷「星陨」：引导上滑蓄能 + 落点爆裂（星陨大招听感）
+    # （mix(delay=...) 内 t 为相对时轴——delay 段的包络直接以 t 起算）
+    b = Buf(0.7)
+    b.mix(slide(200, 900, 0.45, sine), 0.35)
+    b.mix(burst(0.3, 0.95, 21), 0.6, delay=0.45)
+    b.mix(lambda t: sine(110, t) * env(t, 0.25, 0.005, 0.2), 0.35, delay=0.45)
+    b.save("sfx/starfall.wav", "星陨（星辰·晷技能，引导+落点 AoE）", "staranchor_starfall.gd 施放拍（M5-T9）")
+
+
 def music_crystal():
     """A2 晶核洞穴 BGM：冷色调慢琶音（Dm-Am-Bb-F），三角波+正弦垫。"""
     dur, bpm = 9.6, 96
@@ -774,6 +803,9 @@ def main():
     sfx_decoy_burst()
     sfx_hunter_mark()
     sfx_bard_finale()
+    sfx_volley()
+    sfx_lycan_shift()
+    sfx_starfall()
     music_menu()
     music_battle()
     music_crystal()
