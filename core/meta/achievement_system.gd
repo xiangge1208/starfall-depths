@@ -84,8 +84,9 @@ const DEFS: Array[Dictionary] = [
 		"type": "state_threshold", "source": "save:codex_seen", "goal": 50},
 	{"id": "grand_collector", "name": "大收藏家", "gems": 500, "active": true,
 		"type": "state_threshold", "source": "save:codex_seen", "goal": 115},
+	# M5-T10：名册 6→20（附录 L 全免费），goal 随名册扩到 20——goal=6 在 20 人下 6/20 即达成语义失真。
 	{"id": "full_roster", "name": "全员集合", "gems": 400, "active": true,
-		"type": "state_threshold", "source": "save:unlocked_heroes", "goal": 6},
+		"type": "state_threshold", "source": "save:unlocked_heroes", "goal": 20},
 	{"id": "challenger", "name": "挑战者", "gems": 100, "active": true,
 		"type": "state_threshold", "source": "counter:challenge_rooms_total", "goal": 5},
 	{"id": "gifted", "name": "天赋异禀", "gems": 150, "active": true,

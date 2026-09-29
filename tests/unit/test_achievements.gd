@@ -160,11 +160,14 @@ func test_event_count_demolition_30_props_and_dodge_master_100() -> void:
 
 # ---- state_threshold：轮询 SaveSystem 字段达阈值 ----
 
-func test_state_threshold_full_roster_6_heroes() -> void:
+func test_state_threshold_full_roster_20_heroes() -> void:
+	# M5-T10：goal 6→20（附录 L 名册）。计数只看 unlocked_heroes 长度，id 用占位串即可。
 	var cs: Variant = _as("roster")
-	for hero: String in ["blademaster", "gunner", "mage", "guardian", "assassin"]:
-		cs.save_system.unlock_hero(hero)   # + vanguard 默认 = 6
-	assert_bool(cs.is_unlocked("full_roster")).is_false()   # 存档变了也要 recheck 才判
+	for i in 18:
+		cs.save_system.unlock_hero("hero_%d" % i)   # + vanguard 默认 = 19
+	assert_array(cs.recheck()).not_contains("full_roster")   # 19/20：边界未达
+	cs.save_system.unlock_hero("hero_18")                    # 第 20 名
+	assert_bool(cs.is_unlocked("full_roster")).is_false()    # 存档变了也要 recheck 才判
 	assert_array(cs.recheck()).contains("full_roster")
 	assert_int(cs.save_system.gems()).is_equal(400)
 

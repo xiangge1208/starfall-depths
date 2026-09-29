@@ -16,7 +16,13 @@ extends Control
 ##   ③ 选中态用「金色描边 + 顶部高亮条 + 立绘微放大」替代原「仅描边换色」，48px 铭牌
 ##      在 12px 字体下靠单像素描边区分度不足。
 ## 数值展示改芯片化（HP/盾/蓝/速/暴击 逐项独立底色块），替代原 "\n" 拼接的两行纯文本。
-## 结构契约保持（既有测试口径不动）：CardScroll/Cards 层级、6 卡 FOCUS_ALL + gui_input
+##
+## M5-T10 名册扩容 6→20（附录 L §2 全免费裁定，约束 15）：卡行 GameDB 驱动自动扩展，
+## 布局零改码——20×72 + 19×6 间距 = 1554px 铭牌行对 468px CardScroll 视窗有意超界，
+## 横滚承载全部 20 卡（分页/缩排两案否决理由同 K2：分页把卡藏出树、焦点链断；缩排到
+## 468/20≈21px/卡容不下 64px 立绘与 12px 名字）。①的「6 枚一屏全见」退化为「一屏 6 枚
+## + 滚动可达」。全免费下角标恒隐（解锁快照全真），角标/解锁缝保留为既有测试契约。
+## 结构契约保持（既有测试口径不动）：CardScroll/Cards 层级、N 卡 FOCUS_ALL + gui_input
 ## 轻点判定 + focus_neighbors 闭环、_portraits 64px、_passive_icons 24px、_skill_icons
 ## 32px、_badges 角标文案、_name_labels 选中金字——被动/技能图标随详情面板走（每英雄
 ## 仍各一枚，注册表逐 id 对位不变）。
@@ -70,11 +76,31 @@ const PASSIVES := {
 	"echo": "回响：法杖/激光类武器伤害 +15%",
 	"blessing": "祝福：每进入新层回满护盾并 +5% 全伤害（单局至多叠 4 层）",
 	"shadow_reap": "掠影：近战击杀返还 5 蓝，1s 内翻滚无冷却",
+	# M5-T10：14 新角色被动文案（附录 L §3 被动列逐字）
+	"bloodrage": "血怒：HP<50% 时攻速 +25%、受到伤害 +1",
+	"deadeye_insight": "弱点洞察：对同一敌人第 3 发连续命中必暴击（每敌 3s 冷却）",
+	"flow_stance": "行云：近战命中积「势」（≤5 层），每层近战伤 +8%",
+	"aegis_blessing": "圣佑：护盾破碎瞬间 1.5s 无敌（每房 1 次）",
+	"bone_harvest": "拾骨：击杀积骸能（10 具满）",
+	"time_lag": "时滞：翻滚 CD -0.1s",
+	"erosion": "侵蚀：元素状态积累 +20%（与同名增益叠乘）",
+	"refined_powder": "精炼火药：切枪后 2s 内首发伤害 +100%",
+	"crescendo": "渐强：连续命中 3s 进入攻速 +15%（受击重置）",
+	"decoy_master": "调虎：诱饵存活期敌 AI 优先攻诱饵",
+	"bloodthirst": "嗜血：近战击杀回 1 HP（每房 ≤2 次）",
+	"siphon": "虹吸：击杀吸 2 蓝",
+	"entrench": "固守：静止 1.5s 获受伤 -25%（移动失效）",
+	"charge_up": "蓄能：同向持续瞄准 1s 后伤害 +30%（转向重置）",
 }
 ## 被动/技能图标映射（art/generated/ui，表驱动同 PASSIVES 文案先例）：生成器
 ## （gen_placeholder_art.py / _m2.py）把图标与英雄/被动成对注释，其中
 ## hawk_eye→passive_hawkeye（去下划线）与 shadow_reap→passive_swift_shadow
 ## （生成器沿用旧 passive id 命名）非纯规则可推，故全量显式表驱动。
+## M5-T10 披露（美术管线缺口，不阻塞逻辑层）：14 新角色的 passive_* / skill_* 图标
+## 未随 T2 产出（T2 只落 portrait_* 立绘与行走精灵），注册表维持现役 6 人——
+## 「注册键必须指向真实存在文件」契约（ArtLookup 同款）不允许预注册缺图键；缺图
+## 英雄走 _icon fail-closed（空 stem → 无纹理 → 行退化纯文字）。缺键 = 14 被动 +
+## 14 技能（id 清单同 PASSIVES/UPGRADE_DESC 的 M5-T10 段），美术落图后补注册。
 const PASSIVE_ICONS := {
 	"defiance": "passive_defiance",
 	"hawk_eye": "passive_hawkeye",
@@ -85,6 +111,8 @@ const PASSIVE_ICONS := {
 }
 ## m5-d 技能强化文案（GDD §6 强化列；实际接线以各技能 upgraded 分支为准——
 ## 刺客残影爆炸为本卡新增，其余五分支 M2/M4 已在产）。
+## M5-T10：技能强化 1500×20 同价（附录 L §7 裁定 3），文案表扩到全量 20 名
+## （14 新角色逐条照抄附录 L §3 强化列）——否则新角色强化后详情面板缺效果后缀。
 const UPGRADE_DESC := {
 	"vanguard": "狂潮期间受到伤害 -30%",
 	"ranger": "影袭后 0.6s 持续无敌",
@@ -92,6 +120,20 @@ const UPGRADE_DESC := {
 	"assassin": "突进终点留下残影，0.5s 后爆炸（20 伤 / 80px）",
 	"engineer": "炮台每 3s 追加一发导弹（12 AoE）",
 	"guardian": "生命潮汐法阵内额外 -20% 受伤",
+	"berserk": "破釜持续 8s，期间击杀返还 1 HP（≤2 次）",
+	"hunter": "猎印可同时存在 2 个",
+	"monk": "满「势」时反弹窗口 ×2（0.12→0.24s）",
+	"cleric": "圣环结束时回 1 HP",
+	"necro": "傀儡死亡自爆 24 AoE",
+	"timeweaver": "时缓域内我方弹速 +20%",
+	"alchemist": "投瓶随机元素（火/毒/电轮转）",
+	"gunslinger": "齐射 8 发且穿透 +1",
+	"bard": "结束后 3s 渐强不重置",
+	"mirage": "诱饵可手动引爆（再按技能键，烟爆提前）",
+	"lycan": "持续 10s 且结束回 1 HP",
+	"warlock": "献祭附加 6s 全伤害 +10%",
+	"bulwark": "钢盾碎裂迸射 3 块碎片（各 10 伤）",
+	"staranchor": "星陨留 2s 星火地面（电积累）",
 }
 
 ## 技能图（skill_* 基础版 6 张；_plus 强化版留技能升级流接线，选角卡用基础版）。

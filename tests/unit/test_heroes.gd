@@ -389,12 +389,19 @@ func test_hero_select_scene_builds_all_hero_cards() -> void:
 func test_hero_select_passives_cover_legacy_hero_ids() -> void:
 	# 被动中文文案归 UI 层 PASSIVES 常量：新英雄 passive_id 必须同步补文案，
 	# 防卡片回退显示裸 id（m2-t13：+assassin shadow_reap 掠影）。
-	# M5-T1 过渡口径：14 新角色 passive 文案随 T10 选角页扩容补齐——本卡禁碰 ui/
-	# （hero_select PASSIVES 注册表），此处先钉现役 6 人覆盖不回退；新 14 人缺文案
-	# 走 PASSIVES.get 裸 id 回落（fail-closed，不崩不破版）。
-	for id: String in ["vanguard", "ranger", "engineer", "mage", "guardian", "assassin"]:
+	# M5-T10：14 新角色文案已补齐（附录 L §3 逐字），恢复全量名册覆盖断言。
+	assert_int(GameDB.heroes.size()).is_equal(20)
+	for id: String in GameDB.heroes.keys():
 		var passive := String(GameDB.heroes[id].get("passive_id", ""))
-		assert_bool(HeroSelect.PASSIVES.has(passive)).is_true()
+		assert_bool(HeroSelect.PASSIVES.has(passive)).override_failure_message(
+			"hero %s passive_id '%s' 缺 PASSIVES 文案" % [id, passive]).is_true()
+
+func test_hero_select_upgrade_desc_covers_full_roster() -> void:
+	# M5-T10：技能强化 1500×20 同价——强化文案表须覆盖全量名册，否则新角色强化后
+	# 详情面板缺效果后缀。
+	for id: String in GameDB.heroes.keys():
+		assert_bool(HeroSelect.UPGRADE_DESC.has(id)).override_failure_message(
+			"hero %s 缺 UPGRADE_DESC 强化文案" % id).is_true()
 
 func test_hero_select_choose_emits_signal_and_stores_static() -> void:
 	_reset_last_chosen()
@@ -540,13 +547,12 @@ func _key(code: Key) -> InputEventKey:
 # ---- M4.5 u3：选角卡立绘/技能/被动图标接线 + 解锁状态视觉标签 ----
 
 func test_hero_select_portraits_wired() -> void:
-	# 卡全量建成（M5-T1：20）；立绘纹理断言按现役 6 人（portrait_<id> 图盘上齐）——
-	# M5 新 14 人 png 归 T2，缺图走 _icon fail-closed（tr.visible = false）。
+	# 卡全量建成（20）；M5-T10 恢复全量立绘断言（T2 已落 14 张 portrait_<id>）。
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
 	assert_int(ui._portraits.size()).is_equal(GameDB.heroes.size())
-	for id: String in ["vanguard", "ranger", "engineer", "mage", "guardian", "assassin"]:
+	for id: String in GameDB.heroes.keys():
 		var p: TextureRect = ui._portraits[ui._ids.find(id)]
 		assert_object(p.texture).is_not_null()
 		assert_int(p.texture.get_width()).is_equal(32)
@@ -661,10 +667,10 @@ func test_hero_select_detail_panel_shows_only_selected_hero() -> void:
 		.is_equal(str(int(vanguard["hp"])))
 
 func test_hero_select_plaques_scroll_and_selection_signals() -> void:
-	# M5-T1 过渡口径：名册 6→20 后铭牌总宽（20×72 + 19×6 间距 = 1554px）超 CardScroll
-	# 视窗（468px）——横滚容器本来就在（触屏惯例 + follow_focus + 窄屏兜底），
-	# 滚动可达全部卡；「6 枚一屏全见」的 ui1 布局意图由 T10 选角页扩容卡按新布局
-	# 重新落断言。本卡只钉：卡尺寸契约不变 + 横滚可用 + 选中态四重视觉信号。
+	# M5-T10 定稿：20×72 + 19×6 间距 = 1554px 铭牌行对 468px CardScroll 有意超界——
+	# 横滚承载全部 20 卡（分页/缩排两案否决理由见 hero_select.gd 头注）；「一屏全见」
+	# 退化为「一屏 6 枚 + 滚动可达」。钉：卡尺寸契约 + 横滚可用 + 行宽实测 + 选中态
+	# 四重视觉信号。
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
@@ -672,6 +678,10 @@ func test_hero_select_plaques_scroll_and_selection_signals() -> void:
 	var scroll := ui.get_node("CardScroll") as ScrollContainer
 	assert_bool(scroll.follow_focus).is_true()
 	assert_int(scroll.horizontal_scroll_mode).is_not_equal(ScrollContainer.SCROLL_MODE_DISABLED)
+	# 行宽实测：全名册卡行超出视窗 → 横滚必要且全部卡在树（焦点链闭合）。
+	var row := ui.get_node("CardScroll/Cards") as HBoxContainer
+	assert_int(row.get_child_count()).is_equal(GameDB.heroes.size())
+	assert_bool(row.get_combined_minimum_size().x > scroll.size.x).is_true()
 	# 选中态四重视觉信号（48px 级铭牌单靠 1px 描边区分度不足）：顶部高亮条不透明、
 	# 立绘微放大、名字金字、底色转暖——逐项断言选中/未选中确有差异
 	ui._selected = 2
