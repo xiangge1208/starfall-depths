@@ -71,6 +71,9 @@ const KEYS := [
 	"hunter_mark", "bard_finale",
 	# m5-t8：英雄技能（武僧·岳「震山」/圣职·烛「圣环」，附录 L §3；每技能 ≥1 键）。
 	"monk_quake", "cleric_sanctuary",
+	# m5-t9：英雄技能（火枪手·铳「齐射」/狼人·牙「变身」/星辰·晷「星陨」，附录 L §3；
+	# 每技能 ≥1 键）。
+	"volley", "lycan_shift", "starfall",
 ]
 
 ## music key 表（GDD §17：菜单 1 + 生态 3 + Boss 1）。

@@ -198,6 +198,11 @@ func try_fire(aim: Vector2, frame: int) -> bool:
 	if frame < _next_fire_frame or frame < _switch_until:
 		return false
 	var player := get_parent() as Player
+	# m5-t9 狼形远程锁定（开火入口读点，单点缝）：frame < player.ranged_lock_until
+	# 拒发——不耗蓝、不进冷却、不发声（同空蓝拒发 no-op 口径）；写点 LycanShift，
+	# HUD 锁定表现非技能卡范围。
+	if frame < player.ranged_lock_until:
+		return false
 	var dual := frame < dual_wield_until              # 狂潮双持窗（GDD §6）
 	var energy_free := frame < player.energy_free_until
 	# m3-fix1 试炼 energy_cost_mult 消费端：开火蓝耗 ceil(蓝耗×倍率)（规格 §3「所有

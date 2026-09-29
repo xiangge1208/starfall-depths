@@ -65,6 +65,9 @@
 | `sfx/bard_finale.wav` | 高潮（吟游·弦技能，全体攻速光环） | bard_finale.gd 施放拍（M5-T7） | 0.55 |
 | `sfx/monk_quake.wav` | 震山（武僧·岳技能，环形震荡） | monk_quake.gd 施放拍（M5-T8） | 0.42 |
 | `sfx/cleric_sanctuary.wav` | 圣环（圣职·烛技能，神圣领域） | cleric_sanctuary.gd 施放拍（M5-T8） | 0.6 |
+| `sfx/volley.wav` | 齐射（火枪手·铳技能，扇形复制弹） | gunslinger_volley.gd 施放拍（M5-T9） | 0.36 |
+| `sfx/lycan_shift.wav` | 变身（狼人·牙技能，狼形形态切换） | lycan_shift.gd 施放拍（M5-T9） | 0.5 |
+| `sfx/starfall.wav` | 星陨（星辰·晷技能，引导+落点 AoE） | staranchor_starfall.gd 施放拍（M5-T9） | 0.7 |
 | `music/music_menu.wav` | 主菜单/层间 BGM 循环 | ui/main_menu.tscn / inter_floor.tscn（待建音频管理器） | 9.6 |
 | `music/music_battle.wav` | 战斗 BGM 循环 | room_combat / floor_scene 战斗态（待建音频管理器） | 19.2 |
 | `music/music_crystal.wav` | A2 晶核洞穴 BGM 循环 | GDD §17 音乐=菜单1+生态3+Boss1 | 9.6 |

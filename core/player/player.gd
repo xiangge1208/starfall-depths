@@ -95,6 +95,19 @@ var sacrifice_weapon_until := -1
 # 技能侧自测位移续窗（静止 1.5s 开窗，移动停写 ≤2 拍过期）；T8 圣环「-25% 受伤」可复用。
 var incoming_dr_pct := 0.0
 var incoming_dr_until := -1
+# m5-t9 狼形（狼人·牙）参数覆写缝（可选字段，缺省零漂移；写点在 LycanShift）：
+# - 翻滚距离档覆写：>0 时 start_roll 直取该距离（狼形 80px 突进，形态替换非增益乘区）；
+# - 远程锁定窗：frame < until 时 weapon_rig.try_fire 开火入口读点拒发（不耗蓝不进冷却）；
+# - 近战伤加成窗：scaled_damage 近战面单点读数（当前武器 is_melee/空槽手刀口径）。
+var roll_dist_override_px := -1.0
+var ranged_lock_until := -1
+var melee_dmg_bonus_pct := 0.0
+var melee_dmg_bonus_until := -1
+# m5-t9 精炼火药（火枪手·铳被动）一次性首发窗：GunslingerVolley 经 rig.weapon_fired
+# 前缝（try_fire 内 emit 先于 _fire_slot 结算）写入，scaled_damage 出口同拍读取 ×2；
+# 「首发」记账（每切枪锚点恰一次）在技能侧。数值常量随被动逻辑集中在技能文件。
+var powder_dmg_mult := 1.0
+var powder_dmg_mult_until := -1
 var has_defiance := false          # 被动「坚守」开关（角色数据注入，t11）
 var passive_id := ""               # m4-c2：英雄被动 id（HeroApplier 注入；echo/blessing/spare_parts/shadow_reap 消费门控；m5-t4 + bloodrage/siphon）
 var blessing_stacks := 0           # m4-c2 祝福叠层（run_root 层入口写入；run 内持续，新局随玩家实例重建归零）
@@ -158,6 +171,10 @@ func start_roll(dir: Vector2, frame: int) -> void:
 	var d := dir.normalized()
 	# m2-t35 冲刺延伸：翻滚距离 ×(1+buff_roll_distance_pct)（速度同步放大，tick 数不变）。
 	var dist := ROLL_DIST * (1.0 + float(get_meta("buff_roll_distance_pct", 0.0)))
+	# m5-t9 狼形突进：形态距离档覆写（80px 直取——是位移形态替换不是冲刺增益，故
+	# 不走 buff_roll_distance_pct 乘区通道；写点 LycanShift，到期回 -1 恢复基线）。
+	if roll_dist_override_px > 0.0:
+		dist = roll_dist_override_px
 	_roll_vel = d * (dist / (float(ROLL_TICKS) / TimeConst.FPS))
 	_roll_left = ROLL_TICKS
 	_roll_end_frame = frame + ROLL_TICKS
@@ -270,16 +287,26 @@ const WEAPON_UP_DMG_PCT_PER_LEVEL := 0.08
 ## m5-t4 增补技能全伤害窗（破釜 +40% / 献祭强化 +10%，祝福同通道）：出口与天赋×
 ## 祝福并列再乘 (1 + skill_dmg_bonus_pct)。frame 参数为测试注入缝（缺省 -1 = 取
 ## 当前物理帧，生产调用点 weapon_rig/melee 不传、签名向后兼容）。
+## m5-t9 增补两个英雄被动单点读数（可选字段，缺省恒 1.0/0 零漂移）：
+## - 狼形近战伤 +50%（牙）：仅「近战面」生效——当前武器 is_melee 或空槽（手刀
+##   虚拟行，与 player_driver 近战路由同口径）；狼形期远程已被锁定，远程面读不到本窗。
+## - 精炼火药首发 ×2（铳）：一次性窗（技能节点 weapon_fired 前缝写入，until = 开火
+##   拍 +1）且仅非近战面读取——「首发」是枪击语义，近战面不吃也不影响记账。
+##   已知同拍边界：同拍齐射复制弹等技能面出口会读到本窗（技能面放大与否附录 L
+##   未述，GunslingerVolley 头注披露，不调参）。
 func scaled_damage(base: int, frame := -1) -> int:
-	var up_lvl := 0
-	if weapon_rig != null:
-		up_lvl = int(weapon_rig.current().get("up_level", 0))
+	var cur: Dictionary = weapon_rig.current() if weapon_rig != null else {}
+	var up_lvl := int(cur.get("up_level", 0))
 	if up_lvl > 0:
 		base = maxi(0, int(round(float(base) 			* (1.0 + WEAPON_UP_DMG_PCT_PER_LEVEL * float(up_lvl)))))
 	var f := frame if frame >= 0 else Engine.get_physics_frames()
 	var skill := skill_dmg_bonus_pct if f < skill_dmg_bonus_until else 0.0
+	var melee_face := cur.is_empty() or bool(cur.get("is_melee", false))
+	var wolf := melee_dmg_bonus_pct if (f < melee_dmg_bonus_until and melee_face) else 0.0
+	var powder := powder_dmg_mult if (f < powder_dmg_mult_until and not melee_face) else 1.0
 	return int(round(float(base) * (1.0 + talent_effect_value("talent_dmg_pct")) \
-		* (1.0 + float(blessing_stacks) * BLESSING_DMG_PCT_PER_STACK) * (1.0 + skill)))
+		* (1.0 + float(blessing_stacks) * BLESSING_DMG_PCT_PER_STACK) * (1.0 + skill) \
+		* (1.0 + wolf) * powder))
 
 ## m5-t4 血怒（狂战士·烈被动）激活判定单一出处：HP 严格低于 50%（整数口径
 ## hp*2 < hp_max，恰 50% 不激活）。攻速 +25%（BerserkBloodbath.tick 续写共享窗）与
@@ -300,11 +327,17 @@ func pay_hp(n: int) -> bool:
 ## m4-c2 掠影（刺客被动，GDD §6）：近战击杀 → 返还 5 蓝 + 1s（60t）翻滚免冷却窗。
 ## 窗口按最新击杀顺延（frame+60）；被动门控在 Player（melee.gd 击杀路径只负责上报）。
 ## 翻滚自身仍写常规 CD（start_roll 语义不变）：窗内可连续翻滚，窗外恢复 0.7s 冷却。
+## m5-t9 嗜血（狼人·牙被动）同缝转发：近战击杀上报挂载技能节点消费（每房 ≤2 计数
+## 与 heal 收口在 LycanShift；门控在 Player 同掠影先例，melee.gd 上报路径零改动）。
 func on_melee_kill(frame: int) -> void:
-	if passive_id != "shadow_reap":
+	if passive_id == "shadow_reap":
+		add_energy(SHADOW_REAP_ENERGY)
+		_reap_roll_free_until = frame + SHADOW_REAP_ROLL_FREE_TICKS
 		return
-	add_energy(SHADOW_REAP_ENERGY)
-	_reap_roll_free_until = frame + SHADOW_REAP_ROLL_FREE_TICKS
+	if passive_id == "bloodthirst":
+		var sk := get_node_or_null("Skill")
+		if sk != null and sk.has_method("on_melee_kill_report"):
+			sk.call("on_melee_kill_report", frame)
 
 ## m2-t35 受击无敌帧：基线 ×(1+天赋 talent_hurt_iframe_pct) + 增益加算
 ## （nerve_reflex 的 hurt_iframe_bonus_ticks）。技能侧 apply_iframes 保持绝对 tick 语义不变。
