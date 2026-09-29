@@ -459,6 +459,31 @@ def sfx_sacrifice():
     b.save("sfx/sacrifice.wav", "献祭（术士·蚀技能，血蓝转换）", "warlock_sacrifice.gd 施放拍（M5-T4）")
 
 
+def sfx_steel_shield():
+    # m5-t6 铁卫·锚「架设」：金属低鸣 + 两记短促敲击（工事落地）
+    b = Buf(0.4)
+    b.mix(lambda t: sine(150, t) * env(t, 0.3, 0.01, 0.18), 0.5)
+    b.mix(lambda t: square(520, t) * env(t, 0.05, 0.002, 0.03), 0.35, delay=0.04)
+    b.mix(lambda t: square(390, t) * env(t, 0.07, 0.002, 0.05), 0.3, delay=0.16)
+    b.save("sfx/steel_shield.wav", "架设钢盾（铁卫·锚技能）", "bulwark_shield.gd 施放拍（M5-T6）")
+
+
+def sfx_decoy_leave():
+    # m5-t6 影卫·蜃「留影」：高频闪烁滑音（残像展开）
+    b = Buf(0.25)
+    b.mix(slide(1200, 700, 0.18, sine), 0.4)
+    b.mix(lambda t: tri(1600, t) * env(t, 0.06, 0.002, 0.04), 0.25, delay=0.05)
+    b.save("sfx/decoy_leave.wav", "留影诱饵（影卫·蜃技能施放）", "mirage_decoy.gd 施放拍（M5-T6）")
+
+
+def sfx_decoy_burst():
+    # m5-t6 影卫·蜃「烟爆」：噪声爆 + 低频冲击（诱饵消失烟爆/手动引爆共用）
+    b = Buf(0.35)
+    b.mix(burst(0.28, 0.6, 30), 0.7)
+    b.mix(slide(220, 60, 0.3, sine), 0.6)
+    b.save("sfx/decoy_burst.wav", "诱饵烟爆（影卫·蜃技能消失/引爆）", "mirage_decoy.gd 烟爆拍（M5-T6）")
+
+
 def music_crystal():
     """A2 晶核洞穴 BGM：冷色调慢琶音（Dm-Am-Bb-F），三角波+正弦垫。"""
     dur, bpm = 9.6, 96
@@ -710,6 +735,9 @@ def main():
     sfx_fuse_beep()
     sfx_bloodbath()
     sfx_sacrifice()
+    sfx_steel_shield()
+    sfx_decoy_leave()
+    sfx_decoy_burst()
     music_menu()
     music_battle()
     music_crystal()
