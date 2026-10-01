@@ -151,6 +151,8 @@ var opts := {
 	"seed_base": 2001,
 	"hero": "vanguard",                  # m4-c2 最小 --hero 参数（缺省 vanguard 零漂移；
 	                                     #   仅英雄注入点变化）
+	"start_floor": 1,                    # v1.0 发布检查：从第 N 层开局（bot 打不过 F1，
+	                                     #   第 2/3 层内容否则无法实跑覆盖）；缺省 1 零漂移
 	"hero_list": "",                     # m5-t11：名单轮转 "a,b,c"（非空时逐英雄 × 种子
 	                                     #   全矩阵展开；单一事实源解析在
 	                                     #   BalanceBotDecisions.hero_roster，校验在
@@ -378,6 +380,7 @@ func _run_one(seed: int, hero_id: String) -> String:
 			",".join(RunState.mods.keys())])
 	else:
 		RunState.start_run(hero_id)                # m4-c2：--hero 注入（缺省 vanguard 零漂移）
+	RunState.floor_idx = int(opts["start_floor"])   # _begin 前写入 → _start_floor 直接建该层
 	RunState.run_seed = seed                 # 种子覆写（口径披露：start_run 的墙钟
 	RngSvc.setup_run(seed)                   # 种子被确定性种子替换，其余状态不变）
 	_run_root = RUN_ROOT_SCENE.instantiate()
@@ -2337,6 +2340,8 @@ func _parse_user_args() -> void:
 				opts["hero"] = kv[1]   # m4-c2 最小参数（GameDB.heroes id；非法值见尾注回落）
 			"hero-list":
 				opts["hero_list"] = kv[1]   # m5-t11 名单轮转（校验见 _parse_user_args 尾段）
+			"start-floor":
+				opts["start_floor"] = clampi(int(kv[1]), 1, 3)
 			"seeds":
 				opts["seeds"] = kv[1]
 			"save-suffix":
