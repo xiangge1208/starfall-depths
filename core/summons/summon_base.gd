@@ -88,6 +88,21 @@ func ally_fire_interval(base_ticks: int, frame: int) -> int:
 		return base_ticks
 	return maxi(1, int(round(float(base_ticks) / (1.0 + pct))))
 
+## 换房重接（FloorScene 房间接线的 summons / follow_ally 组扫描调用）：先从旧房
+## CombatSystem 注销，再注册到新房。只换 combat 引用不注销会把战斗体留在旧房
+## ——旧房 CombatSystem 离房后仍在 _physics_process，召唤物到期 queue_free 后它每帧
+## 读已释放节点的 global_position 报错（工程师炮台/死灵傀儡实测一局 2000~4000 条）。
+## 新房为 null（商店/事件房无 CombatSystem）时只注销旧房，待下一战斗房再注册。
+func rewire_combat(new_combat) -> void:
+	if _despawned or new_combat == combat:
+		return
+	if combat != null and is_instance_valid(combat) and combat.has_method("unregister_body"):
+		combat.unregister_body(self)
+	combat = new_combat
+	if combat != null and is_instance_valid(combat) and combat.has_method("register_body") \
+			and is_inside_tree():
+		combat.register_body(self, combat_faction())
+
 ## 统一退场：幂等；注销战斗体 → despawned 信号（HUD/上层可挂）→ 遥测统计行 → queue_free。
 func despawn(reason: String) -> void:
 	if _despawned:

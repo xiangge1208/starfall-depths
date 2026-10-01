@@ -1105,15 +1105,16 @@ func _wire_room_combat(room: FloorRoom) -> void:
 	# m2-t26（T25 评审 Important-2 移入本卡）：召唤物跨房间残留收口——summons 组
 	# 存活体（工程师炮台等，挂在玩家/楼层各处）换房时 combat 重接到当前房；不重接
 	# 则残留旧房 CombatSystem（索敌/开火哑火、可击毁面失效直到超时退场）。
-	# duck-typed combat 接缝同 ShieldSpirit（SummonBase.combat）。
+	# m5-fix1：重接走 rewire_combat（旧房注销 + 新房注册）——原先只换引用，旧房
+	# 战斗体残留，召唤物到期释放后旧房每帧读已释放节点报错。
 	for node in get_tree().get_nodes_in_group("summons"):
 		if node is SummonBase:
-			(node as SummonBase).combat = room.combat
+			(node as SummonBase).rewire_combat(room.combat)
 	# m5-f：佣兵跟随跨房残留同款收口——独立 "follow_ally" 组（不进 summons 组，
 	# 防污染工程师炮台 summon_cap 库存计数；组纪律见 FollowAlly 头注）。
 	for node in get_tree().get_nodes_in_group("follow_ally"):
 		if node is SummonBase:
-			(node as SummonBase).combat = room.combat
+			(node as SummonBase).rewire_combat(room.combat)
 	# m1-t27：英雄暴击基础值注入（HeroApplier meta 接缝 "crit_base" 的房间层读出，
 	# T11 披露的接线位；无 meta（裸玩家测试路径）保持 CombatSystem 默认值）。
 	if player.has_meta("crit_base"):

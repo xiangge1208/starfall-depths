@@ -728,20 +728,27 @@ func test_hero_select_save_absent_renders_all_unlocked_zero_drift() -> void:
 		assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_true()
 		assert_float(ui._portraits[i].modulate.a).is_equal_approx(1.0, 0.001)
 
-func test_hero_select_unlock_labels_match_ambient_save_when_present() -> void:
-	# 环境存在 SaveSystem（GdUnit 进程 autoload 恒载）时：构建期解析与档内
-	# unlocked_heroes 键逐英雄一致（只读；键损/缺席 fail-SOFT 全解锁）
+func test_hero_select_all_free_ignores_save_unlock_list() -> void:
+	# m5-fix1 全免费裁定（附录 L §7）：生产路径恒全解锁，不读档内 unlocked_heroes。
+	# 回归钉：真实档只有 vanguard 时，旧逻辑让其余 19 人显示「待解锁」角标。
 	var ss := get_node_or_null("/root/SaveSystem")
 	if ss == null:
 		return                # 无 autoload 环境：缺席路径已由 ignore_save 用例覆盖
+	var data: Dictionary = ss.get("data")
+	var had_key := data.has("unlocked_heroes")
+	var prev: Variant = data.get("unlocked_heroes")
+	data["unlocked_heroes"] = ["vanguard"] as Array[String]   # 复现真实档态
 	var ui: Control = HERO_SELECT_SCENE.instantiate()
 	auto_free(ui)
 	add_child(ui)
-	var saved: Variant = (ss.get("data") as Dictionary).get("unlocked_heroes")
-	if typeof(saved) != TYPE_ARRAY:
-		for i in ui._ids.size():
-			assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_true()
-		return
 	for i in ui._ids.size():
-		var id := String(ui._ids[i])
-		assert_bool(ui.is_hero_unlocked(id)).is_equal((saved as Array).has(id))
+		assert_bool(ui.is_hero_unlocked(String(ui._ids[i]))).is_true()
+		assert_bool(ui._badges[i].visible).is_false()
+		assert_float(ui._portraits[i].modulate.a).is_equal_approx(1.0, 0.001)
+	ui._selected = 1
+	ui._refresh()
+	assert_bool(ui._detail_badge.visible).is_false()
+	if had_key:
+		data["unlocked_heroes"] = prev
+	else:
+		data.erase("unlocked_heroes")

@@ -266,8 +266,8 @@ func _apply_blessing_floor_entry(new_floor: int, is_new_entry: bool) -> void:
 ## 部署走玩家 Skill 节点（EngineerTurret）统一通路——库存上限/满编顶替与主动技同源；
 ## Skill 缺席（裸玩家测试）静默跳过。披露：开战接线（turret.combat）在进首房时由
 ## floor_scene._wire_room_combat 的 summons 组重接缝（m2-t26）补齐——层入口时刻
-## player.combat 尚为 null（房间未进），炮台先待机、进房即恢复开火，与跨房残留
-## 炮台的既有语义一致（体注册随部署房，跨房不重注）。
+## player.combat 尚为 null（房间未进），炮台先待机、进房即恢复开火——重接走
+## SummonBase.rewire_combat，战斗体随房迁移（旧房注销、新房注册，m5-fix1）。
 func _apply_spare_parts_floor_entry(frame: int) -> void:
 	var skill := player.get_node_or_null("Skill") as EngineerTurret
 	if skill != null:

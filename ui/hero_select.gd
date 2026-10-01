@@ -42,8 +42,10 @@ extends Control
 ## skill_script 与游侠共享 shadowstep 命名，规则推不出，必须表驱动）。解锁状态视觉标签：
 ## 只读 SaveSystem.data.unlocked_heroes（该键无正式访问器，achievement_system 同款
 ## data 键读取）；SaveSystem 缺席/键损 fail-SOFT 全解锁（同存档系统宁纵基调，测试零漂移）。
-## 过渡语义：未解锁卡仅加右上角「待解锁·开放体验」角标 + 立绘半透明，不锁点击/不锁
-## _choose（购买流未上线，全部开放试玩；裁定购买流后再收紧）。
+## 过渡语义（已结束）：未解锁卡曾加「待解锁·开放体验」角标 + 立绘半透明。
+## m5-fix1：2026-09-07 用户裁定 20 名角色全部免费开放、不做购买流——生产路径恒按
+## 全解锁渲染（不再读 unlocked_heroes，否则真实档只有 vanguard 时其余 19 人显示
+## 「待解锁」，与全免费矛盾）。角标渲染路径保留，仅 unlocked_override 测试缝可驱动。
 
 signal hero_chosen(hero_id: String)
 
@@ -479,35 +481,18 @@ func _stat_chip(label_text: String, value_text: String, accent: Color) -> PanelC
 	row.add_child(_label(value_text, 12, accent))
 	return chip
 
-## 解锁快照（构建期一次）：优先测试注入 → SaveSystem.data.unlocked_heroes（该键无
-## 正式访问器，走 achievement_system 同款 data 键只读）；SaveSystem 缺席/档容器/键型
-## 异常一律 fail-SOFT 全解锁（同存档系统「宁纵勿锁」基调，测试与无头环境零漂移）。
+## 解锁快照（构建期一次）。m5-fix1 全免费裁定：生产恒全解锁；unlocked_override 是
+## 唯一能产生「未解锁」态的入口（测试缝，钉住角标渲染路径不退化）。
 func _resolve_unlocks() -> void:
 	_unlocked.clear()
-	_all_unlocked = false
+	_all_unlocked = true
 	if ignore_save:
-		_all_unlocked = true
 		return
 	if unlocked_override != null:
+		_all_unlocked = false
 		for e: Variant in unlocked_override:
 			if typeof(e) == TYPE_STRING:
 				_unlocked.append(e)
-		return
-	var ss := get_node_or_null("/root/SaveSystem")
-	if ss == null:
-		_all_unlocked = true
-		return
-	var d: Variant = ss.get("data")
-	if typeof(d) != TYPE_DICTIONARY:
-		_all_unlocked = true
-		return
-	var arr: Variant = d.get("unlocked_heroes")
-	if typeof(arr) != TYPE_ARRAY:
-		_all_unlocked = true
-		return
-	for e: Variant in arr:
-		if typeof(e) == TYPE_STRING:
-			_unlocked.append(e)
 
 ## 解锁查询（构建期快照，公开给测试/后续购买流消费）：全解锁语义恒真。
 func is_hero_unlocked(id: String) -> bool:

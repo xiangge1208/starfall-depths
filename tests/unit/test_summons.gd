@@ -265,3 +265,59 @@ func test_plain_turret_never_fires_missile() -> void:
 		turret.tick(100 + 30 * (i + 1))                          # 推进 180t（跨导弹节拍）
 	assert_int(a.hp).is_equal(30)                                # 无导弹：直射弹走 combat（未命中前 hp 不动）
 	assert_int(cs.pool.active.size()).is_greater(0)              # 常规炮弹照常
+
+# ---- m5-fix1：换房重接注销旧房战斗体 ----
+# 实跑缺陷：FloorScene 换房只换召唤物的 combat 引用、不从旧房注销；旧房 CombatSystem
+# 离房后仍在跑 _physics_process，召唤物到期释放后每帧读已释放节点报错（工程师炮台/
+# 死灵傀儡一局 2000~4000 条）。
+
+func _registered(cs: CombatSystem, node: Node) -> bool:
+	return cs._bodies.has(node.get_instance_id())
+
+func test_rewire_combat_moves_body_between_rooms() -> void:
+	var root := _root()
+	var old_cs := _combat(root)
+	var new_cs := _combat(root)
+	var s := SummonBase.new()
+	root.add_child(s)
+	s.setup({"id": "probe", "hp": 5})
+	s.combat = old_cs
+	old_cs.register_body(s, s.combat_faction())
+	s.rewire_combat(new_cs)
+	assert_bool(_registered(old_cs, s)).is_false()    # 旧房已注销
+	assert_bool(_registered(new_cs, s)).is_true()     # 新房已注册
+	assert_object(s.combat).is_same(new_cs)
+	s.despawn("test")
+
+func test_rewire_combat_to_null_room_only_unregisters() -> void:
+	# 商店/事件房无 CombatSystem：只注销旧房，等下一战斗房再注册。
+	var root := _root()
+	var old_cs := _combat(root)
+	var s := SummonBase.new()
+	root.add_child(s)
+	s.setup({"id": "probe", "hp": 5})
+	s.combat = old_cs
+	old_cs.register_body(s, s.combat_faction())
+	s.rewire_combat(null)
+	assert_bool(_registered(old_cs, s)).is_false()
+	assert_object(s.combat).is_null()
+	s.despawn("test")
+
+func test_old_room_survives_summon_freed_after_rewire() -> void:
+	# 回归钉：旧房继续 tick 时不得再持有已释放的召唤物。
+	var root := _root()
+	var old_cs := _combat(root)
+	var new_cs := _combat(root)
+	var p := _engineer(root, old_cs)
+	(p.get_node("Skill") as EngineerTurret).cast(100)
+	var turret := _first_summon(root)
+	var tid := turret.get_instance_id()               # 释放后不可再取 id，先记下
+	assert_bool(old_cs._bodies.has(tid)).is_true()
+	turret.rewire_combat(new_cs)
+	turret.despawn("expired")                         # 只会从当前房（new_cs）注销
+	await get_tree().process_frame                    # queue_free 落地
+	assert_bool(is_instance_valid(turret)).is_false()
+	assert_bool(old_cs._bodies.has(tid)).is_false()   # 修复前此处仍为 true（悬空体）
+	for _i in 3:
+		await get_tree().physics_frame                # 旧房照常 tick：无悬空体可读
+	assert_int(old_cs._bodies.size()).is_equal(old_cs._bodies_by_hash_id.size())

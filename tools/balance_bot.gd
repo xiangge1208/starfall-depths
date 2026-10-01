@@ -2167,7 +2167,7 @@ func _write_md(path: String) -> void:
 		var sid := int(g["seed"])
 		if not by_seed.has(sid):
 			by_seed[sid] = {"door": "-", "final": "-"}
-		if String((by_seed[sid] as Dictionary)["door"]) == "-":
+		if str((by_seed[sid] as Dictionary)["door"]) == "-":   # door 由 "-" 变 int；String(int) 会抛错
 			(by_seed[sid] as Dictionary)["door"] = int(g["gems"])
 		(by_seed[sid] as Dictionary)["final"] = int(g["gems"])
 	for r2 in results:
